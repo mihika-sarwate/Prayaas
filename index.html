@@ -1,0 +1,3037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Adonis Laboratories â€“ Field Force Management System</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #0284c7;
+  --primary-light: #38bdf8;
+  --primary-dark: #0369a1;
+  --secondary: #ef4444;
+  --secondary-light: #f87171;
+  --secondary-dark: #b91c1c;
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --accent: #e0f2fe;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-main);color:var(--text);min-height:100vh}
+.screen{display:none;min-height:100vh;width:100%;flex-direction:column}
+.screen.on{display:flex}
+.hdr{background:linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);padding:max(16px,env(safe-area-inset-top)) 20px 16px;flex-shrink:0;box-shadow:0 4px 20px rgba(2,132,199,0.15)}
+.hdr-row{display:flex;align-items:center;justify-content:space-between}
+.logo{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hdr-brand{margin-left:12px;flex:1}
+.hdr-title{font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,0.75);margin-top:1px;font-weight:400}
+.hdr-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;transition:all 0.2s}
+.hdr-badge:hover{background:rgba(255,255,255,0.2);transform:translateY(-1px)}
+.body{flex:1;overflow-y:auto;padding:20px;padding-bottom:max(30px,env(safe-area-inset-bottom))}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 4px 18px rgba(15,23,42,0.03);transition:all 0.2s}
+.card:hover{box-shadow:0 6px 22px rgba(15,23,42,0.05)}
+.card-title{font-size:15px;font-weight:700;color:var(--primary-dark);margin-bottom:16px;display:flex;align-items:center;gap:8px;border-bottom:1.5px solid #f1f5f9;padding-bottom:10px}
+label.lbl{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px}
+input[type=text],input[type=password],input[type=number],input[type=date],input[type=time],input[type=month],textarea,select{width:100%;border:1.5px solid var(--border);border-radius:12px;background:#f8fafc;color:var(--text);font-family:inherit;font-size:14px;padding:0 14px;height:46px;outline:none;transition:all 0.2s}
+textarea{height:90px;padding:12px 14px;resize:none;line-height:1.5}
+input:focus,textarea:focus,select:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(2,132,199,0.12)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%2364748b' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;appearance:none}
+.fw{margin-bottom:16px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.btn{height:46px;border-radius:12px;border:1.5px solid var(--border);background:#ffffff;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;transition:all 0.2s;box-shadow:0 2px 4px rgba(15,23,42,0.02)}
+.btn:hover{background:#f8fafc;transform:translateY(-1px)}
+.btn:active{transform:scale(0.98)}
+.btn.primary{background:linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);color:#fff;border:none;box-shadow:0 4px 12px rgba(2,132,199,0.2)}
+.btn.primary:hover{background:linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);box-shadow:0 6px 16px rgba(2,132,199,0.3)}
+.btn.success{background:linear-gradient(135deg, var(--success) 0%, #059669 100%);color:#fff;border:none;box-shadow:0 4px 12px rgba(16,185,129,0.2)}
+.btn.success:hover{background:linear-gradient(135deg, #34d399 0%, var(--success) 100%)}
+.btn.danger{background:linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);color:#fff;border:none;box-shadow:0 4px 12px rgba(239,68,68,0.2)}
+.btn.danger:hover{background:linear-gradient(135deg, var(--secondary-light) 0%, var(--secondary) 100%)}
+.btn.gold{background:linear-gradient(135deg, var(--accent) 0%, #bae6fd 100%);color:var(--primary-dark);border-color:var(--accent)}
+.btn.gold:hover{background:linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%)}
+.btn.warn{background:linear-gradient(135deg, var(--warning) 0%, #d97706 100%);color:#fff;border:none}
+.btn-row{display:flex;gap:12px;margin-top:16px}
+.btn-row .btn{flex:1}
+.btn.sm{height:36px;font-size:12px;border-radius:10px;padding:0 12px}
+.badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.3px}
+.badge.green{background:#d1fae5;color:#065f46}
+.badge.blue{background:#e0f2fe;color:#0369a1}
+.badge.orange{background:#fef3c7;color:#92400e}
+.badge.red{background:#fee2e2;color:#991b1b}
+.badge.grey{background:#f1f5f9;color:#475569}
+.nav{display:flex;background:#ffffff;border-top:1.5px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 20px rgba(15,23,42,0.04)}
+.nav-btn{flex:1;background:none;border:none;padding:14px 2px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;font-size:10px;font-weight:600;color:var(--text-muted);transition:all 0.2s}
+.nav-btn.on{color:var(--primary);position:relative}
+.nav-btn.on::after{content:'';position:absolute;top:0;width:30px;height:4px;background:var(--primary);border-radius:0 0 4px 4px}
+.nav-btn .ni{font-size:20px;transition:transform 0.2s}
+.nav-btn:hover .ni{transform:translateY(-2px)}
+.doc-card{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1.5px solid #f1f5f9;cursor:pointer;transition:all 0.15s}
+.doc-card:hover{transform:translateX(4px)}
+.doc-card:last-child{border-bottom:none}
+.doc-avatar{width:42px;height:42px;border-radius:50%;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#0369a1;flex-shrink:0;border:1px solid #bae6fd}
+.doc-info{flex:1;min-width:0}
+.doc-name{font-size:14px;font-weight:700;color:var(--text)}
+.doc-spec{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:500}
+.doc-area{font-size:10.5px;color:var(--text-muted);margin-top:3px}
+.sample-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1.5px solid #f1f5f9}
+.sample-row:last-child{border-bottom:none}
+.sample-name{flex:1;font-size:13px;font-weight:600;color:var(--text)}
+.sample-qty{width:90px;flex-shrink:0}
+.sample-qty input{height:36px;text-align:center;font-size:14px;border-radius:10px}
+.report-row{padding:14px 0;border-bottom:1.5px solid #f1f5f9;transition:all 0.2s}
+.report-row:last-child{border-bottom:none}
+.report-doc{font-size:14px;font-weight:700;color:var(--primary-dark);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.report-meta{font-size:11px;color:var(--text-muted);margin-top:4px}
+.report-value{font-size:11.5px;font-weight:600;color:var(--success);margin-top:4px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;box-shadow:0 2px 8px rgba(15,23,42,0.01)}
+.stat-l{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
+.stat-v{font-size:24px;font-weight:800;color:var(--text);margin-top:6px;letter-spacing:-0.5px}
+.stat-v.green{color:var(--success)}
+.stat-v.orange{color:var(--warning)}
+.login-wrap{min-height:100vh;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at center, var(--primary) 0%, var(--primary-dark) 100%)}
+.login-card{background:#fff;border-radius:24px;padding:40px 32px;width:100%;max-width:400px;box-shadow:0 20px 40px rgba(15,23,42,0.3)}
+.login-title{text-align:center;font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-0.5px}
+.login-sub{text-align:center;font-size:14px;color:var(--text-muted);margin-bottom:32px}
+.gps-bar{display:flex;align-items:center;gap:10px;background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text-muted);margin-bottom:16px}
+.gps-bar.got{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--border)}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:600px}
+table.tbl th{font-size:11px;font-weight:700;color:var(--text-muted);text-align:left;padding:12px 14px;border-bottom:1.5px solid var(--border);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;background:#f8fafc}
+table.tbl td{padding:14px;border-bottom:1px solid #f1f5f9;color:var(--text);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+.tbl-name{font-weight:600;color:var(--text)}
+.empty{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;font-weight:500}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.95);color:#fff;font-size:13px;font-weight:600;padding:14px 28px;border-radius:30px;z-index:999;display:none;white-space:nowrap;box-shadow:0 10px 25px rgba(0,0,0,0.2);backdrop-filter:blur(8px)}
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.4);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:20px;padding:28px;width:92%;max-width:560px;max-height:85vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25)}
+.modal-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #f1f5f9;padding-bottom:12px;letter-spacing:-0.4px}
+.modal-close{background:#f1f5f9;border:none;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all 0.15s}
+.modal-close:hover{background:#e2e8f0;color:var(--text)}
+.sec-hdr{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--border)}
+.info-box{background:#f0f9ff;border-radius:12px;padding:14px;font-size:12.5px;color:#0369a1;line-height:1.6;margin-bottom:16px;border-left:4px solid var(--primary-light)}
+.info-box.green{background:#ecfdf5;color:#065f46;border-left-color:#10b981}
+.info-box.orange{background:#fffbeb;color:#92400e;border-left-color:#f59e0b}
+.tp-day{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+.tp-day-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tp-day-date{font-size:14px;font-weight:700;color:var(--text)}
+.tp-day-label{font-size:11px;color:var(--text-muted)}
+.exp-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #f1f5f9}
+.exp-row:last-child{border-bottom:none}
+.exp-label{flex:1;font-size:13px;font-weight:600;color:var(--text)}
+.exp-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.exp-amt{font-size:14px;font-weight:700;color:var(--success);width:90px;text-align:right;flex-shrink:0}
+.exp-total{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-top:2.5px solid var(--border);margin-top:12px}
+.exp-total-label{font-size:15px;font-weight:700;color:var(--text)}
+.exp-total-amt{font-size:20px;font-weight:800;color:var(--success)}
+.appr-card{border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all 0.2s}
+.appr-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,23,42,0.06);border-color:#cbd5e1}
+.appr-card.pending{border-left:5px solid var(--warning)}
+.appr-card.approved{border-left:5px solid var(--success)}
+.appr-card.rejected{border-left:5px solid var(--danger)}
+.appr-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.appr-name{font-size:14px;font-weight:700;color:var(--text)}
+.appr-meta{font-size:11px;color:var(--text-muted);margin-top:3px}
+.checklist-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:10px;max-height:160px;overflow-y:auto;border:1.5px solid var(--border);padding:12px;border-radius:12px;background:#f8fafc}
+.checklist-item{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;cursor:pointer}
+.checklist-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary)}
+.admin-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.admin-tab{padding:10px 16px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s}
+.admin-tab:hover{color:var(--primary)}
+.admin-tab.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN SCREEN -->
+<div id="scr-login" style="display:flex; width:100%;">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo">
+        <svg width="220" height="70" viewBox="0 0 260 80" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="blueGradLarge" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#0284c7" />
+            </linearGradient>
+            <linearGradient id="redGradLarge" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f87171" />
+              <stop offset="100%" stop-color="#ef4444" />
+            </linearGradient>
+          </defs>
+          <path d="M 38 5 L 12 75 L 26 75 L 34 52 L 54 52 L 60 75 L 74 75 Z" fill="url(#blueGradLarge)" />
+          <path d="M 5 50 L 68 28 L 48 48 Z" fill="url(#redGradLarge)" />
+          <text x="78" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="url(#blueGradLarge)" letter-spacing="-1">donis</text>
+        </svg>
+      </div>
+      <div class="login-title">Adonis Laboratories</div>
+      <div class="login-sub">Field Force &amp; MR System</div>
+      <div class="fw"><label class="lbl">Employee ID</label><input type="text" id="login-id" placeholder="e.g. EMP001" autocomplete="off"></div>
+      <div class="fw"><label class="lbl">Password</label><input type="password" id="login-pwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn primary" onclick="doLogin()" style="margin-top:4px">Login</button>
+      <div style="text-align:center;margin-top:14px">
+        <button class="btn sm" style="width:auto;padding:0 20px;margin:0 auto;background:var(--primary);color:var(--accent);border-color:var(--primary)" onclick="doAdminLogin()">Admin / Manager Login</button>
+      </div>
+      <div style="margin-top:16px;padding:10px;background:#F1F5F9;border-radius:10px;font-size:11px;color:var(--text-muted);text-align:center;line-height:1.5">
+        <strong>Demo Accounts:</strong><br>
+        MR: EMP001 / pass123 | EMP002 / pass123<br>
+        FL Manager: FLM001 / mgr123<br>
+        Zonal Manager: ZM001 / mgr123<br>
+        Admin: ADMIN / admin123
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EMPLOYEE / MR APP -->
+<div id="scr-emp" class="screen">
+  <div class="hdr">
+    <div class="hdr-row">
+      <div class="logo">
+        <svg viewBox="0 0 80 80" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="blueGradHeader" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#0284c7" />
+            </linearGradient>
+            <linearGradient id="redGradHeader" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f87171" />
+              <stop offset="100%" stop-color="#ef4444" />
+            </linearGradient>
+          </defs>
+          <path d="M 46 5 L 18 75 L 32 75 L 41 50 L 59 50 L 66 75 L 80 75 Z" fill="url(#blueGradHeader)" />
+          <path d="M 5 48 L 78 26 L 56 46 Z" fill="url(#redGradHeader)" />
+        </svg>
+      </div>
+      <div class="hdr-brand"><div class="hdr-title">Adonis MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
+      <button class="hdr-badge" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+  
+  <!-- MR HOME TAB -->
+  <div class="body" id="tab-home">
+    <div class="stats">
+      <div class="stat"><div class="stat-l">Calls Today</div><div class="stat-v green" id="stat-today">0</div></div>
+      <div class="stat"><div class="stat-l">Total Coverage</div><div class="stat-v" id="stat-coverage">0%</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-l">Tour Plan Status</div><div class="stat-v orange" id="stat-tp">â€”</div></div>
+      <div class="stat"><div class="stat-l">Leave Balance</div><div class="stat-v" id="stat-leave-bal">CL:0 SL:0</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">&#128197; Today's Schedule &amp; Activity</div>
+      <div id="today-reports"><div class="empty">No calls reported today</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">&#128203; My Recent Calls</div>
+      <div id="recent-reports"><div class="empty">No reports submitted yet</div></div>
+    </div>
+  </div>
+
+  <!-- MR REPORT / VISIT TAB -->
+  <div class="body" id="tab-report" style="display:none">
+    <div class="card">
+      <div class="card-title">&#128203; Submit Daily Call Report</div>
+      <div class="row2">
+        <div><label class="lbl">Date</label><input type="date" id="r-date" onchange="checkMTPForSelectedDate()"></div>
+        <div><label class="lbl">Call Classification</label><select id="r-classification" disabled><option>Planned Call</option><option>Unplanned Call</option></select></div>
+      </div>
+      <div class="row2">
+        <div><label class="lbl">Time</label><input type="time" id="r-time"></div>
+        <div><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option></select></div>
+      </div>
+      
+      <!-- Doctor Selection -->
+      <div class="fw" id="r-doctor-wrap"><label class="lbl">Doctor</label><select id="r-doctor" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Doctor --</option></select></div>
+      
+      <!-- Chemist Selection -->
+      <div class="fw" id="r-chemist-wrap" style="display:none"><label class="lbl">Chemist</label><select id="r-chemist" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Chemist --</option></select></div>
+      <div class="fw" id="r-planned-targets-wrap" style="display:none"></div>
+      
+      <div class="fw"><label class="lbl">Call Type / Objective</label>
+        <select id="r-calltype">
+          <option>Regular Visit</option><option>Introductory Visit</option><option>Follow-up</option><option>CME / Event</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- Planned activities card -->
+    <div class="card" id="r-planned-activities-card" style="display:none">
+      <div class="card-title">&#128197; Planned Activities for Selected Date</div>
+      <div id="r-planned-docs-list" style="margin-bottom:8px"></div>
+      <div id="r-planned-chems-list"></div>
+    </div>
+
+    <!-- Doctor Specific Form Fields -->
+    <div id="r-doctor-details-wrap">
+      <div class="card">
+        <div class="card-title">&#128188; Product Promotion &amp; Discussion</div>
+        <div class="fw"><label class="lbl">Products Detailed (Promoted)</label>
+          <div id="r-promo-products" class="checklist-grid"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">&#127873; Samples Issued</div>
+        <div id="samples-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">&#127381; Gift Distribution</div>
+        <div id="gifts-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">&#128196; Input/Literature Given</div>
+        <div id="inputs-list"></div>
+      </div>
+    </div>
+
+    <!-- Chemist Specific Form Fields -->
+    <div id="r-chemist-details-wrap" style="display:none">
+      <div class="card">
+        <div class="card-title">&#128221; Order &amp; Stock Info</div>
+        <div class="row2">
+          <div><label class="lbl">Orders Discussed (&#x20B9;)</label><input type="number" id="r-chem-order" placeholder="0"></div>
+          <div><label class="lbl">Stock Availability</label><select id="r-chem-stock"><option>Adequate Stock</option><option>Low Stock</option><option>Out of Stock</option></select></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Joint Field Work (JFW) Accompainment -->
+    <div class="card">
+      <div class="card-title">&#129309; Joint Field Work Accompaniment</div>
+      <div class="fw"><label class="lbl">Accompanied By Manager</label>
+        <select id="r-jfw-manager"><option value="">-- Working Alone --</option></select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">&#128205; Remarks &amp; Location</div>
+      <div class="gps-bar" id="gps-bar">
+        <span style="font-size:18px">&#128205;</span>
+        <span id="gps-text">Tap to capture GPS location</span>
+        <button class="btn sm" style="width:auto;padding:0 12px;margin-left:auto" onclick="getGPS()">Get GPS</button>
+      </div>
+      <input type="hidden" id="r-lat"><input type="hidden" id="r-lng">
+      <div class="fw"><label class="lbl">Call Notes / Feedback</label><textarea id="r-remarks" placeholder="Enter visit summary details..."></textarea></div>
+      <div class="fw"><label class="lbl">Follow-up Required (Next Visit)</label><input type="date" id="r-next-visit"></div>
+    </div>
+    <div class="btn-row"><button class="btn success" onclick="submitReport()">&#10003; Submit Call Report</button></div>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- MR TOUR PLAN TAB -->
+  <div class="body" id="tab-tour" style="display:none">
+    <div class="card">
+      <div class="card-title">&#128506; Monthly Tour Plan (MTP)</div>
+      <div class="row2">
+        <div><label class="lbl">Month</label><input type="month" id="tp-month" onchange="renderTPDaysForMonth()"></div>
+        <div><label class="lbl">Reporting Manager</label><select id="tp-manager" disabled></select></div>
+      </div>
+      <div class="info-box">Enter only the Area/Territory for working days. Empty dates will not be included when the MTP is saved or submitted.</div>
+    </div>
+    <!-- MTP ANALYTICS CARD -->
+    <div class="card" id="mtp-analytics-card" style="display:none">
+      <div class="card-title">&#128202; MTP Analytics (Approved Plan)</div>
+      <div class="stats">
+        <div class="stat"><div class="stat-l">Planned Doctor Calls</div><div class="stat-v" id="mtp-stat-planned-docs">0</div></div>
+        <div class="stat"><div class="stat-l">Planned Chemist Calls</div><div class="stat-v" id="mtp-stat-planned-chems">0</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-l">MTP Doctor Coverage</div><div class="stat-v green" id="mtp-stat-coverage">0%</div></div>
+        <div class="stat"><div class="stat-l">Missed Doctor Calls</div><div class="stat-v red" id="mtp-stat-missed-docs">0</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-l">Missed Chemist Calls</div><div class="stat-v red" id="mtp-stat-missed-chems">0</div></div>
+        <div class="stat"><div class="stat-l">Doctor Actual vs Planned</div><div class="stat-v" id="mtp-stat-doc-ratio">0 / 0</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat" style="grid-column: span 2"><div class="stat-l">Chemist Actual vs Planned</div><div class="stat-v" id="mtp-stat-chem-ratio">0 / 0</div></div>
+      </div>
+    </div>
+
+    <!-- Toggle View option -->
+    <div class="admin-tabs" style="margin-top:10px;margin-bottom:10px">
+      <div class="admin-tab on" id="mtp-view-grid-btn" onclick="toggleMTPViewMode('grid')">Tabular View</div>
+      <div class="admin-tab" id="mtp-view-cal-btn" onclick="toggleMTPViewMode('calendar')">Calendar View</div>
+    </div>
+    
+    <div id="mtp-grid-wrapper">
+      <div id="tp-days-container"></div>
+    </div>
+    
+    <div id="mtp-calendar-wrapper" style="display:none">
+      <div class="card" style="padding:16px">
+        <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:4px;text-align:center;font-weight:700;font-size:11px;margin-bottom:8px">
+          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+        </div>
+        <div id="mtp-calendar-grid" style="display:grid;grid-template-columns:repeat(7, 1fr);gap:6px"></div>
+      </div>
+    </div>
+
+    <div class="btn-row" id="tp-action-buttons" style="display:none">
+      <button class="btn primary" onclick="saveOrSubmitTourPlan('Draft')">Save as Draft</button>
+      <button class="btn success" onclick="saveOrSubmitTourPlan('Submitted')">Submit Tour Plan</button>
+    </div>
+    <div style="height:10px"></div>
+    <div class="sec-hdr">My MTP History</div>
+    <div id="my-tp-list"></div>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- MR EXPENSE TAB -->
+  <div class="body" id="tab-expense" style="display:none">
+    <div class="card">
+      <div class="card-title">&#128176; Submit Expense Claim</div>
+      <div class="info-box green">Expenses are auto-calculated from your approved daily visit reports using the standard fare charts.</div>
+      <div class="fw"><label class="lbl">Select Month</label><input type="month" id="exp-month" onchange="generateExpenseFromReports()"></div>
+    </div>
+    <div id="expense-detail" style="display:none">
+      <div class="card">
+        <div class="card-title">&#128196; Expense Statement</div>
+        <div id="exp-breakdown"></div>
+        <div class="exp-total">
+          <div class="exp-total-label">Total Claim Amount</div>
+          <div class="exp-total-amt" id="exp-grand-total">&#x20B9;0</div>
+        </div>
+        <div class="fw" style="margin-top:14px">
+          <label class="lbl">Upload Bill/Receipt (Supports images/PDF)</label>
+          <input type="file" id="exp-receipt-file" accept="image/*,application/pdf">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn success" onclick="submitExpense()">&#128228; Submit Claim for Approval</button>
+      </div>
+    </div>
+    <div class="sec-hdr">My Submitted Claims</div>
+    <div id="my-expenses-list"></div>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- MR LEAVE TAB -->
+  <div class="body" id="tab-leave" style="display:none">
+    <div class="card">
+      <div class="card-title">&#127915; Apply for Leave</div>
+      <div class="row2">
+        <div><label class="lbl">Start Date</label><input type="date" id="lv-start"></div>
+        <div><label class="lbl">End Date</label><input type="date" id="lv-end"></div>
+      </div>
+      <div class="row2">
+        <div><label class="lbl">Leave Type</label><select id="lv-type"><option>Casual Leave</option><option>Sick Leave</option><option>Earned Leave</option><option>LWP</option></select></div>
+        <div><label class="lbl">Reporting Manager</label><select id="lv-manager" disabled></select></div>
+      </div>
+      <div class="fw"><label class="lbl">Reason for Leave</label><textarea id="lv-reason" placeholder="State reason..."></textarea></div>
+      <button class="btn primary" onclick="submitLeave()">Submit Leave Request</button>
+    </div>
+    <div class="card">
+      <div class="card-title">&#128202; Leave Balance Details</div>
+      <div class="row2" style="text-align:center">
+        <div style="padding:10px;background:#F1F5F9;border-radius:10px"><div class="stat-l">Casual (CL)</div><div class="stat-v" id="lv-bal-cl">0 / 12</div></div>
+        <div style="padding:10px;background:#F1F5F9;border-radius:10px"><div class="stat-l">Sick (SL)</div><div class="stat-v" id="lv-bal-sl">0 / 10</div></div>
+      </div>
+      <div class="row2" style="text-align:center;margin-top:10px">
+        <div style="padding:10px;background:#F1F5F9;border-radius:10px"><div class="stat-l">Earned (EL)</div><div class="stat-v" id="lv-bal-el">0 / 15</div></div>
+        <div style="padding:10px;background:#F1F5F9;border-radius:10px"><div class="stat-l">LWP</div><div class="stat-v" id="lv-bal-lwp">0</div></div>
+      </div>
+    </div>
+    <div class="sec-hdr">My Leave Requests</div>
+    <div id="my-leaves-list"></div>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- MR DOCTORS & CHEMISTS TAB -->
+  <div class="body" id="tab-doctors" style="display:none">
+    <div class="admin-tabs" style="margin-bottom:10px">
+      <div class="admin-tab on" id="doc-subtab-btn" onclick="toggleDocChemistSubtab('doc')">Doctors</div>
+      <div class="admin-tab" id="chem-subtab-btn" onclick="toggleDocChemistSubtab('chem')">Chemists</div>
+    </div>
+    <div id="doc-subtab-content">
+      <div class="card" style="padding:10px 14px;margin-bottom:10px">
+        <input type="text" id="doc-search" placeholder="&#128269; Search doctor, speciality, area..." oninput="renderDocList()" style="background:#F1F5F9">
+      </div>
+      <div class="card"><div id="doc-list"><div class="empty">No doctors assigned</div></div></div>
+    </div>
+    <div id="chem-subtab-content" style="display:none">
+      <div class="card" style="padding:10px 14px;margin-bottom:10px">
+        <input type="text" id="chem-search" placeholder="&#128269; Search chemists by name or area..." oninput="renderChemistList()" style="background:#F1F5F9">
+      </div>
+      <div class="card"><div id="chemist-list"><div class="empty">No chemists assigned</div></div></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAVIGATION -->
+  <div class="nav">
+    <button class="nav-btn on" id="nb-home" onclick="goTab('home')"><span class="ni">&#127968;</span>Home</button>
+    <button class="nav-btn" id="nb-report" onclick="goTab('report')"><span class="ni">&#128203;</span>Report</button>
+    <button class="nav-btn" id="nb-tour" onclick="goTab('tour')"><span class="ni">&#128506;</span>Tour Plan</button>
+    <button class="nav-btn" id="nb-expense" onclick="goTab('expense')"><span class="ni">&#128176;</span>Expense</button>
+    <button class="nav-btn" id="nb-leave" onclick="goTab('leave')"><span class="ni">&#127915;</span>Leave</button>
+    <button class="nav-btn" id="nb-doctors" onclick="goTab('doctors')"><span class="ni">&#128101;</span>Listings</button>
+  </div>
+</div>
+
+<!-- MANAGER & ADMIN PORTAL -->
+<div id="scr-admin" class="screen">
+  <div class="hdr">
+    <div class="hdr-row">
+      <div class="logo">
+        <svg viewBox="0 0 80 80" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="blueGradAdmin" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#0284c7" />
+            </linearGradient>
+            <linearGradient id="redGradAdmin" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f87171" />
+              <stop offset="100%" stop-color="#ef4444" />
+            </linearGradient>
+          </defs>
+          <path d="M 46 5 L 18 75 L 32 75 L 41 50 L 59 50 L 66 75 L 80 75 Z" fill="url(#blueGradAdmin)" />
+          <path d="M 5 48 L 78 26 L 56 46 Z" fill="url(#redGradAdmin)" />
+        </svg>
+      </div>
+      <div class="hdr-brand">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="hdr-title" id="adm-panel-title">Admin Console</div>
+          <span class="badge orange" id="adm-badge" style="padding:2px 8px;font-size:9px;text-transform:uppercase">ADM</span>
+        </div>
+        <div class="hdr-sub">Adonis Laboratories</div>
+      </div>
+      <button class="hdr-badge" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="body">
+    <!-- ADMIN TABS -->
+    <div class="admin-tabs">
+      <div class="admin-tab on" id="tab-adm-dash" onclick="goAdminTab('dash')">Dashboard</div>
+      <div class="admin-tab" id="tab-adm-appr" onclick="goAdminTab('appr')">Approvals</div>
+      <div class="admin-tab" id="tab-adm-master" onclick="goAdminTab('master')">Master Data</div>
+      <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
+      <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
+    </div>
+
+    <!-- ADMIN DASHBOARD PANEL -->
+    <div id="sec-adm-dash">
+      <div class="stats">
+        <div class="stat"><div class="stat-l">Total Active Team</div><div class="stat-v" id="adm-emp-count">0</div></div>
+        <div class="stat"><div class="stat-l">Assigned Doctors</div><div class="stat-v" id="adm-doc-count">0</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-l">Total Daily Call Reports</div><div class="stat-v green" id="adm-rep-count">0</div></div>
+        <div class="stat"><div class="stat-l">Pending Approvals</div><div class="stat-v orange" id="adm-pending-count">0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">&#128101; Active Team Performance &amp; Coverage Summary</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr><th>Employee ID</th><th>Name</th><th>Territory</th><th>Reports Submitted</th><th>Doctor Coverage %</th><th>JFW Days Accompanied</th></tr>
+            </thead>
+            <tbody id="adm-dash-team-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN APPROVALS PANEL -->
+    <div id="sec-adm-appr" style="display:none">
+      <div class="sec-hdr">&#9989; Tour Plan (MTP) Submissions</div>
+      <div id="adm-tp-approvals"><div class="empty">No tour plans pending your approval</div></div>
+
+      <div class="sec-hdr">&#128176; Expense Claims Submissions</div>
+      <div id="adm-exp-approvals"><div class="empty">No expense claims pending your approval</div></div>
+
+      <div class="sec-hdr">&#127915; Leave Application Submissions</div>
+      <div id="adm-leave-approvals"><div class="empty">No leave requests pending your approval</div></div>
+    </div>
+
+    <!-- ADMIN MASTER DATA PANEL -->
+    <div id="sec-adm-master" style="display:none">
+      <!-- SFC Master -->
+      <div id="adm-sfc-section">
+        <div class="sec-hdr">&#128506; Fare &amp; Distance Master (SFC)</div>
+        <div class="card">
+          <div class="info-box">Upload SFC CSV with columns: <strong>FromLocation, ToLocation, DistanceKM, TravelMode, FareAmount, DAAllowance, LodgingAllowance, OtherAllowance</strong></div>
+          <div class="btn-row" style="margin-bottom:10px">
+            <button class="btn sm success" onclick="downloadSFCTemplate()">&#8595; SFC Template</button>
+            <button class="btn sm primary" onclick="document.getElementById('sfc-upload').click()">&#8593; Upload SFC CSV</button>
+            <input type="file" id="sfc-upload" accept=".csv" onchange="uploadSFC(this)" style="display:none">
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>From</th><th>To</th><th>Distance</th><th>Mode</th><th>Fare</th><th>DA</th><th>Lodge</th><th>Actions</th></tr></thead>
+              <tbody id="sfc-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employee Master -->
+      <div class="sec-hdr">&#128101; Hierarchy &amp; Employee Management</div>
+      <div class="card">
+        <div class="card-title">Add New Employee Record</div>
+        <div class="row2">
+          <div><label class="lbl">Employee ID</label><input type="text" id="adm-emp-id" placeholder="e.g. EMP004"></div>
+          <div><label class="lbl">Name</label><input type="text" id="adm-emp-name" placeholder="Full Name"></div>
+        </div>
+        <div class="row2">
+          <div><label class="lbl">Password</label><input type="text" id="adm-emp-pwd" placeholder="Password"></div>
+          <div><label class="lbl">Territory / HQ</label><input type="text" id="adm-emp-area" placeholder="HQ city"></div>
+        </div>
+        <div class="row2">
+          <div><label class="lbl">Role / Level</label>
+            <select id="adm-emp-role">
+              <option value="emp">Medical Representative (MR)</option>
+              <option value="manager">First Line Manager (FLM)</option>
+              <option value="am">Area Manager (AM)</option>
+              <option value="rm">Regional Manager (RM)</option>
+              <option value="zm">Zonal Manager (ZM)</option>
+              <option value="nsm">National Sales Manager (NSM)</option>
+              <option value="admin">System Administrator</option>
+            </select>
+          </div>
+          <div><label class="lbl">Reporting Manager</label><select id="adm-emp-mgr"><option value="">-- None / Root --</option></select></div>
+        </div>
+        <button class="btn primary sm" onclick="addEmployee()">+ Save Employee Record</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Bulk Import Employees</div>
+        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Role, ManagerID</strong></div>
+        <div class="btn-row">
+          <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Emp Template</button>
+          <button class="btn sm primary" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
+          <input type="file" id="emp-upload" accept=".csv" onchange="uploadEmployees(this)" style="display:none">
+        </div>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>Action</th></tr></thead>
+            <tbody id="emp-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Doctor Master -->
+      <div class="sec-hdr">&#128203; Doctor Master Management</div>
+      <div class="card">
+        <div class="info-box">Upload Doctor CSV. Columns: <strong>DoctorCode, Name, Speciality, Qualification, Address, City, Area, Mobile, AssignToEmpID, Status</strong></div>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn sm success" onclick="downloadDocTemplate()">&#8595; Doc Template</button>
+          <button class="btn sm primary" onclick="document.getElementById('doc-upload').click()">&#8593; Upload Doctor CSV</button>
+          <input type="file" id="doc-upload" accept=".csv" onchange="uploadDoctors(this)" style="display:none">
+        </div>
+        <button class="btn sm" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
+      </div>
+      <div class="card">
+        <input type="text" id="adm-doc-search" placeholder="&#128269; Search doctor master registry..." oninput="renderAdminDocList()" style="margin-bottom:10px;background:#F1F5F9">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Code</th><th>Name</th><th>Speciality</th><th>Area</th><th>Mobile</th><th>Assigned MR</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="doc-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Chemist Master -->
+      <div class="sec-hdr">&#128221; Chemist Master Management</div>
+      <div class="card">
+        <div class="info-box">Upload Chemist CSV. Columns: <strong>ChemistID, Name, Area, AssignToEmpID</strong></div>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn sm success" onclick="downloadChemTemplate()">&#8595; Chemist Template</button>
+          <button class="btn sm primary" onclick="document.getElementById('chem-upload').click()">&#8593; Upload Chemist CSV</button>
+          <input type="file" id="chem-upload" accept=".csv" onchange="uploadChemists(this)" style="display:none">
+        </div>
+        <button class="btn sm" onclick="addChemistManual()">+ Add Single Chemist Manual</button>
+      </div>
+      <div class="card">
+        <input type="text" id="adm-chem-search" placeholder="&#128269; Search chemist master registry..." oninput="renderAdminChemistList()" style="margin-bottom:10px;background:#F1F5F9">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Chemist ID</th><th>Name</th><th>Area</th><th>Assigned MR</th><th>Actions</th></tr></thead>
+            <tbody id="chem-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN INVENTORY PANEL -->
+    <div id="sec-adm-inventory" style="display:none">
+      <div class="card">
+        <div class="card-title">&#128230; Issue Stock to Representative</div>
+        <div class="row2">
+          <div><label class="lbl">Select Employee (MR)</label><select id="inv-issue-emp"></select></div>
+          <div><label class="lbl">Item Type</label><select id="inv-issue-type" onchange="populateInventoryItemSelect()"><option>Sample Product</option><option>Gift Promotional</option><option>Promotional Input</option></select></div>
+        </div>
+        <div class="row2">
+          <div><label class="lbl">Item Name</label><select id="inv-issue-item"></select></div>
+          <div><label class="lbl">Quantity to Issue</label><input type="number" id="inv-issue-qty" min="1" placeholder="Qty"></div>
+        </div>
+        <button class="btn success sm" onclick="issueStockToMR()">Issue / Allocate Stock</button>
+      </div>
+
+      <div class="sec-hdr">&#128196; Employee Inventory Registers</div>
+      <div class="card">
+        <div class="row3">
+          <div><label class="lbl">Filter MR</label><select id="inv-filter-emp" onchange="renderAdminInventoryTables()"><option value="">All Employees</option></select></div>
+        </div>
+        <div class="card-title" style="margin-top:10px">Sample Inventory balances</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Employee</th><th>Product Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
+            <tbody id="tbl-inv-samples"></tbody>
+          </table>
+        </div>
+        <div class="card-title" style="margin-top:20px">Promotional Gift balances</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Employee</th><th>Gift Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
+            <tbody id="tbl-inv-gifts"></tbody>
+          </table>
+        </div>
+        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs)</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Employee</th><th>Input Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
+            <tbody id="tbl-inv-inputs"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN REPORTS PANEL -->
+    <div id="sec-adm-reports" style="display:none">
+      <div class="card">
+        <div class="card-title">&#128269; Master Report Filter &amp; Selection</div>
+        <div class="fw"><label class="lbl">Select Report Category</label>
+          <select id="rep-selector" onchange="updateReportHeadersAndFilters()">
+            <option value="doc_calls">1. Total Doctor Calls Report</option>
+            <option value="chem_calls">2. Total Chemist Calls Report</option>
+            <option value="call_avg">3. Doctor Call Average Report</option>
+            <option value="missed_calls">4. Missed Doctor Calls Report</option>
+            <option value="visit_freq">5. Doctor Visit Frequency Report</option>
+            <option value="plan_vs_act">6. Planned vs Actual Calls Report</option>
+            <option value="jfw_days">7. Joint Field Work (JFW) Summary</option>
+            <option value="mgr_accomp">8. Manager Accompaniment Report</option>
+            <option value="samples_util">9. Sample Utilization Report</option>
+            <option value="gifts_util">10. Gift Utilization Report</option>
+            <option value="expenses_rep">11. Expense Summary Report</option>
+            <option value="leaves_rep">12. Leave Utilisation Report</option>
+            <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
+          </select>
+        </div>
+        <div class="row3">
+          <div><label class="lbl">Employee Filter</label><select id="rep-filter-emp"><option value="">All employees</option></select></div>
+          <div><label class="lbl">From Date</label><input type="date" id="rep-from"></div>
+          <div><label class="lbl">To Date</label><input type="date" id="rep-to"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary sm" onclick="runMISReport()">Run Query / Filter</button>
+          <button class="btn success sm" onclick="exportReportToCSV()">&#8595; Export Excel / CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="rep-table-title">Query Results</div>
+        <div class="tbl-wrap">
+          <table class="tbl" id="mis-report-table">
+            <thead id="mis-report-thead"></thead>
+            <tbody id="mis-report-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SINGLE DOCTOR MODAL -->
+<div class="modal-bg" id="modal-add-doc">
+  <div class="modal">
+    <div class="modal-title"><span id="doc-modal-title-text">Add Doctor</span> <button class="modal-close" onclick="closeModal('modal-add-doc')">&#215;</button></div>
+    <input type="hidden" id="md-id">
+    <div class="row2">
+      <div><label class="lbl">Doctor Code</label><input type="text" id="md-code" placeholder="DOC001"></div>
+      <div><label class="lbl">Name</label><input type="text" id="md-name" placeholder="Dr. Name"></div>
+    </div>
+    <div class="row2">
+      <div><label class="lbl">Speciality</label><input type="text" id="md-spec" placeholder="Cardiology..."></div>
+      <div><label class="lbl">Qualification</label><input type="text" id="md-qual" placeholder="MBBS, MD..."></div>
+    </div>
+    <div class="row2">
+      <div><label class="lbl">City</label><input type="text" id="md-city" placeholder="City"></div>
+      <div><label class="lbl">Area</label><input type="text" id="md-area" placeholder="Local Area"></div>
+    </div>
+    <div class="fw"><label class="lbl">Address</label><input type="text" id="md-address" placeholder="Hospital address"></div>
+    <div class="row2">
+      <div><label class="lbl">Mobile</label><input type="text" id="md-phone" placeholder="Mobile"></div>
+      <div><label class="lbl">Assign To MR</label><select id="md-assign"><option value="">-- Assign MR --</option></select></div>
+    </div>
+    <div class="fw">
+      <label class="lbl">Status</label>
+      <select id="md-status"><option>Active</option><option>Inactive</option></select>
+    </div>
+    <div class="btn-row"><button class="btn primary" onclick="saveDoctor()">Save Doctor Record</button></div>
+  </div>
+</div>
+
+<!-- SINGLE CHEMIST MODAL -->
+<div class="modal-bg" id="modal-add-chem">
+  <div class="modal">
+    <div class="modal-title"><span id="chem-modal-title-text">Add Chemist</span> <button class="modal-close" onclick="closeModal('modal-add-chem')">&#215;</button></div>
+    <input type="hidden" id="mc-id">
+    <div class="fw"><label class="lbl">Chemist Code / ID</label><input type="text" id="mc-code" placeholder="CHM001"></div>
+    <div class="fw"><label class="lbl">Chemist Name</label><input type="text" id="mc-name" placeholder="Chemist shop name"></div>
+    <div class="row2">
+      <div><label class="lbl">Area</label><input type="text" id="mc-area" placeholder="Area"></div>
+      <div><label class="lbl">Assign To MR</label><select id="mc-assign"><option value="">-- Assign MR --</option></select></div>
+    </div>
+    <div class="btn-row"><button class="btn primary" onclick="saveChemist()">Save Chemist Record</button></div>
+  </div>
+</div>
+
+<!-- TOUR PLAN DETAIL MODAL -->
+<div class="modal-bg" id="modal-tp-detail">
+  <div class="modal" style="max-width: 700px;">
+    <div class="modal-title">Monthly Tour Plan Detail <button class="modal-close" onclick="closeModal('modal-tp-detail')">&#215;</button></div>
+    <div id="tp-detail-content"></div>
+    <div class="btn-row" id="tp-approval-btns" style="display:none">
+      <button class="btn danger" onclick="rejectTP()">&#10008; Reject Plan</button>
+      <button class="btn success" onclick="approveTP()">&#10003; Approve Plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPENSE DETAIL MODAL -->
+<div class="modal-bg" id="modal-exp-detail">
+  <div class="modal" style="max-width: 650px;">
+    <div class="modal-title">Expense Claim Review <button class="modal-close" onclick="closeModal('modal-exp-detail')">&#215;</button></div>
+    <div id="exp-detail-content"></div>
+    <div class="btn-row" id="exp-approval-btns" style="display:none">
+      <button class="btn danger" onclick="rejectExp()">&#10008; Reject Claim</button>
+      <button class="btn success" onclick="approveExp()">&#10003; Approve Claim</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEAVE DETAIL MODAL -->
+<div class="modal-bg" id="modal-leave-detail">
+  <div class="modal">
+    <div class="modal-title">Leave Request Review <button class="modal-close" onclick="closeModal('modal-leave-detail')">&#215;</button></div>
+    <div id="leave-detail-content"></div>
+    <div class="btn-row" id="leave-approval-btns" style="display:none">
+      <button class="btn danger" onclick="rejectLeave()">&#10008; Reject Leave</button>
+      <button class="btn success" onclick="approveLeave()">&#10003; Approve Leave</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Master Data Store
+var DEFAULT_DB={
+  employees:[
+    {id:'ADMIN',name:'Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'NSM001',name:'Sanjay Kapoor',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'ZM001',name:'Amitav Banerjee',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'RM001',name:'Vikram Malhotra',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'AM001',name:'Deepa Iyer',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'FLM001',name:'Rajesh Verma',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP001',name:'Rahul Sharma',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
+    {id:'EMP002',name:'Priya Mehta',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP003',name:'Karan Patel',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
+  ],
+  doctors:[
+    {id:'D001',code:'DOC001',name:'Dr. Anil Kumar',spec:'Cardiologist',qual:'MBBS, MD',address:'Bandra Medical Center',city:'Mumbai',area:'Bandra',phone:'9820000001',assignTo:'EMP001',status:'Active'},
+    {id:'D002',code:'DOC002',name:'Dr. Sunita Rao',spec:'Gynaecologist',qual:'MD, DGO',address:'Holy Spirit Compound',city:'Mumbai',area:'Andheri',phone:'9820000002',assignTo:'EMP002',status:'Active'},
+    {id:'D003',code:'DOC003',name:'Dr. Pradeep Joshi',spec:'Paediatrician',qual:'MBBS, DCH',address:'Hinduja Clinic Road',city:'Mumbai',area:'Bandra',phone:'9820000003',assignTo:'EMP001',status:'Active'},
+    {id:'D004',code:'DOC004',name:'Dr. Meera Nair',spec:'General Physician',qual:'MBBS',address:'KEM OPD Block',city:'Mumbai',area:'Dadar',phone:'9820000004',assignTo:'EMP001',status:'Active'},
+    {id:'D005',code:'DOC005',name:'Dr. Vikram Singh',spec:'ENT Specialist',qual:'MS (ENT)',address:'Kokilaben Hospital Wing C',city:'Mumbai',area:'Vile Parle',phone:'9820000005',assignTo:'EMP002',status:'Active'},
+    {id:'D006',code:'DOC006',name:'Dr. Kavita Shah',spec:'Dermatologist',qual:'MD (Skin)',address:'Sai Skin Clinic',city:'Mumbai',area:'Malad',phone:'9820000006',assignTo:'EMP002',status:'Active'},
+    {id:'D007',code:'DOC007',name:'Dr. Rohit Desai',spec:'Orthopaedic',qual:'MS (Ortho)',address:'Deenanath Hospital',city:'Pune',area:'Kothrud',phone:'9820000007',assignTo:'EMP003',status:'Active'},
+    {id:'D008',code:'DOC008',name:'Dr. Smita Kulkarni',spec:'Neurologist',qual:'DM (Neuro)',address:'Ruby Hall OPD',city:'Pune',area:'Wakad',phone:'9820000008',assignTo:'EMP003',status:'Active'}
+  ],
+  chemists:[
+    {id:'C001',name:'Noble Chemist',area:'Bandra',assignTo:'EMP001'},
+    {id:'C002',name:'Wellness Forever',area:'Andheri',assignTo:'EMP002'},
+    {id:'C003',name:'Apollo Pharmacy',area:'Dadar',assignTo:'EMP001'},
+    {id:'C004',name:'Kothrud Medicals',area:'Kothrud',assignTo:'EMP003'}
+  ],
+  products:['Aminoglobin-XT Susp','Arden 250','Arden 500','Arden 650','Arden A','Arden Junior','Arden MF Susp','Arden Spas','Coldaid+','Coldaid Susp','Coniderm-F','Hepaheal Syrup','Loramyl','ORT+','Servil Herbal','Servil Junior','Servil LS-Baby','Servil-D','Servil-LS Junior','Servil-LS Syrup','MV 30 Syrup','MV 30 Tab'],
+  gifts:['Pen Set','Notepad','Visiting Card Holder','Anatomy Chart','Drug Compendium','Umbrella','Calendar','Desk Clock'],
+  inputs:['Visual Aid Folder','Product Literature','Leave Behind Cards','Table Calendar','Brand Samples Box'],
+  reports:[
+    {
+      id: 'REP_MOCK_1',
+      empId: 'EMP001',
+      empName: 'Rahul Sharma',
+      date: '2026-06-01',
+      time: '10:30',
+      targetType: 'Doctor',
+      classification: 'Planned Call',
+      callType: 'Regular Visit',
+      docId: 'D001',
+      docName: 'Dr. Anil Kumar',
+      docSpec: 'Cardiologist',
+      docArea: 'Bandra',
+      promotedProducts: ['Arden 650', 'Coldaid+'],
+      samples: {'Arden 650': 2, 'Coldaid+': 1},
+      gifts: {'Pen Set': 1},
+      inputs: {'Product Literature': 1},
+      jfwMgrId: '',
+      lat: '19.0543',
+      lng: '72.8402',
+      remarks: 'Detailed visual aid. Doctor was positive about Arden 650.',
+      nextVisit: '2026-06-15'
+    },
+    {
+      id: 'REP_MOCK_2',
+      empId: 'EMP001',
+      empName: 'Rahul Sharma',
+      date: '2026-06-02',
+      time: '14:15',
+      targetType: 'Chemist',
+      classification: 'Planned Call',
+      callType: 'Regular Visit',
+      chemId: 'C001',
+      chemName: 'Noble Chemist',
+      chemArea: 'Bandra',
+      orderAmount: 12500,
+      stockStatus: 'Adequate Stock',
+      jfwMgrId: 'FLM001',
+      jfwMgrName: 'Rajesh Verma',
+      lat: '19.0545',
+      lng: '72.8410',
+      remarks: 'Joint field work with manager. Collected order of Rs 12,500.',
+      nextVisit: ''
+    }
+  ],
+  tourPlans:[],
+  expenses:[],
+  leaves:[],
+  cityRates:{daA:700,daB:500,daC:300,lodgeA:1500,lodgeB:1000,lodgeC:0,localConv:120},
+  sfc:[
+    {from:'Mumbai',to:'Pune',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
+    {from:'Pune',to:'Mumbai',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
+    {from:'Mumbai',to:'Nashik',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
+    {from:'Nashik',to:'Mumbai',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
+    {from:'Mumbai',to:'Aurangabad',distance:330,mode:'Bus',fare:600,da:450,lodge:800,other:150},
+    {from:'Pune',to:'Nashik',distance:210,mode:'Bus',fare:400,da:450,lodge:800,other:100},
+    {from:'Pune',to:'Aurangabad',distance:230,mode:'Bus',fare:450,da:450,lodge:800,other:100}
+  ],
+  samplesInventory:[
+    {prodName:'Arden 650',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Coldaid+',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Servil-D',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
+    {prodName:'Arden 650',empId:'EMP002',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Coldaid+',empId:'EMP002',opening:100,received:100,distributed:0,balance:100}
+  ],
+  giftsInventory:[
+    {giftName:'Pen Set',empId:'EMP001',opening:30,received:30,distributed:0,balance:30},
+    {giftName:'Notepad',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
+    {giftName:'Pen Set',empId:'EMP002',opening:30,received:30,distributed:0,balance:30}
+  ],
+  inputsInventory:[
+    {inputName:'Visual Aid Folder',empId:'EMP001',opening:10,received:10,distributed:0,balance:10},
+    {inputName:'Product Literature',empId:'EMP001',opening:100,received:100,distributed:0,balance:100}
+  ]
+};
+
+var DB=JSON.parse(localStorage.getItem('adonis_db'))||DEFAULT_DB;
+function ensureDBDefaults(){
+  if(!DB.cityRates){
+    DB.cityRates={daA:700,daB:500,daC:300,lodgeA:1500,lodgeB:1000,lodgeC:0,localConv:120};
+  }
+  if(!DB.sfc){DB.sfc=[];}
+  if(!DB.reports || DB.reports.length === 0){
+    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
+    saveDB();
+  }
+}
+ensureDBDefaults();
+function saveDB(){localStorage.setItem('adonis_db',JSON.stringify(DB));}
+
+var SESSION={user:null};
+var currentTPId=null;
+var currentExpId=null;
+var currentLeaveId=null;
+var currentAdminTab='dash';
+var filteredReports=[];
+
+// ===== AUTH =====
+function doLogin(){
+  var id=document.getElementById('login-id').value.trim().toUpperCase();
+  var pwd=document.getElementById('login-pwd').value;
+  var emp=DB.employees.find(function(e){return e.id===id&&e.pwd===pwd&&e.role==='emp';});
+  if(!emp){showToast('Invalid Employee ID or Password');return;}
+  SESSION.user=emp;
+  document.getElementById('scr-login').style.display='none';
+  document.getElementById('scr-emp').classList.add('on');
+  initEmpApp();
+}
+
+function doAdminLogin(){
+  var id=prompt('ID:');var pwd=prompt('Password:');
+  if(!id||!pwd)return;
+  var u=DB.employees.find(function(e){return e.id===(id||'').toUpperCase()&&e.pwd===pwd&&(e.role!=='emp');});
+  if(!u){showToast('Invalid credentials');return;}
+  SESSION.user=u;
+  document.getElementById('scr-login').style.display='none';
+  document.getElementById('scr-admin').classList.add('on');
+  document.getElementById('adm-panel-title').textContent=u.role==='admin'?'Admin Panel':'Manager Panel';
+  document.getElementById('adm-badge').textContent=u.role.toUpperCase();
+  
+  if(u.role!=='admin'){
+    document.getElementById('adm-sfc-section').style.display='none';
+  } else {
+    document.getElementById('adm-sfc-section').style.display='';
+  }
+  initAdminApp();
+}
+
+function doLogout(){
+  SESSION.user=null;
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
+  document.getElementById('scr-login').style.display='flex';
+  document.getElementById('login-id').value='';document.getElementById('login-pwd').value='';
+}
+
+// ===== EMPLOYEE / MR PORTAL FUNCTIONS =====
+function initEmpApp(){
+  var u=SESSION.user;
+  document.getElementById('emp-greeting').textContent='Welcome, '+u.name+' ('+u.id+')';
+  
+  var now=new Date();
+  document.getElementById('r-date').value=now.toISOString().split('T')[0];
+  document.getElementById('r-time').value=now.toTimeString().slice(0,5);
+  
+  // Set default values for inputs
+  var defMonth=now.toISOString().slice(0,7);
+  document.getElementById('tp-month').value=defMonth;
+  document.getElementById('exp-month').value=defMonth;
+  
+  var mgr=DB.employees.find(function(e){return e.id===u.managerId;});
+  var mgrName=mgr ? mgr.name+' ('+mgr.role.toUpperCase()+')' : 'No Direct Manager';
+  
+  // Populate read-only manager displays
+  var tpm=document.getElementById('tp-manager');
+  tpm.innerHTML='<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
+  var lvm=document.getElementById('lv-manager');
+  lvm.innerHTML='<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
+  
+  populateReportingDropdowns();
+  renderDocList();
+  renderChemistList();
+  populateJFWManagers();
+  checkMTPForSelectedDate();
+  renderLeaveBalances();
+  renderMyLeaves();
+  renderHomeStats();
+  
+  goTab('home');
+}
+
+function populateReportingDropdowns(){
+  var docSel=document.getElementById('r-doctor');
+  docSel.innerHTML='<option value="">-- Select Doctor --</option>';
+  DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active';}).forEach(function(d){
+    var o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.spec+' - '+d.area+')';docSel.appendChild(o);
+  });
+
+  var chemSel=document.getElementById('r-chemist');
+  chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
+  DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).forEach(function(c){
+    var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.area+')';chemSel.appendChild(o);
+  });
+  docSel.onchange=updateReportClassificationFromTarget;
+  chemSel.onchange=updateReportClassificationFromTarget;
+  
+  // Product checklist grid
+  var promoProductsGrid=document.getElementById('r-promo-products');
+  promoProductsGrid.innerHTML=DB.products.map(function(p, i){
+    return '<label class="checklist-item"><input type="checkbox" class="promo-prod-check" value="'+p+'"> '+p+'</label>';
+  }).join('');
+  
+  // Samples
+  document.getElementById('samples-list').innerHTML=DB.products.map(function(p,i){
+    var myStock=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+    var bal=myStock ? myStock.balance : 0;
+    return '<div class="sample-row"><div class="sample-name">'+p+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" class="sample-inp"></div></div>';
+  }).join('');
+
+  // Gifts
+  document.getElementById('gifts-list').innerHTML=DB.gifts.map(function(g,i){
+    var myStock=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+    var bal=myStock ? myStock.balance : 0;
+    return '<div class="sample-row"><div class="sample-name">'+g+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" class="gift-inp"></div></div>';
+  }).join('');
+
+  // Inputs
+  document.getElementById('inputs-list').innerHTML=DB.inputs.map(function(ip,i){
+    var myStock=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+    var bal=myStock ? myStock.balance : 0;
+    return '<div class="sample-row"><div class="sample-name">'+ip+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" class="input-inp"></div></div>';
+  }).join('');
+}
+
+function populateJFWManagers(){
+  var jfwSel=document.getElementById('r-jfw-manager');
+  jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
+  
+  // Pull hierarchy automatically
+  var chain=[];
+  var currentId=SESSION.user.managerId;
+  while(currentId){
+    var mgr=DB.employees.find(function(e){return e.id===currentId;});
+    if(mgr){
+      chain.push(mgr);
+      currentId=mgr.managerId;
+    } else {
+      break;
+    }
+  }
+  
+  chain.forEach(function(m){
+    var o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.role.toUpperCase()+')';jfwSel.appendChild(o);
+  });
+}
+
+function toggleReportTargetFields(){
+  var type=document.getElementById('r-target-type').value;
+  if(type==='Doctor'){
+    document.getElementById('r-doctor-wrap').style.display='block';
+    document.getElementById('r-chemist-wrap').style.display='none';
+    document.getElementById('r-doctor-details-wrap').style.display='block';
+    document.getElementById('r-chemist-details-wrap').style.display='none';
+  } else {
+    document.getElementById('r-doctor-wrap').style.display='none';
+    document.getElementById('r-chemist-wrap').style.display='block';
+    document.getElementById('r-doctor-details-wrap').style.display='none';
+    document.getElementById('r-chemist-details-wrap').style.display='block';
+  }
+  updateReportClassificationFromTarget();
+}
+
+function getApprovedMTPDay(dateStr){
+  if(!dateStr || !SESSION.user)return null;
+  var monthStr=dateStr.slice(0, 7);
+  var mtp=DB.tourPlans.find(function(tp){
+    return tp.empId===SESSION.user.id && tp.month===monthStr && tp.status==='Approved';
+  });
+  return mtp ? mtp.days.find(function(d){return d.date===dateStr;}) : null;
+}
+
+function renderPlannedTargetsForReport(plannedDay){
+  var wrap=document.getElementById('r-planned-targets-wrap');
+  if(!wrap)return;
+  var plannedDocIds = plannedDay ? ((plannedDay.plannedDocs&&plannedDay.plannedDocs.length) ? plannedDay.plannedDocs : getAssignedDoctorsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(doc){return doc.id;})) : [];
+  var plannedChemIds = plannedDay ? ((plannedDay.plannedChems&&plannedDay.plannedChems.length) ? plannedDay.plannedChems : getAssignedChemistsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(chem){return chem.id;})) : [];
+  if(!plannedDay || (!plannedDocIds.length && !plannedChemIds.length)){
+    wrap.style.display='none';
+    wrap.innerHTML='';
+    return;
+  }
+  var docBtns=plannedDocIds.map(function(docId){
+    var doc=DB.doctors.find(function(d){return d.id===docId && d.assignTo===SESSION.user.id && d.status==='Active';});
+    return doc ? '<button type="button" class="btn sm" style="width:auto;margin:3px;display:inline-flex" onclick="selectPlannedReportTarget(\'Doctor\', \''+doc.id+'\')">'+doc.name+'</button>' : '';
+  }).join('');
+  var chemBtns=plannedChemIds.map(function(chemId){
+    var chem=DB.chemists.find(function(c){return c.id===chemId && c.assignTo===SESSION.user.id;});
+    return chem ? '<button type="button" class="btn sm" style="width:auto;margin:3px;display:inline-flex" onclick="selectPlannedReportTarget(\'Chemist\', \''+chem.id+'\')">'+chem.name+'</button>' : '';
+  }).join('');
+  wrap.style.display='block';
+  wrap.innerHTML='<label class="lbl">Approved MTP Targets for this Date</label><div class="info-box green" style="margin-bottom:0">'+
+    (docBtns ? '<div style="margin-bottom:6px"><strong>Doctors:</strong><br>'+docBtns+'</div>' : '')+
+    (chemBtns ? '<div><strong>Chemists:</strong><br>'+chemBtns+'</div>' : '')+
+    '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor or chemist as an unplanned call.</div></div>';
+}
+
+function updateReportClassificationFromTarget(){
+  var dateStr=document.getElementById('r-date').value;
+  var plannedDay=getApprovedMTPDay(dateStr);
+  var targetType=document.getElementById('r-target-type').value;
+  var targetId=targetType==='Doctor' ? document.getElementById('r-doctor').value : document.getElementById('r-chemist').value;
+  var planned=false;
+  if(plannedDay){
+    var plannedDocIds=(plannedDay.plannedDocs&&plannedDay.plannedDocs.length) ? plannedDay.plannedDocs : getAssignedDoctorsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(doc){return doc.id;});
+    var plannedChemIds=(plannedDay.plannedChems&&plannedDay.plannedChems.length) ? plannedDay.plannedChems : getAssignedChemistsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(chem){return chem.id;});
+    planned = targetType==='Doctor' ? plannedDocIds.includes(targetId) : plannedChemIds.includes(targetId);
+    if(!targetId) planned=true;
+  }
+  document.getElementById('r-classification').value=planned ? 'Planned Call' : 'Unplanned Call';
+}
+
+function checkMTPForSelectedDate(){
+  var dateStr=document.getElementById('r-date').value;
+  if(!dateStr)return;
+  var plannedDay = getApprovedMTPDay(dateStr);
+  renderPlannedTargetsForReport(plannedDay);
+  
+  if(plannedDay){
+    updateReportClassificationFromTarget();
+    showToast('Planned date found in Tour Plan!');
+  } else {
+    updateReportClassificationFromTarget();
+    showToast('Notice: Reporting an unplanned call date.');
+  }
+}
+
+function submitReport(){
+  updateReportClassificationFromTarget();
+  var date=document.getElementById('r-date').value;
+  var time=document.getElementById('r-time').value;
+  var targetType=document.getElementById('r-target-type').value;
+  var classification=document.getElementById('r-classification').value;
+  
+  if(!date){showToast('Please set report date');return;}
+  
+  var repObj={
+    id:'REP'+Date.now(),
+    empId:SESSION.user.id,
+    empName:SESSION.user.name,
+    date:date,
+    time:time,
+    targetType:targetType,
+    classification:classification,
+    callType:document.getElementById('r-calltype').value,
+    jfwMgrId:document.getElementById('r-jfw-manager').value,
+    lat:document.getElementById('r-lat').value||'',
+    lng:document.getElementById('r-lng').value||'',
+    remarks:document.getElementById('r-remarks').value.trim(),
+    nextVisit:document.getElementById('r-next-visit').value
+  };
+  
+  if(repObj.jfwMgrId){
+    var mgrObj=DB.employees.find(function(e){return e.id===repObj.jfwMgrId;});
+    repObj.jfwMgrName=mgrObj ? mgrObj.name : '';
+  }
+
+  if(targetType==='Doctor'){
+    var docId=document.getElementById('r-doctor').value;
+    if(!docId){showToast('Please select doctor');return;}
+    var doc=DB.doctors.find(function(d){return d.id===docId;});
+    repObj.docId=docId;
+    repObj.docName=doc?doc.name:'';
+    repObj.docSpec=doc?doc.spec:'';
+    repObj.docArea=doc?doc.area:'';
+    
+    // Products promoted
+    var promoted=[];
+    document.querySelectorAll('.promo-prod-check:checked').forEach(function(cb){
+      promoted.push(cb.value);
+    });
+    repObj.promotedProducts=promoted;
+    
+    // Samples issued deduction
+    var samples={};
+    DB.products.forEach(function(p, i){
+      var v=parseInt(document.getElementById('smp-'+i).value)||0;
+      if(v>0){
+        samples[p]=v;
+        // Deduct inventory
+        var inv=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+        if(inv){
+          inv.distributed+=v;
+          inv.balance = Math.max(0, inv.balance - v);
+        }
+      }
+    });
+    repObj.samples = samples;
+
+    // Gifts deduction
+    var gifts={};
+    DB.gifts.forEach(function(g, i){
+      var v=parseInt(document.getElementById('gft-'+i).value)||0;
+      if(v>0){
+        gifts[g]=v;
+        var inv=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+        if(inv){
+          inv.distributed+=v;
+          inv.balance = Math.max(0, inv.balance - v);
+        }
+      }
+    });
+    repObj.gifts = gifts;
+
+    // Inputs deduction
+    var inputs={};
+    DB.inputs.forEach(function(ip, i){
+      var v=parseInt(document.getElementById('inp-'+i).value)||0;
+      if(v>0){
+        inputs[ip]=v;
+        var inv=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+        if(inv){
+          inv.distributed+=v;
+          inv.balance = Math.max(0, inv.balance - v);
+        }
+      }
+    });
+    repObj.inputs = inputs;
+    
+  } else {
+    var chemId=document.getElementById('r-chemist').value;
+    if(!chemId){showToast('Please select chemist');return;}
+    var chem=DB.chemists.find(function(c){return c.id===chemId;});
+    repObj.chemId=chemId;
+    repObj.chemName=chem?chem.name:'';
+    repObj.chemArea=chem?chem.area:'';
+    repObj.orderAmount=parseFloat(document.getElementById('r-chem-order').value)||0;
+    repObj.stockStatus=document.getElementById('r-chem-stock').value;
+  }
+  
+  DB.reports.unshift(repObj);
+  saveDB();
+  showToast('Daily Call Report Submitted successfully!');
+  
+  // Clear inputs
+  document.getElementById('r-remarks').value='';
+  document.getElementById('r-next-visit').value='';
+  document.getElementById('r-doctor').value='';
+  document.getElementById('r-chemist').value='';
+  document.getElementById('r-chem-order').value='';
+  document.querySelectorAll('.promo-prod-check').forEach(function(cb){cb.checked=false;});
+  document.querySelectorAll('.sample-inp, .gift-inp, .input-inp').forEach(function(ip){ip.value='';});
+  
+  // Reset GPS Status
+  document.getElementById('gps-bar').className='gps-bar';
+  document.getElementById('gps-text').textContent='Tap to capture GPS location';
+  document.getElementById('r-lat').value='';
+  document.getElementById('r-lng').value='';
+  
+  populateReportingDropdowns();
+  renderHomeStats();
+  goTab('home');
+}
+
+// GPS Simulation
+function getGPS(){
+  var bar=document.getElementById('gps-bar'),txt=document.getElementById('gps-text');
+  txt.textContent='Locating...';
+  if(!navigator.geolocation){
+    // Mock for demo
+    var lat=(19.076 + Math.random()*0.02).toFixed(5);
+    var lng=(72.877 + Math.random()*0.02).toFixed(5);
+    document.getElementById('r-lat').value=lat;
+    document.getElementById('r-lng').value=lng;
+    bar.className='gps-bar got';
+    txt.textContent='Captured: '+lat+', '+lng+' (Simulated)';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude.toFixed(5);
+    var lng=pos.coords.longitude.toFixed(5);
+    document.getElementById('r-lat').value=lat;
+    document.getElementById('r-lng').value=lng;
+    bar.className='gps-bar got';
+    txt.textContent='Verified GPS: '+lat+', '+lng;
+  },function(){
+    var lat=(19.076 + Math.random()*0.02).toFixed(5);
+    var lng=(72.877 + Math.random()*0.02).toFixed(5);
+    document.getElementById('r-lat').value=lat;
+    document.getElementById('r-lng').value=lng;
+    bar.className='gps-bar got';
+    txt.textContent='Captured: '+lat+', '+lng+' (Default)';
+  });
+}
+
+function renderHomeStats(){
+  var u=SESSION.user;
+  var myR=DB.reports.filter(function(r){return r.empId===u.id;});
+  var today=new Date().toISOString().split('T')[0];
+  var todayR=myR.filter(function(r){return r.date===today;});
+  
+  document.getElementById('stat-today').textContent=todayR.length;
+  
+  var totalDocsAssigned=DB.doctors.filter(function(d){return d.assignTo===u.id && d.status==='Active';}).length;
+  var visitedDocIds=[];
+  myR.forEach(function(r){
+    if(r.targetType==='Doctor' && !visitedDocIds.includes(r.docId)){
+      visitedDocIds.push(r.docId);
+    }
+  });
+  
+  var cov=totalDocsAssigned ? Math.round((visitedDocIds.length / totalDocsAssigned)*100) : 0;
+  document.getElementById('stat-coverage').textContent=cov+'%';
+  
+  var activeMTP=DB.tourPlans.filter(function(t){return t.empId===u.id && t.month===today.slice(0,7);});
+  document.getElementById('stat-tp').textContent=activeMTP.length ? activeMTP[activeMTP.length-1].status : 'No MTP';
+  
+  document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+  
+  document.getElementById('today-reports').innerHTML=todayR.length ? todayR.map(repRow).join('') : '<div class="empty">No calls reported today</div>';
+  document.getElementById('recent-reports').innerHTML=myR.length ? myR.slice(0,5).map(repRow).join('') : '<div class="empty">No reports submitted yet</div>';
+}
+
+function repRow(r){
+  var title = r.targetType==='Doctor' ? r.docName : r.chemName;
+  var sub = r.targetType==='Doctor' ? r.docSpec+' | '+r.docArea : 'Chemist | '+r.chemArea;
+  var val = r.targetType==='Doctor' ? Object.keys(r.samples).length+' sample(s) distributed' : 'Order Claim: \u20B9'+r.orderAmount;
+  var badgeClass=r.classification==='Planned Call' ? 'green' : 'orange';
+  return '<div class="report-row"><div class="report-doc">'+title+' <span class="badge '+badgeClass+'">'+r.classification+'</span></div><div class="report-meta">'+r.date+' '+r.time+' | '+sub+'</div><div class="report-value">'+val+'</div></div>';
+}
+
+// ===== TOUR PLAN MTP FUNCTIONS =====
+var currentMTPDays=[];
+function renderTPDaysForMonth(){
+  var month=document.getElementById('tp-month').value;
+  var tpDaysContainer=document.getElementById('tp-days-container');
+  var actionBtnContainer=document.getElementById('tp-action-buttons');
+  if(!month){
+    tpDaysContainer.innerHTML='';
+    if(actionBtnContainer) actionBtnContainer.style.display='none';
+    return;
+  }
+  
+  var existing=DB.tourPlans.find(function(t){
+    return t.empId===SESSION.user.id && t.month===month;
+  });
+  
+  var isReadOnly = false; // Always editable for MR resubmissions
+  var year=parseInt(month.split('-')[0]);
+  var mIndex=parseInt(month.split('-')[1])-1;
+  var date = new Date(year, mIndex, 1);
+  currentMTPDays=[];
+  
+  var i=1;
+  while (date.getMonth() === mIndex) {
+    var dayStr = i < 10 ? '0'+i : i;
+    var fullDateStr = month+'-'+dayStr;
+    var existingDay = existing ? existing.days.find(function(d){return d.date===fullDateStr;}) : null;
+    currentMTPDays.push(existingDay ? JSON.parse(JSON.stringify(existingDay)) : {
+      date: fullDateStr,
+      dayNum: i,
+      category:'HQ',
+      areaTerritory:'',
+      fromLocation:SESSION.user.area,
+      toLocation:'',
+      stayCity:'',
+      objective:'',
+      plannedDocs:[],
+      plannedChems:[]
+    });
+    
+    i++;
+    date.setDate(date.getDate() + 1);
+  }
+  
+  renderMTPDaysUI(isReadOnly, existing);
+  updateMTPAnalytics(month);
+  
+  // Also render calendar if currently in calendar view
+  if(document.getElementById('mtp-view-cal-btn').classList.contains('on')){
+    renderCalendarView();
+  }
+}
+
+function getAssignedDoctorsForArea(area){
+  var clean=(area||'').trim().toLowerCase();
+  if(!clean)return [];
+  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active' && d.area.toLowerCase()===clean;});
+}
+
+function getAssignedChemistsForArea(area){
+  var clean=(area||'').trim().toLowerCase();
+  if(!clean)return [];
+  return DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id && c.area.toLowerCase()===clean;});
+}
+
+function renderMTPDaysUI(isReadOnly, existing){
+  var c=document.getElementById('tp-days-container');
+  var readOnlyAttr = '';
+  var html = '';
+  isReadOnly = false;
+  
+  if (!existing) {
+    var month = document.getElementById('tp-month').value;
+    if (month && SESSION.user) {
+      existing = DB.tourPlans.find(function(t){
+        return t.empId===SESSION.user.id && t.month===month;
+      });
+    }
+  }
+
+  if (existing) {
+    html += '<div class="info-box '+(existing.status==='Approved'?'green':'orange')+'">Current Status: <strong style="text-transform:uppercase">'+existing.status+'</strong>'+
+            (existing.remarks ? '<br><strong>Manager Comments:</strong> ' + existing.remarks : '') + '</div>';
+  }
+
+  html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
+    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Planned Doctors</th><th>Planned Chemists</th></tr></thead><tbody>';
+
+  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return !!(day.areaTerritory||day.toLocation||'').trim();}) : currentMTPDays;
+
+  html += daysToRender.map(function(d){
+    var originalIdx = currentMTPDays.indexOf(d);
+    var area=d.areaTerritory||d.toLocation||'';
+    var docs=getAssignedDoctorsForArea(area);
+    var chems=getAssignedChemistsForArea(area);
+    d.plannedDocs=docs.map(function(doc){return doc.id;});
+    d.plannedChems=chems.map(function(chem){return chem.id;});
+    var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
+    return '<tr class="mtp-area-row">'+
+      '<td class="tbl-name">'+d.date+'</td>'+
+      '<td>'+dow+'</td>'+
+      '<td><input type="text" '+readOnlyAttr+' value="'+area+'" placeholder="Enter area/territory" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)"></td>'+
+      '<td><span class="badge blue">'+docs.length+'</span> '+(docs.length?docs.map(function(doc){return doc.name;}).join(', '):'--')+'</td>'+
+      '<td><span class="badge green">'+chems.length+'</span> '+(chems.length?chems.map(function(chem){return chem.name;}).join(', '):'--')+'</td>'+
+      '</tr>';
+  }).join('');
+
+  html += '</tbody></table></div></div>';
+  c.innerHTML = html;
+  
+  var actionsEl = document.getElementById('tp-action-buttons');
+  if (actionsEl) {
+    actionsEl.style.display = isReadOnly ? 'none' : 'flex';
+  }
+}
+
+function updateMTPArea(idx, value){
+  var area=value.trim();
+  currentMTPDays[idx].areaTerritory=area;
+  currentMTPDays[idx].toLocation=area;
+  currentMTPDays[idx].fromLocation=SESSION.user.area;
+  currentMTPDays[idx].category=area ? 'HQ' : 'HQ';
+  currentMTPDays[idx].plannedDocs=getAssignedDoctorsForArea(area).map(function(doc){return doc.id;});
+  currentMTPDays[idx].plannedChems=getAssignedChemistsForArea(area).map(function(chem){return chem.id;});
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function updateMTPRoute(idx, routeVal){
+  return;
+}
+function toggleMTPDoc(dayIdx, docId){
+  var arr=currentMTPDays[dayIdx].plannedDocs;
+  var existIdx=arr.indexOf(docId);
+  if(existIdx >= 0) arr.splice(existIdx,1);
+  else arr.push(docId);
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function toggleMTPChem(dayIdx, chemId){
+  var arr=currentMTPDays[dayIdx].plannedChems;
+  var existIdx=arr.indexOf(chemId);
+  if(existIdx >= 0) arr.splice(existIdx,1);
+  else arr.push(chemId);
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function sanitizeMTPDaysForAssignedMasters(){
+  currentMTPDays.forEach(function(day){
+    day.areaTerritory=(day.areaTerritory||day.toLocation||'').trim();
+    day.toLocation=day.areaTerritory;
+    day.fromLocation=SESSION.user.area;
+    day.plannedDocs=getAssignedDoctorsForArea(day.areaTerritory).map(function(doc){return doc.id;});
+    day.plannedChems=getAssignedChemistsForArea(day.areaTerritory).map(function(chem){return chem.id;});
+  });
+  return currentMTPDays.filter(function(day){return !!day.areaTerritory;});
+}
+
+function saveOrSubmitTourPlan(status){
+  var month=document.getElementById('tp-month').value;
+  var mgr=SESSION.user.managerId;
+  if(!month){showToast('Please select Month');return;}
+  if(!currentMTPDays.length){showToast('No days generated for this month');return;}
+  var plannedDays=sanitizeMTPDaysForAssignedMasters();
+  if(!plannedDays.length){showToast('Please enter Area/Territory for at least one working day');return;}
+  
+  var mgrObj=DB.employees.find(function(e){return e.id===mgr;});
+  
+  var existingIndex = DB.tourPlans.findIndex(function(t){
+    return t.empId===SESSION.user.id && t.month===month;
+  });
+  
+  var tpObj;
+  if(existingIndex >= 0) {
+    tpObj = DB.tourPlans[existingIndex];
+    tpObj.days = JSON.parse(JSON.stringify(plannedDays));
+    tpObj.status = status;
+    if(status === 'Submitted') {
+      tpObj.remarks = '';
+      tpObj.submittedAt = new Date().toISOString();
+    }
+  } else {
+    tpObj = {
+      id:'TP'+Date.now(),
+      empId:SESSION.user.id,
+      empName:SESSION.user.name,
+      month:month,
+      managerId:mgr,
+      managerName:mgrObj?mgrObj.name:'',
+      days:JSON.parse(JSON.stringify(plannedDays)),
+      status:status,
+      submittedAt:status === 'Submitted' ? new Date().toISOString() : '',
+      remarks:'',
+      revisionHistory:[]
+    };
+    DB.tourPlans.push(tpObj);
+  }
+  
+  saveDB();
+  showToast(status === 'Draft' ? 'Tour Plan saved as Draft!' : 'Tour Plan submitted successfully for approval!');
+  
+  renderMyTourPlans();
+  renderHomeStats();
+  renderTPDaysForMonth();
+}
+
+function toggleMTPViewMode(mode){
+  if(mode==='grid'){
+    document.getElementById('mtp-view-grid-btn').classList.add('on');
+    document.getElementById('mtp-view-cal-btn').classList.remove('on');
+    document.getElementById('mtp-grid-wrapper').style.display='block';
+    document.getElementById('mtp-calendar-wrapper').style.display='none';
+  } else {
+    document.getElementById('mtp-view-grid-btn').classList.remove('on');
+    document.getElementById('mtp-view-cal-btn').classList.add('on');
+    document.getElementById('mtp-grid-wrapper').style.display='none';
+    document.getElementById('mtp-calendar-wrapper').style.display='block';
+    renderCalendarView();
+  }
+}
+
+function renderCalendarView(){
+  var month=document.getElementById('tp-month').value;
+  var calGrid=document.getElementById('mtp-calendar-grid');
+  if(!month || !currentMTPDays.length){
+    calGrid.innerHTML='<div class="empty" style="grid-column: span 7">Select a month first</div>';
+    return;
+  }
+  
+  var year=parseInt(month.split('-')[0]);
+  var mIndex=parseInt(month.split('-')[1])-1;
+  var firstDay=new Date(year, mIndex, 1).getDay();
+  var html='';
+  
+  for(var o=0; o<firstDay; o++){
+    html += '<div style="background:#F1F5F9;border-radius:6px;min-height:70px;padding:4px"></div>';
+  }
+  
+  currentMTPDays.forEach(function(day){
+    var area=day.areaTerritory||day.toLocation||'';
+    var docCount=getAssignedDoctorsForArea(area).length;
+    var chemCount=getAssignedChemistsForArea(area).length;
+    var color = area ? '#E3F9F1' : '#F1F5F9';
+    var txtColor = area ? '#005c3a' : '#6B7A99';
+    
+    html += '<div style="background:'+color+';color:'+txtColor+';border:1px solid rgba(0,0,0,0.05);border-radius:6px;min-height:70px;padding:4px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer" onclick="scrollToMTPDay('+day.dayNum+')">'+
+      '<div style="font-weight:700;font-size:11px">'+day.dayNum+'</div>'+
+      '<div style="font-size:9px;font-weight:700;margin-top:2px">'+(area||'No Plan')+'</div>'+
+      '<div style="font-size:9px;margin-top:2px;font-weight:600">'+
+        (docCount ? '&#128101;'+docCount+' ' : '')+
+        (chemCount ? '&#128221;'+chemCount : '')+
+      '</div>'+
+    '</div>';
+  });
+  
+  calGrid.innerHTML=html;
+}
+
+function scrollToMTPDay(dayNum){
+  toggleMTPViewMode('grid');
+  var days = document.querySelectorAll('.mtp-area-row');
+  var targetRow = null;
+  var month = document.getElementById('tp-month').value;
+  var dayStr = dayNum < 10 ? '0' + dayNum : dayNum;
+  var targetDate = month + '-' + dayStr;
+  
+  for (var i = 0; i < days.length; i++) {
+    var dateCell = days[i].querySelector('.tbl-name');
+    if (dateCell && dateCell.textContent.trim() === targetDate) {
+      targetRow = days[i];
+      break;
+    }
+  }
+  
+  if(targetRow){
+    targetRow.scrollIntoView({behavior:'smooth'});
+    targetRow.style.border = '2px solid var(--primary)';
+    setTimeout(function(){
+      targetRow.style.border = '';
+    }, 2000);
+  }
+}
+
+function updateMTPAnalytics(month){
+  var card=document.getElementById('mtp-analytics-card');
+  if(!month){card.style.display='none';return;}
+  
+  var tp=DB.tourPlans.find(function(t){
+    return t.empId===SESSION.user.id && t.month===month && t.status==='Approved';
+  });
+  
+  if(!tp){
+    card.style.display='none';
+    return;
+  }
+  
+  card.style.display='block';
+  
+  var plannedDocsCount=0;
+  var plannedChemsCount=0;
+  var missedDocCalls=0;
+  var missedChemCalls=0;
+  var actualDocVisited=0;
+  var actualChemVisited=0;
+  
+  var allMyReports = DB.reports.filter(function(r){
+    return r.empId===SESSION.user.id && r.date.slice(0,7)===month;
+  });
+  
+  tp.days.forEach(function(d){
+    var area=d.areaTerritory||d.toLocation||'';
+    if(!area)return;
+    var dayDocs=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : getAssignedDoctorsForArea(d.areaTerritory||d.toLocation).map(function(doc){return doc.id;});
+    var dayChems=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : getAssignedChemistsForArea(d.areaTerritory||d.toLocation).map(function(chem){return chem.id;});
+    plannedDocsCount += dayDocs.length;
+    plannedChemsCount += dayChems.length;
+    
+    dayDocs.forEach(function(docId){
+      var visited = allMyReports.find(function(r){
+        return r.date===d.date && r.docId===docId && r.targetType==='Doctor';
+      });
+      if(visited) actualDocVisited++;
+      else missedDocCalls++;
+    });
+    
+    dayChems.forEach(function(chemId){
+      var visited = allMyReports.find(function(r){
+        return r.date===d.date && r.chemId===chemId && r.targetType==='Chemist';
+      });
+      if(visited) actualChemVisited++;
+      else missedChemCalls++;
+    });
+  });
+  
+  var myDocs=DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active';});
+  var visitedUniqueDocIds = [];
+  allMyReports.filter(function(r){return r.targetType==='Doctor';}).forEach(function(r){
+    if(!visitedUniqueDocIds.includes(r.docId)) visitedUniqueDocIds.push(r.docId);
+  });
+  var cov = myDocs.length ? Math.round((visitedUniqueDocIds.length / myDocs.length)*100) : 0;
+  
+  document.getElementById('mtp-stat-planned-docs').textContent=plannedDocsCount;
+  document.getElementById('mtp-stat-planned-chems').textContent=plannedChemsCount;
+  document.getElementById('mtp-stat-coverage').textContent=cov+'%';
+  document.getElementById('mtp-stat-missed-docs').textContent=missedDocCalls;
+  document.getElementById('mtp-stat-missed-chems').textContent=missedChemCalls;
+  document.getElementById('mtp-stat-doc-ratio').textContent=actualDocVisited+' / '+plannedDocsCount;
+  document.getElementById('mtp-stat-chem-ratio').textContent=actualChemVisited+' / '+plannedChemsCount;
+}
+function renderMyTourPlans(){
+  var el=document.getElementById('my-tp-list');
+  var myTPs=DB.tourPlans.filter(function(t){return t.empId===SESSION.user.id;}).slice().reverse();
+  if(!myTPs.length){el.innerHTML='<div class="empty">No Tour Plans submitted yet.</div>';return;}
+  el.innerHTML=myTPs.map(function(tp){
+    var sc=tp.status==='Approved'?'approved':tp.status==='Rejected'?'rejected':'pending';
+    var bc=tp.status==='Approved'?'green':tp.status==='Rejected'?'red':'orange';
+    var plannedDays=tp.days.filter(function(d){return !!(d.areaTerritory||d.toLocation||'').trim();}).length;
+    return '<div class="appr-card '+sc+'" onclick="loadMTPFromHistory(\''+tp.month+'\')"><div class="appr-hdr"><div class="appr-name">'+tp.month+' Tour Plan</div><span class="badge '+bc+'">'+tp.status+'</span></div><div class="appr-meta">Submitted to: '+tp.managerName+' | '+plannedDays+' planned working days</div>'+(tp.remarks?'<div class="appr-meta" style="color:var(--danger);margin-top:4px"><strong>Rejection Remarks:</strong> '+tp.remarks+'</div>':'')+'</div>';
+  }).join('');
+}
+
+function loadMTPFromHistory(month){
+  document.getElementById('tp-month').value=month;
+  renderTPDaysForMonth();
+  showToast('Loaded MTP details for ' + month);
+}
+
+// ===== EXPENSE CLAIM FUNCTIONS =====
+function generateExpenseFromReports(){
+  var month=document.getElementById('exp-month').value;
+  var detail=document.getElementById('expense-detail');
+  if(!month){detail.style.display='none';return;}
+  
+  // Fetch approved visits reports in this month
+  var myReports=DB.reports.filter(function(r){
+    return r.empId===SESSION.user.id && r.date.slice(0,7)===month;
+  });
+  
+  if(!myReports.length){
+    showToast('No daily call reports found for this month.');
+    detail.style.display='none';
+    return;
+  }
+  
+  // Calculate expenses day-wise
+  var uniqueDates=[];
+  myReports.forEach(function(r){
+    if(!uniqueDates.includes(r.date)) uniqueDates.push(r.date);
+  });
+  
+  var lines=[];
+  var grandTotal=0;
+  
+  uniqueDates.sort().forEach(function(dt){
+    // Find travel routes reported this day
+    var dayReps=myReports.filter(function(r){return r.date===dt;});
+    
+    // Auto-calculate fare and allowances from SFC
+    var travelFare=0;
+    var distKM=0;
+    var da=0;
+    var lodging=0;
+    var other=0;
+    var routeMode='N/A';
+    
+    // We assume travel happened if they reported a doctor/chemist in a distinct area
+    var distinctAreas=[];
+    dayReps.forEach(function(r){
+      var area=r.targetType==='Doctor'?r.docArea:r.chemArea;
+      if(area && !distinctAreas.includes(area)) distinctAreas.push(area);
+    });
+    
+    // Simple SFC Matcher
+    var startLocation=SESSION.user.area;
+    var endLocation = distinctAreas.length ? distinctAreas[0] : SESSION.user.area;
+    
+    var sfcEntry=DB.sfc.find(function(s){
+      return (s.from.toLowerCase()===startLocation.toLowerCase() && s.to.toLowerCase()===endLocation.toLowerCase()) ||
+             (s.from.toLowerCase()===endLocation.toLowerCase() && s.to.toLowerCase()===startLocation.toLowerCase());
+    });
+    
+    if(sfcEntry){
+      travelFare=sfcEntry.fare;
+      distKM=sfcEntry.distance;
+      da=sfcEntry.da;
+      lodging=sfcEntry.lodge;
+      other=sfcEntry.other;
+      routeMode=sfcEntry.mode;
+    } else {
+      // Default local work allowances
+      da = DB.cityRates.daC;
+      other = DB.cityRates.localConv;
+    }
+    
+    var dayTotal = travelFare + da + lodging + other;
+    grandTotal += dayTotal;
+    
+    lines.push({
+      date: dt,
+      route: startLocation+' &rarr; '+endLocation,
+      mode: routeMode,
+      distance: distKM,
+      fare: travelFare,
+      da: da,
+      lodge: lodging,
+      other: other,
+      total: dayTotal
+    });
+  });
+  
+  var html=lines.map(function(l){
+    return '<div class="exp-row">'+
+      '<div><div class="exp-label">'+l.date+' | '+l.route+' ('+l.mode+' - '+l.distance+' KM)</div>'+
+      '<div class="exp-sub">Travel: &#x20B9;'+l.fare+' | DA: &#x20B9;'+l.da+' | Lodge: &#x20B9;'+l.lodge+' | Local/Other: &#x20B9;'+l.other+'</div></div>'+
+      '<div class="exp-amt">&#x20B9;'+l.total+'</div></div>';
+  }).join('');
+  
+  document.getElementById('exp-breakdown').innerHTML=html;
+  document.getElementById('exp-grand-total').textContent='&#x20B9;'+grandTotal;
+  detail.style.display='block';
+  
+  detail.dataset.month=month;
+  detail.dataset.grand=grandTotal;
+  detail.dataset.lines=JSON.stringify(lines);
+}
+
+function submitExpense(){
+  var detail=document.getElementById('expense-detail');
+  var month=detail.dataset.month;
+  var grand=parseFloat(detail.dataset.grand)||0;
+  var lines=JSON.parse(detail.dataset.lines||'[]');
+  
+  var alreadyClaimed=DB.expenses.find(function(e){return e.empId===SESSION.user.id && e.month===month;});
+  if(alreadyClaimed){
+    showToast('Expense claim already submitted for this month.');
+    return;
+  }
+  
+  var fileInput=document.getElementById('exp-receipt-file');
+  var filename = fileInput.files.length ? fileInput.files[0].name : 'No file uploaded';
+  
+  DB.expenses.push({
+    id:'EXP'+Date.now(),
+    empId:SESSION.user.id,
+    empName:SESSION.user.name,
+    month:month,
+    managerId:SESSION.user.managerId,
+    lines:lines,
+    total:grand,
+    receiptFile:filename,
+    status:'Submitted',
+    submittedAt:new Date().toISOString(),
+    remarks:''
+  });
+  
+  saveDB();
+  showToast('Expense claim submitted successfully for approval!');
+  document.getElementById('exp-month').value='';
+  detail.style.display='none';
+  renderMyExpenses();
+  renderHomeStats();
+}
+
+function renderMyExpenses(){
+  var el=document.getElementById('my-expenses-list');
+  var myClaims=DB.expenses.filter(function(e){return e.empId===SESSION.user.id;}).slice().reverse();
+  if(!myClaims.length){el.innerHTML='<div class="empty">No expense claims submitted yet.</div>';return;}
+  el.innerHTML=myClaims.map(function(ex){
+    var sc=ex.status==='Approved'?'approved':ex.status==='Rejected'?'rejected':'pending';
+    var bc=ex.status==='Approved'?'green':ex.status==='Rejected'?'red':'orange';
+    return '<div class="appr-card '+sc+'"><div class="appr-hdr"><div class="appr-name">'+ex.month+' Expense Claim</div><span class="badge '+bc+'">'+ex.status+'</span></div><div class="appr-meta">Total Amount: &#x20B9;'+ex.total.toLocaleString('en-IN')+' | '+ex.lines.length+' working days</div>'+(ex.remarks?'<div class="appr-meta" style="color:var(--danger);margin-top:4px"><strong>Rejection Reason:</strong> '+ex.remarks+'</div>':'')+'</div>';
+  }).join('');
+}
+
+// ===== LEAVE MANAGEMENT FUNCTIONS =====
+function renderLeaveBalances(){
+  var u=SESSION.user;
+  document.getElementById('lv-bal-cl').textContent=(u.leaves.CL - u.leaves.CL_used)+' / '+u.leaves.CL;
+  document.getElementById('lv-bal-sl').textContent=(u.leaves.SL - u.leaves.SL_used)+' / '+u.leaves.SL;
+  document.getElementById('lv-bal-el').textContent=(u.leaves.EL - u.leaves.EL_used)+' / '+u.leaves.EL;
+  document.getElementById('lv-bal-lwp').textContent=u.leaves.LWP_used;
+}
+
+function submitLeave(){
+  var start=document.getElementById('lv-start').value;
+  var end=document.getElementById('lv-end').value;
+  var type=document.getElementById('lv-type').value;
+  var reason=document.getElementById('lv-reason').value.trim();
+  
+  if(!start||!end){showToast('Please set both start & end dates');return;}
+  
+  // Calculate total days
+  var dStart = new Date(start);
+  var dEnd = new Date(end);
+  var diffTime = Math.abs(dEnd - dStart);
+  var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  
+  // Check leave balance availability
+  var key = type==='Casual Leave'?'CL':type==='Sick Leave'?'SL':type==='Earned Leave'?'EL':'LWP';
+  var bal = SESSION.user.leaves[key] - SESSION.user.leaves[key+'_used'];
+  
+  if(key!=='LWP' && diffDays > bal){
+    showToast('Insufficient '+type+' balance! Available: '+bal+' days');
+    return;
+  }
+  
+  DB.leaves.push({
+    id:'LV'+Date.now(),
+    empId:SESSION.user.id,
+    empName:SESSION.user.name,
+    type:type,
+    start:start,
+    end:end,
+    days:diffDays,
+    reason:reason,
+    managerId:SESSION.user.managerId,
+    status:'Submitted',
+    submittedAt:new Date().toISOString(),
+    remarks:''
+  });
+  
+  saveDB();
+  showToast('Leave request submitted successfully!');
+  document.getElementById('lv-start').value='';
+  document.getElementById('lv-end').value='';
+  document.getElementById('lv-reason').value='';
+  renderMyLeaves();
+}
+
+function renderMyLeaves(){
+  var el=document.getElementById('my-leaves-list');
+  var myLeaves=DB.leaves.filter(function(l){return l.empId===SESSION.user.id;}).slice().reverse();
+  if(!myLeaves.length){el.innerHTML='<div class="empty">No leave requests submitted yet.</div>';return;}
+  el.innerHTML=myLeaves.map(function(lv){
+    var sc=lv.status==='Approved'?'approved':lv.status==='Rejected'?'rejected':'pending';
+    var bc=lv.status==='Approved'?'green':lv.status==='Rejected'?'red':'orange';
+    return '<div class="appr-card '+sc+'"><div class="appr-hdr"><div class="appr-name">'+lv.type+' ('+lv.days+' Day/s)</div><span class="badge '+bc+'">'+lv.status+'</span></div><div class="appr-meta">Dates: '+lv.start+' &rarr; '+lv.end+'</div>'+(lv.remarks?'<div class="appr-meta" style="color:var(--danger);margin-top:4px">Remarks: '+lv.remarks+'</div>':'')+'</div>';
+  }).join('');
+}
+
+// ===== LISTING SUB-MODULE FUNCTIONS =====
+function getMyDoctors(){
+  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id;});
+}
+
+function renderDocList(){
+  var q=(document.getElementById('doc-search').value||'').toLowerCase();
+  var docs=getMyDoctors().filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q);});
+  var el=document.getElementById('doc-list');
+  if(!docs.length){el.innerHTML='<div class="empty">No doctors found</div>';return;}
+  el.innerHTML=docs.map(function(d){
+    var ini=d.name.replace('Dr. ','').split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    var actBadge=d.status==='Active'?'<span class="badge green">Active</span>':'<span class="badge red">Inactive</span>';
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+d.name+' '+actBadge+'</div><div class="doc-spec">'+d.spec+' ('+d.qual+')</div><div class="doc-area">&#128205; '+d.area+' | '+d.address+' | Phone: '+d.phone+'</div></div></div>';
+  }).join('');
+}
+
+function renderChemistList(){
+  var q=(document.getElementById('chem-search').value||'').toLowerCase();
+  var chemists=DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q);});
+  var el=document.getElementById('chemist-list');
+  if(!chemists.length){el.innerHTML='<div class="empty">No chemists found</div>';return;}
+  el.innerHTML=chemists.map(function(c){
+    var ini=c.name.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+c.name+'</div><div class="doc-area">&#128205; '+c.area+'</div></div></div>';
+  }).join('');
+}
+
+function toggleDocChemistSubtab(type){
+  if(type==='doc'){
+    document.getElementById('doc-subtab-btn').classList.add('on');
+    document.getElementById('chem-subtab-btn').classList.remove('on');
+    document.getElementById('doc-subtab-content').style.display='block';
+    document.getElementById('chem-subtab-content').style.display='none';
+  } else {
+    document.getElementById('doc-subtab-btn').classList.remove('on');
+    document.getElementById('chem-subtab-btn').classList.add('on');
+    document.getElementById('doc-subtab-content').style.display='none';
+    document.getElementById('chem-subtab-content').style.display='block';
+  }
+}
+
+function goTab(name){
+  ['home','report','tour','expense','leave','doctors'].forEach(function(t){
+    var el=document.getElementById('tab-'+t);if(el)el.style.display=t===name?'block':'none';
+    var nb=document.getElementById('nb-'+t);if(nb)nb.className='nav-btn'+(t===name?' on':'');
+  });
+  if(name==='report') {
+    populateReportingDropdowns();
+    populateJFWManagers();
+    checkMTPForSelectedDate();
+  }
+  if(name==='home') renderHomeStats();
+  if(name==='leave') {
+    renderLeaveBalances();
+    renderMyLeaves();
+  }
+  if(name==='tour') {
+    renderMyTourPlans();
+    renderTPDaysForMonth();
+  }
+  if(name==='expense') {
+    renderMyExpenses();
+  }
+}
+
+function selectPlannedReportTarget(type, id){
+  document.getElementById('r-target-type').value = type;
+  toggleReportTargetFields();
+  if(type==='Doctor') {
+    document.getElementById('r-doctor').value = id;
+  } else {
+    document.getElementById('r-chemist').value = id;
+  }
+  document.getElementById('r-classification').value = 'Planned Call';
+  showToast('Auto-selected planned target: ' + (type==='Doctor' ? 'Doctor' : 'Chemist'));
+}
+
+// ===== ADMIN / MANAGER PANEL FUNCTIONS =====
+function initAdminApp(){
+  renderAdminStats();
+  renderAdminDashTeamList();
+  renderAdminTPApprovals();
+  renderAdminExpApprovals();
+  renderAdminLeaveApprovals();
+  renderEmpTable();
+  renderAdminDocList();
+  renderAdminChemistList();
+  renderSFCTable();
+  loadCityRates();
+  populateAdminEmpMgr();
+  populateAdminEmpFilters();
+  populateInventoryItemSelect();
+  renderAdminInventoryTables();
+  goAdminTab('dash');
+}
+
+function goAdminTab(name){
+  currentAdminTab=name;
+  ['dash','appr','master','inventory','reports'].forEach(function(t){
+    var el=document.getElementById('sec-adm-'+t);
+    if(el) el.style.display=t===name?'block':'none';
+    var btn=document.getElementById('tab-adm-'+t);
+    if(btn) btn.className='admin-tab'+(t===name?' on':'');
+  });
+  if(name==='dash') renderAdminDashTeamList();
+  if(name==='reports') updateReportHeadersAndFilters();
+  if(name==='inventory') renderAdminInventoryTables();
+}
+
+function renderAdminStats(){
+  var u=SESSION.user;
+  // MR Subordinates mapping
+  var emps=DB.employees.filter(function(e){return e.managerId===u.id || u.role==='admin';});
+  document.getElementById('adm-emp-count').textContent=DB.employees.length - 1; // excluding admin
+  document.getElementById('adm-doc-count').textContent=DB.doctors.length;
+  document.getElementById('adm-rep-count').textContent=DB.reports.length;
+  
+  var pendingTP=DB.tourPlans.filter(function(t){return t.status==='Submitted' && (u.role==='admin' || t.managerId===u.id);}).length;
+  var pendingExp=DB.expenses.filter(function(e){return e.status==='Submitted' && (u.role==='admin' || e.managerId===u.id);}).length;
+  var pendingLeave=DB.leaves.filter(function(l){return l.status==='Submitted' && (u.role==='admin' || l.managerId===u.id);}).length;
+  
+  document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
+}
+
+function renderAdminDashTeamList(){
+  var tbody=document.getElementById('adm-dash-team-body');
+  var team=DB.employees.filter(function(e){return e.role==='emp';});
+  
+  tbody.innerHTML=team.map(function(e){
+    var reportsCount=DB.reports.filter(function(r){return r.empId===e.id;}).length;
+    var totalDocsAssigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
+    var visitedDocIds=[];
+    DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
+      if(r.targetType==='Doctor' && !visitedDocIds.includes(r.docId)){
+        visitedDocIds.push(r.docId);
+      }
+    });
+    
+    var cov = totalDocsAssigned ? Math.round((visitedDocIds.length / totalDocsAssigned)*100) : 0;
+    var jfwCount=DB.reports.filter(function(r){return r.empId===e.id && r.jfwMgrId!=='';}).length;
+    
+    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+e.area+'</td><td>'+reportsCount+'</td><td>'+cov+'%</td><td>'+jfwCount+'</td></tr>';
+  }).join('');
+}
+
+// Approval listings
+function renderAdminTPApprovals(){
+  var u=SESSION.user;
+  var tps=DB.tourPlans.filter(function(t){return t.status==='Submitted' && (u.role==='admin' || t.managerId===u.id);});
+  var el=document.getElementById('adm-tp-approvals');
+  if(!tps.length){el.innerHTML='<div class="empty">No tour plans pending your approval</div>';return;}
+  el.innerHTML=tps.map(function(tp){
+    return '<div class="appr-card pending" onclick="viewTP(\''+tp.id+'\')">'+
+      '<div class="appr-hdr"><div class="appr-name">'+tp.empName+' ('+tp.empId+')</div><span class="badge orange">'+tp.status+'</span></div>'+
+      '<div class="appr-meta">'+tp.month+' Tour Plan | '+tp.days.length+' days | Submitted: '+tp.submittedAt.slice(0,10)+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+function renderAdminExpApprovals(){
+  var u=SESSION.user;
+  var exps=DB.expenses.filter(function(e){return e.status==='Submitted' && (u.role==='admin' || e.managerId===u.id);});
+  var el=document.getElementById('adm-exp-approvals');
+  if(!exps.length){el.innerHTML='<div class="empty">No expense claims pending your approval</div>';return;}
+  el.innerHTML=exps.map(function(ex){
+    return '<div class="appr-card pending" onclick="viewExp(\''+ex.id+'\')">'+
+      '<div class="appr-hdr"><div class="appr-name">'+ex.empName+' ('+ex.empId+')</div><span class="badge orange">'+ex.status+'</span></div>'+
+      '<div class="appr-meta">'+ex.month+' Claim | Amount: &#x20B9;'+ex.total+' | Receipts: '+ex.receiptFile+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+function renderAdminLeaveApprovals(){
+  var u=SESSION.user;
+  var lvs=DB.leaves.filter(function(l){return l.status==='Submitted' && (u.role==='admin' || l.managerId===u.id);});
+  var el=document.getElementById('adm-leave-approvals');
+  if(!lvs.length){el.innerHTML='<div class="empty">No leave requests pending your approval</div>';return;}
+  el.innerHTML=lvs.map(function(lv){
+    return '<div class="appr-card pending" onclick="viewLeave(\''+lv.id+'\')">'+
+      '<div class="appr-hdr"><div class="appr-name">'+lv.empName+' ('+lv.empId+')</div><span class="badge orange">'+lv.status+'</span></div>'+
+      '<div class="appr-meta">'+lv.type+' | Duration: '+lv.start+' &rarr; '+lv.end+' ('+lv.days+' day/s)</div>'+
+      '</div>';
+  }).join('');
+}
+
+// Action Handlers for approvals
+function viewTP(id){
+  var tp=DB.tourPlans.find(function(t){return t.id===id;});
+  if(!tp)return;
+  currentTPId=id;
+  
+  var plannedWorkingDays=tp.days.filter(function(d){return !!(d.areaTerritory||d.toLocation||'').trim();}).length;
+  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+tp.empName+' - '+tp.month+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Status: '+tp.status+' | Planned working days: '+plannedWorkingDays+'</div></div>';
+  html+='<div class="tbl-wrap"><table class="tbl" style="min-width:760px"><thead><tr><th>Date</th><th>Area / Territory</th><th>Planned Doctor Calls</th><th>Planned Chemist Calls</th></tr></thead><tbody>';
+  tp.days.forEach(function(d){
+    var area=d.areaTerritory||d.toLocation||'';
+    if(!area)return;
+    var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+    var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===tp.empId && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+    var docs = docIds.map(function(docId){
+      var doc=DB.doctors.find(function(dc){return dc.id===docId;});
+      return doc ? doc.name : docId;
+    }).join(', ');
+    var chems = chemIds.map(function(chemId){
+      var chem=DB.chemists.find(function(ch){return ch.id===chemId;});
+      return chem ? chem.name : chemId;
+    }).join(', ');
+    html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+area+'</td><td><span class="badge blue">'+docIds.length+'</span> '+(docs||'--')+'</td><td><span class="badge green">'+chemIds.length+'</span> '+(chems||'--')+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  
+  document.getElementById('tp-detail-content').innerHTML=html;
+  document.getElementById('tp-approval-btns').style.display=tp.status==='Submitted'?'flex':'none';
+  document.getElementById('modal-tp-detail').classList.add('on');
+}
+function approveTP(){
+  var tp=DB.tourPlans.find(function(t){return t.id===currentTPId;});
+  if(tp){
+    tp.status='Approved';
+    tp.approvedBy=SESSION.user.id;
+    tp.approvedDate=new Date().toISOString().slice(0,10);
+  }
+  saveDB();
+  closeModal('modal-tp-detail');
+  showToast('MTP Approved successfully!');
+  initAdminApp();
+}
+
+function rejectTP(){
+  var reason=prompt('Specify Rejection remarks:');
+  if(reason===null)return;
+  var tp=DB.tourPlans.find(function(t){return t.id===currentTPId;});
+  if(tp){
+    tp.status='Rejected';
+    tp.remarks=reason;
+    tp.revisionHistory=tp.revisionHistory||[];
+    tp.revisionHistory.push({
+      rejectedBy:SESSION.user.id,
+      date:new Date().toISOString().slice(0,10),
+      reason:reason
+    });
+  }
+  saveDB();
+  closeModal('modal-tp-detail');
+  showToast('MTP Rejected successfully.');
+  initAdminApp();
+}
+
+function viewExp(id){
+  var ex=DB.expenses.find(function(e){return e.id===id;});
+  if(!ex)return;
+  currentExpId=id;
+  
+  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+ex.empName+' â€” '+ex.month+' Expense</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Supporting Bill: <strong>'+ex.receiptFile+'</strong></div></div>';
+  html+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Route/Work</th><th>Travel Mode</th><th>Travel</th><th>DA</th><th>Lodge</th><th>Local/Other</th><th>Day Total</th></tr></thead><tbody>';
+  ex.lines.forEach(function(l){
+    html+='<tr><td>'+l.date+'</td><td>'+l.route+'</td><td>'+l.mode+'</td><td>&#x20B9;'+l.fare+'</td><td>&#x20B9;'+l.da+'</td><td>&#x20B9;'+l.lodge+'</td><td>&#x20B9;'+l.other+'</td><td style="font-weight:700">&#x20B9;'+l.total+'</td></tr>';
+  });
+  html+='<tr style="background:#F8FAFC"><td colspan="7" style="font-weight:700">GRAND CLAIM TOTAL</td><td style="font-weight:700;color:var(--success)">&#x20B9;'+ex.total+'</td></tr>';
+  html+='</tbody></table></div>';
+  
+  document.getElementById('exp-detail-content').innerHTML=html;
+  document.getElementById('exp-approval-btns').style.display=ex.status==='Submitted'?'flex':'none';
+  document.getElementById('modal-exp-detail').classList.add('on');
+}
+
+function approveExp(){
+  var ex=DB.expenses.find(function(e){return e.id===currentExpId;});
+  if(ex)ex.status='Approved';
+  saveDB();
+  closeModal('modal-exp-detail');
+  showToast('Expense claim approved!');
+  initAdminApp();
+}
+
+function rejectExp(){
+  var reason=prompt('Rejection remarks:');
+  if(reason===null)return;
+  var ex=DB.expenses.find(function(e){return e.id===currentExpId;});
+  if(ex){
+    ex.status='Rejected';
+    ex.remarks=reason;
+  }
+  saveDB();
+  closeModal('modal-exp-detail');
+  showToast('Expense claim rejected.');
+  initAdminApp();
+}
+
+function viewLeave(id){
+  var lv=DB.leaves.find(function(l){return l.id===id;});
+  if(!lv)return;
+  currentLeaveId=id;
+  
+  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+lv.empName+' â€” '+lv.type+'</div>'+
+           '<div style="margin-top:6px;font-size:13px"><strong>Start:</strong> '+lv.start+' &nbsp;|&nbsp; <strong>End:</strong> '+lv.end+' &nbsp;|&nbsp; <strong>Days:</strong> '+lv.days+'</div>'+
+           '<div style="margin-top:8px;font-size:12px;background:#F1F5F9;padding:10px;border-radius:6px">Reason: '+lv.reason+'</div></div>';
+           
+  document.getElementById('leave-detail-content').innerHTML=html;
+  document.getElementById('leave-approval-btns').style.display=lv.status==='Submitted'?'flex':'none';
+  document.getElementById('modal-leave-detail').classList.add('on');
+}
+
+function approveLeave(){
+  var lv=DB.leaves.find(function(l){return l.id===currentLeaveId;});
+  if(lv){
+    lv.status='Approved';
+    // Deduct leave balance of the employee
+    var emp=DB.employees.find(function(e){return e.id===lv.empId;});
+    if(emp){
+      var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':'LWP';
+      emp.leaves[key+'_used'] += lv.days;
+    }
+  }
+  saveDB();
+  closeModal('modal-leave-detail');
+  showToast('Leave request approved!');
+  initAdminApp();
+}
+
+function rejectLeave(){
+  var reason=prompt('Leave Rejection remarks:');
+  if(reason===null)return;
+  var lv=DB.leaves.find(function(l){return l.id===currentLeaveId;});
+  if(lv){
+    lv.status='Rejected';
+    lv.remarks=reason;
+  }
+  saveDB();
+  closeModal('modal-leave-detail');
+  showToast('Leave request rejected.');
+  initAdminApp();
+}
+
+// ===== MASTER DATA MANAGEMENT =====
+// SFC Upload/Render
+function renderSFCTable(){
+  document.getElementById('sfc-count').textContent=DB.sfc.length;
+  var tbody=document.getElementById('sfc-table-body');
+  if(!DB.sfc.length){tbody.innerHTML='<tr><td colspan="8" class="empty">No SFC records available</td></tr>';return;}
+  tbody.innerHTML=DB.sfc.map(function(s,i){
+    return '<tr><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeSFC('+i+')">Delete</button></td></tr>';
+  }).join('');
+}
+
+function removeSFC(i){
+  DB.sfc.splice(i,1);
+  saveDB();
+  renderSFCTable();
+}
+
+function uploadSFC(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    var added=0;
+    lines.slice(1).forEach(function(line){
+      var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      if(p.length<8||!p[0]||!p[1])return;
+      DB.sfc.push({
+        from: p[0],
+        to: p[1],
+        distance: parseInt(p[2])||0,
+        mode: p[3],
+        fare: parseFloat(p[4])||0,
+        da: parseFloat(p[5])||0,
+        lodge: parseFloat(p[6])||0,
+        other: parseFloat(p[7])||0
+      });
+      added++;
+    });
+    saveDB();
+    showToast(added+' SFC entries loaded successfully!');
+    renderSFCTable();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadSFCTemplate(){
+  var csv='FromLocation,ToLocation,DistanceKM,TravelMode,FareAmount,DAAllowance,LodgingAllowance,OtherAllowance\nMumbai,Pune,150,Bus,350,600,1200,100\nMumbai,Nashik,180,Train,250,450,800,50\n';
+  downloadData(csv,'sfc_distance_template.csv');
+}
+
+function loadCityRates(){
+  // Kept for UI compatibility but SFC values are now derived from expanded SFC list directly
+  if(!document.getElementById('da-a'))return;
+  document.getElementById('da-a').value=DB.cityRates.daA;
+  document.getElementById('da-b').value=DB.cityRates.daB;
+  document.getElementById('da-c').value=DB.cityRates.daC;
+  document.getElementById('lodge-a').value=DB.cityRates.lodgeA;
+  document.getElementById('lodge-b').value=DB.cityRates.lodgeB;
+  document.getElementById('lodge-c').value=DB.cityRates.lodgeC;
+  document.getElementById('local-conv').value=DB.cityRates.localConv;
+}
+
+function saveCityRates(){
+  DB.cityRates.daA=parseInt(document.getElementById('da-a').value)||0;
+  DB.cityRates.daB=parseInt(document.getElementById('da-b').value)||0;
+  DB.cityRates.daC=parseInt(document.getElementById('da-c').value)||0;
+  DB.cityRates.lodgeA=parseInt(document.getElementById('lodge-a').value)||0;
+  DB.cityRates.lodgeB=parseInt(document.getElementById('lodge-b').value)||0;
+  DB.cityRates.lodgeC=parseInt(document.getElementById('lodge-c').value)||0;
+  DB.cityRates.localConv=parseInt(document.getElementById('local-conv').value)||0;
+  saveDB();
+}
+
+// Employee
+function populateAdminEmpMgr(){
+  var sel=document.getElementById('adm-emp-mgr');
+  sel.innerHTML='<option value="">-- None / Root --</option>'+DB.employees.map(function(m){return '<option value="'+m.id+'">'+m.name+' ('+m.role.toUpperCase()+')</option>';}).join('');
+}
+
+function addEmployee(){
+  var id=document.getElementById('adm-emp-id').value.trim().toUpperCase();
+  var name=document.getElementById('adm-emp-name').value.trim();
+  var pwd=document.getElementById('adm-emp-pwd').value.trim();
+  var area=document.getElementById('adm-emp-area').value.trim();
+  var role=document.getElementById('adm-emp-role').value;
+  var mgr=document.getElementById('adm-emp-mgr').value;
+  
+  if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
+  if(DB.employees.find(function(e){return e.id===id;})){showToast('Employee ID already exists');return;}
+  
+  DB.employees.push({
+    id:id,
+    name:name,
+    pwd:pwd,
+    area:area,
+    role:role,
+    managerId:mgr,
+    leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+  });
+  saveDB();
+  
+  document.getElementById('adm-emp-id').value='';
+  document.getElementById('adm-emp-name').value='';
+  document.getElementById('adm-emp-pwd').value='';
+  document.getElementById('adm-emp-area').value='';
+  showToast('Employee record added!');
+  renderEmpTable();
+  populateAdminEmpMgr();
+}
+
+function uploadEmployees(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    var added=0;
+    lines.slice(1).forEach(function(line){
+      var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      var id=(p[0]||'').toUpperCase(),name=(p[1]||''),pwd=(p[2]||''),area=(p[3]||''),role=(p[4]||'emp'),mgr=(p[5]||'');
+      if(!id||!name||!pwd)return;
+      if(DB.employees.find(function(e){return e.id===id;}))return;
+      DB.employees.push({
+        id:id,
+        name:name,
+        pwd:pwd,
+        area:area,
+        role:role,
+        managerId:mgr.toUpperCase(),
+        leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+      });
+      added++;
+    });
+    saveDB();
+    showToast(added+' employees uploaded successfully!');
+    renderEmpTable();
+    populateAdminEmpMgr();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadEmpTemplate(){
+  var csv='EmployeeID,Name,Password,Territory,Role,ManagerID\nEMP004,Vikas Malhotra,pass123,Pune,emp,FLM001\nFLM002,Sunita Sen,pass123,West Bengal,manager,RM001\n';
+  downloadData(csv,'employees_template.csv');
+}
+
+function renderEmpTable(){
+  var tbody=document.getElementById('emp-table-body');
+  var emps=DB.employees.filter(function(e){return e.id!=='ADMIN';});
+  tbody.innerHTML=emps.map(function(e){
+    var mgr=DB.employees.find(function(m){return m.id===e.managerId;});
+    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
+  }).join('');
+}
+
+function removeEmp(id){
+  if(!confirm('Delete employee '+id+'?'))return;
+  DB.employees=DB.employees.filter(function(e){return e.id!==id;});
+  saveDB();
+  renderEmpTable();
+}
+
+// Doctor Master Management
+function addDoctorManual(){
+  document.getElementById('doc-modal-title-text').textContent='Add Doctor';
+  document.getElementById('md-id').value='';
+  document.getElementById('md-code').value='';
+  document.getElementById('md-name').value='';
+  document.getElementById('md-spec').value='';
+  document.getElementById('md-qual').value='';
+  document.getElementById('md-city').value='';
+  document.getElementById('md-area').value='';
+  document.getElementById('md-address').value='';
+  document.getElementById('md-phone').value='';
+  
+  var sel=document.getElementById('md-assign');
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-doc').classList.add('on');
+}
+
+function editDoctor(id){
+  var doc=DB.doctors.find(function(d){return d.id===id;});
+  if(!doc)return;
+  
+  document.getElementById('doc-modal-title-text').textContent='Edit / Reassign Doctor';
+  document.getElementById('md-id').value=doc.id;
+  document.getElementById('md-code').value=doc.code;
+  document.getElementById('md-name').value=doc.name;
+  document.getElementById('md-spec').value=doc.spec;
+  document.getElementById('md-qual').value=doc.qual||'';
+  document.getElementById('md-city').value=doc.city||'';
+  document.getElementById('md-area').value=doc.area;
+  document.getElementById('md-address').value=doc.address||'';
+  document.getElementById('md-phone').value=doc.phone;
+  document.getElementById('md-status').value=doc.status||'Active';
+  
+  var sel=document.getElementById('md-assign');
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'" '+(e.id===doc.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-doc').classList.add('on');
+}
+
+function saveDoctor(){
+  var id=document.getElementById('md-id').value;
+  var code=document.getElementById('md-code').value.trim();
+  var name=document.getElementById('md-name').value.trim();
+  
+  if(!code||!name){showToast('Doctor Code and Name required!');return;}
+  
+  if(!id){
+    // New
+    var docId = 'D'+Date.now();
+    DB.doctors.push({
+      id: docId,
+      code: code,
+      name: name,
+      spec: document.getElementById('md-spec').value.trim(),
+      qual: document.getElementById('md-qual').value.trim(),
+      city: document.getElementById('md-city').value.trim(),
+      area: document.getElementById('md-area').value.trim(),
+      address: document.getElementById('md-address').value.trim(),
+      phone: document.getElementById('md-phone').value.trim(),
+      assignTo: document.getElementById('md-assign').value,
+      status: document.getElementById('md-status').value
+    });
+  } else {
+    // Edit
+    var doc=DB.doctors.find(function(d){return d.id===id;});
+    if(doc){
+      doc.code=code;
+      doc.name=name;
+      doc.spec=document.getElementById('md-spec').value.trim();
+      doc.qual=document.getElementById('md-qual').value.trim();
+      doc.city=document.getElementById('md-city').value.trim();
+      doc.area=document.getElementById('md-area').value.trim();
+      doc.address=document.getElementById('md-address').value.trim();
+      doc.phone=document.getElementById('md-phone').value.trim();
+      doc.assignTo=document.getElementById('md-assign').value;
+      doc.status=document.getElementById('md-status').value;
+    }
+  }
+  
+  saveDB();
+  closeModal('modal-add-doc');
+  showToast('Doctor record saved successfully.');
+  renderAdminDocList();
+}
+
+function uploadDoctors(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    var added=0;
+    lines.slice(1).forEach(function(line){
+      var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      if(!p[0]||!p[1])return;
+      DB.doctors.push({
+        id: 'D'+Date.now()+Math.random(),
+        code: p[0],
+        name: p[1],
+        spec: p[2]||'',
+        qual: p[3]||'',
+        address: p[4]||'',
+        city: p[5]||'',
+        area: p[6]||'',
+        phone: p[7]||'',
+        assignTo: (p[8]||'').toUpperCase(),
+        status: p[9]||'Active'
+      });
+      added++;
+    });
+    saveDB();
+    showToast(added+' Doctor records imported successfully!');
+    renderAdminDocList();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadDocTemplate(){
+  var csv='DoctorCode,Name,Speciality,Qualification,Address,City,Area,Mobile,AssignToEmpID,Status\nDOC009,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,9830000001,EMP002,Active\n';
+  downloadData(csv,'doctor_master_template.csv');
+}
+
+function renderAdminDocList(){
+  var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
+  var docs=DB.doctors.filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q)||d.assignTo.toLowerCase().includes(q);});
+  var tbody=document.getElementById('doc-table-body');
+  
+  tbody.innerHTML=docs.map(function(d){
+    var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
+    return '<tr><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
+  }).join('');
+}
+
+function removeDoc(id){
+  if(!confirm('Delete doctor record?'))return;
+  DB.doctors=DB.doctors.filter(function(d){return d.id!==id;});
+  saveDB();
+  renderAdminDocList();
+}
+
+// Chemist Master Management
+function addChemistManual(){
+  document.getElementById('chem-modal-title-text').textContent='Add Chemist';
+  document.getElementById('mc-id').value='';
+  document.getElementById('mc-code').value='';
+  document.getElementById('mc-name').value='';
+  document.getElementById('mc-area').value='';
+  
+  var sel=document.getElementById('mc-assign');
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-chem').classList.add('on');
+}
+
+function editChemist(id){
+  var chem=DB.chemists.find(function(c){return c.id===id;});
+  if(!chem)return;
+  
+  document.getElementById('chem-modal-title-text').textContent='Edit Chemist';
+  document.getElementById('mc-id').value=chem.id;
+  document.getElementById('mc-code').value=chem.id;
+  document.getElementById('mc-name').value=chem.name;
+  document.getElementById('mc-area').value=chem.area;
+  
+  var sel=document.getElementById('mc-assign');
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'" '+(e.id===chem.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-chem').classList.add('on');
+}
+
+function saveChemist(){
+  var id=document.getElementById('mc-id').value;
+  var code=document.getElementById('mc-code').value.trim();
+  var name=document.getElementById('mc-name').value.trim();
+  var area=document.getElementById('mc-area').value.trim();
+  
+  if(!code||!name){showToast('Chemist ID and Name required!');return;}
+  
+  if(!id){
+    DB.chemists.push({
+      id: code,
+      name: name,
+      area: area,
+      assignTo: document.getElementById('mc-assign').value
+    });
+  } else {
+    var chem=DB.chemists.find(function(c){return c.id===id;});
+    if(chem){
+      chem.name=name;
+      chem.area=area;
+      chem.assignTo=document.getElementById('mc-assign').value;
+    }
+  }
+  
+  saveDB();
+  closeModal('modal-add-chem');
+  showToast('Chemist record saved successfully.');
+  renderAdminChemistList();
+}
+
+function uploadChemists(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    var added=0;
+    lines.slice(1).forEach(function(line){
+      var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      if(!p[0]||!p[1])return;
+      DB.chemists.push({
+        id: p[0],
+        name: p[1],
+        area: p[2]||'',
+        assignTo: (p[3]||'').toUpperCase()
+      });
+      added++;
+    });
+    saveDB();
+    showToast(added+' Chemists loaded successfully!');
+    renderAdminChemistList();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadChemTemplate(){
+  var csv='ChemistID,Name,Area,AssignToEmpID\nCHM009,Vikas Pharma,Dadar,EMP001\n';
+  downloadData(csv,'chemist_master_template.csv');
+}
+
+function renderAdminChemistList(){
+  var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
+  var chems=DB.chemists.filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q)||c.assignTo.toLowerCase().includes(q);});
+  var tbody=document.getElementById('chem-table-body');
+  
+  tbody.innerHTML=chems.map(function(c){
+    var emp=DB.employees.find(function(e){return e.id===c.assignTo;});
+    return '<tr><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
+  }).join('');
+}
+
+function removeChemist(id){
+  if(!confirm('Delete chemist record?'))return;
+  DB.chemists=DB.chemists.filter(function(c){return c.id!==id;});
+  saveDB();
+  renderAdminChemistList();
+}
+
+// ===== INVENTORY ALLOCATION =====
+function populateInventoryItemSelect(){
+  var type=document.getElementById('inv-issue-type').value;
+  var sel=document.getElementById('inv-issue-item');
+  sel.innerHTML='';
+  
+  var list = type==='Sample Product' ? DB.products : (type==='Gift Promotional'?DB.gifts:DB.inputs);
+  list.forEach(function(item){
+    var o=document.createElement('option');o.value=item;o.textContent=item;sel.appendChild(o);
+  });
+}
+
+function issueStockToMR(){
+  var empId=document.getElementById('inv-issue-emp').value;
+  var type=document.getElementById('inv-issue-type').value;
+  var itemName=document.getElementById('inv-issue-item').value;
+  var qty=parseInt(document.getElementById('inv-issue-qty').value)||0;
+  
+  if(!empId||!itemName||qty<=0){
+    showToast('Please verify fields and quantity!');
+    return;
+  }
+  
+  if(type==='Sample Product'){
+    var stock=DB.samplesInventory.find(function(s){return s.empId===empId && s.prodName===itemName;});
+    if(stock){
+      stock.received+=qty;
+      stock.balance+=qty;
+    } else {
+      DB.samplesInventory.push({prodName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
+    }
+  } else if(type==='Gift Promotional'){
+    var stock=DB.giftsInventory.find(function(g){return g.empId===empId && g.giftName===itemName;});
+    if(stock){
+      stock.received+=qty;
+      stock.balance+=qty;
+    } else {
+      DB.giftsInventory.push({giftName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
+    }
+  } else {
+    var stock=DB.inputsInventory.find(function(i){return i.empId===empId && i.inputName===itemName;});
+    if(stock){
+      stock.received+=qty;
+      stock.balance+=qty;
+    } else {
+      DB.inputsInventory.push({inputName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
+    }
+  }
+  
+  saveDB();
+  showToast('Stock issued successfully to representative!');
+  document.getElementById('inv-issue-qty').value='';
+  renderAdminInventoryTables();
+}
+
+function renderAdminInventoryTables(){
+  var mrFilter=document.getElementById('inv-filter-emp').value;
+  
+  // Render Samples
+  var samplesList = DB.samplesInventory.filter(function(s){return !mrFilter||s.empId===mrFilter;});
+  document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
+    var emp=DB.employees.find(function(e){return e.id===s.empId;});
+    return '<tr><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+s.balance+'</td></tr>';
+  }).join(''):'<tr><td colspan="6" class="empty">No entries found</td></tr>';
+
+  // Render Gifts
+  var giftsList = DB.giftsInventory.filter(function(g){return !mrFilter||g.empId===mrFilter;});
+  document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
+    var emp=DB.employees.find(function(e){return e.id===g.empId;});
+    return '<tr><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+g.balance+'</td></tr>';
+  }).join(''):'<tr><td colspan="6" class="empty">No entries found</td></tr>';
+
+  // Render Inputs
+  var inputsList = DB.inputsInventory.filter(function(i){return !mrFilter||i.empId===mrFilter;});
+  document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
+    var emp=DB.employees.find(function(e){return e.id===i.empId;});
+    return '<tr><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+i.balance+'</td></tr>';
+  }).join(''):'<tr><td colspan="6" class="empty">No entries found</td></tr>';
+}
+
+// Global filter populator for reports/dropdowns
+function populateAdminEmpFilters(){
+  var selectList=['inv-issue-emp', 'inv-filter-emp', 'rep-filter-emp'];
+  selectList.forEach(function(selId){
+    var sel=document.getElementById(selId);
+    if(sel){
+      sel.innerHTML = selId==='rep-filter-emp'?'<option value="">All Employees</option>':'';
+      DB.employees.filter(function(e){return e.role==='emp';}).forEach(function(e){
+        var o=document.createElement('option');o.value=e.id;o.textContent=e.name+' ('+e.id+')';sel.appendChild(o);
+      });
+    }
+  });
+}
+
+// ===== 13 COMPREHENSIVE MIS REPORTS ENGINE =====
+var currentMISData=[];
+var currentReportType='doc_calls';
+
+function updateReportHeadersAndFilters(){
+  currentReportType=document.getElementById('rep-selector').value;
+  var thead=document.getElementById('mis-report-thead');
+  var tbody=document.getElementById('mis-report-tbody');
+  thead.innerHTML='';
+  tbody.innerHTML='<tr><td class="empty">Click "Run Query" to fetch data</td></tr>';
+}
+
+function runMISReport(){
+  var empId=document.getElementById('rep-filter-emp').value;
+  var from=document.getElementById('rep-from').value;
+  var to=document.getElementById('rep-to').value;
+  
+  var thead=document.getElementById('mis-report-thead');
+  var tbody=document.getElementById('mis-report-tbody');
+  
+  // Filter base calls reports
+  var baseReports=DB.reports.filter(function(r){
+    if(empId&&r.empId!==empId)return false;
+    if(from&&r.date<from)return false;
+    if(to&&r.date>to)return false;
+    return true;
+  });
+  
+  currentMISData=[];
+  var html='';
+  
+  if(currentReportType==='doc_calls'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th></tr>';
+    var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
+    currentMISData=docCalls.map(function(r){
+      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
+    });
+    
+  } else if(currentReportType==='chem_calls'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th></tr>';
+    var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
+    currentMISData=chemCalls.map(function(r){
+      return [r.date, r.empId, r.empName, r.chemName, r.classification, r.orderAmount, r.stockStatus, r.remarks];
+    });
+    
+  } else if(currentReportType==='call_avg'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>Total Doctor Calls</th><th>Working Days Checked</th><th>Call Average / Day</th></tr>';
+    var team=DB.employees.filter(function(e){return e.role==='emp';});
+    team.forEach(function(e){
+      var empsReps = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
+      });
+      var workingDates=[];
+      DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
+        if(!workingDates.includes(r.date)) workingDates.push(r.date);
+      });
+      var days = workingDates.length || 1;
+      var avg = (empsReps.length / days).toFixed(2);
+      currentMISData.push([e.id, e.name, empsReps.length, days, avg]);
+    });
+    
+  } else if(currentReportType==='missed_calls'){
+    thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
+    var myTPs=DB.tourPlans.filter(function(tp){
+      return tp.status==='Approved' && (!empId||tp.empId===empId);
+    });
+    myTPs.forEach(function(tp){
+      tp.days.forEach(function(d){
+        var area=d.areaTerritory||d.toLocation||'';
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+        plannedDocIds.forEach(function(docId){
+          // Check if MR reported visit on this date to this doc
+          var visited = DB.reports.find(function(r){
+            return r.empId===tp.empId && r.date===d.date && r.docId===docId;
+          });
+          if(!visited){
+            var doc=DB.doctors.find(function(dc){return dc.id===docId;});
+            currentMISData.push([tp.month, tp.empName, d.date, doc?doc.code:'', doc?doc.name:docId, 'Missed Call']);
+          }
+        });
+      });
+    });
+    
+  } else if(currentReportType==='visit_freq'){
+    thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
+    DB.doctors.forEach(function(d){
+      var visits = DB.reports.filter(function(r){
+        return r.targetType==='Doctor' && r.docId===d.id && (!from||r.date>=from) && (!to||r.date<=to);
+      });
+      var emp = DB.employees.find(function(e){return e.id===d.assignTo;});
+      currentMISData.push([d.code, d.name, emp?(emp.name+' ('+d.assignTo+')'):'Unassigned', d.spec, visits.length]);
+    });
+    
+  } else if(currentReportType==='plan_vs_act'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>Planned Doctor Calls</th><th>Actual Doctor Calls</th><th>Planned Chemist Calls</th><th>Actual Chemist Calls</th></tr>';
+    DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);}).forEach(function(e){
+      var plannedDocs = 0;
+      var plannedChems = 0;
+      DB.tourPlans.filter(function(tp){return tp.empId===e.id && tp.status==='Approved';}).forEach(function(tp){
+        tp.days.forEach(function(d){
+          var area=d.areaTerritory||d.toLocation||'';
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===e.id && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===e.id && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+          plannedDocs += docIds.length;
+          plannedChems += chemIds.length;
+        });
+      });
+      var actualDocs = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
+      }).length;
+      var actualChems = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Chemist' && (!from||r.date>=from) && (!to||r.date<=to);
+      }).length;
+      currentMISData.push([e.id, e.name, plannedDocs, actualDocs, plannedChems, actualChems]);
+    });
+    
+  } else if(currentReportType==='jfw_days'){
+    thead.innerHTML='<tr><th>MR Employee</th><th>Accompanying Manager ID</th><th>Manager Name</th><th>JFW Date</th><th>Work Remarks</th></tr>';
+    baseReports.filter(function(r){return r.jfwMgrId !== '';}).forEach(function(r){
+      currentMISData.push([r.empName+' ('+r.empId+')', r.jfwMgrId, r.jfwMgrName, r.date, r.remarks]);
+    });
+    
+  } else if(currentReportType==='mgr_accomp'){
+    thead.innerHTML='<tr><th>Manager Name</th><th>MR Employee</th><th>Coaching &amp; Accompanist Days</th></tr>';
+    var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN';});
+    managers.forEach(function(m){
+      DB.employees.filter(function(e){return e.role==='emp' && e.managerId===m.id;}).forEach(function(mr){
+        var accompDays=DB.reports.filter(function(r){
+          return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
+        }).length;
+        currentMISData.push([m.name+' ('+m.id+')', mr.name+' ('+mr.id+')', accompDays]);
+      });
+    });
+    
+  } else if(currentReportType==='samples_util'){
+    thead.innerHTML='<tr><th>MR Name</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed</th><th>Current Balance</th></tr>';
+    var filteredSamples = DB.samplesInventory.filter(function(s){return !empId||s.empId===empId;});
+    currentMISData=filteredSamples.map(function(s){
+      var emp=DB.employees.find(function(e){return e.id===s.empId;});
+      return [emp?emp.name:'', s.prodName, s.opening, s.received, s.distributed, s.balance];
+    });
+    
+  } else if(currentReportType==='gifts_util'){
+    thead.innerHTML='<tr><th>MR Name</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed</th><th>Current Balance</th></tr>';
+    var filteredGifts = DB.giftsInventory.filter(function(g){return !empId||g.empId===empId;});
+    currentMISData=filteredGifts.map(function(g){
+      var emp=DB.employees.find(function(e){return e.id===g.empId;});
+      return [emp?emp.name:'', g.giftName, g.opening, g.received, g.distributed, g.balance];
+    });
+    
+  } else if(currentReportType==='expenses_rep'){
+    thead.innerHTML='<tr><th>Employee</th><th>Month</th><th>Approved Claims (&#x20B9;)</th><th>Receipt Upload</th><th>Status</th></tr>';
+    var claims=DB.expenses.filter(function(ex){
+      if(empId&&ex.empId!==empId)return false;
+      return true;
+    });
+    currentMISData=claims.map(function(ex){
+      return [ex.empName+' ('+ex.empId+')', ex.month, ex.total, ex.receiptFile, ex.status];
+    });
+    
+  } else if(currentReportType==='leaves_rep'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>CL Balance</th><th>SL Balance</th><th>EL Balance</th><th>LWP Used</th></tr>';
+    var emps = DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
+    currentMISData=emps.map(function(e){
+      return [e.id, e.name, e.leaves.CL - e.leaves.CL_used, e.leaves.SL - e.leaves.SL_used, e.leaves.EL - e.leaves.EL_used, e.leaves.LWP_used];
+    });
+    
+  } else if(currentReportType==='doc_coverage'){
+    thead.innerHTML='<tr><th>MR ID</th><th>MR Name</th><th>Total Active Doctors</th><th>Visited Doctors</th><th>Doctors Not Visited</th><th>Coverage Rate %</th></tr>';
+    var mrs=DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
+    mrs.forEach(function(e){
+      var assigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
+      var visitedIds=[];
+      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor';}).forEach(function(r){
+        if(!visitedIds.includes(r.docId)) visitedIds.push(r.docId);
+      });
+      var missed = Math.max(0, assigned - visitedIds.length);
+      var pct = assigned ? Math.round((visitedIds.length / assigned)*100) : 0;
+      currentMISData.push([e.id, e.name, assigned, visitedIds.length, missed, pct+'%']);
+    });
+  }
+  
+  if(!currentMISData.length){
+    tbody.innerHTML='<tr><td colspan="10" class="empty">No matching records found for this query parameters</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML=currentMISData.map(function(row){
+    return '<tr>'+row.map(function(val){return '<td>'+val+'</td>';}).join('')+'</tr>';
+  }).join('');
+}
+
+function exportReportToCSV(){
+  if(!currentMISData.length){showToast('No data to export! Please run a query first.');return;}
+  var thead=document.getElementById('mis-report-thead');
+  var headers=[];
+  thead.querySelectorAll('th').forEach(function(th){headers.push(th.textContent);});
+  
+  var csv=[headers.join(',')];
+  currentMISData.forEach(function(row){
+    csv.push(row.map(function(val){
+      return '"'+(val||'').toString().replace(/"/g,'""')+'"';
+    }).join(','));
+  });
+  
+  downloadData(csv.join('\n'), 'adonis_mis_report_'+currentReportType+'.csv');
+}
+
+function downloadData(csv,fname){
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=fname;
+  a.click();
+}
+
+// Utility Helpers
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+function showToast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(function(){t.style.display='none';},2800);
+}
+</script>
+</body>
+</html>
+
+
+
+

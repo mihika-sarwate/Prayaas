@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Prayaas - Field Force Management System (Adonis Laboratories)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
@@ -901,19 +902,493 @@ var DEFAULT_DB={
   ]
 };
 
-var DB=JSON.parse(localStorage.getItem('adonis_db'))||DEFAULT_DB;
-function ensureDBDefaults(){
-  if(!DB.cityRates){
-    DB.cityRates={daA:700,daB:500,daC:300,lodgeA:1500,lodgeB:1000,lodgeC:0,localConv:120};
+var DB = DEFAULT_DB;
+var supabaseUrl = 'https://ajifnoazcvxvpyzlusuy.supabase.co';
+var supabaseKey = 'sb_publishable_7oOvIeoxeOyamPmeNZpTmg_HOEo68ss';
+var supabase = null;
+var useSupabase = false;
+
+if (window.supabase) {
+  supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+}
+
+async function initSupabaseData() {
+  if (!supabase) {
+    console.warn("Supabase library not loaded. Using LocalStorage.");
+    loadLocalDB();
+    return;
   }
-  if(!DB.sfc){DB.sfc=[];}
-  if(!DB.reports || DB.reports.length === 0){
-    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
-    saveDB();
+  
+  showToast("Connecting to Supabase...");
+  
+  try {
+    const { data: emps, error } = await supabase.from('employees').select('*');
+    if (error) throw error;
+    
+    useSupabase = true;
+    console.log("Connected to Supabase successfully.");
+    
+    const [
+      { data: doctors },
+      { data: chemists },
+      { data: reports },
+      { data: tourPlans },
+      { data: expenses },
+      { data: leaves },
+      { data: sfc },
+      { data: samplesInv },
+      { data: giftsInv },
+      { data: inputsInv }
+    ] = await Promise.all([
+      supabase.from('doctors').select('*'),
+      supabase.from('chemists').select('*'),
+      supabase.from('reports').select('*'),
+      supabase.from('tour_plans').select('*'),
+      supabase.from('expenses').select('*'),
+      supabase.from('leaves').select('*'),
+      supabase.from('sfc').select('*'),
+      supabase.from('samples_inventory').select('*'),
+      supabase.from('gifts_inventory').select('*'),
+      supabase.from('inputs_inventory').select('*')
+    ]);
+    
+    if (!emps || emps.length === 0) {
+      showToast("Seeding database with default records...");
+      await seedSupabaseDatabase();
+      await initSupabaseData();
+      return;
+    }
+    
+    DB = {
+      employees: emps.map(e => ({
+        id: e.id,
+        name: e.name,
+        pwd: e.pwd,
+        area: e.area,
+        role: e.role,
+        managerId: e.manager_id,
+        leaves: e.leaves
+      })),
+      doctors: (doctors || []).map(d => ({
+        id: d.id,
+        code: d.code,
+        name: d.name,
+        spec: d.spec,
+        qual: d.qual,
+        address: d.address,
+        city: d.city,
+        area: d.area,
+        phone: d.phone,
+        assignTo: d.assign_to,
+        status: d.status
+      })),
+      chemists: (chemists || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        area: c.area,
+        assignTo: c.assign_to
+      })),
+      products: DEFAULT_DB.products,
+      gifts: DEFAULT_DB.gifts,
+      inputs: DEFAULT_DB.inputs,
+      reports: (reports || []).map(r => ({
+        id: r.id,
+        empId: r.emp_id,
+        empName: r.emp_name,
+        date: r.date,
+        time: r.time,
+        targetType: r.target_type,
+        classification: r.classification,
+        callType: r.call_type,
+        docId: r.doc_id,
+        docName: r.doc_name,
+        docSpec: r.doc_spec,
+        docArea: r.doc_area,
+        promotedProducts: r.promoted_products || [],
+        samples: r.samples || {},
+        gifts: r.gifts || {},
+        inputs: r.inputs || {},
+        chemId: r.chem_id,
+        chemName: r.chem_name,
+        chemArea: r.chem_area,
+        orderAmount: parseFloat(r.order_amount) || 0,
+        stockStatus: r.stock_status,
+        jfwMgrId: r.jfw_mgr_id,
+        jfwMgrName: r.jfw_mgr_name,
+        lat: r.lat,
+        lng: r.lng,
+        remarks: r.remarks,
+        nextVisit: r.next_visit
+      })),
+      tourPlans: (tourPlans || []).map(tp => ({
+        id: tp.id,
+        empId: tp.emp_id,
+        empName: tp.emp_name,
+        month: tp.month,
+        managerId: tp.manager_id,
+        managerName: tp.manager_name,
+        days: tp.days,
+        status: tp.status,
+        remarks: tp.remarks,
+        submittedAt: tp.submitted_at,
+        approvedDate: tp.approved_date,
+        approvedBy: tp.approved_by,
+        revisionHistory: tp.revision_history || []
+      })),
+      expenses: (expenses || []).map(ex => ({
+        id: ex.id,
+        empId: ex.emp_id,
+        empName: ex.emp_name,
+        month: ex.month,
+        managerId: ex.manager_id,
+        lines: ex.lines,
+        total: parseFloat(ex.total) || 0,
+        receiptFile: ex.receipt_file,
+        status: ex.status,
+        submittedAt: ex.submitted_at,
+        remarks: ex.remarks
+      })),
+      leaves: (leaves || []).map(lv => ({
+        id: lv.id,
+        empId: lv.emp_id,
+        empName: lv.emp_name,
+        type: lv.type,
+        start: lv.start,
+        end: lv.end,
+        days: lv.days,
+        reason: lv.reason,
+        managerId: lv.manager_id,
+        status: lv.status,
+        submittedAt: lv.submitted_at,
+        remarks: lv.remarks
+      })),
+      cityRates: DEFAULT_DB.cityRates,
+      sfc: (sfc || []).map(s => ({
+        from: s.from_loc,
+        to: s.to_loc,
+        distance: s.distance,
+        mode: s.mode,
+        fare: s.fare,
+        da: s.da,
+        lodge: s.lodge,
+        other: s.other
+      })),
+      samplesInventory: (samplesInv || []).map(s => ({
+        id: s.id,
+        prodName: s.prod_name,
+        empId: s.emp_id,
+        opening: s.opening,
+        received: s.received,
+        distributed: s.distributed,
+        balance: s.balance
+      })),
+      giftsInventory: (giftsInv || []).map(g => ({
+        id: g.id,
+        giftName: g.gift_name,
+        empId: g.emp_id,
+        opening: g.opening,
+        received: g.received,
+        distributed: g.distributed,
+        balance: g.balance
+      })),
+      inputsInventory: (inputsInv || []).map(i => ({
+        id: i.id,
+        inputName: i.input_name,
+        empId: i.emp_id,
+        opening: i.opening,
+        received: i.received,
+        distributed: i.distributed,
+        balance: i.balance
+      }))
+    };
+    
+    showToast("Supabase data synchronized!");
+    
+  } catch (err) {
+    console.error("Supabase load failed. Falling back to LocalStorage:", err);
+    showToast("Using local database cache.");
+    loadLocalDB();
   }
 }
-ensureDBDefaults();
-function saveDB(){localStorage.setItem('adonis_db',JSON.stringify(DB));}
+
+function loadLocalDB() {
+  DB = JSON.parse(localStorage.getItem('adonis_db')) || DEFAULT_DB;
+  if (!DB.reports || DB.reports.length === 0) {
+    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
+    localStorage.setItem('adonis_db', JSON.stringify(DB));
+  }
+}
+
+async function seedSupabaseDatabase() {
+  const dbEmps = DEFAULT_DB.employees.map(e => ({
+    id: e.id,
+    name: e.name,
+    pwd: e.pwd,
+    area: e.area,
+    role: e.role,
+    manager_id: e.managerId || null,
+    leaves: e.leaves
+  }));
+  await supabase.from('employees').insert(dbEmps);
+  
+  const dbDocs = DEFAULT_DB.doctors.map(d => ({
+    id: d.id,
+    code: d.code,
+    name: d.name,
+    spec: d.spec,
+    qual: d.qual,
+    address: d.address,
+    city: d.city,
+    area: d.area,
+    phone: d.phone,
+    assign_to: d.assignTo || null,
+    status: d.status
+  }));
+  await supabase.from('doctors').insert(dbDocs);
+  
+  const dbChems = DEFAULT_DB.chemists.map(c => ({
+    id: c.id,
+    name: c.name,
+    area: c.area,
+    assign_to: c.assignTo || null
+  }));
+  await supabase.from('chemists').insert(dbChems);
+
+  const dbSfc = DEFAULT_DB.sfc.map(s => ({
+    from_loc: s.from,
+    to_loc: s.to,
+    distance: s.distance,
+    mode: s.mode,
+    fare: s.fare,
+    da: s.da,
+    lodge: s.lodge,
+    other: s.other
+  }));
+  await supabase.from('sfc').insert(dbSfc);
+
+  const dbSamples = DEFAULT_DB.samplesInventory.map(s => ({
+    prod_name: s.prodName,
+    emp_id: s.empId,
+    opening: s.opening,
+    received: s.received,
+    distributed: s.distributed,
+    balance: s.balance
+  }));
+  await supabase.from('samples_inventory').insert(dbSamples);
+
+  const dbGifts = DEFAULT_DB.giftsInventory.map(g => ({
+    gift_name: g.giftName,
+    emp_id: g.empId,
+    opening: g.opening,
+    received: g.received,
+    distributed: g.distributed,
+    balance: g.balance
+  }));
+  await supabase.from('gifts_inventory').insert(dbGifts);
+
+  const dbInputs = DEFAULT_DB.inputsInventory.map(i => ({
+    input_name: i.inputName,
+    emp_id: i.empId,
+    opening: i.opening,
+    received: i.received,
+    distributed: i.distributed,
+    balance: i.balance
+  }));
+  await supabase.from('inputs_inventory').insert(dbInputs);
+
+  const dbReports = DEFAULT_DB.reports.map(r => ({
+    id: r.id,
+    emp_id: r.empId,
+    emp_name: r.empName,
+    date: r.date,
+    time: r.time,
+    target_type: r.targetType,
+    classification: r.classification,
+    call_type: r.callType,
+    doc_id: r.docId || null,
+    doc_name: r.docName || null,
+    doc_spec: r.docSpec || null,
+    doc_area: r.docArea || null,
+    promoted_products: r.promotedProducts || [],
+    samples: r.samples || {},
+    gifts: r.gifts || {},
+    inputs: r.inputs || {},
+    chem_id: r.chemId || null,
+    chem_name: r.chemName || null,
+    chem_area: r.chemArea || null,
+    order_amount: r.orderAmount || 0,
+    stock_status: r.stockStatus || null,
+    jfw_mgr_id: r.jfwMgrId || null,
+    jfw_mgr_name: r.jfwMgrName || null,
+    lat: r.lat || null,
+    lng: r.lng || null,
+    remarks: r.remarks || null,
+    next_visit: r.nextVisit || null
+  }));
+  await supabase.from('reports').insert(dbReports);
+}
+
+function saveDB() {
+  localStorage.setItem('adonis_db', JSON.stringify(DB));
+  if (useSupabase) {
+    syncSupabaseDatabase();
+  }
+}
+
+async function syncSupabaseDatabase() {
+  try {
+    const dbEmps = DB.employees.map(e => ({
+      id: e.id,
+      name: e.name,
+      pwd: e.pwd,
+      area: e.area,
+      role: e.role,
+      manager_id: e.managerId || null,
+      leaves: e.leaves
+    }));
+    await supabase.from('employees').upsert(dbEmps);
+
+    const dbDocs = DB.doctors.map(d => ({
+      id: d.id,
+      code: d.code,
+      name: d.name,
+      spec: d.spec,
+      qual: d.qual,
+      address: d.address,
+      city: d.city,
+      area: d.area,
+      phone: d.phone,
+      assign_to: d.assignTo || null,
+      status: d.status
+    }));
+    await supabase.from('doctors').upsert(dbDocs);
+
+    const dbChems = DB.chemists.map(c => ({
+      id: c.id,
+      name: c.name,
+      area: c.area,
+      assign_to: c.assignTo || null
+    }));
+    await supabase.from('chemists').upsert(dbChems);
+
+    const dbReports = DB.reports.map(r => ({
+      id: r.id,
+      emp_id: r.empId,
+      emp_name: r.empName,
+      date: r.date,
+      time: r.time,
+      target_type: r.targetType,
+      classification: r.classification,
+      call_type: r.callType,
+      doc_id: r.docId || null,
+      doc_name: r.docName || null,
+      doc_spec: r.docSpec || null,
+      doc_area: r.docArea || null,
+      promoted_products: r.promotedProducts || [],
+      samples: r.samples || {},
+      gifts: r.gifts || {},
+      inputs: r.inputs || {},
+      chem_id: r.chemId || null,
+      chem_name: r.chemName || null,
+      chem_area: r.chemArea || null,
+      order_amount: r.orderAmount || 0,
+      stock_status: r.stockStatus || null,
+      jfw_mgr_id: r.jfwMgrId || null,
+      jfw_mgr_name: r.jfwMgrName || null,
+      lat: r.lat || null,
+      lng: r.lng || null,
+      remarks: r.remarks || null,
+      next_visit: r.nextVisit || null
+    }));
+    await supabase.from('reports').upsert(dbReports);
+
+    const dbTourPlans = DB.tourPlans.map(tp => ({
+      id: tp.id,
+      emp_id: tp.empId,
+      emp_name: tp.empName,
+      month: tp.month,
+      manager_id: tp.managerId || null,
+      manager_name: tp.managerName || null,
+      days: tp.days,
+      status: tp.status,
+      remarks: tp.remarks || null,
+      submitted_at: tp.submittedAt || null,
+      approved_date: tp.approvedDate || null,
+      approved_by: tp.approvedBy || null,
+      revision_history: tp.revisionHistory || []
+    }));
+    await supabase.from('tour_plans').upsert(dbTourPlans);
+
+    const dbExpenses = DB.expenses.map(ex => ({
+      id: ex.id,
+      emp_id: ex.empId,
+      emp_name: ex.empName,
+      month: ex.month,
+      manager_id: ex.managerId || null,
+      lines: ex.lines,
+      total: ex.total,
+      receipt_file: ex.receiptFile || null,
+      status: ex.status,
+      submitted_at: ex.submittedAt || null,
+      remarks: ex.remarks || null
+    }));
+    await supabase.from('expenses').upsert(dbExpenses);
+
+    const dbLeaves = DB.leaves.map(lv => ({
+      id: lv.id,
+      emp_id: lv.empId,
+      emp_name: lv.empName,
+      type: lv.type,
+      start: lv.start,
+      "end": lv.end,
+      days: lv.days,
+      reason: lv.reason || null,
+      manager_id: lv.managerId || null,
+      status: lv.status,
+      submitted_at: lv.submittedAt || null,
+      remarks: lv.remarks || null
+    }));
+    await supabase.from('leaves').upsert(dbLeaves);
+
+    const dbSamples = DB.samplesInventory.map(s => ({
+      id: s.id || undefined,
+      prod_name: s.prodName,
+      emp_id: s.empId,
+      opening: s.opening,
+      received: s.received,
+      distributed: s.distributed,
+      balance: s.balance
+    }));
+    await supabase.from('samples_inventory').upsert(dbSamples);
+
+    const dbGifts = DB.giftsInventory.map(g => ({
+      id: g.id || undefined,
+      gift_name: g.giftName,
+      emp_id: g.empId,
+      opening: g.opening,
+      received: g.received,
+      distributed: g.distributed,
+      balance: g.balance
+    }));
+    await supabase.from('gifts_inventory').upsert(dbGifts);
+
+    const dbInputs = DB.inputsInventory.map(i => ({
+      id: i.id || undefined,
+      input_name: i.inputName,
+      emp_id: i.empId,
+      opening: i.opening,
+      received: i.received,
+      distributed: i.distributed,
+      balance: i.balance
+    }));
+    await supabase.from('inputs_inventory').upsert(dbInputs);
+
+  } catch (err) {
+    console.error("Supabase sync failed:", err);
+  }
+}
+
+initSupabaseData();
 
 var SESSION={user:null};
 var currentTPId=null;

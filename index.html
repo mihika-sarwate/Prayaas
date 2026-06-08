@@ -2878,10 +2878,13 @@ function uploadSFC(inp){
   var file=inp.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
-    var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
     var added=0;
-    lines.slice(1).forEach(function(line){
-      var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && lines[0].toLowerCase().indexOf('from') !== -1;
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(p.length<8||!p[0]||!p[1])return;
       var existing = DB.sfc.find(function(s){
         return s.from.toLowerCase() === p[0].toLowerCase() && s.to.toLowerCase() === p[1].toLowerCase();
@@ -2992,10 +2995,13 @@ function uploadEmployees(inp){
   var file=inp.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
-    var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
     var count=0;
-    lines.slice(1).forEach(function(line){
-      var cols=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var cols=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!cols[0]||!cols[1]||!cols[2])return;
       var rawRole = (cols[4] || '').trim().toLowerCase();
       var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
@@ -3151,10 +3157,13 @@ function uploadDoctors(inp){
   var file=inp.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
-    var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
     var added=0;
-    lines.slice(1).forEach(function(line){
-      var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('code') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!p[0]||!p[1])return;
       var existing = DB.doctors.find(function(d){ return d.code === p[0]; });
       if(existing){
@@ -3282,10 +3291,13 @@ function uploadChemists(inp){
   var file=inp.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
-    var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
     var added=0;
-    lines.slice(1).forEach(function(line){
-      var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!p[0]||!p[1])return;
       var existing = DB.chemists.find(function(c){ return c.id === p[0]; });
       if(existing){

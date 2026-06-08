@@ -587,7 +587,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="emp-table-body"></tbody>
           </table>
         </div>
@@ -639,8 +639,9 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- ADMIN INVENTORY PANEL -->
+  <!-- ADMIN INVENTORY PANEL -->
     <div id="sec-adm-inventory" style="display:none">
       <div class="card">
         <div class="card-title">&#128230; Issue Stock to Representative</div>
@@ -814,15 +815,15 @@ table.tbl tr:last-child td{border-bottom:none}
 // Master Data Store
 var DEFAULT_DB={
   employees:[
-    {id:'ADMIN',name:'Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'NSM001',name:'Sanjay Kapoor',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'ZM001',name:'Amitav Banerjee',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'RM001',name:'Vikram Malhotra',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'AM001',name:'Deepa Iyer',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'FLM001',name:'Rajesh Verma',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'EMP001',name:'Rahul Sharma',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
-    {id:'EMP002',name:'Priya Mehta',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'EMP003',name:'Karan Patel',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
+    {id:'ADMIN',name:'Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'NSM001',name:'Sanjay Kapoor',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',doj:'2025-01-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'ZM001',name:'Amitav Banerjee',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',doj:'2025-02-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'RM001',name:'Vikram Malhotra',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',doj:'2025-02-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'AM001',name:'Deepa Iyer',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',doj:'2025-03-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'FLM001',name:'Rajesh Verma',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',doj:'2025-03-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP001',name:'Rahul Sharma',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',doj:'2025-04-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
+    {id:'EMP002',name:'Priya Mehta',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',doj:'2025-04-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP003',name:'Karan Patel',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',doj:'2025-05-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
   ],
   doctors:[
     {id:'D001',code:'DOC001',name:'Dr. Anil Kumar',spec:'Cardiologist',qual:'MBBS, MD',address:'Bandra Medical Center',city:'Mumbai',area:'Bandra',phone:'9820000001',assignTo:'EMP001',status:'Active'},
@@ -985,6 +986,9 @@ async function initSupabaseData() {
         area: e.area,
         role: e.role,
         managerId: e.manager_id,
+        doj: e.doj || '',
+        state: e.state || '',
+        status: e.status || 'Active',
         leaves: e.leaves
       })),
       doctors: (doctors || []).map(d => ({
@@ -1133,6 +1137,17 @@ function loadLocalDB() {
   DB = JSON.parse(localStorage.getItem('adonis_db')) || DEFAULT_DB;
   if (!DB.reports || DB.reports.length === 0) {
     DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
+  }
+  // Enforce doj, state, status and pwd defaults for any existing local employees
+  var updated = false;
+  DB.employees.forEach(function(e) {
+    var def = DEFAULT_DB.employees.find(function(d){return d.id === e.id;});
+    if (!e.doj) { e.doj = def ? def.doj : '2026-01-01'; updated = true; }
+    if (!e.state) { e.state = def ? def.state : 'Maharashtra'; updated = true; }
+    if (!e.status) { e.status = def ? def.status : 'Active'; updated = true; }
+    if (!e.pwd) { e.pwd = def ? def.pwd : 'pass123'; updated = true; }
+  });
+  if (updated || !localStorage.getItem('adonis_db')) {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
   }
 }
@@ -1145,6 +1160,9 @@ async function seedSupabaseDatabase() {
     area: e.area,
     role: e.role,
     manager_id: e.managerId || null,
+    doj: e.doj || null,
+    state: e.state || null,
+    status: e.status || 'Active',
     leaves: e.leaves
   }));
   await supabase.from('employees').insert(dbEmps);
@@ -2950,7 +2968,7 @@ function uploadEmployees(inp){
 }
 
 function downloadEmpTemplate(){
-  var csv='EmployeeID,Name,Password,Territory,Role,ManagerID\nEMP004,Vikas Malhotra,pass123,Pune,emp,FLM001\nFLM002,Sunita Sen,pass123,West Bengal,manager,RM001\n';
+  var csv='EmployeeID,Name,Password,Territory,Role,ManagerID,DOJ,State,Status\nEMP004,Vikas Malhotra,pass123,Pune,emp,FLM001,2026-01-01,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,manager,RM001,2026-01-01,West Bengal,Active\n';
   downloadData(csv,'employees_template.csv');
 }
 
@@ -2959,7 +2977,7 @@ function renderEmpTable(){
   var emps=DB.employees.filter(function(e){return e.id!=='ADMIN';});
   tbody.innerHTML=emps.map(function(e){
     var mgr=DB.employees.find(function(m){return m.id===e.managerId;});
-    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
+    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td><code>'+(e.pwd||'')+'</code></td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
   }).join('');
 }
 

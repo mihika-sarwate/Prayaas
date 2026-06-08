@@ -2997,7 +2997,9 @@ function uploadEmployees(inp){
     lines.slice(1).forEach(function(line){
       var cols=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!cols[0]||!cols[1]||!cols[2])return;
-      var role=(cols[4]||'emp').trim().toLowerCase();
+      var rawRole = (cols[4] || '').trim().toLowerCase();
+      var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
+      var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
       var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
       if(existing){
         existing.name=cols[1];

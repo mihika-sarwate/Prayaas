@@ -2839,20 +2839,32 @@ function uploadSFC(inp){
     lines.slice(1).forEach(function(line){
       var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(p.length<8||!p[0]||!p[1])return;
-      DB.sfc.push({
-        from: p[0],
-        to: p[1],
-        distance: parseInt(p[2])||0,
-        mode: p[3],
-        fare: parseFloat(p[4])||0,
-        da: parseFloat(p[5])||0,
-        lodge: parseFloat(p[6])||0,
-        other: parseFloat(p[7])||0
+      var existing = DB.sfc.find(function(s){
+        return s.from.toLowerCase() === p[0].toLowerCase() && s.to.toLowerCase() === p[1].toLowerCase();
       });
+      if(existing){
+        existing.distance = parseInt(p[2])||0;
+        existing.mode = p[3];
+        existing.fare = parseFloat(p[4])||0;
+        existing.da = parseFloat(p[5])||0;
+        existing.lodge = parseFloat(p[6])||0;
+        existing.other = parseFloat(p[7])||0;
+      } else {
+        DB.sfc.push({
+          from: p[0],
+          to: p[1],
+          distance: parseInt(p[2])||0,
+          mode: p[3],
+          fare: parseFloat(p[4])||0,
+          da: parseFloat(p[5])||0,
+          lodge: parseFloat(p[6])||0,
+          other: parseFloat(p[7])||0
+        });
+      }
       added++;
     });
     saveDB();
-    showToast(added+' SFC entries loaded successfully!');
+    showToast(added+' SFC entries processed successfully!');
     renderSFCTable();
   };
   reader.readAsText(file);inp.value='';
@@ -2941,9 +2953,19 @@ function uploadEmployees(inp){
     lines.slice(1).forEach(function(line){
       var cols=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!cols[0]||!cols[1]||!cols[2])return;
-      var role=cols[4]||'emp';
+      var role=(cols[4]||'emp').trim().toLowerCase();
       var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
-      if(!existing){
+      if(existing){
+        existing.name=cols[1];
+        existing.pwd=cols[2];
+        existing.area=cols[3]||'';
+        existing.role=role;
+        existing.managerId=cols[5]||'';
+        existing.doj=cols[6]||'';
+        existing.state=cols[7]||'';
+        existing.status=cols[8]||'Active';
+        count++;
+      } else {
         DB.employees.push({
           id:cols[0].toUpperCase(),
           name:cols[1],
@@ -2960,7 +2982,7 @@ function uploadEmployees(inp){
       }
     });
     saveDB();
-    showToast(count+' employees uploaded successfully!');
+    showToast(count+' employees processed successfully!');
     renderEmpTable();
     populateAdminEmpMgr();
   };
@@ -3088,23 +3110,36 @@ function uploadDoctors(inp){
     lines.slice(1).forEach(function(line){
       var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!p[0]||!p[1])return;
-      DB.doctors.push({
-        id: 'D'+Date.now()+Math.random(),
-        code: p[0],
-        name: p[1],
-        spec: p[2]||'',
-        qual: p[3]||'',
-        address: p[4]||'',
-        city: p[5]||'',
-        area: p[6]||'',
-        phone: p[7]||'',
-        assignTo: (p[8]||'').toUpperCase(),
-        status: p[9]||'Active'
-      });
+      var existing = DB.doctors.find(function(d){ return d.code === p[0]; });
+      if(existing){
+        existing.name = p[1];
+        existing.spec = p[2]||'';
+        existing.qual = p[3]||'';
+        existing.address = p[4]||'';
+        existing.city = p[5]||'';
+        existing.area = p[6]||'';
+        existing.phone = p[7]||'';
+        existing.assignTo = (p[8]||'').toUpperCase();
+        existing.status = p[9]||'Active';
+      } else {
+        DB.doctors.push({
+          id: 'D'+Date.now()+Math.random(),
+          code: p[0],
+          name: p[1],
+          spec: p[2]||'',
+          qual: p[3]||'',
+          address: p[4]||'',
+          city: p[5]||'',
+          area: p[6]||'',
+          phone: p[7]||'',
+          assignTo: (p[8]||'').toUpperCase(),
+          status: p[9]||'Active'
+        });
+      }
       added++;
     });
     saveDB();
-    showToast(added+' Doctor records imported successfully!');
+    showToast(added+' Doctor records processed successfully!');
     renderAdminDocList();
   };
   reader.readAsText(file);inp.value='';
@@ -3206,16 +3241,23 @@ function uploadChemists(inp){
     lines.slice(1).forEach(function(line){
       var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!p[0]||!p[1])return;
-      DB.chemists.push({
-        id: p[0],
-        name: p[1],
-        area: p[2]||'',
-        assignTo: (p[3]||'').toUpperCase()
-      });
+      var existing = DB.chemists.find(function(c){ return c.id === p[0]; });
+      if(existing){
+        existing.name = p[1];
+        existing.area = p[2]||'';
+        existing.assignTo = (p[3]||'').toUpperCase();
+      } else {
+        DB.chemists.push({
+          id: p[0],
+          name: p[1],
+          area: p[2]||'',
+          assignTo: (p[3]||'').toUpperCase()
+        });
+      }
       added++;
     });
     saveDB();
-    showToast(added+' Chemists loaded successfully!');
+    showToast(added+' Chemists processed successfully!');
     renderAdminChemistList();
   };
   reader.readAsText(file);inp.value='';

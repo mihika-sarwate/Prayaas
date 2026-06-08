@@ -171,6 +171,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div style="text-align:center;margin-top:14px">
         <button class="btn sm" style="width:auto;padding:0 20px;margin:0 auto;background:var(--primary);color:var(--accent);border-color:var(--primary)" onclick="doAdminLogin()">Admin / Manager Login</button>
       </div>
+      <div style="font-size:11px;color:#64748B;text-align:center;margin-top:15px;" id="db-status-indicator">Database Connection: LocalStorage</div>
     </div>
   </div>
 </div>
@@ -946,6 +947,8 @@ async function initSupabaseData() {
     
     useSupabase = true;
     console.log("Connected to Supabase successfully.");
+    var indicator = document.getElementById('db-status-indicator');
+    if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
     
     const [
       { data: doctors },
@@ -1291,7 +1294,12 @@ async function syncSupabaseDatabase() {
       status: e.status || 'Active',
       leaves: e.leaves
     }));
-    await supabase.from('employees').upsert(dbEmps);
+    const { error: empError } = await supabase.from('employees').upsert(dbEmps);
+    if (empError) {
+      console.error("Supabase Employees sync failed:", empError);
+      showToast("Sync Error (Employees): " + empError.message);
+      return;
+    }
 
     const dbDocs = DB.doctors.map(d => ({
       id: d.id,
@@ -1306,7 +1314,12 @@ async function syncSupabaseDatabase() {
       assign_to: d.assignTo || null,
       status: d.status
     }));
-    await supabase.from('doctors').upsert(dbDocs);
+    const { error: docError } = await supabase.from('doctors').upsert(dbDocs);
+    if (docError) {
+      console.error("Supabase Doctors sync failed:", docError);
+      showToast("Sync Error (Doctors): " + docError.message);
+      return;
+    }
 
     const dbChems = DB.chemists.map(c => ({
       id: c.id,
@@ -1314,7 +1327,12 @@ async function syncSupabaseDatabase() {
       area: c.area,
       assign_to: c.assignTo || null
     }));
-    await supabase.from('chemists').upsert(dbChems);
+    const { error: chemError } = await supabase.from('chemists').upsert(dbChems);
+    if (chemError) {
+      console.error("Supabase Chemists sync failed:", chemError);
+      showToast("Sync Error (Chemists): " + chemError.message);
+      return;
+    }
 
     const dbReports = DB.reports.map(r => ({
       id: r.id,
@@ -1345,7 +1363,12 @@ async function syncSupabaseDatabase() {
       remarks: r.remarks || null,
       next_visit: r.nextVisit || null
     }));
-    await supabase.from('reports').upsert(dbReports);
+    const { error: repError } = await supabase.from('reports').upsert(dbReports);
+    if (repError) {
+      console.error("Supabase Reports sync failed:", repError);
+      showToast("Sync Error (Reports): " + repError.message);
+      return;
+    }
 
     const dbTourPlans = DB.tourPlans.map(tp => ({
       id: tp.id,
@@ -1463,8 +1486,21 @@ var filteredReports=[];
 function doLogin(){
   var id=document.getElementById('login-id').value.trim().toUpperCase();
   var pwd=document.getElementById('login-pwd').value.trim();
+  console.log("=== Prayaas Login Attempt ===");
+  console.log("Input Employee ID:", id);
+  console.log("Input Password:", pwd);
+  console.log("All Employees in DB:", DB.employees);
   var emp=DB.employees.find(function(e){return (e.id===id || (e.name && e.name.toUpperCase()===id)) && (e.pwd && e.pwd.trim()===pwd) && e.role==='emp';});
-  if(!emp){showToast('Invalid Employee ID/Name or Password');return;}
+  if(!emp){
+    var matchedUser = DB.employees.find(function(e){return e.id===id;});
+    if (matchedUser) {
+      console.warn("User ID found, but cannot authenticate. DB password:", matchedUser.pwd, "DB role:", matchedUser.role);
+    } else {
+      console.warn("No user ID match found in database for ID:", id);
+    }
+    showToast('Invalid Employee ID/Name or Password');
+    return;
+  }
   SESSION.user=emp;
   localStorage.setItem('adonis_session', JSON.stringify(SESSION));
   document.getElementById('scr-login').style.display='none';

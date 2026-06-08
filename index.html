@@ -984,7 +984,7 @@ async function initSupabaseData() {
         name: e.name,
         pwd: e.pwd,
         area: e.area,
-        role: e.role,
+        role: (e.role || 'emp').trim().toLowerCase(),
         managerId: e.manager_id,
         doj: e.doj || '',
         state: e.state || '',
@@ -1138,7 +1138,7 @@ function loadLocalDB() {
   if (!DB.reports || DB.reports.length === 0) {
     DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
   }
-  // Enforce doj, state, status and pwd defaults for any existing local employees
+  // Enforce doj, state, status, pwd and role defaults / normalization for all local employees
   var updated = false;
   DB.employees.forEach(function(e) {
     var def = DEFAULT_DB.employees.find(function(d){return d.id === e.id;});
@@ -1146,6 +1146,12 @@ function loadLocalDB() {
     if (!e.state) { e.state = def ? def.state : 'Maharashtra'; updated = true; }
     if (!e.status) { e.status = def ? def.status : 'Active'; updated = true; }
     if (!e.pwd) { e.pwd = def ? def.pwd : 'pass123'; updated = true; }
+    
+    var normalizedRole = (e.role || 'emp').trim().toLowerCase();
+    if (e.role !== normalizedRole) {
+      e.role = normalizedRole;
+      updated = true;
+    }
   });
   if (updated || !localStorage.getItem('adonis_db')) {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
@@ -1456,8 +1462,8 @@ var filteredReports=[];
 // ===== AUTH =====
 function doLogin(){
   var id=document.getElementById('login-id').value.trim().toUpperCase();
-  var pwd=document.getElementById('login-pwd').value;
-  var emp=DB.employees.find(function(e){return (e.id===id || (e.name && e.name.toUpperCase()===id)) && e.pwd===pwd && e.role==='emp';});
+  var pwd=document.getElementById('login-pwd').value.trim();
+  var emp=DB.employees.find(function(e){return (e.id===id || (e.name && e.name.toUpperCase()===id)) && (e.pwd && e.pwd.trim()===pwd) && e.role==='emp';});
   if(!emp){showToast('Invalid Employee ID/Name or Password');return;}
   SESSION.user=emp;
   localStorage.setItem('adonis_session', JSON.stringify(SESSION));
@@ -1469,7 +1475,9 @@ function doLogin(){
 function doAdminLogin(){
   var id=prompt('ID:');var pwd=prompt('Password:');
   if(!id||!pwd)return;
-  var u=DB.employees.find(function(e){return e.id===(id||'').toUpperCase()&&e.pwd===pwd&&(e.role!=='emp');});
+  id = id.trim().toUpperCase();
+  pwd = pwd.trim();
+  var u=DB.employees.find(function(e){return e.id===id && (e.pwd && e.pwd.trim()===pwd) && e.role!=='emp';});
   if(!u){showToast('Invalid credentials');return;}
   SESSION.user=u;
   localStorage.setItem('adonis_session', JSON.stringify(SESSION));

@@ -9,6 +9,9 @@ create table employees (
   area text,
   role text not null, -- 'emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'
   manager_id text references employees(id),
+  doj date,
+  state text,
+  status text not null default 'Active',
   leaves jsonb not null default '{"CL": 12, "SL": 10, "EL": 15, "LWP": 99, "CL_used": 0, "SL_used": 0, "EL_used": 0, "LWP_used": 0}'::jsonb
 );
 

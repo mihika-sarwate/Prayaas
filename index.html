@@ -213,7 +213,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card-title">&#128203; Submit Daily Call Report</div>
       <div class="row2">
         <div><label class="lbl">Date</label><input type="date" id="r-date" onchange="checkMTPForSelectedDate()"></div>
-        <div><label class="lbl">Call Classification</label><select id="r-classification" disabled><option>Planned Call</option><option>Unplanned Call</option></select></div>
+        <div><label class="lbl">Call Classification</label><select id="r-classification"><option>Planned Call</option><option>Unplanned Call</option></select></div>
       </div>
       <div class="row2">
         <div><label class="lbl">Time</label><input type="time" id="r-time"></div>
@@ -511,8 +511,15 @@ table.tbl tr:last-child td{border-bottom:none}
 
     <!-- ADMIN MASTER DATA PANEL -->
     <div id="sec-adm-master" style="display:none">
+      <div class="admin-tabs" style="margin-bottom:14px">
+        <div class="admin-tab on" id="subtab-adm-sfc" onclick="goMasterSubTab('sfc')">SFC Master</div>
+        <div class="admin-tab" id="subtab-adm-emp" onclick="goMasterSubTab('emp')">Employee Master</div>
+        <div class="admin-tab" id="subtab-adm-doc" onclick="goMasterSubTab('doc')">Doctor Master</div>
+        <div class="admin-tab" id="subtab-adm-chem" onclick="goMasterSubTab('chem')">Chemist Master</div>
+      </div>
+
       <!-- SFC Master -->
-      <div id="adm-sfc-section">
+      <div id="adm-sfc-section" class="master-sub-sec">
         <div class="sec-hdr">&#128506; Fare &amp; Distance Master (SFC)</div>
         <div class="card">
           <div class="info-box">Upload SFC CSV with columns: <strong>FromLocation, ToLocation, DistanceKM, TravelMode, FareAmount, DAAllowance, LodgingAllowance, OtherAllowance</strong></div>
@@ -534,6 +541,7 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
 
       <!-- Employee Master -->
+      <div id="adm-emp-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128101; Hierarchy &amp; Employee Management</div>
       <div class="card">
         <div class="card-title">Add New Employee Record</div>
@@ -559,11 +567,16 @@ table.tbl tr:last-child td{border-bottom:none}
           </div>
           <div><label class="lbl">Reporting Manager</label><select id="adm-emp-mgr"><option value="">-- None / Root --</option></select></div>
         </div>
+        <div class="row3">
+          <div><label class="lbl">DOJ</label><input type="date" id="adm-emp-doj"></div>
+          <div><label class="lbl">State</label><input type="text" id="adm-emp-state" placeholder="State"></div>
+          <div><label class="lbl">Status</label><select id="adm-emp-status"><option>Active</option><option>Hold</option><option>Resign</option></select></div>
+        </div>
         <button class="btn primary sm" onclick="addEmployee()">+ Save Employee Record</button>
       </div>
       <div class="card">
         <div class="card-title">Bulk Import Employees</div>
-        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Role, ManagerID</strong></div>
+        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Role, ManagerID, DOJ, State, Status</strong></div>
         <div class="btn-row">
           <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Emp Template</button>
           <button class="btn sm primary" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
@@ -573,13 +586,15 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>Action</th></tr></thead>
+            <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="emp-table-body"></tbody>
           </table>
         </div>
       </div>
+      </div>
 
       <!-- Doctor Master -->
+      <div id="adm-doc-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128203; Doctor Master Management</div>
       <div class="card">
         <div class="info-box">Upload Doctor CSV. Columns: <strong>DoctorCode, Name, Speciality, Qualification, Address, City, Area, Mobile, AssignToEmpID, Status</strong></div>
@@ -599,8 +614,10 @@ table.tbl tr:last-child td{border-bottom:none}
           </table>
         </div>
       </div>
+      </div>
 
       <!-- Chemist Master -->
+      <div id="adm-chem-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128221; Chemist Master Management</div>
       <div class="card">
         <div class="info-box">Upload Chemist CSV. Columns: <strong>ChemistID, Name, Area, AssignToEmpID</strong></div>
@@ -1244,6 +1261,9 @@ async function syncSupabaseDatabase() {
       area: e.area,
       role: e.role,
       manager_id: e.managerId || null,
+      doj: e.doj || null,
+      state: e.state || null,
+      status: e.status || 'Active',
       leaves: e.leaves
     }));
     await supabase.from('employees').upsert(dbEmps);
@@ -1401,8 +1421,8 @@ var filteredReports=[];
 function doLogin(){
   var id=document.getElementById('login-id').value.trim().toUpperCase();
   var pwd=document.getElementById('login-pwd').value;
-  var emp=DB.employees.find(function(e){return e.id===id&&e.pwd===pwd&&e.role==='emp';});
-  if(!emp){showToast('Invalid Employee ID or Password');return;}
+  var emp=DB.employees.find(function(e){return (e.id===id || (e.name && e.name.toUpperCase()===id)) && e.pwd===pwd && e.role==='emp';});
+  if(!emp){showToast('Invalid Employee ID/Name or Password');return;}
   SESSION.user=emp;
   document.getElementById('scr-login').style.display='none';
   document.getElementById('scr-emp').classList.add('on');
@@ -1616,7 +1636,6 @@ function checkMTPForSelectedDate(){
 }
 
 function submitReport(){
-  updateReportClassificationFromTarget();
   var date=document.getElementById('r-date').value;
   var time=document.getElementById('r-time').value;
   var targetType=document.getElementById('r-target-type').value;
@@ -1895,13 +1914,14 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 
   html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
-    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Planned Doctors</th><th>Planned Chemists</th></tr></thead><tbody>';
+    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Town / City</th><th>Planned Doctors</th><th>Planned Chemists</th></tr></thead><tbody>';
 
   var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return !!(day.areaTerritory||day.toLocation||'').trim();}) : currentMTPDays;
 
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);
     var area=d.areaTerritory||d.toLocation||'';
+    var city=d.stayCity||'';
     var docs=getAssignedDoctorsForArea(area);
     var chems=getAssignedChemistsForArea(area);
     d.plannedDocs=docs.map(function(doc){return doc.id;});
@@ -1911,6 +1931,7 @@ function renderMTPDaysUI(isReadOnly, existing){
       '<td class="tbl-name">'+d.date+'</td>'+
       '<td>'+dow+'</td>'+
       '<td><input type="text" '+readOnlyAttr+' value="'+area+'" placeholder="Enter area/territory" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)"></td>'+
+      '<td><input type="text" '+readOnlyAttr+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)"></td>'+
       '<td><span class="badge blue">'+docs.length+'</span> '+(docs.length?docs.map(function(doc){return doc.name;}).join(', '):'--')+'</td>'+
       '<td><span class="badge green">'+chems.length+'</span> '+(chems.length?chems.map(function(chem){return chem.name;}).join(', '):'--')+'</td>'+
       '</tr>';
@@ -1935,6 +1956,11 @@ function updateMTPArea(idx, value){
   currentMTPDays[idx].plannedChems=getAssignedChemistsForArea(area).map(function(chem){return chem.id;});
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
+
+function updateMTPCity(idx, value){
+  currentMTPDays[idx].stayCity=value.trim();
+}
+
 
 function updateMTPRoute(idx, routeVal){
   return;
@@ -2261,7 +2287,7 @@ function generateExpenseFromReports(){
   var html=lines.map(function(l){
     return '<div class="exp-row">'+
       '<div><div class="exp-label">'+l.date+' | '+l.route+' ('+l.mode+' - '+l.distance+' KM)</div>'+
-      '<div class="exp-sub">Travel: &#x20B9;'+l.fare+' | DA: &#x20B9;'+l.da+' | Lodge: &#x20B9;'+l.lodge+' | Local/Other: &#x20B9;'+l.other+'</div></div>'+
+      '<div class="exp-sub">Travel: &#x20B9;'+l.fare+' | DA: &#x20B9;'+l.da+' | Lodge: &#x20B9;'+l.lodging+' | Local/Other: &#x20B9;'+l.other+'</div></div>'+
       '<div class="exp-amt">&#x20B9;'+l.total+'</div></div>';
   }).join('');
   
@@ -2467,6 +2493,20 @@ function selectPlannedReportTarget(type, id){
 }
 
 // ===== ADMIN / MANAGER PANEL FUNCTIONS =====
+
+function goMasterSubTab(id) {
+  document.querySelectorAll('#sec-adm-master .admin-tab').forEach(function(el){ el.classList.remove('on'); });
+  document.getElementById('subtab-adm-'+id).classList.add('on');
+  
+  document.querySelectorAll('.master-sub-sec').forEach(function(el){ el.style.display='none'; });
+  document.getElementById('adm-'+id+'-section').style.display='block';
+  
+  if (id === 'sfc') renderSFCTable();
+  else if (id === 'emp') renderEmpTable();
+  else if (id === 'doc') renderAdminDocList();
+  else if (id === 'chem') renderAdminChemistList();
+}
+
 function initAdminApp(){
   renderAdminStats();
   renderAdminDashTeamList();
@@ -2496,6 +2536,17 @@ function goAdminTab(name){
   if(name==='dash') renderAdminDashTeamList();
   if(name==='reports') updateReportHeadersAndFilters();
   if(name==='inventory') renderAdminInventoryTables();
+  if(name==='master') {
+    var activeSub = document.querySelector('#sec-adm-master .admin-tab.on');
+    if (activeSub) {
+      if (activeSub.id === 'subtab-adm-sfc') renderSFCTable();
+      else if (activeSub.id === 'subtab-adm-emp') renderEmpTable();
+      else if (activeSub.id === 'subtab-adm-doc') renderAdminDocList();
+      else if (activeSub.id === 'subtab-adm-chem') renderAdminChemistList();
+    } else {
+      goMasterSubTab('sfc');
+    }
+  }
 }
 
 function renderAdminStats(){
@@ -2809,6 +2860,9 @@ function addEmployee(){
   var area=document.getElementById('adm-emp-area').value.trim();
   var role=document.getElementById('adm-emp-role').value;
   var mgr=document.getElementById('adm-emp-mgr').value;
+  var doj=document.getElementById('adm-emp-doj').value;
+  var state=document.getElementById('adm-emp-state').value.trim();
+  var status=document.getElementById('adm-emp-status').value;
   
   if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
   if(DB.employees.find(function(e){return e.id===id;})){showToast('Employee ID already exists');return;}
@@ -2820,6 +2874,9 @@ function addEmployee(){
     area:area,
     role:role,
     managerId:mgr,
+    doj:doj,
+    state:state,
+    status:status,
     leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
   });
   saveDB();
@@ -2828,6 +2885,9 @@ function addEmployee(){
   document.getElementById('adm-emp-name').value='';
   document.getElementById('adm-emp-pwd').value='';
   document.getElementById('adm-emp-area').value='';
+  document.getElementById('adm-emp-doj').value='';
+  document.getElementById('adm-emp-state').value='';
+  document.getElementById('adm-emp-status').value='Active';
   showToast('Employee record added!');
   renderEmpTable();
   populateAdminEmpMgr();
@@ -2838,25 +2898,30 @@ function uploadEmployees(inp){
   var reader=new FileReader();
   reader.onload=function(e){
     var lines=e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
-    var added=0;
+    var count=0;
     lines.slice(1).forEach(function(line){
-      var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
-      var id=(p[0]||'').toUpperCase(),name=(p[1]||''),pwd=(p[2]||''),area=(p[3]||''),role=(p[4]||'emp'),mgr=(p[5]||'');
-      if(!id||!name||!pwd)return;
-      if(DB.employees.find(function(e){return e.id===id;}))return;
-      DB.employees.push({
-        id:id,
-        name:name,
-        pwd:pwd,
-        area:area,
-        role:role,
-        managerId:mgr.toUpperCase(),
-        leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
-      });
-      added++;
+      var cols=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      if(!cols[0]||!cols[1]||!cols[2])return;
+      var role=cols[4]||'emp';
+      var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
+      if(!existing){
+        DB.employees.push({
+          id:cols[0].toUpperCase(),
+          name:cols[1],
+          pwd:cols[2],
+          area:cols[3]||'',
+          role:role,
+          managerId:cols[5]||'',
+          doj:cols[6]||'',
+          state:cols[7]||'',
+          status:cols[8]||'Active',
+          leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+        });
+        count++;
+      }
     });
     saveDB();
-    showToast(added+' employees uploaded successfully!');
+    showToast(count+' employees uploaded successfully!');
     renderEmpTable();
     populateAdminEmpMgr();
   };
@@ -2873,7 +2938,7 @@ function renderEmpTable(){
   var emps=DB.employees.filter(function(e){return e.id!=='ADMIN';});
   tbody.innerHTML=emps.map(function(e){
     var mgr=DB.employees.find(function(m){return m.id===e.managerId;});
-    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
+    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
   }).join('');
 }
 

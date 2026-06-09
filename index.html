@@ -3178,14 +3178,15 @@ function uploadEmployees(inp){
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var cols=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
-      if(!cols[0]||!cols[1]||!cols[2])return;
+      if(!cols[0]||!cols[1])return;
+      var pwd = cols[2] || 'pass123';
       var rawRole = (cols[4] || '').trim().toLowerCase();
       var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
       var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
       if(existing){
         existing.name=cols[1];
-        existing.pwd=cols[2];
+        existing.pwd=pwd;
         existing.area=cols[3]||'';
         existing.role=role;
         existing.managerId=cols[5]||'';
@@ -3197,7 +3198,7 @@ function uploadEmployees(inp){
         DB.employees.push({
           id:cols[0].toUpperCase(),
           name:cols[1],
-          pwd:cols[2],
+          pwd:pwd,
           area:cols[3]||'',
           role:role,
           managerId:cols[5]||'',

@@ -151,6 +151,9 @@ table.tbl tr:last-child td{border-bottom:none}
 .admin-tab{padding:10px 16px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s}
 .admin-tab:hover{color:var(--primary)}
 .admin-tab.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+.password-container{position:relative;width:100%}
+.password-toggle-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;user-select:none;padding:4px}
+.password-toggle-btn:hover{color:var(--primary)}
 </style>
 </head>
 <body>
@@ -165,8 +168,14 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="login-title">Prayaas</div>
       <div class="login-sub">Field Force &amp; MR System (Adonis Laboratories)</div>
-      <div class="fw"><label class="lbl">Employee ID</label><input type="text" id="login-id" placeholder="e.g. EMP001" autocomplete="off"></div>
-      <div class="fw"><label class="lbl">Password</label><input type="password" id="login-pwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="fw"><label class="lbl">Employee ID</label><input type="text" id="login-id" placeholder="e.g. EMP001" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+      <div class="fw">
+        <label class="lbl">Password</label>
+        <div class="password-container">
+          <input type="password" id="login-pwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" style="padding-right: 60px;">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility()" tabindex="-1">Show</button>
+        </div>
+      </div>
       <button class="btn primary" onclick="doLogin()" style="margin-top:4px">Login</button>
       <div style="text-align:center;margin-top:14px">
         <button class="btn sm" style="width:auto;padding:0 20px;margin:0 auto;background:var(--primary);color:var(--accent);border-color:var(--primary)" onclick="doAdminLogin()">Admin / Manager Login</button>
@@ -604,6 +613,8 @@ table.tbl tr:last-child td{border-bottom:none}
           <button class="btn sm success" onclick="downloadDocTemplate()">&#8595; Doc Template</button>
           <button class="btn sm primary" onclick="document.getElementById('doc-upload').click()">&#8593; Upload Doctor CSV</button>
           <input type="file" id="doc-upload" accept=".csv" onchange="uploadDoctors(this)" style="display:none">
+          <button class="btn sm danger" onclick="bulkDeleteAllDoctors()">&#128465; Delete All</button>
+          <button class="btn sm danger" id="btn-bulk-delete-selected-docs" onclick="bulkDeleteSelectedDoctors()" style="display:none">&#128465; Delete Selected (0)</button>
         </div>
         <button class="btn sm" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
       </div>
@@ -611,7 +622,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <input type="text" id="adm-doc-search" placeholder="&#128269; Search doctor master registry..." oninput="renderAdminDocList()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>Code</th><th>Name</th><th>Speciality</th><th>Area</th><th>Mobile</th><th>Assigned MR</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="check-all-docs" onclick="toggleSelectAllDocs(this)"></th><th>Code</th><th>Name</th><th>Speciality</th><th>Area</th><th>Mobile</th><th>Assigned MR</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="doc-table-body"></tbody>
           </table>
         </div>
@@ -627,6 +638,8 @@ table.tbl tr:last-child td{border-bottom:none}
           <button class="btn sm success" onclick="downloadChemTemplate()">&#8595; Chemist Template</button>
           <button class="btn sm primary" onclick="document.getElementById('chem-upload').click()">&#8593; Upload Chemist CSV</button>
           <input type="file" id="chem-upload" accept=".csv" onchange="uploadChemists(this)" style="display:none">
+          <button class="btn sm danger" onclick="bulkDeleteAllChemists()">&#128465; Delete All</button>
+          <button class="btn sm danger" id="btn-bulk-delete-selected-chems" onclick="bulkDeleteSelectedChemists()" style="display:none">&#128465; Delete Selected (0)</button>
         </div>
         <button class="btn sm" onclick="addChemistManual()">+ Add Single Chemist Manual</button>
       </div>
@@ -634,7 +647,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <input type="text" id="adm-chem-search" placeholder="&#128269; Search chemist master registry..." oninput="renderAdminChemistList()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>Chemist ID</th><th>Name</th><th>Area</th><th>Assigned MR</th><th>Actions</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="check-all-chems" onclick="toggleSelectAllChems(this)"></th><th>Chemist ID</th><th>Name</th><th>Area</th><th>Assigned MR</th><th>Actions</th></tr></thead>
             <tbody id="chem-table-body"></tbody>
           </table>
         </div>
@@ -1483,20 +1496,38 @@ var currentAdminTab='dash';
 var filteredReports=[];
 
 // ===== AUTH =====
+function togglePasswordVisibility() {
+  var pwdInput = document.getElementById('login-pwd');
+  var btn = document.querySelector('.password-toggle-btn');
+  if (pwdInput.type === 'password') {
+    pwdInput.type = 'text';
+    btn.textContent = 'Hide';
+  } else {
+    pwdInput.type = 'password';
+    btn.textContent = 'Show';
+  }
+}
+
 function doLogin(){
   var id=document.getElementById('login-id').value.trim().toUpperCase();
   var pwd=document.getElementById('login-pwd').value.trim();
   console.log("=== Prayaas Login Attempt ===");
-  console.log("Input Employee ID:", id);
+  console.log("Input Employee ID/Name:", id);
   console.log("Input Password:", pwd);
   console.log("All Employees in DB:", DB.employees);
-  var emp=DB.employees.find(function(e){return (e.id===id || (e.name && e.name.toUpperCase()===id)) && (e.pwd && e.pwd.trim()===pwd) && e.role==='emp';});
+  var emp=DB.employees.find(function(e){
+    var matchId = (e.id || '').trim().toUpperCase() === id;
+    var matchName = e.name && (e.name.trim().toUpperCase() === id);
+    var matchPwd = e.pwd && (e.pwd.trim() === pwd);
+    var matchRole = e.role && (e.role.trim().toLowerCase() === 'emp');
+    return (matchId || matchName) && matchPwd && matchRole;
+  });
   if(!emp){
-    var matchedUser = DB.employees.find(function(e){return e.id===id;});
+    var matchedUser = DB.employees.find(function(e){return (e.id || '').trim().toUpperCase()===id || (e.name && e.name.trim().toUpperCase()===id);});
     if (matchedUser) {
-      console.warn("User ID found, but cannot authenticate. DB password:", matchedUser.pwd, "DB role:", matchedUser.role);
+      console.warn("User found, but authentication failed. DB password:", matchedUser.pwd, "DB role:", matchedUser.role);
     } else {
-      console.warn("No user ID match found in database for ID:", id);
+      console.warn("No user match found in database for ID/Name:", id);
     }
     showToast('Invalid Employee ID/Name or Password');
     return;
@@ -2001,6 +2032,22 @@ function renderMTPDaysUI(isReadOnly, existing){
 
   var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return !!(day.areaTerritory||day.toLocation||'').trim();}) : currentMTPDays;
 
+  var mrAreas = [];
+  if (SESSION.user) {
+    var areaSet = new Set();
+    DB.doctors.forEach(function(d) {
+      if (d.assignTo === SESSION.user.id && d.status === 'Active' && d.area) {
+        areaSet.add(d.area.trim());
+      }
+    });
+    DB.chemists.forEach(function(c) {
+      if (c.assignTo === SESSION.user.id && c.area) {
+        areaSet.add(c.area.trim());
+      }
+    });
+    mrAreas = Array.from(areaSet).sort();
+  }
+
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);
     var area=d.areaTerritory||d.toLocation||'';
@@ -2010,10 +2057,31 @@ function renderMTPDaysUI(isReadOnly, existing){
     d.plannedDocs=docs.map(function(doc){return doc.id;});
     d.plannedChems=chems.map(function(chem){return chem.id;});
     var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
+    
+    var areaSelect = '';
+    if (isReadOnly) {
+      areaSelect = '<span>' + (area || '--') + '</span>';
+    } else {
+      var currentAreas = mrAreas.slice();
+      if (area && !currentAreas.includes(area) && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ') {
+        currentAreas.push(area);
+      }
+      areaSelect = '<select style="width:100%" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="">-- Select Area --</option>' +
+        '<option value="Weekly Off"' + (area === 'Weekly Off' ? ' selected' : '') + '>Weekly Off</option>' +
+        '<option value="Leave"' + (area === 'Leave' ? ' selected' : '') + '>Leave</option>' +
+        '<option value="Transit"' + (area === 'Transit' ? ' selected' : '') + '>Transit</option>' +
+        '<option value="HQ"' + (area === 'HQ' ? ' selected' : '') + '>HQ</option>' +
+        currentAreas.map(function(a) {
+          return '<option value="' + a + '"' + (area === a ? ' selected' : '') + '>' + a + '</option>';
+        }).join('') +
+        '</select>';
+    }
+
     return '<tr class="mtp-area-row">'+
       '<td class="tbl-name">'+d.date+'</td>'+
       '<td>'+dow+'</td>'+
-      '<td><input type="text" '+readOnlyAttr+' value="'+area+'" placeholder="Enter area/territory" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)"></td>'+
+      '<td>'+areaSelect+'</td>'+
       '<td><input type="text" '+readOnlyAttr+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)"></td>'+
       '<td><span class="badge blue">'+docs.length+'</span> '+(docs.length?docs.map(function(doc){return doc.name;}).join(', '):'--')+'</td>'+
       '<td><span class="badge green">'+chems.length+'</span> '+(chems.length?chems.map(function(chem){return chem.name;}).join(', '):'--')+'</td>'+
@@ -2037,6 +2105,16 @@ function updateMTPArea(idx, value){
   currentMTPDays[idx].category=area ? 'HQ' : 'HQ';
   currentMTPDays[idx].plannedDocs=getAssignedDoctorsForArea(area).map(function(doc){return doc.id;});
   currentMTPDays[idx].plannedChems=getAssignedChemistsForArea(area).map(function(chem){return chem.id;});
+  
+  // Set stayCity automatically based on the area!
+  if (area && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ') {
+    var matchedDoc = DB.doctors.find(function(d){return d.area.toLowerCase() === area.toLowerCase() && d.assignTo === SESSION.user.id;});
+    if (matchedDoc && matchedDoc.city) {
+      currentMTPDays[idx].stayCity = matchedDoc.city;
+    }
+  } else if (area === 'Weekly Off' || area === 'Leave' || area === 'Transit' || area === 'HQ') {
+    currentMTPDays[idx].stayCity = 'HQ';
+  }
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
 
@@ -3058,6 +3136,11 @@ function renderEmpTable(){
 function removeEmp(id){
   if(!confirm('Delete employee '+id+'?'))return;
   DB.employees=DB.employees.filter(function(e){return e.id!==id;});
+  if (useSupabase) {
+    supabase.from('employees').delete().eq('id', id).then(function(res) {
+      if (res.error) console.error("Error deleting employee from Supabase:", res.error);
+    });
+  }
   saveDB();
   renderEmpTable();
 }
@@ -3212,14 +3295,83 @@ function renderAdminDocList(){
   
   tbody.innerHTML=docs.map(function(d){
     var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
-    return '<tr><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="doc-row-check" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
   }).join('');
+  
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedDocsCount();
 }
 
 function removeDoc(id){
   if(!confirm('Delete doctor record?'))return;
   DB.doctors=DB.doctors.filter(function(d){return d.id!==id;});
+  if (useSupabase) {
+    supabase.from('doctors').delete().eq('id', id).then(function(res) {
+      if (res.error) console.error("Error deleting doctor from Supabase:", res.error);
+    });
+  }
   saveDB();
+  renderAdminDocList();
+}
+
+function toggleSelectAllDocs(masterCheck) {
+  var checks = document.querySelectorAll('.doc-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedDocsCount();
+}
+
+function updateSelectedDocsCount() {
+  var selected = document.querySelectorAll('.doc-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-docs');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedDoctors() {
+  var checked = document.querySelectorAll('.doc-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected doctor records?')) return;
+  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.doctors = DB.doctors.filter(function(d) { return !idsToDelete.includes(d.id); });
+  if (useSupabase) {
+    supabase.from('doctors').delete().in('id', idsToDelete).then(function(res) {
+      if (res.error) console.error("Error deleting doctors from Supabase:", res.error);
+    });
+  }
+  saveDB();
+  showToast(checked.length + ' doctors deleted successfully!');
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedDocsCount();
+  renderAdminDocList();
+}
+
+function bulkDeleteAllDoctors() {
+  if (DB.doctors.length === 0) {
+    showToast('Doctor list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL doctor records (' + DB.doctors.length + ') from the system? This cannot be undone.')) return;
+  DB.doctors = [];
+  if (useSupabase) {
+    supabase.from('doctors').delete().neq('id', 'dummy_value_to_delete_all').then(function(res) {
+      if (res.error) console.error("Error clearing doctors from Supabase:", res.error);
+    });
+  }
+  saveDB();
+  showToast('All doctor records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedDocsCount();
   renderAdminDocList();
 }
 
@@ -3333,14 +3485,83 @@ function renderAdminChemistList(){
   
   tbody.innerHTML=chems.map(function(c){
     var emp=DB.employees.find(function(e){return e.id===c.assignTo;});
-    return '<tr><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="chem-row-check" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
   }).join('');
+  
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedChemsCount();
 }
 
 function removeChemist(id){
   if(!confirm('Delete chemist record?'))return;
   DB.chemists=DB.chemists.filter(function(c){return c.id!==id;});
+  if (useSupabase) {
+    supabase.from('chemists').delete().eq('id', id).then(function(res) {
+      if (res.error) console.error("Error deleting chemist from Supabase:", res.error);
+    });
+  }
   saveDB();
+  renderAdminChemistList();
+}
+
+function toggleSelectAllChems(masterCheck) {
+  var checks = document.querySelectorAll('.chem-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedChemsCount();
+}
+
+function updateSelectedChemsCount() {
+  var selected = document.querySelectorAll('.chem-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-chems');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedChemists() {
+  var checked = document.querySelectorAll('.chem-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected chemist records?')) return;
+  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.chemists = DB.chemists.filter(function(c) { return !idsToDelete.includes(c.id); });
+  if (useSupabase) {
+    supabase.from('chemists').delete().in('id', idsToDelete).then(function(res) {
+      if (res.error) console.error("Error deleting chemists from Supabase:", res.error);
+    });
+  }
+  saveDB();
+  showToast(checked.length + ' chemists deleted successfully!');
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedChemsCount();
+  renderAdminChemistList();
+}
+
+function bulkDeleteAllChemists() {
+  if (DB.chemists.length === 0) {
+    showToast('Chemist list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL chemist records (' + DB.chemists.length + ') from the system? This cannot be undone.')) return;
+  DB.chemists = [];
+  if (useSupabase) {
+    supabase.from('chemists').delete().neq('id', 'dummy_value_to_delete_all').then(function(res) {
+      if (res.error) console.error("Error clearing chemists from Supabase:", res.error);
+    });
+  }
+  saveDB();
+  showToast('All chemist records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedChemsCount();
   renderAdminChemistList();
 }
 
@@ -3485,7 +3706,7 @@ function runMISReport(){
     
   } else if(currentReportType==='call_avg'){
     thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>Total Doctor Calls</th><th>Working Days Checked</th><th>Call Average / Day</th></tr>';
-    var team=DB.employees.filter(function(e){return e.role==='emp';});
+    var team=DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
     team.forEach(function(e){
       var empsReps = DB.reports.filter(function(r){
         return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
@@ -3523,7 +3744,7 @@ function runMISReport(){
     
   } else if(currentReportType==='visit_freq'){
     thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
-    DB.doctors.forEach(function(d){
+    DB.doctors.filter(function(d){return !empId||d.assignTo===empId;}).forEach(function(d){
       var visits = DB.reports.filter(function(r){
         return r.targetType==='Doctor' && r.docId===d.id && (!from||r.date>=from) && (!to||r.date<=to);
       });
@@ -3564,7 +3785,7 @@ function runMISReport(){
     thead.innerHTML='<tr><th>Manager Name</th><th>MR Employee</th><th>Coaching &amp; Accompanist Days</th></tr>';
     var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN';});
     managers.forEach(function(m){
-      DB.employees.filter(function(e){return e.role==='emp' && e.managerId===m.id;}).forEach(function(mr){
+      DB.employees.filter(function(e){return e.role==='emp' && e.managerId===m.id && (!empId||e.id===empId);}).forEach(function(mr){
         var accompDays=DB.reports.filter(function(r){
           return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
         }).length;

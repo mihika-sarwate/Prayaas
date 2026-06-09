@@ -1689,7 +1689,7 @@ function getApprovedMTPDay(dateStr){
   if(!dateStr || !SESSION.user)return null;
   var monthStr=dateStr.slice(0, 7);
   var mtp=DB.tourPlans.find(function(tp){
-    return tp.empId===SESSION.user.id && tp.month===monthStr && tp.status==='Approved';
+    return tp.empId===SESSION.user.id && tp.month===monthStr && (tp.status==='Approved' || tp.status==='Submitted');
   });
   return mtp ? mtp.days.find(function(d){return d.date===dateStr;}) : null;
 }
@@ -3723,10 +3723,12 @@ function runMISReport(){
   } else if(currentReportType==='missed_calls'){
     thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
     var myTPs=DB.tourPlans.filter(function(tp){
-      return tp.status==='Approved' && (!empId||tp.empId===empId);
+      return (tp.status==='Approved' || tp.status==='Submitted') && (!empId||tp.empId===empId);
     });
     myTPs.forEach(function(tp){
       tp.days.forEach(function(d){
+        if(from && d.date < from) return;
+        if(to && d.date > to) return;
         var area=d.areaTerritory||d.toLocation||'';
         var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
         plannedDocIds.forEach(function(docId){
@@ -3757,8 +3759,10 @@ function runMISReport(){
     DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);}).forEach(function(e){
       var plannedDocs = 0;
       var plannedChems = 0;
-      DB.tourPlans.filter(function(tp){return tp.empId===e.id && tp.status==='Approved';}).forEach(function(tp){
+      DB.tourPlans.filter(function(tp){return tp.empId===e.id && (tp.status==='Approved' || tp.status==='Submitted');}).forEach(function(tp){
         tp.days.forEach(function(d){
+          if(from && d.date < from) return;
+          if(to && d.date > to) return;
           var area=d.areaTerritory||d.toLocation||'';
           var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===e.id && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
           var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===e.id && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});

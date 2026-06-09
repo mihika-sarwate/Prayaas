@@ -538,13 +538,15 @@ table.tbl tr:last-child td{border-bottom:none}
             <button class="btn sm success" onclick="downloadSFCTemplate()">&#8595; SFC Template</button>
             <button class="btn sm primary" onclick="document.getElementById('sfc-upload').click()">&#8593; Upload SFC CSV</button>
             <input type="file" id="sfc-upload" accept=".csv" onchange="uploadSFC(this)" style="display:none">
+            <button class="btn sm danger" onclick="bulkDeleteAllSFC()">&#128465; Delete All</button>
+            <button class="btn sm danger" id="btn-bulk-delete-selected-sfc" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
           </div>
         </div>
         <div class="card">
           <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
           <div class="tbl-wrap">
             <table class="tbl">
-              <thead><tr><th>From</th><th>To</th><th>Distance</th><th>Mode</th><th>Fare</th><th>DA</th><th>Lodge</th><th>Actions</th></tr></thead>
+              <thead><tr><th><input type="checkbox" id="check-all-sfc" onclick="toggleSelectAllSFC(this)"></th><th>From</th><th>To</th><th>Distance</th><th>Mode</th><th>Fare</th><th>DA</th><th>Lodge</th><th>Actions</th></tr></thead>
               <tbody id="sfc-table-body"></tbody>
             </table>
           </div>
@@ -1465,6 +1467,19 @@ async function syncSupabaseDatabase() {
       balance: i.balance
     }));
     await supabase.from('inputs_inventory').upsert(dbInputs);
+
+    const dbSfc = DB.sfc.map(s => ({
+      id: s.id || undefined,
+      from_loc: s.from,
+      to_loc: s.to,
+      distance: s.distance,
+      mode: s.mode,
+      fare: s.fare,
+      da: s.da,
+      lodge: s.lodge,
+      other: s.other || 0
+    }));
+    await supabase.from('sfc').upsert(dbSfc);
 
   } catch (err) {
     console.error("Supabase sync failed:", err);
@@ -2942,15 +2957,96 @@ function rejectLeave(){
 function renderSFCTable(){
   document.getElementById('sfc-count').textContent=DB.sfc.length;
   var tbody=document.getElementById('sfc-table-body');
-  if(!DB.sfc.length){tbody.innerHTML='<tr><td colspan="8" class="empty">No SFC records available</td></tr>';return;}
+  if(!DB.sfc.length){tbody.innerHTML='<tr><td colspan="9" class="empty">No SFC records available</td></tr>';return;}
   tbody.innerHTML=DB.sfc.map(function(s,i){
-    return '<tr><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeSFC('+i+')">Delete</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="sfc-row-check" value="'+i+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeSFC('+i+')">Delete</button></td></tr>';
   }).join('');
+  
+  var masterCheck = document.getElementById('check-all-sfc');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedSFCCount();
 }
 
 function removeSFC(i){
+  if(!confirm('Delete SFC record?'))return;
+  var target = DB.sfc[i];
+  if (useSupabase && target && target.id) {
+    supabase.from('sfc').delete().eq('id', target.id).then(function(res) {
+      if (res.error) console.error("Error deleting SFC from Supabase:", res.error);
+    });
+  }
   DB.sfc.splice(i,1);
   saveDB();
+  renderSFCTable();
+}
+
+function toggleSelectAllSFC(masterCheck) {
+  var checks = document.querySelectorAll('.sfc-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedSFCCount();
+}
+
+function updateSelectedSFCCount() {
+  var selected = document.querySelectorAll('.sfc-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-sfc');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedSFC() {
+  var checked = document.querySelectorAll('.sfc-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected SFC records?')) return;
+  
+  var indicesToDelete = Array.from(checked).map(function(cb) { return parseInt(cb.value); });
+  var idsToDelete = [];
+  indicesToDelete.forEach(function(idx) {
+    if (DB.sfc[idx] && DB.sfc[idx].id) {
+      idsToDelete.push(DB.sfc[idx].id);
+    }
+  });
+
+  DB.sfc = DB.sfc.filter(function(s, idx) { return !indicesToDelete.includes(idx); });
+
+  if (useSupabase && idsToDelete.length > 0) {
+    supabase.from('sfc').delete().in('id', idsToDelete).then(function(res) {
+      if (res.error) console.error("Error deleting SFC rows from Supabase:", res.error);
+    });
+  }
+  saveDB();
+  showToast(checked.length + ' SFC records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-sfc');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedSFCCount();
+  renderSFCTable();
+}
+
+function bulkDeleteAllSFC() {
+  if (DB.sfc.length === 0) {
+    showToast('SFC list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL SFC records (' + DB.sfc.length + ') from the system? This cannot be undone.')) return;
+  
+  if (useSupabase) {
+    supabase.from('sfc').delete().gt('id', 0).then(function(res) {
+      if (res.error) console.error("Error clearing SFC from Supabase:", res.error);
+    });
+  }
+  DB.sfc = [];
+  saveDB();
+  showToast('All SFC records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-sfc');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedSFCCount();
   renderSFCTable();
 }
 

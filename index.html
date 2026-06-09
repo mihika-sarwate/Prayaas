@@ -588,16 +588,18 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="card-title">Bulk Import Employees</div>
         <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Role, ManagerID, DOJ, State, Status</strong></div>
-        <div class="btn-row">
+        <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Emp Template</button>
           <button class="btn sm primary" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
           <input type="file" id="emp-upload" accept=".csv" onchange="uploadEmployees(this)" style="display:none">
+          <button class="btn sm danger" onclick="bulkDeleteAllEmployees()">&#128465; Delete All</button>
+          <button class="btn sm danger" id="btn-bulk-delete-selected-emps" onclick="bulkDeleteSelectedEmployees()" style="display:none">&#128465; Delete Selected (0)</button>
         </div>
       </div>
       <div class="card">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="check-all-emps" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="emp-table-body"></tbody>
           </table>
         </div>
@@ -3129,8 +3131,12 @@ function renderEmpTable(){
   var emps=DB.employees.filter(function(e){return e.id!=='ADMIN';});
   tbody.innerHTML=emps.map(function(e){
     var mgr=DB.employees.find(function(m){return m.id===e.managerId;});
-    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td><code>'+(e.pwd||'')+'</code></td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="emp-row-check" value="'+e.id+'" onchange="updateSelectedEmpsCount()"></td><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td><code>'+(e.pwd||'')+'</code></td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
   }).join('');
+  
+  var masterCheck = document.getElementById('check-all-emps');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedEmpsCount();
 }
 
 function removeEmp(id){
@@ -3142,6 +3148,67 @@ function removeEmp(id){
     });
   }
   saveDB();
+  renderEmpTable();
+}
+
+function toggleSelectAllEmps(masterCheck) {
+  var checks = document.querySelectorAll('.emp-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedEmpsCount();
+}
+
+function updateSelectedEmpsCount() {
+  var selected = document.querySelectorAll('.emp-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-emps');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedEmployees() {
+  var checked = document.querySelectorAll('.emp-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected employee records?')) return;
+  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.employees = DB.employees.filter(function(e) { return !idsToDelete.includes(e.id); });
+  if (useSupabase) {
+    supabase.from('employees').delete().in('id', idsToDelete).then(function(res) {
+      if (res.error) console.error("Error deleting employees from Supabase:", res.error);
+    });
+  }
+  saveDB();
+  showToast(checked.length + ' employees deleted successfully!');
+  var masterCheck = document.getElementById('check-all-emps');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedEmpsCount();
+  renderEmpTable();
+}
+
+function bulkDeleteAllEmployees() {
+  var empsToDelete = DB.employees.filter(function(e){return e.id!=='ADMIN';});
+  if (empsToDelete.length === 0) {
+    showToast('Employee list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL employee records (' + empsToDelete.length + ') from the system? This cannot be undone.')) return;
+  DB.employees = DB.employees.filter(function(e){return e.id==='ADMIN';});
+  if (useSupabase) {
+    supabase.from('employees').delete().neq('id', 'ADMIN').then(function(res) {
+      if (res.error) console.error("Error clearing employees from Supabase:", res.error);
+    });
+  }
+  saveDB();
+  showToast('All employee records (excluding ADMIN) deleted successfully!');
+  var masterCheck = document.getElementById('check-all-emps');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedEmpsCount();
   renderEmpTable();
 }
 

@@ -966,14 +966,66 @@ var supabaseKey = 'sb_publishable_7oOvIeoxeOyamPmeNZpTmg_HOEo68ss';
 var supabase = null;
 var useSupabase = false;
 
-if (window.supabase) {
-  supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+function initSupabaseClient() {
+  if (window.supabase) {
+    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    return true;
+  }
+  return false;
 }
+
+function ensureSupabaseLoaded(callback) {
+  if (window.supabase) {
+    initSupabaseClient();
+    if (callback) callback();
+    return;
+  }
+  
+  console.log("Supabase not loaded. Trying UNPKG...");
+  var s = document.createElement('script');
+  s.src = "https://unpkg.com/@supabase/supabase-js@2";
+  s.onload = function() {
+    if (initSupabaseClient()) {
+      console.log("Supabase loaded from UNPKG.");
+      if (callback) callback();
+    } else {
+      tryCDNJS();
+    }
+  };
+  s.onerror = tryCDNJS;
+  document.head.appendChild(s);
+
+  function tryCDNJS() {
+    console.log("UNPKG failed. Trying CDNJS...");
+    var s2 = document.createElement('script');
+    s2.src = "https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.0/supabase.js";
+    s2.onload = function() {
+      if (initSupabaseClient()) {
+        console.log("Supabase loaded from CDNJS.");
+        if (callback) callback();
+      } else {
+        if (callback) callback();
+      }
+    };
+    s2.onerror = function() {
+      if (callback) callback();
+    };
+    document.head.appendChild(s2);
+  }
+}
+
+ensureSupabaseLoaded();
 
 async function initSupabaseData(isSilent) {
   if (!supabase) {
-    console.warn("Supabase library not loaded. Using LocalStorage.");
-    loadLocalDB();
+    ensureSupabaseLoaded(function() {
+      if (supabase) {
+        initSupabaseData(isSilent);
+      } else {
+        console.warn("Supabase library not loaded. Using LocalStorage.");
+        loadLocalDB();
+      }
+    });
     return;
   }
   

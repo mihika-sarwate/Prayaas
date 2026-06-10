@@ -193,6 +193,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
       </div>
       <div class="hdr-brand"><div class="hdr-title">Prayaas MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
+      <button id="emp-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 4px 10px; font-size: 12px; width: auto; height: auto; line-height: 1.2; margin-right: 8px;">🔄 Sync</button>
       <button class="hdr-badge" onclick="doLogout()">Logout</button>
     </div>
   </div>
@@ -469,6 +470,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div style="display:flex;align-items:center;gap:8px">
           <div class="hdr-title" id="adm-panel-title">Prayaas Admin Console</div>
           <span class="badge orange" id="adm-badge" style="padding:2px 8px;font-size:9px;text-transform:uppercase">ADM</span>
+          <button id="admin-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 2px 8px; font-size: 10px; width: auto; height: auto; line-height: 1.2; margin-left: 8px;">🔄 Sync</button>
         </div>
         <div class="hdr-sub">Adonis Laboratories</div>
       </div>
@@ -599,6 +601,7 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
       </div>
       <div class="card">
+        <div class="card-title">Employee Registry (<span id="emp-count">0</span> records)</div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead><tr><th><input type="checkbox" id="check-all-emps" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
@@ -623,6 +626,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <button class="btn sm" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
       </div>
       <div class="card">
+        <div class="card-title">Doctor Registry (<span id="doc-count">0</span> records)</div>
         <input type="text" id="adm-doc-search" placeholder="&#128269; Search doctor master registry..." oninput="renderAdminDocList()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
@@ -648,6 +652,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <button class="btn sm" onclick="addChemistManual()">+ Add Single Chemist Manual</button>
       </div>
       <div class="card">
+        <div class="card-title">Chemist Registry (<span id="chem-count">0</span> records)</div>
         <input type="text" id="adm-chem-search" placeholder="&#128269; Search chemist master registry..." oninput="renderAdminChemistList()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
@@ -949,14 +954,14 @@ if (window.supabase) {
   supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 }
 
-async function initSupabaseData() {
+async function initSupabaseData(isSilent) {
   if (!supabase) {
     console.warn("Supabase library not loaded. Using LocalStorage.");
     loadLocalDB();
     return;
   }
   
-  showToast("Connecting to Supabase...");
+  if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
     const { data: emps, error } = await supabase.from('employees').select('*');
@@ -992,9 +997,9 @@ async function initSupabaseData() {
     ]);
     
     if (!emps || emps.length === 0) {
-      showToast("Seeding database with default records...");
+      if (isSilent !== true) showToast("Seeding database with default records...");
       await seedSupabaseDatabase();
-      await initSupabaseData();
+      await initSupabaseData(isSilent);
       return;
     }
     
@@ -1144,11 +1149,43 @@ async function initSupabaseData() {
       }))
     };
     
-    showToast("Supabase data synchronized!");
+    // Save synchronized DB to local storage cache
+    localStorage.setItem('adonis_db', JSON.stringify(DB));
+    
+    // Refresh the UI with the fresh data
+    if (SESSION.user) {
+      if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
+        renderAdminStats();
+        renderAdminDashTeamList();
+        renderAdminTPApprovals();
+        renderAdminExpApprovals();
+        renderAdminLeaveApprovals();
+        renderEmpTable();
+        renderAdminDocList();
+        renderAdminChemistList();
+        renderSFCTable();
+        loadCityRates();
+        populateAdminEmpMgr();
+        populateAdminEmpFilters();
+        populateInventoryItemSelect();
+        renderAdminInventoryTables();
+      } else {
+        populateReportingDropdowns();
+        renderDocList();
+        renderChemistList();
+        populateJFWManagers();
+        checkMTPForSelectedDate();
+        renderLeaveBalances();
+        renderMyLeaves();
+        renderHomeStats();
+      }
+    }
+    
+    if (isSilent !== true) showToast("Supabase data synchronized!");
     
   } catch (err) {
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
-    showToast("Using local database cache.");
+    if (isSilent !== true) showToast("Using local database cache.");
     loadLocalDB();
   }
 }
@@ -1487,6 +1524,14 @@ async function syncSupabaseDatabase() {
 }
 
 initSupabaseData();
+
+// Poll Supabase database for updates every 15 seconds if Supabase is connected
+setInterval(async function() {
+  if (useSupabase) {
+    console.log("Auto-polling Supabase data...");
+    await initSupabaseData(true);
+  }
+}, 15000);
 
 var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};
 setTimeout(function() {
@@ -2634,7 +2679,9 @@ function toggleDocChemistSubtab(type){
   }
 }
 
+var currentTab = 'home';
 function goTab(name){
+  currentTab = name;
   ['home','report','tour','expense','leave','doctors'].forEach(function(t){
     var el=document.getElementById('tab-'+t);if(el)el.style.display=t===name?'block':'none';
     var nb=document.getElementById('nb-'+t);if(nb)nb.className='nav-btn'+(t===name?' on':'');
@@ -3226,6 +3273,8 @@ function downloadEmpTemplate(){
 function renderEmpTable(){
   var tbody=document.getElementById('emp-table-body');
   var emps=DB.employees.filter(function(e){return e.id!=='ADMIN';});
+  var countEl = document.getElementById('emp-count');
+  if (countEl) countEl.textContent = emps.length;
   tbody.innerHTML=emps.map(function(e){
     var mgr=DB.employees.find(function(m){return m.id===e.managerId;});
     return '<tr><td><input type="checkbox" class="emp-row-check" value="'+e.id+'" onchange="updateSelectedEmpsCount()"></td><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td><code>'+(e.pwd||'')+'</code></td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
@@ -3455,6 +3504,8 @@ function downloadDocTemplate(){
 function renderAdminDocList(){
   var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
   var docs=DB.doctors.filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q)||d.assignTo.toLowerCase().includes(q);});
+  var countEl = document.getElementById('doc-count');
+  if (countEl) countEl.textContent = DB.doctors.length;
   var tbody=document.getElementById('doc-table-body');
   
   tbody.innerHTML=docs.map(function(d){
@@ -3645,6 +3696,8 @@ function downloadChemTemplate(){
 function renderAdminChemistList(){
   var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
   var chems=DB.chemists.filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q)||c.assignTo.toLowerCase().includes(q);});
+  var countEl = document.getElementById('chem-count');
+  if (countEl) countEl.textContent = DB.chemists.length;
   var tbody=document.getElementById('chem-table-body');
   
   tbody.innerHTML=chems.map(function(c){

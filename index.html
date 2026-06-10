@@ -3272,13 +3272,21 @@ function downloadEmpTemplate(){
 
 function renderEmpTable(){
   var tbody=document.getElementById('emp-table-body');
-  var emps=DB.employees.filter(function(e){return e.id!=='ADMIN';});
+  if (!tbody) return;
+  var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;
-  tbody.innerHTML=emps.map(function(e){
-    var mgr=DB.employees.find(function(m){return m.id===e.managerId;});
-    return '<tr><td><input type="checkbox" class="emp-row-check" value="'+e.id+'" onchange="updateSelectedEmpsCount()"></td><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td><code>'+(e.pwd||'')+'</code></td><td>'+e.role.toUpperCase()+'</td><td>'+e.area+'</td><td>'+(mgr?mgr.name:'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+e.id+'\')">Delete</button></td></tr>';
-  }).join('');
+  
+  try {
+    tbody.innerHTML=emps.map(function(e){
+      if (!e) return '';
+      var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
+      var roleName = (e.role || 'emp').toUpperCase();
+      return '<tr><td><input type="checkbox" class="emp-row-check" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name">'+(e.name || '')+'</td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+(e.id || '')+'\')">Delete</button></td></tr>';
+    }).join('');
+  } catch (err) {
+    console.error("Error rendering employee table:", err);
+  }
   
   var masterCheck = document.getElementById('check-all-emps');
   if (masterCheck) masterCheck.checked = false;

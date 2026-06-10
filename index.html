@@ -835,6 +835,22 @@ table.tbl tr:last-child td{border-bottom:none}
 </div>
 
 <script>
+window.addEventListener('error', function(e) {
+  var div = document.createElement('div');
+  div.style.position = 'fixed';
+  div.style.top = '10px';
+  div.style.left = '10px';
+  div.style.right = '10px';
+  div.style.background = '#F87171';
+  div.style.color = '#fff';
+  div.style.padding = '12px';
+  div.style.borderRadius = '8px';
+  div.style.zIndex = '99999';
+  div.style.fontSize = '14px';
+  div.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+  div.textContent = 'JS Error: ' + e.message + ' at ' + e.filename + ':' + e.lineno;
+  document.body.appendChild(div);
+});
 // Master Data Store
 var DEFAULT_DB={
   employees:[

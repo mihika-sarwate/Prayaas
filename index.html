@@ -1330,21 +1330,26 @@ function loadLocalDB() {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
   }
 }
-
 async function seedSupabaseDatabase() {
   try {
-    const dbEmps = DEFAULT_DB.employees.map(e => ({
-      id: e.id,
-      name: e.name,
-      pwd: e.pwd,
-      area: e.area,
-      role: e.role,
-      manager_id: e.managerId || null,
-      doj: formatDateForPostgres(e.doj),
-      state: e.state || null,
-      status: e.status || 'Active',
-      leaves: e.leaves
-    }));
+    const dbEmps = DEFAULT_DB.employees.map(e => {
+      var managerId = e.managerId || null;
+      if (managerId && !DEFAULT_DB.employees.find(x => x.id === managerId)) {
+        managerId = null;
+      }
+      return {
+        id: e.id,
+        name: e.name,
+        pwd: e.pwd,
+        area: e.area,
+        role: e.role,
+        manager_id: managerId,
+        doj: formatDateForPostgres(e.doj),
+        state: e.state || null,
+        status: e.status || 'Active',
+        leaves: e.leaves
+      };
+    });
     await supabase.from('employees').insert(dbEmps);
   } catch (e) { console.error("Error seeding employees:", e); }
   
@@ -1468,18 +1473,24 @@ function saveDB() {
 
 async function syncSupabaseDatabase() {
   try {
-    const dbEmps = DB.employees.map(e => ({
-      id: e.id,
-      name: e.name,
-      pwd: e.pwd,
-      area: e.area,
-      role: e.role,
-      manager_id: e.managerId || null,
-      doj: formatDateForPostgres(e.doj),
-      state: e.state || null,
-      status: e.status || 'Active',
-      leaves: e.leaves
-    }));
+    const dbEmps = DB.employees.map(e => {
+      var managerId = e.managerId || null;
+      if (managerId && !DB.employees.find(x => x.id === managerId)) {
+        managerId = null;
+      }
+      return {
+        id: e.id,
+        name: e.name,
+        pwd: e.pwd,
+        area: e.area,
+        role: e.role,
+        manager_id: managerId,
+        doj: formatDateForPostgres(e.doj),
+        state: e.state || null,
+        status: e.status || 'Active',
+        leaves: e.leaves
+      };
+    });
     const { error: empError } = await supabase.from('employees').upsert(dbEmps);
     if (empError) {
       console.error("Supabase Employees sync failed:", empError);

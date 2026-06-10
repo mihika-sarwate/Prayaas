@@ -966,6 +966,54 @@ var supabaseKey = 'sb_publishable_7oOvIeoxeOyamPmeNZpTmg_HOEo68ss';
 var supabase = null;
 var useSupabase = false;
 
+function formatDateForPostgres(dateStr) {
+  if (!dateStr) return null;
+  // If it's already YYYY-MM-DD, return it
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  // Try to parse different formats
+  // Format: DD-MM-YY or DD-MM-YYYY or DD/MM/YY or DD/MM/YYYY
+  var parts = dateStr.split(/[-/]/);
+  if (parts.length === 3) {
+    var day = parts[0];
+    var month = parts[1];
+    var year = parts[2];
+    
+    // If year is 2 digits, convert to 4 digits (e.g., 21 -> 2021)
+    if (year.length === 2) {
+      year = "20" + year;
+    }
+    
+    // Check if parts are numbers
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      // Ensure month and day are 2 digits
+      if (day.length === 1) day = "0" + day;
+      if (month.length === 1) month = "0" + month;
+      
+      // Let's assume standard order is YYYY-MM-DD or DD-MM-YYYY.
+      // If the first part is 4 digits, it's YYYY-MM-DD
+      if (day.length === 4) {
+        return day + "-" + month + "-" + year;
+      }
+      
+      // Otherwise assume it is DD-MM-YYYY
+      return year + "-" + month + "-" + day;
+    }
+  }
+  
+  // Fallback to trying new Date()
+  try {
+    var d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0];
+    }
+  } catch (e) {}
+  
+  return null;
+}
+
 function initSupabaseClient() {
   if (window.supabase) {
     supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -1292,7 +1340,7 @@ async function seedSupabaseDatabase() {
       area: e.area,
       role: e.role,
       manager_id: e.managerId || null,
-      doj: e.doj || null,
+      doj: formatDateForPostgres(e.doj),
       state: e.state || null,
       status: e.status || 'Active',
       leaves: e.leaves
@@ -1427,7 +1475,7 @@ async function syncSupabaseDatabase() {
       area: e.area,
       role: e.role,
       manager_id: e.managerId || null,
-      doj: e.doj || null,
+      doj: formatDateForPostgres(e.doj),
       state: e.state || null,
       status: e.status || 'Active',
       leaves: e.leaves
@@ -1476,7 +1524,7 @@ async function syncSupabaseDatabase() {
       id: r.id,
       emp_id: r.empId,
       emp_name: r.empName,
-      date: r.date,
+      date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
       time: r.time,
       target_type: r.targetType,
       classification: r.classification,
@@ -1499,7 +1547,7 @@ async function syncSupabaseDatabase() {
       lat: r.lat || null,
       lng: r.lng || null,
       remarks: r.remarks || null,
-      next_visit: r.nextVisit || null
+      next_visit: formatDateForPostgres(r.nextVisit)
     }));
     const { error: repError } = await supabase.from('reports').upsert(dbReports);
     if (repError) {
@@ -1519,7 +1567,7 @@ async function syncSupabaseDatabase() {
       status: tp.status,
       remarks: tp.remarks || null,
       submitted_at: tp.submittedAt || null,
-      approved_date: tp.approvedDate || null,
+      approved_date: formatDateForPostgres(tp.approvedDate),
       approved_by: tp.approvedBy || null,
       revision_history: tp.revisionHistory || []
     }));
@@ -1545,8 +1593,8 @@ async function syncSupabaseDatabase() {
       emp_id: lv.empId,
       emp_name: lv.empName,
       type: lv.type,
-      start: lv.start,
-      "end": lv.end,
+      start: formatDateForPostgres(lv.start),
+      "end": formatDateForPostgres(lv.end),
       days: lv.days,
       reason: lv.reason || null,
       manager_id: lv.managerId || null,

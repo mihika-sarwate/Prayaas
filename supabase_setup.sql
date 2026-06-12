@@ -174,3 +174,10 @@ create table inputs_inventory (
   distributed integer default 0,
   balance integer default 0
 );
+
+-- 10. Holidays Table (Optional)
+create table holidays (
+  date date primary key,
+  name text not null
+);
+alter table holidays disable row level security;

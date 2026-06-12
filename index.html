@@ -529,6 +529,8 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="admin-tab" id="subtab-adm-emp" onclick="goMasterSubTab('emp')">Employee Master</div>
         <div class="admin-tab" id="subtab-adm-doc" onclick="goMasterSubTab('doc')">Doctor Master</div>
         <div class="admin-tab" id="subtab-adm-chem" onclick="goMasterSubTab('chem')">Chemist Master</div>
+        <div class="admin-tab" id="subtab-adm-leave" onclick="goMasterSubTab('leave')">Leave Balance Master</div>
+        <div class="admin-tab" id="subtab-adm-holiday" onclick="goMasterSubTab('holiday')">Holiday Master</div>
       </div>
 
       <!-- SFC Master -->
@@ -662,6 +664,52 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
       </div>
     </div>
+
+    <!-- Leave Balance Master -->
+    <div id="adm-leave-section" class="master-sub-sec" style="display:none">
+      <div class="sec-hdr">&#127973; Leave Balance Management (CL/SL/PL)</div>
+      <div class="card">
+        <div class="info-box">Upload Leave Balance CSV. Columns: <strong>EmployeeID, CL, SL, PL</strong></div>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn sm success" onclick="downloadLeaveBalanceData()">&#8595; Download Leave Balance</button>
+          <button class="btn sm primary" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload Leave Balance CSV</button>
+          <input type="file" id="leave-bal-upload" accept=".csv" onchange="uploadLeaveBalances(this)" style="display:none">
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Employee Leave Balances (<span id="leave-bal-count">0</span> records)</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Employee ID</th><th>Name</th><th>CL Balance</th><th>SL Balance</th><th>PL (EL) Balance</th></tr></thead>
+            <tbody id="leave-bal-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Holiday Master -->
+    <div id="adm-holiday-section" class="master-sub-sec" style="display:none">
+      <div class="sec-hdr">&#128197; Holiday List Management</div>
+      <div class="card">
+        <div class="info-box">Upload Holiday List CSV. Columns: <strong>Date (YYYY-MM-DD), HolidayName</strong></div>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn sm success" onclick="downloadHolidayList()">&#8595; Download Holiday List</button>
+          <button class="btn sm primary" onclick="document.getElementById('holiday-upload').click()">&#8593; Upload Holiday CSV</button>
+          <input type="file" id="holiday-upload" accept=".csv" onchange="uploadHolidays(this)" style="display:none">
+          <button class="btn sm danger" onclick="clearAllHolidays()">&#128465; Delete All</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Holiday Calendar (<span id="holiday-count">0</span> records)</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Date</th><th>Holiday Name</th><th>Action</th></tr></thead>
+            <tbody id="holiday-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ADMIN INVENTORY PANEL -->
@@ -957,6 +1005,13 @@ var DEFAULT_DB={
   inputsInventory:[
     {inputName:'Visual Aid Folder',empId:'EMP001',opening:10,received:10,distributed:0,balance:10},
     {inputName:'Product Literature',empId:'EMP001',opening:100,received:100,distributed:0,balance:100}
+  ],
+  holidays:[
+    {date: '2026-01-01', name: 'New Year Day'},
+    {date: '2026-01-26', name: 'Republic Day'},
+    {date: '2026-08-15', name: 'Independence Day'},
+    {date: '2026-10-02', name: 'Gandhi Jayanti'},
+    {date: '2026-12-25', name: 'Christmas Day'}
   ]
 };
 
@@ -1111,6 +1166,19 @@ async function initSupabaseData(isSilent) {
       supabase.from('gifts_inventory').select('*'),
       supabase.from('inputs_inventory').select('*')
     ]);
+
+    let holidays = [];
+    try {
+      const { data: holData } = await supabase.from('holidays').select('*');
+      if (holData && holData.length > 0) {
+        holidays = holData.map(h => ({ date: h.date, name: h.name }));
+      } else {
+        holidays = DB.holidays || DEFAULT_DB.holidays || [];
+      }
+    } catch (e) {
+      console.warn("Could not load holidays from Supabase (table may not exist):", e);
+      holidays = DB.holidays || DEFAULT_DB.holidays || [];
+    }
     
     if (!emps || emps.length === 0) {
       if (isSilent !== true) showToast("Seeding database with default records...");
@@ -1262,7 +1330,8 @@ async function initSupabaseData(isSilent) {
         received: i.received,
         distributed: i.distributed,
         balance: i.balance
-      }))
+      })),
+      holidays: holidays
     };
     
     // Save synchronized DB to local storage cache
@@ -1326,6 +1395,10 @@ function loadLocalDB() {
       updated = true;
     }
   });
+  if (!DB.holidays) {
+    DB.holidays = JSON.parse(JSON.stringify(DEFAULT_DB.holidays || []));
+    updated = true;
+  }
   if (updated || !localStorage.getItem('adonis_db')) {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
   }
@@ -1498,19 +1571,25 @@ async function syncSupabaseDatabase() {
       return;
     }
 
-    const dbDocs = DB.doctors.map(d => ({
-      id: d.id,
-      code: d.code,
-      name: d.name,
-      spec: d.spec,
-      qual: d.qual,
-      address: d.address,
-      city: d.city,
-      area: d.area,
-      phone: d.phone,
-      assign_to: d.assignTo || null,
-      status: d.status
-    }));
+    const dbDocs = DB.doctors.map(d => {
+      var assignTo = d.assignTo || null;
+      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
+        assignTo = null;
+      }
+      return {
+        id: d.id,
+        code: d.code,
+        name: d.name,
+        spec: d.spec,
+        qual: d.qual,
+        address: d.address,
+        city: d.city,
+        area: d.area,
+        phone: d.phone,
+        assign_to: assignTo,
+        status: d.status
+      };
+    });
     const { error: docError } = await supabase.from('doctors').upsert(dbDocs);
     if (docError) {
       console.error("Supabase Doctors sync failed:", docError);
@@ -1518,12 +1597,18 @@ async function syncSupabaseDatabase() {
       return;
     }
 
-    const dbChems = DB.chemists.map(c => ({
-      id: c.id,
-      name: c.name,
-      area: c.area,
-      assign_to: c.assignTo || null
-    }));
+    const dbChems = DB.chemists.map(c => {
+      var assignTo = c.assignTo || null;
+      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
+        assignTo = null;
+      }
+      return {
+        id: c.id,
+        name: c.name,
+        area: c.area,
+        assign_to: assignTo
+      };
+    });
     const { error: chemError } = await supabase.from('chemists').upsert(dbChems);
     if (chemError) {
       console.error("Supabase Chemists sync failed:", chemError);
@@ -1660,6 +1745,18 @@ async function syncSupabaseDatabase() {
       other: s.other || 0
     }));
     await supabase.from('sfc').upsert(dbSfc);
+
+    try {
+      if (DB.holidays && DB.holidays.length > 0) {
+        const dbHols = DB.holidays.map(h => ({
+          date: formatDateForPostgres(h.date) || h.date,
+          name: h.name
+        }));
+        await supabase.from('holidays').upsert(dbHols);
+      }
+    } catch (holErr) {
+      console.warn("Could not sync holidays to Supabase (table may not exist):", holErr);
+    }
 
   } catch (err) {
     console.error("Supabase sync failed:", err);
@@ -2873,6 +2970,8 @@ function goMasterSubTab(id) {
   else if (id === 'emp') renderEmpTable();
   else if (id === 'doc') renderAdminDocList();
   else if (id === 'chem') renderAdminChemistList();
+  else if (id === 'leave') renderLeaveBalanceTable();
+  else if (id === 'holiday') renderHolidayTable();
 }
 
 function initAdminApp(){
@@ -2884,6 +2983,8 @@ function initAdminApp(){
   renderEmpTable();
   renderAdminDocList();
   renderAdminChemistList();
+  renderLeaveBalanceTable();
+  renderHolidayTable();
   renderSFCTable();
   loadCityRates();
   populateAdminEmpMgr();
@@ -2911,6 +3012,8 @@ function goAdminTab(name){
       else if (activeSub.id === 'subtab-adm-emp') renderEmpTable();
       else if (activeSub.id === 'subtab-adm-doc') renderAdminDocList();
       else if (activeSub.id === 'subtab-adm-chem') renderAdminChemistList();
+      else if (activeSub.id === 'subtab-adm-leave') renderLeaveBalanceTable();
+      else if (activeSub.id === 'subtab-adm-holiday') renderHolidayTable();
     } else {
       goMasterSubTab('sfc');
     }
@@ -2960,9 +3063,10 @@ function renderAdminTPApprovals(){
   var el=document.getElementById('adm-tp-approvals');
   if(!tps.length){el.innerHTML='<div class="empty">No tour plans pending your approval</div>';return;}
   el.innerHTML=tps.map(function(tp){
+    var subDate = tp.submittedAt ? tp.submittedAt.slice(0,10) : 'N/A';
     return '<div class="appr-card pending" onclick="viewTP(\''+tp.id+'\')">'+
       '<div class="appr-hdr"><div class="appr-name">'+tp.empName+' ('+tp.empId+')</div><span class="badge orange">'+tp.status+'</span></div>'+
-      '<div class="appr-meta">'+tp.month+' Tour Plan | '+tp.days.length+' days | Submitted: '+tp.submittedAt.slice(0,10)+'</div>'+
+      '<div class="appr-meta">'+tp.month+' Tour Plan | '+tp.days.length+' days | Submitted: '+subDate+'</div>'+
       '</div>';
   }).join('');
 }
@@ -3409,8 +3513,27 @@ function uploadEmployees(inp){
 }
 
 function downloadEmpTemplate(){
-  var csv='EmployeeID,Name,Password,Territory,Role,ManagerID,DOJ,State,Status\nEMP004,Vikas Malhotra,pass123,Pune,emp,FLM001,2026-01-01,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,manager,RM001,2026-01-01,West Bengal,Active\n';
-  downloadData(csv,'employees_template.csv');
+  var csv='EmployeeID,Name,Password,Territory,Role,ManagerID,DOJ,State,Status\n';
+  var list = DB.employees.filter(function(e){ return e && e.id !== 'ADMIN'; });
+  if(list.length > 0) {
+    list.forEach(function(e){
+      csv += [
+        e.id || '',
+        e.name || '',
+        e.pwd || '',
+        e.area || '',
+        e.role || '',
+        e.managerId || '',
+        e.doj || '',
+        e.state || '',
+        e.status || 'Active'
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'employees_master.csv');
+  } else {
+    csv += 'EMP004,Vikas Malhotra,pass123,Pune,emp,FLM001,2026-01-01,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,manager,RM001,2026-01-01,West Bengal,Active\n';
+    downloadData(csv,'employees_template.csv');
+  }
 }
 
 function renderEmpTable(){
@@ -3648,8 +3771,27 @@ function uploadDoctors(inp){
 }
 
 function downloadDocTemplate(){
-  var csv='DoctorCode,Name,Speciality,Qualification,Address,City,Area,Mobile,AssignToEmpID,Status\nDOC009,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,9830000001,EMP002,Active\n';
-  downloadData(csv,'doctor_master_template.csv');
+  var csv='DoctorCode,Name,Speciality,Qualification,Address,City,Area,Mobile,AssignToEmpID,Status\n';
+  if(DB.doctors && DB.doctors.length > 0) {
+    DB.doctors.forEach(function(d){
+      csv += [
+        d.code || '',
+        d.name || '',
+        d.spec || '',
+        d.qual || '',
+        d.address || '',
+        d.city || '',
+        d.area || '',
+        d.phone || '',
+        d.assignTo || '',
+        d.status || 'Active'
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'doctor_master.csv');
+  } else {
+    csv += 'DOC009,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,9830000001,EMP002,Active\n';
+    downloadData(csv,'doctor_master_template.csv');
+  }
 }
 
 function renderAdminDocList(){
@@ -3840,8 +3982,21 @@ function uploadChemists(inp){
 }
 
 function downloadChemTemplate(){
-  var csv='ChemistID,Name,Area,AssignToEmpID\nCHM009,Vikas Pharma,Dadar,EMP001\n';
-  downloadData(csv,'chemist_master_template.csv');
+  var csv='ChemistID,Name,Area,AssignToEmpID\n';
+  if(DB.chemists && DB.chemists.length > 0) {
+    DB.chemists.forEach(function(c){
+      csv += [
+        c.id || '',
+        c.name || '',
+        c.area || '',
+        c.assignTo || ''
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'chemist_master.csv');
+  } else {
+    csv += 'CHM009,Vikas Pharma,Dadar,EMP001\n';
+    downloadData(csv,'chemist_master_template.csv');
+  }
 }
 
 function renderAdminChemistList(){
@@ -3931,6 +4086,165 @@ function bulkDeleteAllChemists() {
   if (masterCheck) masterCheck.checked = false;
   updateSelectedChemsCount();
   renderAdminChemistList();
+}
+
+// ===== LEAVE BALANCE MASTER FUNCTIONS =====
+function renderLeaveBalanceTable(){
+  var tbody=document.getElementById('leave-bal-table-body');
+  if(!tbody) return;
+  var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
+  var countEl = document.getElementById('leave-bal-count');
+  if (countEl) countEl.textContent = emps.length;
+  tbody.innerHTML=emps.map(function(e){
+    var cl = e.leaves ? (e.leaves.CL || 0) : 0;
+    var cl_used = e.leaves ? (e.leaves.CL_used || 0) : 0;
+    var sl = e.leaves ? (e.leaves.SL || 0) : 0;
+    var sl_used = e.leaves ? (e.leaves.SL_used || 0) : 0;
+    var pl = e.leaves ? (e.leaves.EL || 0) : 0;
+    var pl_used = e.leaves ? (e.leaves.EL_used || 0) : 0;
+    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+(cl - cl_used)+' / '+cl+'</td><td>'+(sl - sl_used)+' / '+sl+'</td><td>'+(pl - pl_used)+' / '+pl+'</td></tr>';
+  }).join('');
+}
+
+function downloadLeaveBalanceData(){
+  var csv='EmployeeID,Name,CL_Limit,CL_Used,SL_Limit,SL_Used,PL_Limit,PL_Used\n';
+  var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
+  if(emps.length > 0) {
+    emps.forEach(function(e){
+      var cl = e.leaves ? (e.leaves.CL || 0) : 0;
+      var cl_used = e.leaves ? (e.leaves.CL_used || 0) : 0;
+      var sl = e.leaves ? (e.leaves.SL || 0) : 0;
+      var sl_used = e.leaves ? (e.leaves.SL_used || 0) : 0;
+      var pl = e.leaves ? (e.leaves.EL || 0) : 0;
+      var pl_used = e.leaves ? (e.leaves.EL_used || 0) : 0;
+      csv += [
+        e.id || '',
+        e.name || '',
+        cl,
+        cl_used,
+        sl,
+        sl_used,
+        pl,
+        pl_used
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+  } else {
+    csv += 'EMP001,Rahul Sharma,12,2,10,1,15,0\n';
+  }
+  downloadData(csv,'leave_balances.csv');
+}
+
+function uploadLeaveBalances(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var updated=0;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0)));
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      if(!p[0])return;
+      var empId = p[0].toUpperCase();
+      var emp = DB.employees.find(function(x){return x.id === empId;});
+      if(emp){
+        if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+        if(p.length >= 8) {
+          emp.leaves.CL = parseInt(p[2]) || 0;
+          emp.leaves.CL_used = parseInt(p[3]) || 0;
+          emp.leaves.SL = parseInt(p[4]) || 0;
+          emp.leaves.SL_used = parseInt(p[5]) || 0;
+          emp.leaves.EL = parseInt(p[6]) || 0;
+          emp.leaves.EL_used = parseInt(p[7]) || 0;
+        } else if(p.length >= 3) {
+          var col1 = parseInt(p[1]);
+          if(isNaN(col1)) {
+            emp.leaves.CL = parseInt(p[2]) || 0;
+            emp.leaves.SL = parseInt(p[3]) || 0;
+            emp.leaves.EL = parseInt(p[4]) || 0;
+          } else {
+            emp.leaves.CL = parseInt(p[1]) || 0;
+            emp.leaves.SL = parseInt(p[2]) || 0;
+            emp.leaves.EL = parseInt(p[3]) || 0;
+          }
+        }
+        updated++;
+      }
+    });
+    saveDB();
+    showToast(updated+' employee leave balances updated successfully!');
+    renderLeaveBalanceTable();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+// ===== HOLIDAY MASTER FUNCTIONS =====
+function renderHolidayTable(){
+  var tbody=document.getElementById('holiday-table-body');
+  if(!tbody) return;
+  if(!DB.holidays) DB.holidays = [];
+  var countEl = document.getElementById('holiday-count');
+  if (countEl) countEl.textContent = DB.holidays.length;
+  tbody.innerHTML=DB.holidays.map(function(h, index){
+    return '<tr><td>'+h.date+'</td><td class="tbl-name">'+h.name+'</td><td><button class="btn sm danger" onclick="removeHoliday('+index+')">Delete</button></td></tr>';
+  }).join('');
+}
+
+function removeHoliday(index){
+  DB.holidays.splice(index, 1);
+  saveDB();
+  renderHolidayTable();
+}
+
+function clearAllHolidays(){
+  if(confirm("Are you sure you want to clear all holidays?")){
+    DB.holidays = [];
+    saveDB();
+    renderHolidayTable();
+  }
+}
+
+function downloadHolidayList(){
+  var csv='Date,HolidayName\n';
+  if(DB.holidays && DB.holidays.length > 0) {
+    DB.holidays.forEach(function(h){
+      csv += [h.date || '', h.name || ''].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+  } else {
+    csv += '2026-01-01,New Year Day\n2026-01-26,Republic Day\n';
+  }
+  downloadData(csv,'holiday_list.csv');
+}
+
+function uploadHolidays(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var added=0;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0)));
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    if(!DB.holidays) DB.holidays = [];
+    dataLines.forEach(function(line){
+      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      if(!p[0]||!p[1])return;
+      var dateVal = formatDateForPostgres(p[0]) || p[0];
+      var existing = DB.holidays.find(function(h){return h.date === dateVal;});
+      if(existing){
+        existing.name = p[1];
+      } else {
+        DB.holidays.push({date: dateVal, name: p[1]});
+      }
+      added++;
+    });
+    DB.holidays.sort(function(a,b){return a.date.localeCompare(b.date);});
+    saveDB();
+    showToast(added+' holiday list records processed successfully!');
+    renderHolidayTable();
+  };
+  reader.readAsText(file);inp.value='';
 }
 
 // ===== INVENTORY ALLOCATION =====

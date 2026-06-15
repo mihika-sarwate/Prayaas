@@ -3076,13 +3076,13 @@ function renderAdminTPApprovals(){
   var u=SESSION.user;
   var tps=DB.tourPlans.filter(function(t){
     if (t.status === 'Submitted') {
-      return u.role==='admin' || (t.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
+      return u.role==='admin' || (t.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
     }
     if (t.status === 'Approved by Manager') {
       return u.role==='admin';
     }
     if (t.status === 'Approved by Admin') {
-      return (t.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
+      return (t.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
     }
     return false;
   });
@@ -3101,13 +3101,13 @@ function renderAdminExpApprovals(){
   var u=SESSION.user;
   var exps=DB.expenses.filter(function(e){
     if (e.status === 'Submitted') {
-      return u.role==='admin' || (e.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
+      return u.role==='admin' || (e.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
     }
     if (e.status === 'Approved by Manager') {
       return u.role==='admin';
     }
     if (e.status === 'Approved by Admin') {
-      return (e.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
+      return (e.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
     }
     return false;
   });
@@ -3125,13 +3125,13 @@ function renderAdminLeaveApprovals(){
   var u=SESSION.user;
   var lvs=DB.leaves.filter(function(l){
     if (l.status === 'Submitted') {
-      return u.role==='admin' || (l.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
+      return u.role==='admin' || (l.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
     }
     if (l.status === 'Approved by Manager') {
       return u.role==='admin';
     }
     if (l.status === 'Approved by Admin') {
-      return (l.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
+      return (l.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
     }
     return false;
   });
@@ -3168,11 +3168,11 @@ function viewTP(id){
   
   var canApprove = false;
   if (tp.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || (tp.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
+    canApprove = (u.role === 'admin' || (tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
   } else if (tp.status === 'Approved by Manager') {
     canApprove = (u.role === 'admin');
   } else if (tp.status === 'Approved by Admin') {
-    canApprove = ((tp.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
+    canApprove = ((tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
   }
   document.getElementById('tp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-tp-detail').classList.add('on');
@@ -3182,11 +3182,11 @@ function approveTP(){
   if(tp){
     var u = SESSION.user;
     if (tp.status === 'Submitted') {
-      if (u.role === 'admin' && (tp.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
+      if (u.role === 'admin' && (tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         tp.status = 'Approved';
       } else if (u.role === 'admin') {
         tp.status = 'Approved by Admin';
-      } else if ((tp.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
+      } else if ((tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         tp.status = 'Approved by Manager';
       }
     } else if (tp.status === 'Approved by Manager') {
@@ -3245,11 +3245,11 @@ function viewExp(id){
   
   var canApprove = false;
   if (ex.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || (ex.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
+    canApprove = (u.role === 'admin' || (ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
   } else if (ex.status === 'Approved by Manager') {
     canApprove = (u.role === 'admin');
   } else if (ex.status === 'Approved by Admin') {
-    canApprove = ((ex.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
+    canApprove = ((ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
   }
   document.getElementById('exp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-exp-detail').classList.add('on');
@@ -3260,11 +3260,11 @@ function approveExp(){
   if(ex){
     var u = SESSION.user;
     if (ex.status === 'Submitted') {
-      if (u.role === 'admin' && (ex.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
+      if (u.role === 'admin' && (ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         ex.status = 'Approved';
       } else if (u.role === 'admin') {
         ex.status = 'Approved by Admin';
-      } else if ((ex.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
+      } else if ((ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         ex.status = 'Approved by Manager';
       }
     } else if (ex.status === 'Approved by Manager') {
@@ -3311,11 +3311,11 @@ function viewLeave(id){
   
   var canApprove = false;
   if (lv.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || (lv.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
+    canApprove = (u.role === 'admin' || (lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
   } else if (lv.status === 'Approved by Manager') {
     canApprove = (u.role === 'admin');
   } else if (lv.status === 'Approved by Admin') {
-    canApprove = ((lv.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
+    canApprove = ((lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
   }
   document.getElementById('leave-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-leave-detail').classList.add('on');
@@ -3327,11 +3327,11 @@ function approveLeave(){
     var u = SESSION.user;
     var prevStatus = lv.status;
     if (lv.status === 'Submitted') {
-      if (u.role === 'admin' && (lv.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
+      if (u.role === 'admin' && (lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         lv.status = 'Approved';
       } else if (u.role === 'admin') {
         lv.status = 'Approved by Admin';
-      } else if ((lv.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
+      } else if ((lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         lv.status = 'Approved by Manager';
       }
     } else if (lv.status === 'Approved by Manager') {
@@ -3964,14 +3964,16 @@ function downloadDocTemplate(){
   }
 }
 
-function renderAdminDocList(){
+var currentDocPage = 1; var docsPerPage = 50;
+function renderAdminDocList(page = 1) {
+  currentDocPage = page;
   var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
-  var docs=DB.doctors.filter(function(d){return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);});
+  var docs=DB.doctors.filter(function(d){return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);}););
   var countEl = document.getElementById('doc-count');
   if (countEl) countEl.textContent = DB.doctors.length;
   var tbody=document.getElementById('doc-table-body');
   
-  tbody.innerHTML=docs.map(function(d){
+  tbody.innerHTML=pagedDocs.map(function(d){
     var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
     return '<tr><td><input type="checkbox" class="doc-row-check" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
   }).join('');
@@ -4178,14 +4180,16 @@ function downloadChemTemplate(){
   }
 }
 
-function renderAdminChemistList(){
+var currentChemPage = 1; var chemsPerPage = 50;
+function renderAdminChemistList(page = 1) {
+  currentChemPage = page;
   var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
-  var chems=DB.chemists.filter(function(c){return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);});
+  var chems=DB.chemists.filter(function(c){return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);}););
   var countEl = document.getElementById('chem-count');
   if (countEl) countEl.textContent = DB.chemists.length;
   var tbody=document.getElementById('chem-table-body');
   
-  tbody.innerHTML=chems.map(function(c){
+  tbody.innerHTML=pagedChems.map(function(c){
     var emp=DB.employees.find(function(e){return e.id===c.assignTo;});
     return '<tr><td><input type="checkbox" class="chem-row-check" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
   }).join('');

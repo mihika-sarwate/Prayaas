@@ -3038,14 +3038,14 @@ function goAdminTab(name){
 function renderAdminStats(){
   var u=SESSION.user;
   // MR Subordinates mapping
-  var emps=DB.employees.filter(function(e){return e.managerId===u.id || u.role==='admin';});
+  var emps=DB.employees.filter(function(e){return (e.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase() || u.role==='admin';});
   document.getElementById('adm-emp-count').textContent=DB.employees.length - 1; // excluding admin
   document.getElementById('adm-doc-count').textContent=DB.doctors.length;
   document.getElementById('adm-rep-count').textContent=DB.reports.length;
   
-  var pendingTP=DB.tourPlans.filter(function(t){return t.status==='Submitted' && (u.role==='admin' || t.managerId===u.id);}).length;
-  var pendingExp=DB.expenses.filter(function(e){return e.status==='Submitted' && (u.role==='admin' || e.managerId===u.id);}).length;
-  var pendingLeave=DB.leaves.filter(function(l){return l.status==='Submitted' && (u.role==='admin' || l.managerId===u.id);}).length;
+  var pendingTP=DB.tourPlans.filter(function(t){return t.status==='Submitted' && (u.role==='admin' || (t.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase());}).length;
+  var pendingExp=DB.expenses.filter(function(e){return e.status==='Submitted' && (u.role==='admin' || (e.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase());}).length;
+  var pendingLeave=DB.leaves.filter(function(l){return l.status==='Submitted' && (u.role==='admin' || (l.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase());}).length;
   
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
 }
@@ -3194,7 +3194,7 @@ function approveTP(){
         tp.status = 'Approved';
       }
     } else if (tp.status === 'Approved by Admin') {
-      if (tp.managerId === u.id) {
+      if ((tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         tp.status = 'Approved';
       }
     }
@@ -3272,7 +3272,7 @@ function approveExp(){
         ex.status = 'Approved';
       }
     } else if (ex.status === 'Approved by Admin') {
-      if (ex.managerId === u.id) {
+      if ((ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         ex.status = 'Approved';
       }
     }
@@ -3339,7 +3339,7 @@ function approveLeave(){
         lv.status = 'Approved';
       }
     } else if (lv.status === 'Approved by Admin') {
-      if (lv.managerId === u.id) {
+      if ((lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
         lv.status = 'Approved';
       }
     }
@@ -4677,7 +4677,7 @@ function runMISReport(){
     thead.innerHTML='<tr><th>Manager Name</th><th>MR Employee</th><th>Coaching &amp; Accompanist Days</th></tr>';
     var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN';});
     managers.forEach(function(m){
-      DB.employees.filter(function(e){return e.role==='emp' && e.managerId===m.id && (!empId||e.id===empId);}).forEach(function(mr){
+      DB.employees.filter(function(e){return e.role==='emp' && (e.managerId||"").trim().toLowerCase()===(m.id||"").trim().toLowerCase() && (!empId||e.id===empId);}).forEach(function(mr){
         var accompDays=DB.reports.filter(function(r){
           return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
         }).length;

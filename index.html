@@ -2506,6 +2506,8 @@ function saveOrSubmitTourPlan(status){
     tpObj = DB.tourPlans[existingIndex];
     tpObj.days = JSON.parse(JSON.stringify(plannedDays));
     tpObj.status = status;
+    tpObj.managerId = mgr;
+    tpObj.managerName = mgrObj ? mgrObj.name : '';
     if(status === 'Submitted') {
       tpObj.remarks = '';
       tpObj.submittedAt = new Date().toISOString();
@@ -3983,7 +3985,7 @@ function downloadDocTemplate(){
 
 function renderAdminDocList(){
   var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
-  var docs=DB.doctors.filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q)||d.assignTo.toLowerCase().includes(q);});
+  var docs=DB.doctors.filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q)||(d.assignTo||'').toLowerCase().includes(q);});
   var countEl = document.getElementById('doc-count');
   if (countEl) countEl.textContent = DB.doctors.length;
   var tbody=document.getElementById('doc-table-body');
@@ -4197,7 +4199,7 @@ function downloadChemTemplate(){
 
 function renderAdminChemistList(){
   var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
-  var chems=DB.chemists.filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q)||c.assignTo.toLowerCase().includes(q);});
+  var chems=DB.chemists.filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q)||(c.assignTo||'').toLowerCase().includes(q);});
   var countEl = document.getElementById('chem-count');
   if (countEl) countEl.textContent = DB.chemists.length;
   var tbody=document.getElementById('chem-table-body');

@@ -177,10 +177,7 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
       </div>
       <button class="btn primary" onclick="doLogin()" style="margin-top:4px">Login</button>
-      <div style="text-align:center;margin-top:14px">
-        <button class="btn sm" style="width:auto;padding:0 20px;margin:0 auto;background:var(--primary);color:var(--accent);border-color:var(--primary)" onclick="doAdminLogin()">Admin / Manager Login</button>
-      </div>
-      <div style="font-size:11px;color:#64748B;text-align:center;margin-top:15px;" id="db-status-indicator">Database Connection: LocalStorage</div>
+      <div style="font-size:11px;color:#64748B;text-align:center;margin-top:15px;" id="db-status-indicator"></div>
     </div>
   </div>
 </div>
@@ -1834,46 +1831,30 @@ function doLogin(){
     var matchId = (e.id || '').trim().toUpperCase() === id;
     var matchName = e.name && (e.name.trim().toUpperCase() === id);
     var matchPwd = e.pwd && (e.pwd.trim() === pwd);
-    var matchRole = e.role && (e.role.trim().toLowerCase() === 'emp');
-    return (matchId || matchName) && matchPwd && matchRole;
+    return (matchId || matchName) && matchPwd;
   });
   if(!emp){
-    var matchedUser = DB.employees.find(function(e){return (e.id || '').trim().toUpperCase()===id || (e.name && e.name.trim().toUpperCase()===id);});
-    if (matchedUser) {
-      console.warn("User found, but authentication failed. DB password:", matchedUser.pwd, "DB role:", matchedUser.role);
-    } else {
-      console.warn("No user match found in database for ID/Name:", id);
-    }
     showToast('Invalid Employee ID/Name or Password');
     return;
   }
   SESSION.user=emp;
   localStorage.setItem('adonis_session', JSON.stringify(SESSION));
   document.getElementById('scr-login').style.display='none';
-  document.getElementById('scr-emp').classList.add('on');
-  initEmpApp();
-}
-
-function doAdminLogin(){
-  var id=prompt('ID:');var pwd=prompt('Password:');
-  if(!id||!pwd)return;
-  id = id.trim().toUpperCase();
-  pwd = pwd.trim();
-  var u=DB.employees.find(function(e){return e.id===id && (e.pwd && e.pwd.trim()===pwd) && e.role!=='emp';});
-  if(!u){showToast('Invalid credentials');return;}
-  SESSION.user=u;
-  localStorage.setItem('adonis_session', JSON.stringify(SESSION));
-  document.getElementById('scr-login').style.display='none';
-  document.getElementById('scr-admin').classList.add('on');
-  document.getElementById('adm-panel-title').textContent=u.role==='admin'?'Admin Panel':'Manager Panel';
-  document.getElementById('adm-badge').textContent=u.role.toUpperCase();
   
-  if(u.role!=='admin'){
-    document.getElementById('adm-sfc-section').style.display='none';
+  if (emp.role === 'emp') {
+    document.getElementById('scr-emp').classList.add('on');
+    initEmpApp();
   } else {
-    document.getElementById('adm-sfc-section').style.display='';
+    document.getElementById('scr-admin').classList.add('on');
+    document.getElementById('adm-panel-title').textContent=emp.role==='admin'?'Admin Panel':'Manager Panel';
+    document.getElementById('adm-badge').textContent=emp.role.toUpperCase();
+    if(emp.role!=='admin'){
+      document.getElementById('adm-sfc-section').style.display='none';
+    } else {
+      document.getElementById('adm-sfc-section').style.display='';
+    }
+    initAdminApp();
   }
-  initAdminApp();
 }
 
 function doLogout(){

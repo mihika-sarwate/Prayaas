@@ -592,7 +592,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title">Bulk Import Employees</div>
         <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Role, ManagerID, DOJ, State, Status</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Emp Template</button>
+          <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
           <input type="file" id="emp-upload" accept=".csv" onchange="uploadEmployees(this)" style="display:none">
           <button class="btn sm danger" onclick="bulkDeleteAllEmployees()">&#128465; Delete All</button>
@@ -616,7 +616,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="info-box">Upload Doctor CSV. Columns: <strong>DoctorCode, Name, Speciality, Qualification, Address, City, Area, Mobile, AssignToEmpID, Status</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadDocTemplate()">&#8595; Doc Template</button>
+          <button class="btn sm success" onclick="downloadDocTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary" onclick="document.getElementById('doc-upload').click()">&#8593; Upload Doctor CSV</button>
           <input type="file" id="doc-upload" accept=".csv" onchange="uploadDoctors(this)" style="display:none">
           <button class="btn sm danger" onclick="bulkDeleteAllDoctors()">&#128465; Delete All</button>
@@ -642,7 +642,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="info-box">Upload Chemist CSV. Columns: <strong>ChemistID, Name, Area, AssignToEmpID</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadChemTemplate()">&#8595; Chemist Template</button>
+          <button class="btn sm success" onclick="downloadChemTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary" onclick="document.getElementById('chem-upload').click()">&#8593; Upload Chemist CSV</button>
           <input type="file" id="chem-upload" accept=".csv" onchange="uploadChemists(this)" style="display:none">
           <button class="btn sm danger" onclick="bulkDeleteAllChemists()">&#128465; Delete All</button>
@@ -1789,7 +1789,7 @@ setTimeout(function() {
     document.getElementById('scr-login').style.display = 'none';
     if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
       document.getElementById('scr-admin').classList.add('on');
-      document.getElementById('adm-panel-title').textContent = SESSION.user.role === 'admin' ? 'Admin Panel' : 'Manager Panel';
+      document.getElementById('adm-panel-title').textContent = (SESSION.user.role === 'admin' ? 'Admin Panel' : 'Manager Panel') + ' - ' + SESSION.user.name;
       document.getElementById('adm-badge').textContent = SESSION.user.role.toUpperCase();
       if(SESSION.user.role !== 'admin'){
         document.getElementById('adm-sfc-section').style.display = 'none';
@@ -1846,7 +1846,7 @@ function doLogin(){
     initEmpApp();
   } else {
     document.getElementById('scr-admin').classList.add('on');
-    document.getElementById('adm-panel-title').textContent=emp.role==='admin'?'Admin Panel':'Manager Panel';
+    document.getElementById('adm-panel-title').textContent=(emp.role==='admin'?'Admin Panel':'Manager Panel') + ' - ' + emp.name;
     document.getElementById('adm-badge').textContent=emp.role.toUpperCase();
     if(emp.role!=='admin'){
       document.getElementById('adm-sfc-section').style.display='none';
@@ -2334,7 +2334,7 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 
   html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
-    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Town / City</th><th>Planned Doctors</th><th>Planned Chemists</th></tr></thead><tbody>';
+    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Town / City</th></tr></thead><tbody>';
 
   var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return !!(day.areaTerritory||day.toLocation||'').trim();}) : currentMTPDays;
 
@@ -2398,8 +2398,8 @@ function renderMTPDaysUI(isReadOnly, existing){
       '<td>'+dow+'</td>'+
       '<td>'+areaSelect+'</td>'+
       '<td><input type="text" '+readOnlyAttr+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)"></td>'+
-      '<td><span class="badge blue">'+docs.length+' Doctors</span></td>'+
-      '<td><span class="badge green">'+chems.length+' Chemists</span></td>'+
+      
+      
       '</tr>';
   }).join('');
 
@@ -3076,13 +3076,13 @@ function renderAdminTPApprovals(){
   var u=SESSION.user;
   var tps=DB.tourPlans.filter(function(t){
     if (t.status === 'Submitted') {
-      return u.role==='admin' || t.managerId===u.id;
+      return u.role==='admin' || (t.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
     }
     if (t.status === 'Approved by Manager') {
       return u.role==='admin';
     }
     if (t.status === 'Approved by Admin') {
-      return t.managerId===u.id;
+      return (t.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
     }
     return false;
   });
@@ -3101,13 +3101,13 @@ function renderAdminExpApprovals(){
   var u=SESSION.user;
   var exps=DB.expenses.filter(function(e){
     if (e.status === 'Submitted') {
-      return u.role==='admin' || e.managerId===u.id;
+      return u.role==='admin' || (e.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
     }
     if (e.status === 'Approved by Manager') {
       return u.role==='admin';
     }
     if (e.status === 'Approved by Admin') {
-      return e.managerId===u.id;
+      return (e.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
     }
     return false;
   });
@@ -3125,13 +3125,13 @@ function renderAdminLeaveApprovals(){
   var u=SESSION.user;
   var lvs=DB.leaves.filter(function(l){
     if (l.status === 'Submitted') {
-      return u.role==='admin' || l.managerId===u.id;
+      return u.role==='admin' || (l.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
     }
     if (l.status === 'Approved by Manager') {
       return u.role==='admin';
     }
     if (l.status === 'Approved by Admin') {
-      return l.managerId===u.id;
+      return (l.managerId||"").toLowerCase()===(u.id||"").toLowerCase();
     }
     return false;
   });
@@ -3154,13 +3154,13 @@ function viewTP(id){
   
   var plannedWorkingDays=tp.days.filter(function(d){return !!(d.areaTerritory||d.toLocation||'').trim();}).length;
   var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+tp.empName+' - '+tp.month+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Status: '+tp.status+' | Planned working days: '+plannedWorkingDays+'</div></div>';
-  html+='<div class="tbl-wrap"><table class="tbl" style="min-width:760px"><thead><tr><th>Date</th><th>Area / Territory</th><th>Planned Doctor Calls</th><th>Planned Chemist Calls</th></tr></thead><tbody>';
+  html+='<div class="tbl-wrap"><table class="tbl" style="min-width:760px"><thead><tr><th>Date</th><th>Area / Territory</th></tr></thead><tbody>';
   tp.days.forEach(function(d){
     var area=d.areaTerritory||d.toLocation||'';
     if(!area)return;
     var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
     var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===tp.empId && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
-    html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+area+'</td><td><span class="badge blue">'+docIds.length+' Doctors</span></td><td><span class="badge green">'+chemIds.length+' Chemists</span></td></tr>';
+    html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+area+'</td></tr>';
   });
   html+='</tbody></table></div>';
   
@@ -3168,11 +3168,11 @@ function viewTP(id){
   
   var canApprove = false;
   if (tp.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || tp.managerId === u.id);
+    canApprove = (u.role === 'admin' || (tp.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
   } else if (tp.status === 'Approved by Manager') {
     canApprove = (u.role === 'admin');
   } else if (tp.status === 'Approved by Admin') {
-    canApprove = (tp.managerId === u.id);
+    canApprove = ((tp.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
   }
   document.getElementById('tp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-tp-detail').classList.add('on');
@@ -3182,11 +3182,11 @@ function approveTP(){
   if(tp){
     var u = SESSION.user;
     if (tp.status === 'Submitted') {
-      if (u.role === 'admin' && tp.managerId === u.id) {
+      if (u.role === 'admin' && (tp.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
         tp.status = 'Approved';
       } else if (u.role === 'admin') {
         tp.status = 'Approved by Admin';
-      } else if (tp.managerId === u.id) {
+      } else if ((tp.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
         tp.status = 'Approved by Manager';
       }
     } else if (tp.status === 'Approved by Manager') {
@@ -3245,11 +3245,11 @@ function viewExp(id){
   
   var canApprove = false;
   if (ex.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || ex.managerId === u.id);
+    canApprove = (u.role === 'admin' || (ex.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
   } else if (ex.status === 'Approved by Manager') {
     canApprove = (u.role === 'admin');
   } else if (ex.status === 'Approved by Admin') {
-    canApprove = (ex.managerId === u.id);
+    canApprove = ((ex.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
   }
   document.getElementById('exp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-exp-detail').classList.add('on');
@@ -3260,11 +3260,11 @@ function approveExp(){
   if(ex){
     var u = SESSION.user;
     if (ex.status === 'Submitted') {
-      if (u.role === 'admin' && ex.managerId === u.id) {
+      if (u.role === 'admin' && (ex.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
         ex.status = 'Approved';
       } else if (u.role === 'admin') {
         ex.status = 'Approved by Admin';
-      } else if (ex.managerId === u.id) {
+      } else if ((ex.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
         ex.status = 'Approved by Manager';
       }
     } else if (ex.status === 'Approved by Manager') {
@@ -3311,11 +3311,11 @@ function viewLeave(id){
   
   var canApprove = false;
   if (lv.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || lv.managerId === u.id);
+    canApprove = (u.role === 'admin' || (lv.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
   } else if (lv.status === 'Approved by Manager') {
     canApprove = (u.role === 'admin');
   } else if (lv.status === 'Approved by Admin') {
-    canApprove = (lv.managerId === u.id);
+    canApprove = ((lv.managerId||"").toLowerCase() === (u.id||"").toLowerCase());
   }
   document.getElementById('leave-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-leave-detail').classList.add('on');
@@ -3327,11 +3327,11 @@ function approveLeave(){
     var u = SESSION.user;
     var prevStatus = lv.status;
     if (lv.status === 'Submitted') {
-      if (u.role === 'admin' && lv.managerId === u.id) {
+      if (u.role === 'admin' && (lv.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
         lv.status = 'Approved';
       } else if (u.role === 'admin') {
         lv.status = 'Approved by Admin';
-      } else if (lv.managerId === u.id) {
+      } else if ((lv.managerId||"").toLowerCase() === (u.id||"").toLowerCase()) {
         lv.status = 'Approved by Manager';
       }
     } else if (lv.status === 'Approved by Manager') {
@@ -3966,7 +3966,7 @@ function downloadDocTemplate(){
 
 function renderAdminDocList(){
   var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
-  var docs=DB.doctors.filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q)||(d.assignTo||'').toLowerCase().includes(q);});
+  var docs=DB.doctors.filter(function(d){return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);});
   var countEl = document.getElementById('doc-count');
   if (countEl) countEl.textContent = DB.doctors.length;
   var tbody=document.getElementById('doc-table-body');
@@ -4180,7 +4180,7 @@ function downloadChemTemplate(){
 
 function renderAdminChemistList(){
   var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
-  var chems=DB.chemists.filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q)||(c.assignTo||'').toLowerCase().includes(q);});
+  var chems=DB.chemists.filter(function(c){return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);});
   var countEl = document.getElementById('chem-count');
   if (countEl) countEl.textContent = DB.chemists.length;
   var tbody=document.getElementById('chem-table-body');

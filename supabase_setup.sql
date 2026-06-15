@@ -1,4 +1,4 @@
--- Supabase Database Schema Setup for Prayaas
+-- Supabase Database Schema Setup for Sankalp
 -- Copy and paste this entire file into the Supabase SQL Editor and click "Run"
 
 -- IMPORTANT: Disable Row Level Security (RLS) on all tables so public client credentials can read/write data.
@@ -175,9 +175,15 @@ create table inputs_inventory (
   balance integer default 0
 );
 
--- 10. Holidays Table (Optional)
+-- 10. Holidays Table (State/Region wise)
+-- Run the following SQL to migrate the holidays table if you already have one:
+-- ALTER TABLE holidays DROP CONSTRAINT holidays_pkey;
+-- ALTER TABLE holidays ADD COLUMN state text not null default 'All';
+-- ALTER TABLE holidays ADD PRIMARY KEY (date, state);
 create table holidays (
-  date date primary key,
-  name text not null
+  date date not null,
+  name text not null,
+  state text not null default 'All',
+  primary key (date, state)
 );
 alter table holidays disable row level security;

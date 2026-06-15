@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Prayaas - Field Force Management System (Adonis Laboratories)</title>
+<title>Sankalp - Field Force Management System (Adonis Laboratories)</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
@@ -166,7 +166,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="login-logo" style="width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
         <img src="logo.jpg" alt="Adonis Logo" style="max-height: 90px; max-width: 100%; object-fit: contain;">
       </div>
-      <div class="login-title">Prayaas</div>
+      <div class="login-title">Sankalp</div>
       <div class="login-sub">Field Force &amp; MR System (Adonis Laboratories)</div>
       <div class="fw"><label class="lbl">Employee ID</label><input type="text" id="login-id" placeholder="e.g. EMP001" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
       <div class="fw">
@@ -192,7 +192,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="logo">
         <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
       </div>
-      <div class="hdr-brand"><div class="hdr-title">Prayaas MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
+      <div class="hdr-brand"><div class="hdr-title">Sankalp MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
       <button id="emp-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 4px 10px; font-size: 12px; width: auto; height: auto; line-height: 1.2; margin-right: 8px;">🔄 Sync</button>
       <button class="hdr-badge" onclick="doLogout()">Logout</button>
     </div>
@@ -468,7 +468,7 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="hdr-brand">
         <div style="display:flex;align-items:center;gap:8px">
-          <div class="hdr-title" id="adm-panel-title">Prayaas Admin Console</div>
+          <div class="hdr-title" id="adm-panel-title">Sankalp Admin Console</div>
           <span class="badge orange" id="adm-badge" style="padding:2px 8px;font-size:9px;text-transform:uppercase">ADM</span>
           <button id="admin-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 2px 8px; font-size: 10px; width: auto; height: auto; line-height: 1.2; margin-left: 8px;">🔄 Sync</button>
         </div>
@@ -691,7 +691,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <div id="adm-holiday-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128197; Holiday List Management</div>
       <div class="card">
-        <div class="info-box">Upload Holiday List CSV. Columns: <strong>Date (YYYY-MM-DD), HolidayName</strong></div>
+        <div class="info-box">Upload Holiday List CSV. Columns: <strong>Date (YYYY-MM-DD), HolidayName, State</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadHolidayList()">&#8595; Download Holiday List</button>
           <button class="btn sm primary" onclick="document.getElementById('holiday-upload').click()">&#8593; Upload Holiday CSV</button>
@@ -703,7 +703,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title">Holiday Calendar (<span id="holiday-count">0</span> records)</div>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>Date</th><th>Holiday Name</th><th>Action</th></tr></thead>
+            <thead><tr><th>Date</th><th>Holiday Name</th><th>State</th><th>Action</th></tr></thead>
             <tbody id="holiday-table-body"></tbody>
           </table>
         </div>
@@ -1119,6 +1119,39 @@ function ensureSupabaseLoaded(callback) {
 
 ensureSupabaseLoaded();
 
+async function fetchAllFromSupabase(table) {
+  let allData = [];
+  let page = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+    if (error) {
+      console.error("Error fetching page " + page + " from table " + table + ":", error);
+      throw error;
+    }
+    if (!data || data.length === 0) break;
+    allData = allData.concat(data);
+    if (data.length < pageSize) break;
+    page++;
+  }
+  return allData;
+}
+
+async function upsertInBatches(table, dataArray, chunkSize = 200) {
+  if (!dataArray || dataArray.length === 0) return;
+  for (let i = 0; i < dataArray.length; i += chunkSize) {
+    const chunk = dataArray.slice(i, i + chunkSize);
+    const { error } = await supabase.from(table).upsert(chunk);
+    if (error) {
+      console.error("Batch upsert failed on table " + table + ":", error);
+      throw error;
+    }
+  }
+}
+
 async function initSupabaseData(isSilent) {
   if (!supabase) {
     ensureSupabaseLoaded(function() {
@@ -1135,8 +1168,7 @@ async function initSupabaseData(isSilent) {
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
-    const { data: emps, error } = await supabase.from('employees').select('*');
-    if (error) throw error;
+    const emps = await fetchAllFromSupabase('employees');
     
     useSupabase = true;
     console.log("Connected to Supabase successfully.");
@@ -1144,34 +1176,34 @@ async function initSupabaseData(isSilent) {
     if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
     
     const [
-      { data: doctors },
-      { data: chemists },
-      { data: reports },
-      { data: tourPlans },
-      { data: expenses },
-      { data: leaves },
-      { data: sfc },
-      { data: samplesInv },
-      { data: giftsInv },
-      { data: inputsInv }
+      doctors,
+      chemists,
+      reports,
+      tourPlans,
+      expenses,
+      leaves,
+      sfc,
+      samplesInv,
+      giftsInv,
+      inputsInv
     ] = await Promise.all([
-      supabase.from('doctors').select('*'),
-      supabase.from('chemists').select('*'),
-      supabase.from('reports').select('*'),
-      supabase.from('tour_plans').select('*'),
-      supabase.from('expenses').select('*'),
-      supabase.from('leaves').select('*'),
-      supabase.from('sfc').select('*'),
-      supabase.from('samples_inventory').select('*'),
-      supabase.from('gifts_inventory').select('*'),
-      supabase.from('inputs_inventory').select('*')
+      fetchAllFromSupabase('doctors'),
+      fetchAllFromSupabase('chemists'),
+      fetchAllFromSupabase('reports'),
+      fetchAllFromSupabase('tour_plans'),
+      fetchAllFromSupabase('expenses'),
+      fetchAllFromSupabase('leaves'),
+      fetchAllFromSupabase('sfc'),
+      fetchAllFromSupabase('samples_inventory'),
+      fetchAllFromSupabase('gifts_inventory'),
+      fetchAllFromSupabase('inputs_inventory')
     ]);
 
     let holidays = [];
     try {
-      const { data: holData } = await supabase.from('holidays').select('*');
+      const holData = await fetchAllFromSupabase('holidays');
       if (holData && holData.length > 0) {
-        holidays = holData.map(h => ({ date: h.date, name: h.name }));
+        holidays = holData.map(h => ({ date: h.date, name: h.name, state: h.state || 'All' }));
       } else {
         holidays = DB.holidays || DEFAULT_DB.holidays || [];
       }
@@ -1564,12 +1596,7 @@ async function syncSupabaseDatabase() {
         leaves: e.leaves
       };
     });
-    const { error: empError } = await supabase.from('employees').upsert(dbEmps);
-    if (empError) {
-      console.error("Supabase Employees sync failed:", empError);
-      showToast("Sync Error (Employees): " + empError.message);
-      return;
-    }
+    await upsertInBatches('employees', dbEmps);
 
     const dbDocs = DB.doctors.map(d => {
       var assignTo = d.assignTo || null;
@@ -1590,12 +1617,7 @@ async function syncSupabaseDatabase() {
         status: d.status
       };
     });
-    const { error: docError } = await supabase.from('doctors').upsert(dbDocs);
-    if (docError) {
-      console.error("Supabase Doctors sync failed:", docError);
-      showToast("Sync Error (Doctors): " + docError.message);
-      return;
-    }
+    await upsertInBatches('doctors', dbDocs);
 
     const dbChems = DB.chemists.map(c => {
       var assignTo = c.assignTo || null;
@@ -1609,12 +1631,7 @@ async function syncSupabaseDatabase() {
         assign_to: assignTo
       };
     });
-    const { error: chemError } = await supabase.from('chemists').upsert(dbChems);
-    if (chemError) {
-      console.error("Supabase Chemists sync failed:", chemError);
-      showToast("Sync Error (Chemists): " + chemError.message);
-      return;
-    }
+    await upsertInBatches('chemists', dbChems);
 
     const dbReports = DB.reports.map(r => ({
       id: r.id,
@@ -1645,12 +1662,7 @@ async function syncSupabaseDatabase() {
       remarks: r.remarks || null,
       next_visit: formatDateForPostgres(r.nextVisit)
     }));
-    const { error: repError } = await supabase.from('reports').upsert(dbReports);
-    if (repError) {
-      console.error("Supabase Reports sync failed:", repError);
-      showToast("Sync Error (Reports): " + repError.message);
-      return;
-    }
+    await upsertInBatches('reports', dbReports);
 
     const dbTourPlans = DB.tourPlans.map(tp => ({
       id: tp.id,
@@ -1667,7 +1679,7 @@ async function syncSupabaseDatabase() {
       approved_by: tp.approvedBy || null,
       revision_history: tp.revisionHistory || []
     }));
-    await supabase.from('tour_plans').upsert(dbTourPlans);
+    await upsertInBatches('tour_plans', dbTourPlans);
 
     const dbExpenses = DB.expenses.map(ex => ({
       id: ex.id,
@@ -1682,7 +1694,7 @@ async function syncSupabaseDatabase() {
       submitted_at: ex.submittedAt || null,
       remarks: ex.remarks || null
     }));
-    await supabase.from('expenses').upsert(dbExpenses);
+    await upsertInBatches('expenses', dbExpenses);
 
     const dbLeaves = DB.leaves.map(lv => ({
       id: lv.id,
@@ -1698,7 +1710,7 @@ async function syncSupabaseDatabase() {
       submitted_at: lv.submittedAt || null,
       remarks: lv.remarks || null
     }));
-    await supabase.from('leaves').upsert(dbLeaves);
+    await upsertInBatches('leaves', dbLeaves);
 
     const dbSamples = DB.samplesInventory.map(s => ({
       id: s.id || undefined,
@@ -1709,7 +1721,7 @@ async function syncSupabaseDatabase() {
       distributed: s.distributed,
       balance: s.balance
     }));
-    await supabase.from('samples_inventory').upsert(dbSamples);
+    await upsertInBatches('samples_inventory', dbSamples);
 
     const dbGifts = DB.giftsInventory.map(g => ({
       id: g.id || undefined,
@@ -1720,7 +1732,7 @@ async function syncSupabaseDatabase() {
       distributed: g.distributed,
       balance: g.balance
     }));
-    await supabase.from('gifts_inventory').upsert(dbGifts);
+    await upsertInBatches('gifts_inventory', dbGifts);
 
     const dbInputs = DB.inputsInventory.map(i => ({
       id: i.id || undefined,
@@ -1731,7 +1743,7 @@ async function syncSupabaseDatabase() {
       distributed: i.distributed,
       balance: i.balance
     }));
-    await supabase.from('inputs_inventory').upsert(dbInputs);
+    await upsertInBatches('inputs_inventory', dbInputs);
 
     const dbSfc = DB.sfc.map(s => ({
       id: s.id || undefined,
@@ -1744,15 +1756,16 @@ async function syncSupabaseDatabase() {
       lodge: s.lodge,
       other: s.other || 0
     }));
-    await supabase.from('sfc').upsert(dbSfc);
+    await upsertInBatches('sfc', dbSfc);
 
     try {
       if (DB.holidays && DB.holidays.length > 0) {
         const dbHols = DB.holidays.map(h => ({
           date: formatDateForPostgres(h.date) || h.date,
-          name: h.name
+          name: h.name,
+          state: h.state || 'All'
         }));
-        await supabase.from('holidays').upsert(dbHols);
+        await upsertInBatches('holidays', dbHols);
       }
     } catch (holErr) {
       console.warn("Could not sync holidays to Supabase (table may not exist):", holErr);
@@ -1813,7 +1826,7 @@ function togglePasswordVisibility() {
 function doLogin(){
   var id=document.getElementById('login-id').value.trim().toUpperCase();
   var pwd=document.getElementById('login-pwd').value.trim();
-  console.log("=== Prayaas Login Attempt ===");
+  console.log("=== Sankalp Login Attempt ===");
   console.log("Input Employee ID/Name:", id);
   console.log("Input Password:", pwd);
   console.log("All Employees in DB:", DB.employees);
@@ -2309,6 +2322,16 @@ function getAssignedChemistsForArea(area){
   return DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id && c.area.toLowerCase()===clean;});
 }
 
+function getHolidayForDateAndState(dateStr, state) {
+  if (!DB.holidays) return null;
+  var userState = (state || '').toLowerCase().trim();
+  return DB.holidays.find(function(h) {
+    if (h.date !== dateStr) return false;
+    var holState = (h.state || 'All').toLowerCase().trim();
+    return holState === 'all' || holState === 'national' || holState === userState;
+  });
+}
+
 function renderMTPDaysUI(isReadOnly, existing){
   var c=document.getElementById('tp-days-container');
   var readOnlyAttr = '';
@@ -2360,12 +2383,20 @@ function renderMTPDaysUI(isReadOnly, existing){
     d.plannedChems=chems.map(function(chem){return chem.id;});
     var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
     
+    var holiday = getHolidayForDateAndState(d.date, SESSION.user ? SESSION.user.state : '');
+    var holidayText = '';
+    var holidayRowStyle = '';
+    if (holiday) {
+      holidayText = '<div style="font-size:10px;color:var(--danger);font-weight:bold;margin-top:2px">🎉 Holiday: ' + holiday.name + '</div>';
+      holidayRowStyle = ' style="background-color: #FFF5F5"';
+    }
+    
     var areaSelect = '';
     if (isReadOnly) {
       areaSelect = '<span>' + (area || '--') + '</span>';
     } else {
       var currentAreas = mrAreas.slice();
-      if (area && !currentAreas.includes(area) && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ') {
+      if (area && !currentAreas.includes(area) && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
         currentAreas.push(area);
       }
       areaSelect = '<select style="width:100%" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
@@ -2374,19 +2405,20 @@ function renderMTPDaysUI(isReadOnly, existing){
         '<option value="Leave"' + (area === 'Leave' ? ' selected' : '') + '>Leave</option>' +
         '<option value="Transit"' + (area === 'Transit' ? ' selected' : '') + '>Transit</option>' +
         '<option value="HQ"' + (area === 'HQ' ? ' selected' : '') + '>HQ</option>' +
+        '<option value="Holiday"' + (area === 'Holiday' ? ' selected' : '') + '>Holiday</option>' +
         currentAreas.map(function(a) {
           return '<option value="' + a + '"' + (area === a ? ' selected' : '') + '>' + a + '</option>';
         }).join('') +
         '</select>';
     }
 
-    return '<tr class="mtp-area-row">'+
-      '<td class="tbl-name">'+d.date+'</td>'+
+    return '<tr class="mtp-area-row"'+holidayRowStyle+'>'+
+      '<td class="tbl-name">'+d.date+holidayText+'</td>'+
       '<td>'+dow+'</td>'+
       '<td>'+areaSelect+'</td>'+
       '<td><input type="text" '+readOnlyAttr+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)"></td>'+
-      '<td><span class="badge blue">'+docs.length+'</span> '+(docs.length?docs.map(function(doc){return doc.name;}).join(', '):'--')+'</td>'+
-      '<td><span class="badge green">'+chems.length+'</span> '+(chems.length?chems.map(function(chem){return chem.name;}).join(', '):'--')+'</td>'+
+      '<td><span class="badge blue">'+docs.length+' Doctors</span></td>'+
+      '<td><span class="badge green">'+chems.length+' Chemists</span></td>'+
       '</tr>';
   }).join('');
 
@@ -2409,12 +2441,12 @@ function updateMTPArea(idx, value){
   currentMTPDays[idx].plannedChems=getAssignedChemistsForArea(area).map(function(chem){return chem.id;});
   
   // Set stayCity automatically based on the area!
-  if (area && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ') {
+  if (area && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
     var matchedDoc = DB.doctors.find(function(d){return d.area.toLowerCase() === area.toLowerCase() && d.assignTo === SESSION.user.id;});
     if (matchedDoc && matchedDoc.city) {
       currentMTPDays[idx].stayCity = matchedDoc.city;
     }
-  } else if (area === 'Weekly Off' || area === 'Leave' || area === 'Transit' || area === 'HQ') {
+  } else if (area === 'Weekly Off' || area === 'Leave' || area === 'Transit' || area === 'HQ' || area === 'Holiday') {
     currentMTPDays[idx].stayCity = 'HQ';
   }
   updateMTPAnalytics(document.getElementById('tp-month').value);
@@ -3059,7 +3091,18 @@ function renderAdminDashTeamList(){
 // Approval listings
 function renderAdminTPApprovals(){
   var u=SESSION.user;
-  var tps=DB.tourPlans.filter(function(t){return t.status==='Submitted' && (u.role==='admin' || t.managerId===u.id);});
+  var tps=DB.tourPlans.filter(function(t){
+    if (t.status === 'Submitted') {
+      return u.role==='admin' || t.managerId===u.id;
+    }
+    if (t.status === 'Approved by Manager') {
+      return u.role==='admin';
+    }
+    if (t.status === 'Approved by Admin') {
+      return t.managerId===u.id;
+    }
+    return false;
+  });
   var el=document.getElementById('adm-tp-approvals');
   if(!tps.length){el.innerHTML='<div class="empty">No tour plans pending your approval</div>';return;}
   el.innerHTML=tps.map(function(tp){
@@ -3073,7 +3116,18 @@ function renderAdminTPApprovals(){
 
 function renderAdminExpApprovals(){
   var u=SESSION.user;
-  var exps=DB.expenses.filter(function(e){return e.status==='Submitted' && (u.role==='admin' || e.managerId===u.id);});
+  var exps=DB.expenses.filter(function(e){
+    if (e.status === 'Submitted') {
+      return u.role==='admin' || e.managerId===u.id;
+    }
+    if (e.status === 'Approved by Manager') {
+      return u.role==='admin';
+    }
+    if (e.status === 'Approved by Admin') {
+      return e.managerId===u.id;
+    }
+    return false;
+  });
   var el=document.getElementById('adm-exp-approvals');
   if(!exps.length){el.innerHTML='<div class="empty">No expense claims pending your approval</div>';return;}
   el.innerHTML=exps.map(function(ex){
@@ -3086,7 +3140,18 @@ function renderAdminExpApprovals(){
 
 function renderAdminLeaveApprovals(){
   var u=SESSION.user;
-  var lvs=DB.leaves.filter(function(l){return l.status==='Submitted' && (u.role==='admin' || l.managerId===u.id);});
+  var lvs=DB.leaves.filter(function(l){
+    if (l.status === 'Submitted') {
+      return u.role==='admin' || l.managerId===u.id;
+    }
+    if (l.status === 'Approved by Manager') {
+      return u.role==='admin';
+    }
+    if (l.status === 'Approved by Admin') {
+      return l.managerId===u.id;
+    }
+    return false;
+  });
   var el=document.getElementById('adm-leave-approvals');
   if(!lvs.length){el.innerHTML='<div class="empty">No leave requests pending your approval</div>';return;}
   el.innerHTML=lvs.map(function(lv){
@@ -3102,6 +3167,7 @@ function viewTP(id){
   var tp=DB.tourPlans.find(function(t){return t.id===id;});
   if(!tp)return;
   currentTPId=id;
+  var u=SESSION.user;
   
   var plannedWorkingDays=tp.days.filter(function(d){return !!(d.areaTerritory||d.toLocation||'').trim();}).length;
   var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+tp.empName+' - '+tp.month+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Status: '+tp.status+' | Planned working days: '+plannedWorkingDays+'</div></div>';
@@ -3111,27 +3177,45 @@ function viewTP(id){
     if(!area)return;
     var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
     var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===tp.empId && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
-    var docs = docIds.map(function(docId){
-      var doc=DB.doctors.find(function(dc){return dc.id===docId;});
-      return doc ? doc.name : docId;
-    }).join(', ');
-    var chems = chemIds.map(function(chemId){
-      var chem=DB.chemists.find(function(ch){return ch.id===chemId;});
-      return chem ? chem.name : chemId;
-    }).join(', ');
-    html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+area+'</td><td><span class="badge blue">'+docIds.length+'</span> '+(docs||'--')+'</td><td><span class="badge green">'+chemIds.length+'</span> '+(chems||'--')+'</td></tr>';
+    html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+area+'</td><td><span class="badge blue">'+docIds.length+' Doctors</span></td><td><span class="badge green">'+chemIds.length+' Chemists</span></td></tr>';
   });
   html+='</tbody></table></div>';
   
   document.getElementById('tp-detail-content').innerHTML=html;
-  document.getElementById('tp-approval-btns').style.display=tp.status==='Submitted'?'flex':'none';
+  
+  var canApprove = false;
+  if (tp.status === 'Submitted') {
+    canApprove = (u.role === 'admin' || tp.managerId === u.id);
+  } else if (tp.status === 'Approved by Manager') {
+    canApprove = (u.role === 'admin');
+  } else if (tp.status === 'Approved by Admin') {
+    canApprove = (tp.managerId === u.id);
+  }
+  document.getElementById('tp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-tp-detail').classList.add('on');
 }
 function approveTP(){
   var tp=DB.tourPlans.find(function(t){return t.id===currentTPId;});
   if(tp){
-    tp.status='Approved';
-    tp.approvedBy=SESSION.user.id;
+    var u = SESSION.user;
+    if (tp.status === 'Submitted') {
+      if (u.role === 'admin' && tp.managerId === u.id) {
+        tp.status = 'Approved';
+      } else if (u.role === 'admin') {
+        tp.status = 'Approved by Admin';
+      } else if (tp.managerId === u.id) {
+        tp.status = 'Approved by Manager';
+      }
+    } else if (tp.status === 'Approved by Manager') {
+      if (u.role === 'admin') {
+        tp.status = 'Approved';
+      }
+    } else if (tp.status === 'Approved by Admin') {
+      if (tp.managerId === u.id) {
+        tp.status = 'Approved';
+      }
+    }
+    tp.approvedBy=u.id;
     tp.approvedDate=new Date().toISOString().slice(0,10);
   }
   saveDB();
@@ -3164,8 +3248,9 @@ function viewExp(id){
   var ex=DB.expenses.find(function(e){return e.id===id;});
   if(!ex)return;
   currentExpId=id;
+  var u=SESSION.user;
   
-  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+ex.empName+' â€” '+ex.month+' Expense</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Supporting Bill: <strong>'+ex.receiptFile+'</strong></div></div>';
+  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+ex.empName+' — '+ex.month+' Expense</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Supporting Bill: <strong>'+ex.receiptFile+'</strong></div></div>';
   html+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Route/Work</th><th>Travel Mode</th><th>Travel</th><th>DA</th><th>Lodge</th><th>Local/Other</th><th>Day Total</th></tr></thead><tbody>';
   ex.lines.forEach(function(l){
     html+='<tr><td>'+l.date+'</td><td>'+l.route+'</td><td>'+l.mode+'</td><td>&#x20B9;'+l.fare+'</td><td>&#x20B9;'+l.da+'</td><td>&#x20B9;'+l.lodge+'</td><td>&#x20B9;'+l.other+'</td><td style="font-weight:700">&#x20B9;'+l.total+'</td></tr>';
@@ -3174,13 +3259,41 @@ function viewExp(id){
   html+='</tbody></table></div>';
   
   document.getElementById('exp-detail-content').innerHTML=html;
-  document.getElementById('exp-approval-btns').style.display=ex.status==='Submitted'?'flex':'none';
+  
+  var canApprove = false;
+  if (ex.status === 'Submitted') {
+    canApprove = (u.role === 'admin' || ex.managerId === u.id);
+  } else if (ex.status === 'Approved by Manager') {
+    canApprove = (u.role === 'admin');
+  } else if (ex.status === 'Approved by Admin') {
+    canApprove = (ex.managerId === u.id);
+  }
+  document.getElementById('exp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-exp-detail').classList.add('on');
 }
 
 function approveExp(){
   var ex=DB.expenses.find(function(e){return e.id===currentExpId;});
-  if(ex)ex.status='Approved';
+  if(ex){
+    var u = SESSION.user;
+    if (ex.status === 'Submitted') {
+      if (u.role === 'admin' && ex.managerId === u.id) {
+        ex.status = 'Approved';
+      } else if (u.role === 'admin') {
+        ex.status = 'Approved by Admin';
+      } else if (ex.managerId === u.id) {
+        ex.status = 'Approved by Manager';
+      }
+    } else if (ex.status === 'Approved by Manager') {
+      if (u.role === 'admin') {
+        ex.status = 'Approved';
+      }
+    } else if (ex.status === 'Approved by Admin') {
+      if (ex.managerId === u.id) {
+        ex.status = 'Approved';
+      }
+    }
+  }
   saveDB();
   closeModal('modal-exp-detail');
   showToast('Expense claim approved!');
@@ -3205,25 +3318,56 @@ function viewLeave(id){
   var lv=DB.leaves.find(function(l){return l.id===id;});
   if(!lv)return;
   currentLeaveId=id;
+  var u=SESSION.user;
   
-  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+lv.empName+' â€” '+lv.type+'</div>'+
+  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+lv.empName+' — '+lv.type+'</div>'+
            '<div style="margin-top:6px;font-size:13px"><strong>Start:</strong> '+lv.start+' &nbsp;|&nbsp; <strong>End:</strong> '+lv.end+' &nbsp;|&nbsp; <strong>Days:</strong> '+lv.days+'</div>'+
            '<div style="margin-top:8px;font-size:12px;background:#F1F5F9;padding:10px;border-radius:6px">Reason: '+lv.reason+'</div></div>';
            
   document.getElementById('leave-detail-content').innerHTML=html;
-  document.getElementById('leave-approval-btns').style.display=lv.status==='Submitted'?'flex':'none';
+  
+  var canApprove = false;
+  if (lv.status === 'Submitted') {
+    canApprove = (u.role === 'admin' || lv.managerId === u.id);
+  } else if (lv.status === 'Approved by Manager') {
+    canApprove = (u.role === 'admin');
+  } else if (lv.status === 'Approved by Admin') {
+    canApprove = (lv.managerId === u.id);
+  }
+  document.getElementById('leave-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-leave-detail').classList.add('on');
 }
 
 function approveLeave(){
   var lv=DB.leaves.find(function(l){return l.id===currentLeaveId;});
   if(lv){
-    lv.status='Approved';
-    // Deduct leave balance of the employee
-    var emp=DB.employees.find(function(e){return e.id===lv.empId;});
-    if(emp){
-      var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':'LWP';
-      emp.leaves[key+'_used'] += lv.days;
+    var u = SESSION.user;
+    var prevStatus = lv.status;
+    if (lv.status === 'Submitted') {
+      if (u.role === 'admin' && lv.managerId === u.id) {
+        lv.status = 'Approved';
+      } else if (u.role === 'admin') {
+        lv.status = 'Approved by Admin';
+      } else if (lv.managerId === u.id) {
+        lv.status = 'Approved by Manager';
+      }
+    } else if (lv.status === 'Approved by Manager') {
+      if (u.role === 'admin') {
+        lv.status = 'Approved';
+      }
+    } else if (lv.status === 'Approved by Admin') {
+      if (lv.managerId === u.id) {
+        lv.status = 'Approved';
+      }
+    }
+    
+    // Deduct leave balance of the employee ONLY when final status becomes Approved
+    if (lv.status === 'Approved' && prevStatus !== 'Approved') {
+      var emp=DB.employees.find(function(e){return e.id===lv.empId;});
+      if(emp){
+        var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':'LWP';
+        emp.leaves[key+'_used'] += lv.days;
+      }
     }
   }
   saveDB();
@@ -3388,8 +3532,34 @@ function uploadSFC(inp){
 }
 
 function downloadSFCTemplate(){
-  var csv='FromLocation,ToLocation,DistanceKM,TravelMode,FareAmount,DAAllowance,LodgingAllowance,OtherAllowance\nMumbai,Pune,150,Bus,350,600,1200,100\nMumbai,Nashik,180,Train,250,450,800,50\n';
-  downloadData(csv,'sfc_distance_template.csv');
+  var csv='FromLocation,ToLocation,DistanceKM,TravelMode,FareAmount,DAAllowance,LodgingAllowance,OtherAllowance\n';
+  var checked = document.querySelectorAll('.sfc-row-check:checked');
+  var list = [];
+  if (checked.length > 0) {
+    var indices = Array.from(checked).map(c => parseInt(c.value));
+    list = DB.sfc.filter((s, i) => indices.includes(i));
+  } else {
+    list = DB.sfc || [];
+  }
+
+  if (list.length > 0) {
+    list.forEach(function(s){
+      csv += [
+        s.from || '',
+        s.to || '',
+        s.distance || '',
+        s.mode || '',
+        s.fare || '',
+        s.da || '',
+        s.lodge || '',
+        s.other || '0'
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'sfc_distance_master.csv');
+  } else {
+    csv += 'Mumbai,Pune,150,Bus,350,600,1200,100\nMumbai,Nashik,180,Train,250,450,800,50\n';
+    downloadData(csv,'sfc_distance_template.csv');
+  }
 }
 
 function loadCityRates(){
@@ -3514,7 +3684,15 @@ function uploadEmployees(inp){
 
 function downloadEmpTemplate(){
   var csv='EmployeeID,Name,Password,Territory,Role,ManagerID,DOJ,State,Status\n';
-  var list = DB.employees.filter(function(e){ return e && e.id !== 'ADMIN'; });
+  var checked = document.querySelectorAll('.emp-row-check:checked');
+  var list = [];
+  if (checked.length > 0) {
+    var ids = Array.from(checked).map(c => c.value);
+    list = DB.employees.filter(e => e && e.id !== 'ADMIN' && ids.includes(e.id));
+  } else {
+    list = DB.employees.filter(function(e){ return e && e.id !== 'ADMIN'; });
+  }
+
   if(list.length > 0) {
     list.forEach(function(e){
       csv += [
@@ -3772,8 +3950,17 @@ function uploadDoctors(inp){
 
 function downloadDocTemplate(){
   var csv='DoctorCode,Name,Speciality,Qualification,Address,City,Area,Mobile,AssignToEmpID,Status\n';
-  if(DB.doctors && DB.doctors.length > 0) {
-    DB.doctors.forEach(function(d){
+  var checked = document.querySelectorAll('.doc-row-check:checked');
+  var docsToExport = [];
+  if (checked.length > 0) {
+    var ids = Array.from(checked).map(c => c.value);
+    docsToExport = DB.doctors.filter(d => ids.includes(d.id));
+  } else {
+    docsToExport = DB.doctors || [];
+  }
+  
+  if(docsToExport.length > 0) {
+    docsToExport.forEach(function(d){
       csv += [
         d.code || '',
         d.name || '',
@@ -3983,8 +4170,17 @@ function uploadChemists(inp){
 
 function downloadChemTemplate(){
   var csv='ChemistID,Name,Area,AssignToEmpID\n';
-  if(DB.chemists && DB.chemists.length > 0) {
-    DB.chemists.forEach(function(c){
+  var checked = document.querySelectorAll('.chem-row-check:checked');
+  var chemsToExport = [];
+  if (checked.length > 0) {
+    var ids = Array.from(checked).map(c => c.value);
+    chemsToExport = DB.chemists.filter(c => ids.includes(c.id));
+  } else {
+    chemsToExport = DB.chemists || [];
+  }
+
+  if(chemsToExport.length > 0) {
+    chemsToExport.forEach(function(c){
       csv += [
         c.id || '',
         c.name || '',
@@ -4187,12 +4383,18 @@ function renderHolidayTable(){
   var countEl = document.getElementById('holiday-count');
   if (countEl) countEl.textContent = DB.holidays.length;
   tbody.innerHTML=DB.holidays.map(function(h, index){
-    return '<tr><td>'+h.date+'</td><td class="tbl-name">'+h.name+'</td><td><button class="btn sm danger" onclick="removeHoliday('+index+')">Delete</button></td></tr>';
+    return '<tr><td>'+h.date+'</td><td class="tbl-name">'+h.name+'</td><td>'+(h.state || 'All')+'</td><td><button class="btn sm danger" onclick="removeHoliday('+index+')">Delete</button></td></tr>';
   }).join('');
 }
 
 function removeHoliday(index){
+  var h = DB.holidays[index];
   DB.holidays.splice(index, 1);
+  if (useSupabase && h) {
+    supabase.from('holidays').delete().eq('date', h.date).eq('state', h.state || 'All').then(function(res) {
+      if (res.error) console.error("Error deleting holiday from Supabase:", res.error);
+    });
+  }
   saveDB();
   renderHolidayTable();
 }
@@ -4200,19 +4402,24 @@ function removeHoliday(index){
 function clearAllHolidays(){
   if(confirm("Are you sure you want to clear all holidays?")){
     DB.holidays = [];
+    if (useSupabase) {
+      supabase.from('holidays').delete().neq('name', 'dummy_value_to_delete_all').then(function(res) {
+        if (res.error) console.error("Error clearing holidays in Supabase:", res.error);
+      });
+    }
     saveDB();
     renderHolidayTable();
   }
 }
 
 function downloadHolidayList(){
-  var csv='Date,HolidayName\n';
+  var csv='Date,HolidayName,State\n';
   if(DB.holidays && DB.holidays.length > 0) {
     DB.holidays.forEach(function(h){
-      csv += [h.date || '', h.name || ''].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+      csv += [h.date || '', h.name || '', h.state || 'All'].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
   } else {
-    csv += '2026-01-01,New Year Day\n2026-01-26,Republic Day\n';
+    csv += '2026-01-01,New Year Day,All\n2026-01-26,Republic Day,All\n2026-08-15,Independence Day,All\n2026-11-01,Kannada Rajyotsava,Karnataka\n';
   }
   downloadData(csv,'holiday_list.csv');
 }
@@ -4231,15 +4438,17 @@ function uploadHolidays(inp){
       var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!p[0]||!p[1])return;
       var dateVal = formatDateForPostgres(p[0]) || p[0];
-      var existing = DB.holidays.find(function(h){return h.date === dateVal;});
+      var nameVal = p[1];
+      var stateVal = p[2] || 'All';
+      var existing = DB.holidays.find(function(h){return h.date === dateVal && h.state.toLowerCase() === stateVal.toLowerCase();});
       if(existing){
-        existing.name = p[1];
+        existing.name = nameVal;
       } else {
-        DB.holidays.push({date: dateVal, name: p[1]});
+        DB.holidays.push({date: dateVal, name: nameVal, state: stateVal});
       }
       added++;
     });
-    DB.holidays.sort(function(a,b){return a.date.localeCompare(b.date);});
+    DB.holidays.sort(function(a,b){return a.date.localeCompare(b.date) || a.state.localeCompare(b.state);});
     saveDB();
     showToast(added+' holiday list records processed successfully!');
     renderHolidayTable();

@@ -3968,7 +3968,7 @@ var currentDocPage = 1; var docsPerPage = 50;
 function renderAdminDocList(page = 1) {
   currentDocPage = page;
   var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
-  var docs=DB.doctors.filter(function(d){return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);}););
+  var docs=DB.doctors.filter(function(d){return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);});
   var countEl = document.getElementById('doc-count');
   if (countEl) countEl.textContent = DB.doctors.length;
   var tbody=document.getElementById('doc-table-body');
@@ -4184,7 +4184,7 @@ var currentChemPage = 1; var chemsPerPage = 50;
 function renderAdminChemistList(page = 1) {
   currentChemPage = page;
   var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
-  var chems=DB.chemists.filter(function(c){return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);}););
+  var chems=DB.chemists.filter(function(c){return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);});
   var countEl = document.getElementById('chem-count');
   if (countEl) countEl.textContent = DB.chemists.length;
   var tbody=document.getElementById('chem-table-body');

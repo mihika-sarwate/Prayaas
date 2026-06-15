@@ -631,10 +631,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <table class="tbl">
             <thead><tr><th><input type="checkbox" id="check-all-docs" onclick="toggleSelectAllDocs(this)"></th><th>Code</th><th>Name</th><th>Speciality</th><th>Area</th><th>Mobile</th><th>Assigned MR</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="doc-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-      </div>
+          </table><div id="doc-pagination" style="margin-top:10px;text-align:right;"></div></div></div></div>
 
       <!-- Chemist Master -->
       <div id="adm-chem-section" class="master-sub-sec" style="display:none">
@@ -3986,6 +3983,14 @@ function renderAdminDocList(page = 1) {
   var masterCheck = document.getElementById('check-all-docs');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedDocsCount();
+  var pagEl = document.getElementById('doc-pagination');
+  if (pagEl) {
+    var phtml = '';
+    if (currentDocPage > 1) phtml += '<button class="btn sm" onclick="renderAdminDocList('+(currentDocPage-1)+')">Prev</button> ';
+    phtml += '<span style="font-size:12px;margin:0 10px;">Page ' + currentDocPage + ' of ' + (totalPages || 1) + '</span>';
+    if (currentDocPage < totalPages) phtml += ' <button class="btn sm" onclick="renderAdminDocList('+(currentDocPage+1)+')">Next</button>';
+    pagEl.innerHTML = phtml;
+  }
 }
 
 function removeDoc(id){
@@ -4207,6 +4212,14 @@ function renderAdminChemistList(page = 1) {
   var masterCheck = document.getElementById('check-all-chems');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedChemsCount();
+  var pagEl = document.getElementById('chem-pagination');
+  if (pagEl) {
+    var phtml = '';
+    if (currentChemPage > 1) phtml += '<button class="btn sm" onclick="renderAdminChemistList('+(currentChemPage-1)+')">Prev</button> ';
+    phtml += '<span style="font-size:12px;margin:0 10px;">Page ' + currentChemPage + ' of ' + (totalPages || 1) + '</span>';
+    if (currentChemPage < totalPages) phtml += ' <button class="btn sm" onclick="renderAdminChemistList('+(currentChemPage+1)+')">Next</button>';
+    pagEl.innerHTML = phtml;
+  }
 }
 
 function removeChemist(id){

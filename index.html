@@ -1663,7 +1663,7 @@ async function syncSupabaseDatabase() {
       emp_id: tp.empId,
       emp_name: tp.empName,
       month: tp.month,
-      manager_id: tp.managerId || null,
+      manager_id: resolveManagerId(tp.managerId),
       manager_name: tp.managerName || null,
       days: tp.days,
       status: tp.status,
@@ -1680,7 +1680,7 @@ async function syncSupabaseDatabase() {
       emp_id: ex.empId,
       emp_name: ex.empName,
       month: ex.month,
-      manager_id: ex.managerId || null,
+      manager_id: resolveManagerId(ex.managerId),
       lines: ex.lines,
       total: ex.total,
       receipt_file: ex.receiptFile || null,
@@ -2010,6 +2010,14 @@ function renderPlannedTargetsForReport(plannedDay){
     (docBtns ? '<div style="margin-bottom:6px"><strong>Doctors:</strong><br>'+docBtns+'</div>' : '')+
     (chemBtns ? '<div><strong>Chemists:</strong><br>'+chemBtns+'</div>' : '')+
     '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor or chemist as an unplanned call.</div></div>';
+}
+
+
+function resolveManagerId(rawMgr) {
+  if (!rawMgr) return null;
+  var str = rawMgr.trim().toLowerCase();
+  var e = DB.employees.find(function(x) { return (x.id||'').trim().toLowerCase() === str || (x.name||'').trim().toLowerCase() === str; });
+  return e ? e.id : null;
 }
 
 function updateReportClassificationFromTarget(){
@@ -3035,14 +3043,14 @@ function goAdminTab(name){
 function renderAdminStats(){
   var u=SESSION.user;
   // MR Subordinates mapping
-  var emps=DB.employees.filter(function(e){return (e.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase() || u.role==='admin';});
+  var emps=DB.employees.filter(function(e){return resolveManagerId(e.managerId)===u.id || u.role==='admin';});
   document.getElementById('adm-emp-count').textContent=DB.employees.length - 1; // excluding admin
   document.getElementById('adm-doc-count').textContent=DB.doctors.length;
   document.getElementById('adm-rep-count').textContent=DB.reports.length;
   
-  var pendingTP=DB.tourPlans.filter(function(t){return t.status==='Submitted' && (u.role==='admin' || (t.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase());}).length;
-  var pendingExp=DB.expenses.filter(function(e){return e.status==='Submitted' && (u.role==='admin' || (e.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase());}).length;
-  var pendingLeave=DB.leaves.filter(function(l){return l.status==='Submitted' && (u.role==='admin' || (l.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase());}).length;
+  var pendingTP=DB.tourPlans.filter(function(t){return t.status==='Submitted' && (u.role==='admin' || resolveManagerId(t.managerId) === u.id);}).length;
+  var pendingExp=DB.expenses.filter(function(e){return e.status==='Submitted' && (u.role==='admin' || resolveManagerId(e.managerId) === u.id);}).length;
+  var pendingLeave=DB.leaves.filter(function(l){return l.status==='Submitted' && (u.role==='admin' || resolveManagerId(l.managerId) === u.id);}).length;
   
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
 }
@@ -3073,7 +3081,7 @@ function renderAdminTPApprovals(){
   var u=SESSION.user;
   var tps=DB.tourPlans.filter(function(t){
     if (t.status === 'Submitted') {
-      return u.role==='admin' || (t.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
+      return u.role==='admin' || resolveManagerId(t.managerId) === u.id;
     }
     if (t.status === 'Approved by Manager') {
       return u.role==='admin';
@@ -3098,7 +3106,7 @@ function renderAdminExpApprovals(){
   var u=SESSION.user;
   var exps=DB.expenses.filter(function(e){
     if (e.status === 'Submitted') {
-      return u.role==='admin' || (e.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
+      return u.role==='admin' || resolveManagerId(e.managerId) === u.id;
     }
     if (e.status === 'Approved by Manager') {
       return u.role==='admin';
@@ -3122,7 +3130,7 @@ function renderAdminLeaveApprovals(){
   var u=SESSION.user;
   var lvs=DB.leaves.filter(function(l){
     if (l.status === 'Submitted') {
-      return u.role==='admin' || (l.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
+      return u.role==='admin' || resolveManagerId(l.managerId) === u.id;
     }
     if (l.status === 'Approved by Manager') {
       return u.role==='admin';
@@ -3183,7 +3191,7 @@ function approveTP(){
         tp.status = 'Approved';
       } else if (u.role === 'admin') {
         tp.status = 'Approved by Admin';
-      } else if ((tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
+      } else if (resolveManagerId(tp.managerId) === u.id) {
         tp.status = 'Approved by Manager';
       }
     } else if (tp.status === 'Approved by Manager') {
@@ -3191,7 +3199,7 @@ function approveTP(){
         tp.status = 'Approved';
       }
     } else if (tp.status === 'Approved by Admin') {
-      if ((tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
+      if (resolveManagerId(tp.managerId) === u.id) {
         tp.status = 'Approved';
       }
     }
@@ -3261,7 +3269,7 @@ function approveExp(){
         ex.status = 'Approved';
       } else if (u.role === 'admin') {
         ex.status = 'Approved by Admin';
-      } else if ((ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
+      } else if (resolveManagerId(ex.managerId) === u.id) {
         ex.status = 'Approved by Manager';
       }
     } else if (ex.status === 'Approved by Manager') {
@@ -3269,7 +3277,7 @@ function approveExp(){
         ex.status = 'Approved';
       }
     } else if (ex.status === 'Approved by Admin') {
-      if ((ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
+      if (resolveManagerId(ex.managerId) === u.id) {
         ex.status = 'Approved';
       }
     }
@@ -3328,7 +3336,7 @@ function approveLeave(){
         lv.status = 'Approved';
       } else if (u.role === 'admin') {
         lv.status = 'Approved by Admin';
-      } else if ((lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
+      } else if (resolveManagerId(lv.managerId) === u.id) {
         lv.status = 'Approved by Manager';
       }
     } else if (lv.status === 'Approved by Manager') {
@@ -3336,7 +3344,7 @@ function approveLeave(){
         lv.status = 'Approved';
       }
     } else if (lv.status === 'Approved by Admin') {
-      if ((lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
+      if (resolveManagerId(lv.managerId) === u.id) {
         lv.status = 'Approved';
       }
     }
@@ -4690,7 +4698,7 @@ function runMISReport(){
     thead.innerHTML='<tr><th>Manager Name</th><th>MR Employee</th><th>Coaching &amp; Accompanist Days</th></tr>';
     var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN';});
     managers.forEach(function(m){
-      DB.employees.filter(function(e){return e.role==='emp' && (e.managerId||"").trim().toLowerCase()===(m.id||"").trim().toLowerCase() && (!empId||e.id===empId);}).forEach(function(mr){
+      DB.employees.filter(function(e){return e.role==='emp' && resolveManagerId(e.managerId)===m.id && (!empId||e.id===empId);}).forEach(function(mr){
         var accompDays=DB.reports.filter(function(r){
           return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
         }).length;

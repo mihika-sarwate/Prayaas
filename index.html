@@ -664,7 +664,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <div id="adm-leave-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#127973; Leave Balance Management (CL/SL/PL)</div>
       <div class="card">
-        <div class="info-box">Upload Leave Balance CSV. Columns: <strong>EmployeeID, CL, SL, PL</strong></div>
+        <div class="info-box">Upload Leave Balance CSV. Ensure format matches the downloaded template exactly.</div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadLeaveBalanceData()">&#8595; Download Leave Balance</button>
           <button class="btn sm primary" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload Leave Balance CSV</button>
@@ -4371,48 +4371,87 @@ function bulkDeleteAllChemists() {
 
 // ===== LEAVE BALANCE MASTER FUNCTIONS =====
 function renderLeaveBalanceTable(){
+  var thead = document.getElementById('leave-bal-table-head');
+  if(thead) {
+    var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    thead.innerHTML = '<tr><th colspan="6" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th></tr>' +
+      '<tr><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2">Designation</th><th rowspan="2">HQ</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th></tr>' +
+      '<tr><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th></tr>';
+  }
   var tbody=document.getElementById('leave-bal-table-body');
   if(!tbody) return;
   var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
   var countEl = document.getElementById('leave-bal-count');
   if (countEl) countEl.textContent = emps.length;
-  tbody.innerHTML=emps.map(function(e){
+  tbody.innerHTML=emps.map(function(e, idx){
     var cl = e.leaves ? (e.leaves.CL || 0) : 0;
     var cl_used = e.leaves ? (e.leaves.CL_used || 0) : 0;
     var sl = e.leaves ? (e.leaves.SL || 0) : 0;
     var sl_used = e.leaves ? (e.leaves.SL_used || 0) : 0;
     var pl = e.leaves ? (e.leaves.EL || 0) : 0;
     var pl_used = e.leaves ? (e.leaves.EL_used || 0) : 0;
-    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+(cl - cl_used)+' / '+cl+'</td><td>'+(sl - sl_used)+' / '+sl+'</td><td>'+(pl - pl_used)+' / '+pl+'</td></tr>';
+    var lop = e.leaves ? (e.leaves.LWP || 0) : 0;
+    var lop_used = e.leaves ? (e.leaves.LWP_used || 0) : 0;
+    
+    var cl_bal = cl - cl_used;
+    var sl_bal = sl - sl_used;
+    var pl_bal = pl - pl_used;
+    var lop_bal = lop - lop_used;
+
+    var desig = e.role === 'admin' ? 'Admin' : (e.managerId ? 'Medical Representative' : 'Manager');
+    var hq = e.headquarter || 'HQ';
+    var joinDate = e.joiningDate || '01-Jan-2023';
+
+    return '<tr>'+
+      '<td>'+(idx+1)+'</td>'+
+      '<td>'+(e.id||'')+'</td>'+
+      '<td class="tbl-name">'+(e.name||'')+'</td>'+
+      '<td>'+desig+'</td>'+
+      '<td>'+hq+'</td>'+
+      '<td>'+joinDate+'</td>'+
+      '<td>'+cl+'</td><td>'+pl+'</td><td>'+sl+'</td><td>'+lop+'</td>'+
+      '<td>'+cl_used+'</td><td>'+pl_used+'</td><td>'+sl_used+'</td><td>'+lop_used+'</td>'+
+      '<td>'+cl_bal+'</td><td>'+pl_bal+'</td><td>'+sl_bal+'</td><td>'+lop_bal+'</td>'+
+      '</tr>';
   }).join('');
 }
 
 function downloadLeaveBalanceData(){
-  var csv='EmployeeID,Name,CL_Limit,CL_Used,SL_Limit,SL_Used,PL_Limit,PL_Used\n';
+  var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  var csv = ',,,,,,' + monthYear + ',,,,,,,,,,,\n';
+  csv += 'S.No,Employee id,FieldForce Name,Designation,HQ,Joining Date,Leave Eligibilty,,,Leave Taken,,,Leave Balance,,\n';
+  csv += ',,,,,,CL,PL,SL,LOP,CL,PL,SL,LOP,CL,PL,SL,LOP\n';
+  
   var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
   if(emps.length > 0) {
-    emps.forEach(function(e){
+    emps.forEach(function(e, idx){
       var cl = e.leaves ? (e.leaves.CL || 0) : 0;
       var cl_used = e.leaves ? (e.leaves.CL_used || 0) : 0;
       var sl = e.leaves ? (e.leaves.SL || 0) : 0;
       var sl_used = e.leaves ? (e.leaves.SL_used || 0) : 0;
       var pl = e.leaves ? (e.leaves.EL || 0) : 0;
       var pl_used = e.leaves ? (e.leaves.EL_used || 0) : 0;
+      var lop = e.leaves ? (e.leaves.LWP || 0) : 0;
+      var lop_used = e.leaves ? (e.leaves.LWP_used || 0) : 0;
+
+      var desig = e.role === 'admin' ? 'Admin' : (e.managerId ? 'Medical Representative' : 'Manager');
+      var hq = e.headquarter || 'HQ';
+      var joinDate = e.joiningDate || '01-Jan-2023';
+
       csv += [
+        idx + 1,
         e.id || '',
         e.name || '',
-        cl,
-        cl_used,
-        sl,
-        sl_used,
-        pl,
-        pl_used
+        desig,
+        hq,
+        joinDate,
+        cl, pl, sl, lop,
+        cl_used, pl_used, sl_used, lop_used,
+        (cl - cl_used), (pl - pl_used), (sl - sl_used), (lop - lop_used)
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
-  } else {
-    csv += 'EMP001,Rahul Sharma,12,2,10,1,15,0\n';
   }
-  downloadData(csv,'leave_balances.csv');
+  downloadData(csv,'leave_balance_master.csv');
 }
 
 function uploadLeaveBalances(inp){
@@ -4422,34 +4461,26 @@ function uploadLeaveBalances(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var updated=0;
-    var hasHeader = isNaN(parseInt(lines[0].charAt(0)));
-    var dataLines = hasHeader ? lines.slice(1) : lines;
-    dataLines.forEach(function(line){
+    lines.forEach(function(line){
       var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
-      if(!p[0])return;
-      var empId = p[0].toUpperCase();
+      if(p.length < 18) return; // Need at least 18 columns for the new format
+      
+      // employee ID is in p[1]
+      var empId = p[1].toUpperCase();
       var emp = DB.employees.find(function(x){return x.id === empId;});
       if(emp){
         if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
-        if(p.length >= 8) {
-          emp.leaves.CL = parseInt(p[2]) || 0;
-          emp.leaves.CL_used = parseInt(p[3]) || 0;
-          emp.leaves.SL = parseInt(p[4]) || 0;
-          emp.leaves.SL_used = parseInt(p[5]) || 0;
-          emp.leaves.EL = parseInt(p[6]) || 0;
-          emp.leaves.EL_used = parseInt(p[7]) || 0;
-        } else if(p.length >= 3) {
-          var col1 = parseInt(p[1]);
-          if(isNaN(col1)) {
-            emp.leaves.CL = parseInt(p[2]) || 0;
-            emp.leaves.SL = parseInt(p[3]) || 0;
-            emp.leaves.EL = parseInt(p[4]) || 0;
-          } else {
-            emp.leaves.CL = parseInt(p[1]) || 0;
-            emp.leaves.SL = parseInt(p[2]) || 0;
-            emp.leaves.EL = parseInt(p[3]) || 0;
-          }
-        }
+        
+        emp.leaves.CL = parseInt(p[6]) || 0;
+        emp.leaves.EL = parseInt(p[7]) || 0; // PL mapped to EL
+        emp.leaves.SL = parseInt(p[8]) || 0;
+        emp.leaves.LWP = parseInt(p[9]) || 0;
+        
+        emp.leaves.CL_used = parseInt(p[10]) || 0;
+        emp.leaves.EL_used = parseInt(p[11]) || 0;
+        emp.leaves.SL_used = parseInt(p[12]) || 0;
+        emp.leaves.LWP_used = parseInt(p[13]) || 0;
+        
         updated++;
       }
     });

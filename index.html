@@ -421,13 +421,14 @@ table.tbl tr:last-child td{border-bottom:none}
     <div class="card">
       <div class="card-title">&#128202; Leave Balance Details</div>
       <div class="row2" style="text-align:center">
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px"><div class="stat-l">Casual (CL)</div><div class="stat-v" id="lv-bal-cl">0 / 12</div></div>
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px"><div class="stat-l">Sick (SL)</div><div class="stat-v" id="lv-bal-sl">0 / 10</div></div>
+        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Casual (CL)</div><div class="stat-v" id="lv-bal-cl">0 / 12</div></div>
+        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Sick (SL)</div><div class="stat-v" id="lv-bal-sl">0 / 10</div></div>
       </div>
       <div class="row2" style="text-align:center;margin-top:10px">
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px"><div class="stat-l">Earned (EL)</div><div class="stat-v" id="lv-bal-el">0 / 15</div></div>
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px"><div class="stat-l">LWP</div><div class="stat-v" id="lv-bal-lwp">0</div></div>
+        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Earned (EL)</div><div class="stat-v" id="lv-bal-el">0 / 15</div></div>
+        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">LWP</div><div class="stat-v" id="lv-bal-lwp">0</div></div>
       </div>
+      <div class="info-box" style="margin-top:12px">Tap any leave bucket to open the full leave balance ledger.</div>
     </div>
     <div class="sec-hdr">My Leave Requests</div>
     <div id="my-leaves-list"></div>
@@ -673,8 +674,8 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="card-title">Employee Leave Balances (<span id="leave-bal-count">0</span> records)</div>
         <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Employee ID</th><th>Name</th><th>CL Balance</th><th>SL Balance</th><th>PL (EL) Balance</th></tr></thead>
+          <table class="tbl" id="leave-bal-table">
+            <thead id="leave-bal-table-head"></thead>
             <tbody id="leave-bal-table-body"></tbody>
           </table>
         </div>
@@ -873,6 +874,14 @@ table.tbl tr:last-child td{border-bottom:none}
       <button class="btn danger" onclick="rejectLeave()">&#10008; Reject Leave</button>
       <button class="btn success" onclick="approveLeave()">&#10003; Approve Leave</button>
     </div>
+  </div>
+</div>
+
+<!-- LEAVE BALANCE DETAIL MODAL -->
+<div class="modal-bg" id="modal-leave-balance-detail">
+  <div class="modal" style="max-width: 1180px;">
+    <div class="modal-title">Leave Balance Detail <button class="modal-close" onclick="closeModal('modal-leave-balance-detail')">&#215;</button></div>
+    <div id="leave-balance-detail-content"></div>
   </div>
 </div>
 
@@ -2020,6 +2029,123 @@ function resolveManagerId(rawMgr) {
   return e ? e.id : null;
 }
 
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getDesignationLabel(role) {
+  var labels = {
+    admin: 'Administrator',
+    nsm: 'National Sales Manager',
+    zm: 'Zonal Manager',
+    rm: 'Regional Manager',
+    am: 'Area Manager',
+    manager: 'Field Manager',
+    emp: 'FieldForce'
+  };
+  return labels[(role || '').toLowerCase()] || (role ? role.toUpperCase() : '-');
+}
+
+function getLeaveLedger(emp) {
+  var leaves = emp && emp.leaves ? emp.leaves : {};
+  var clLimit = parseInt(leaves.CL, 10) || 0;
+  var clUsed = parseInt(leaves.CL_used, 10) || 0;
+  var plLimit = parseInt(leaves.EL, 10) || 0;
+  var plUsed = parseInt(leaves.EL_used, 10) || 0;
+  var slLimit = parseInt(leaves.SL, 10) || 0;
+  var slUsed = parseInt(leaves.SL_used, 10) || 0;
+  var lopLimit = parseInt(leaves.LWP, 10) || 0;
+  var lopUsed = parseInt(leaves.LWP_used, 10) || 0;
+  return {
+    cl: { limit: clLimit, used: clUsed, balance: Math.max(0, clLimit - clUsed) },
+    pl: { limit: plLimit, used: plUsed, balance: Math.max(0, plLimit - plUsed) },
+    sl: { limit: slLimit, used: slUsed, balance: Math.max(0, slLimit - slUsed) },
+    lop: { limit: lopLimit, used: lopUsed, balance: Math.max(0, lopLimit - lopUsed) }
+  };
+}
+
+function buildLeaveBalanceTableHtml(records, includeRowNumbers) {
+  var header = '<tr>'+
+    (includeRowNumbers ? '<th rowspan="2">S.No</th>' : '')+
+    '<th rowspan="2">Employee ID</th>'+
+    '<th rowspan="2">FieldForce Name</th>'+
+    '<th rowspan="2">Designation</th>'+
+    '<th rowspan="2">HQ</th>'+
+    '<th rowspan="2">Joining Date</th>'+
+    '<th colspan="4">Leave Eligibility</th>'+
+    '<th colspan="4">Leave Taken</th>'+
+    '<th colspan="4">Leave Balance</th>'+
+  '</tr><tr>'+
+    '<th>CL</th><th>PL</th><th>SL</th><th>LOP</th>'+
+    '<th>CL</th><th>PL</th><th>SL</th><th>LOP</th>'+
+    '<th>CL</th><th>PL</th><th>SL</th><th>LOP</th>'+
+  '</tr>';
+  var body = records.map(function(record, index) {
+    var ledger = getLeaveLedger(record);
+    return '<tr>'+
+      (includeRowNumbers ? '<td>'+(index + 1)+'</td>' : '')+
+      '<td>'+escapeHtml(record.id)+'</td>'+
+      '<td class="tbl-name">'+escapeHtml(record.name)+'</td>'+
+      '<td>'+escapeHtml(getDesignationLabel(record.role))+'</td>'+
+      '<td>'+escapeHtml(record.area || record.areaTerritory || '-').trim()+'</td>'+
+      '<td>'+escapeHtml(record.doj || '-').trim()+'</td>'+
+      '<td>'+ledger.cl.limit+'</td><td>'+ledger.pl.limit+'</td><td>'+ledger.sl.limit+'</td><td>'+ledger.lop.limit+'</td>'+
+      '<td>'+ledger.cl.used+'</td><td>'+ledger.pl.used+'</td><td>'+ledger.sl.used+'</td><td>'+ledger.lop.used+'</td>'+
+      '<td>'+ledger.cl.balance+'</td><td>'+ledger.pl.balance+'</td><td>'+ledger.sl.balance+'</td><td>'+ledger.lop.balance+'</td>'+
+    '</tr>';
+  }).join('');
+  return '<thead>'+header+'</thead><tbody>'+body+'</tbody>';
+}
+
+function buildLeaveBalanceExportCsv(records) {
+  var csv = [
+    'S.No,Employee ID,FieldForce Name,Designation,HQ,Joining Date,CL Limit,CL Used,CL Balance,PL Limit,PL Used,PL Balance,SL Limit,SL Used,SL Balance,LOP Limit,LOP Used,LOP Balance'
+  ];
+  records.forEach(function(record, index) {
+    var ledger = getLeaveLedger(record);
+    csv.push([
+      index + 1,
+      record.id || '',
+      record.name || '',
+      getDesignationLabel(record.role),
+      record.area || record.areaTerritory || '',
+      record.doj || '',
+      ledger.cl.limit,
+      ledger.cl.used,
+      ledger.cl.balance,
+      ledger.pl.limit,
+      ledger.pl.used,
+      ledger.pl.balance,
+      ledger.sl.limit,
+      ledger.sl.used,
+      ledger.sl.balance,
+      ledger.lop.limit,
+      ledger.lop.used,
+      ledger.lop.balance
+    ].map(function(val) {
+      return '"' + String(val).replace(/"/g, '""') + '"';
+    }).join(','));
+  });
+  return csv.join('\n') + '\n';
+}
+
+function showLeaveBalanceDetailsFor(emp, title) {
+  var ledger = getLeaveLedger(emp);
+  var html = '<div style="margin-bottom:12px">'+
+    '<div style="font-size:15px;font-weight:700">'+escapeHtml(title || (emp.name + ' Leave Balance'))+'</div>'+
+    '<div style="margin-top:4px;font-size:12px;color:var(--text-muted)">'+
+      'Employee ID: <strong>'+escapeHtml(emp.id)+'</strong> | Designation: <strong>'+escapeHtml(getDesignationLabel(emp.role))+'</strong> | HQ: <strong>'+escapeHtml(emp.area || '-')+'</strong> | Joining Date: <strong>'+escapeHtml(emp.doj || '-')+'</strong>'+
+    '</div>'+
+  '</div>';
+  html += '<div class="tbl-wrap"><table class="tbl" style="min-width:1200px">'+buildLeaveBalanceTableHtml([emp], false).replace('<thead>', '<thead style="display:table-header-group">')+'</table></div>';
+  return html;
+}
+
 function updateReportClassificationFromTarget(){
   var dateStr=document.getElementById('r-date').value;
   var plannedDay=getApprovedMTPDay(dateStr);
@@ -2834,10 +2960,18 @@ function renderMyExpenses(){
 // ===== LEAVE MANAGEMENT FUNCTIONS =====
 function renderLeaveBalances(){
   var u=SESSION.user;
-  document.getElementById('lv-bal-cl').textContent=(u.leaves.CL - u.leaves.CL_used)+' / '+u.leaves.CL;
-  document.getElementById('lv-bal-sl').textContent=(u.leaves.SL - u.leaves.SL_used)+' / '+u.leaves.SL;
-  document.getElementById('lv-bal-el').textContent=(u.leaves.EL - u.leaves.EL_used)+' / '+u.leaves.EL;
-  document.getElementById('lv-bal-lwp').textContent=u.leaves.LWP_used;
+  var ledger = getLeaveLedger(u);
+  document.getElementById('lv-bal-cl').textContent=ledger.cl.balance+' / '+ledger.cl.limit;
+  document.getElementById('lv-bal-sl').textContent=ledger.sl.balance+' / '+ledger.sl.limit;
+  document.getElementById('lv-bal-el').textContent=ledger.pl.balance+' / '+ledger.pl.limit;
+  document.getElementById('lv-bal-lwp').textContent=ledger.lop.used+' / '+ledger.lop.limit;
+}
+
+function viewMyLeaveBalanceDetails(){
+  var u = SESSION.user;
+  if(!u) return;
+  document.getElementById('leave-balance-detail-content').innerHTML = showLeaveBalanceDetailsFor(u, u.name + ' Leave Balance');
+  document.getElementById('modal-leave-balance-detail').classList.add('on');
 }
 
 function submitLeave(){

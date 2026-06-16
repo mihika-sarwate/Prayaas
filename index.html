@@ -2031,16 +2031,11 @@ function resolveManagerId(rawMgr) {
 
 function isPendingForUser(status, managerId, u) {
   var mgrId = resolveManagerId(managerId);
-  if (status === 'Submitted') {
-    if (mgrId) {
-      return mgrId === u.id;
-    } else {
-      return u.role === 'admin';
-    }
-  } else if (status === 'Approved by Manager') {
-    return u.role === 'admin';
-  } else if (status === 'Approved by Admin') {
-    return mgrId === u.id;
+  if (mgrId === u.id) {
+    if (status === 'Submitted' || status === 'Approved by Admin') return true;
+  }
+  if (u.role === 'admin') {
+    if (status === 'Submitted' || status === 'Approved by Manager') return true;
   }
   return false;
 }

@@ -1991,7 +1991,7 @@ function getApprovedMTPDay(dateStr){
   if(!dateStr || !SESSION.user)return null;
   var monthStr=dateStr.slice(0, 7);
   var mtp=DB.tourPlans.find(function(tp){
-    return tp.empId===SESSION.user.id && tp.month===monthStr && (tp.status==='Approved' || tp.status==='Submitted');
+    return tp.empId===SESSION.user.id && tp.month===monthStr && (tp.status==='Approved' || tp.status==='Submitted' || tp.status==='Approved by Manager' || tp.status==='Approved by Admin');
   });
   return mtp ? mtp.days.find(function(d){return d.date===dateStr;}) : null;
 }
@@ -2027,6 +2027,40 @@ function resolveManagerId(rawMgr) {
   var str = rawMgr.trim().toLowerCase();
   var e = DB.employees.find(function(x) { return (x.id||'').trim().toLowerCase() === str || (x.name||'').trim().toLowerCase() === str; });
   return e ? e.id : null;
+}
+
+function isPendingForUser(status, managerId, u) {
+  var mgrId = resolveManagerId(managerId);
+  if (status === 'Submitted') {
+    if (mgrId) {
+      return mgrId === u.id;
+    } else {
+      return u.role === 'admin';
+    }
+  } else if (status === 'Approved by Manager') {
+    return u.role === 'admin';
+  } else if (status === 'Approved by Admin') {
+    return mgrId === u.id;
+  }
+  return false;
+}
+
+function processApproval(currentStatus, managerId, u) {
+  var mgrId = resolveManagerId(managerId);
+  if (currentStatus === 'Submitted') {
+    if (mgrId === u.id && u.role === 'admin') {
+      return 'Approved';
+    } else if (mgrId === u.id) {
+      return 'Approved by Manager';
+    } else if (u.role === 'admin') {
+      return mgrId ? 'Approved by Admin' : 'Approved';
+    }
+  } else if (currentStatus === 'Approved by Manager') {
+    if (u.role === 'admin') return 'Approved';
+  } else if (currentStatus === 'Approved by Admin') {
+    if (mgrId === u.id) return 'Approved';
+  }
+  return currentStatus;
 }
 
 function escapeHtml(value) {
@@ -3182,9 +3216,9 @@ function renderAdminStats(){
   document.getElementById('adm-doc-count').textContent=DB.doctors.length;
   document.getElementById('adm-rep-count').textContent=DB.reports.length;
   
-  var pendingTP=DB.tourPlans.filter(function(t){return t.status==='Submitted' && (u.role==='admin' || resolveManagerId(t.managerId) === u.id);}).length;
-  var pendingExp=DB.expenses.filter(function(e){return e.status==='Submitted' && (u.role==='admin' || resolveManagerId(e.managerId) === u.id);}).length;
-  var pendingLeave=DB.leaves.filter(function(l){return l.status==='Submitted' && (u.role==='admin' || resolveManagerId(l.managerId) === u.id);}).length;
+  var pendingTP=DB.tourPlans.filter(function(t){return isPendingForUser(t.status, t.managerId, u);}).length;
+  var pendingExp=DB.expenses.filter(function(e){return isPendingForUser(e.status, e.managerId, u);}).length;
+  var pendingLeave=DB.leaves.filter(function(l){return isPendingForUser(l.status, l.managerId, u);}).length;
   
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
 }
@@ -3214,16 +3248,7 @@ function renderAdminDashTeamList(){
 function renderAdminTPApprovals(){
   var u=SESSION.user;
   var tps=DB.tourPlans.filter(function(t){
-    if (t.status === 'Submitted') {
-      return u.role==='admin' || resolveManagerId(t.managerId) === u.id;
-    }
-    if (t.status === 'Approved by Manager') {
-      return u.role==='admin';
-    }
-    if (t.status === 'Approved by Admin') {
-      return (t.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
-    }
-    return false;
+    return isPendingForUser(t.status, t.managerId, u);
   });
   var el=document.getElementById('adm-tp-approvals');
   if(!tps.length){el.innerHTML='<div class="empty">No tour plans pending your approval</div>';return;}
@@ -3239,16 +3264,7 @@ function renderAdminTPApprovals(){
 function renderAdminExpApprovals(){
   var u=SESSION.user;
   var exps=DB.expenses.filter(function(e){
-    if (e.status === 'Submitted') {
-      return u.role==='admin' || resolveManagerId(e.managerId) === u.id;
-    }
-    if (e.status === 'Approved by Manager') {
-      return u.role==='admin';
-    }
-    if (e.status === 'Approved by Admin') {
-      return (e.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
-    }
-    return false;
+    return isPendingForUser(e.status, e.managerId, u);
   });
   var el=document.getElementById('adm-exp-approvals');
   if(!exps.length){el.innerHTML='<div class="empty">No expense claims pending your approval</div>';return;}
@@ -3263,16 +3279,7 @@ function renderAdminExpApprovals(){
 function renderAdminLeaveApprovals(){
   var u=SESSION.user;
   var lvs=DB.leaves.filter(function(l){
-    if (l.status === 'Submitted') {
-      return u.role==='admin' || resolveManagerId(l.managerId) === u.id;
-    }
-    if (l.status === 'Approved by Manager') {
-      return u.role==='admin';
-    }
-    if (l.status === 'Approved by Admin') {
-      return (l.managerId||"").trim().toLowerCase()===(u.id||"").trim().toLowerCase();
-    }
-    return false;
+    return isPendingForUser(l.status, l.managerId, u);
   });
   var el=document.getElementById('adm-leave-approvals');
   if(!lvs.length){el.innerHTML='<div class="empty">No leave requests pending your approval</div>';return;}
@@ -3305,14 +3312,7 @@ function viewTP(id){
   
   document.getElementById('tp-detail-content').innerHTML=html;
   
-  var canApprove = false;
-  if (tp.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || (tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
-  } else if (tp.status === 'Approved by Manager') {
-    canApprove = (u.role === 'admin');
-  } else if (tp.status === 'Approved by Admin') {
-    canApprove = ((tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
-  }
+  var canApprove = isPendingForUser(tp.status, tp.managerId, u);
   document.getElementById('tp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-tp-detail').classList.add('on');
 }
@@ -3320,23 +3320,7 @@ function approveTP(){
   var tp=DB.tourPlans.find(function(t){return t.id===currentTPId;});
   if(tp){
     var u = SESSION.user;
-    if (tp.status === 'Submitted') {
-      if (u.role === 'admin' && (tp.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
-        tp.status = 'Approved';
-      } else if (u.role === 'admin') {
-        tp.status = 'Approved by Admin';
-      } else if (resolveManagerId(tp.managerId) === u.id) {
-        tp.status = 'Approved by Manager';
-      }
-    } else if (tp.status === 'Approved by Manager') {
-      if (u.role === 'admin') {
-        tp.status = 'Approved';
-      }
-    } else if (tp.status === 'Approved by Admin') {
-      if (resolveManagerId(tp.managerId) === u.id) {
-        tp.status = 'Approved';
-      }
-    }
+    tp.status = processApproval(tp.status, tp.managerId, u);
     tp.approvedBy=u.id;
     tp.approvedDate=new Date().toISOString().slice(0,10);
   }
@@ -3382,14 +3366,7 @@ function viewExp(id){
   
   document.getElementById('exp-detail-content').innerHTML=html;
   
-  var canApprove = false;
-  if (ex.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || (ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
-  } else if (ex.status === 'Approved by Manager') {
-    canApprove = (u.role === 'admin');
-  } else if (ex.status === 'Approved by Admin') {
-    canApprove = ((ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
-  }
+  var canApprove = isPendingForUser(ex.status, ex.managerId, u);
   document.getElementById('exp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-exp-detail').classList.add('on');
 }
@@ -3398,23 +3375,7 @@ function approveExp(){
   var ex=DB.expenses.find(function(e){return e.id===currentExpId;});
   if(ex){
     var u = SESSION.user;
-    if (ex.status === 'Submitted') {
-      if (u.role === 'admin' && (ex.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
-        ex.status = 'Approved';
-      } else if (u.role === 'admin') {
-        ex.status = 'Approved by Admin';
-      } else if (resolveManagerId(ex.managerId) === u.id) {
-        ex.status = 'Approved by Manager';
-      }
-    } else if (ex.status === 'Approved by Manager') {
-      if (u.role === 'admin') {
-        ex.status = 'Approved';
-      }
-    } else if (ex.status === 'Approved by Admin') {
-      if (resolveManagerId(ex.managerId) === u.id) {
-        ex.status = 'Approved';
-      }
-    }
+    ex.status = processApproval(ex.status, ex.managerId, u);
   }
   saveDB();
   closeModal('modal-exp-detail');
@@ -3448,14 +3409,7 @@ function viewLeave(id){
            
   document.getElementById('leave-detail-content').innerHTML=html;
   
-  var canApprove = false;
-  if (lv.status === 'Submitted') {
-    canApprove = (u.role === 'admin' || (lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
-  } else if (lv.status === 'Approved by Manager') {
-    canApprove = (u.role === 'admin');
-  } else if (lv.status === 'Approved by Admin') {
-    canApprove = ((lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase());
-  }
+  var canApprove = isPendingForUser(lv.status, lv.managerId, u);
   document.getElementById('leave-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-leave-detail').classList.add('on');
 }
@@ -3465,23 +3419,7 @@ function approveLeave(){
   if(lv){
     var u = SESSION.user;
     var prevStatus = lv.status;
-    if (lv.status === 'Submitted') {
-      if (u.role === 'admin' && (lv.managerId||"").trim().toLowerCase() === (u.id||"").trim().toLowerCase()) {
-        lv.status = 'Approved';
-      } else if (u.role === 'admin') {
-        lv.status = 'Approved by Admin';
-      } else if (resolveManagerId(lv.managerId) === u.id) {
-        lv.status = 'Approved by Manager';
-      }
-    } else if (lv.status === 'Approved by Manager') {
-      if (u.role === 'admin') {
-        lv.status = 'Approved';
-      }
-    } else if (lv.status === 'Approved by Admin') {
-      if (resolveManagerId(lv.managerId) === u.id) {
-        lv.status = 'Approved';
-      }
-    }
+    lv.status = processApproval(lv.status, lv.managerId, u);
     
     // Deduct leave balance of the employee ONLY when final status becomes Approved
     if (lv.status === 'Approved' && prevStatus !== 'Approved') {

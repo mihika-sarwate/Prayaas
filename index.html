@@ -1210,13 +1210,14 @@ async function initSupabaseData(isSilent) {
     try {
       const holData = await fetchAllFromSupabase('holidays');
       if (holData && holData.length > 0) {
+        setHolidayDeletionFlag(false);
         holidays = holData.map(h => ({ date: h.date, name: h.name, state: h.state || 'All' }));
       } else {
-        holidays = DB.holidays || DEFAULT_DB.holidays || [];
+        holidays = getHolidayDeletionFlag() ? [] : (DB.holidays || DEFAULT_DB.holidays || []);
       }
     } catch (e) {
       console.warn("Could not load holidays from Supabase (table may not exist):", e);
-      holidays = DB.holidays || DEFAULT_DB.holidays || [];
+      holidays = getHolidayDeletionFlag() ? [] : (DB.holidays || DEFAULT_DB.holidays || []);
     }
     
     if (!emps || emps.length === 0) {
@@ -1434,7 +1435,11 @@ function loadLocalDB() {
       updated = true;
     }
   });
-  if (!DB.holidays) {
+  if (getHolidayDeletionFlag()) {
+    DB.holidays = Array.isArray(DB.holidays) ? DB.holidays : [];
+    DB.holidays = [];
+    updated = true;
+  } else if (!DB.holidays) {
     DB.holidays = JSON.parse(JSON.stringify(DEFAULT_DB.holidays || []));
     updated = true;
   }
@@ -2101,6 +2106,18 @@ function getSearchQuery(inputId) {
 
 function normalizeHolidayState(state) {
   return (state || 'All').trim() || 'All';
+}
+
+function getHolidayDeletionFlag() {
+  return localStorage.getItem('adonis_holidays_cleared') === '1';
+}
+
+function setHolidayDeletionFlag(isCleared) {
+  if (isCleared) {
+    localStorage.setItem('adonis_holidays_cleared', '1');
+  } else {
+    localStorage.removeItem('adonis_holidays_cleared');
+  }
 }
 
 function runSupabaseDelete(table, queryFactory) {
@@ -4657,6 +4674,9 @@ function removeHoliday(index){
   var h = DB.holidays[index];
   if (!h) return;
   DB.holidays.splice(index, 1);
+  if (DB.holidays.length === 0) {
+    setHolidayDeletionFlag(true);
+  }
   saveDB();
   renderHolidayTable();
   runSupabaseDelete('holidays', function(q) {
@@ -4669,6 +4689,7 @@ function clearAllHolidays(){
   if(confirm("Are you sure you want to clear all holidays?")){
     var holsToDelete = (DB.holidays || []).slice();
     DB.holidays = [];
+    setHolidayDeletionFlag(true);
     saveDB();
     renderHolidayTable();
     Promise.all(holsToDelete.map(function(h) {
@@ -4716,6 +4737,9 @@ function uploadHolidays(inp){
       }
       added++;
     });
+    if (DB.holidays.length > 0) {
+      setHolidayDeletionFlag(false);
+    }
     DB.holidays.sort(function(a,b){return a.date.localeCompare(b.date) || a.state.localeCompare(b.state);});
     saveDB();
     showToast(added+' holiday list records processed successfully!');

@@ -1230,6 +1230,9 @@ function ensureSupabaseLoaded(callback) {
 ensureSupabaseLoaded();
 
 async function fetchAllFromSupabase(table, options) {
+  if (table === 'holidays' && getHolidayTableMissingFlag()) {
+    return [];
+  }
   let allData = [];
   let page = 0;
   const pageSize = 1000;
@@ -1239,7 +1242,11 @@ async function fetchAllFromSupabase(table, options) {
       .select('*')
       .range(page * pageSize, (page + 1) * pageSize - 1);
     if (error) {
-      if (!(options && options.allowMissing && error && (error.code === 'PGRST205' || /could not find the table/i.test(error.message || '')))) {
+      var missingTable = error && (error.code === 'PGRST205' || /could not find the table/i.test(error.message || ''));
+      if (table === 'holidays' && missingTable) {
+        setHolidayTableMissingFlag(true);
+      }
+      if (!(options && options.allowMissing && missingTable)) {
         console.error("Error fetching page " + page + " from table " + table + ":", error);
       }
       if (options && options.allowMissing) return [];
@@ -1316,6 +1323,7 @@ async function initSupabaseData(isSilent) {
     let holidays = [];
     if (holData && holData.length > 0) {
       setHolidayDeletionFlag(false);
+      setHolidayTableMissingFlag(false);
       holidays = holData.map(h => ({ date: h.date, name: h.name, state: h.state || 'All' }));
     } else {
       holidays = getHolidayDeletionFlag() ? [] : (DB.holidays || DEFAULT_DB.holidays || []);
@@ -1899,7 +1907,9 @@ async function syncSupabaseDatabase() {
     });
 
     try {
-      if (DB.holidays && DB.holidays.length > 0) {
+      if (getHolidayTableMissingFlag()) {
+        // Keep using the local holiday cache when the cloud table doesn't exist.
+      } else if (DB.holidays && DB.holidays.length > 0) {
         const dbHols = DB.holidays.map(h => ({
           date: formatDateForPostgres(h.date) || h.date,
           name: h.name,
@@ -1907,12 +1917,18 @@ async function syncSupabaseDatabase() {
         }));
         await upsertInBatches('holidays', dbHols);
       }
-      await reconcileSupabaseRows('holidays', DB.holidays || [], normalizeHolidayKey, function(row) {
-        return supabase.from('holidays').delete()
-          .eq('date', formatDateForPostgres(row.date) || row.date)
-          .eq('state', normalizeHolidayState(row.state));
-      });
+      if (!getHolidayTableMissingFlag()) {
+        await reconcileSupabaseRows('holidays', DB.holidays || [], normalizeHolidayKey, function(row) {
+          return supabase.from('holidays').delete()
+            .eq('date', formatDateForPostgres(row.date) || row.date)
+            .eq('state', normalizeHolidayState(row.state));
+        });
+      }
     } catch (holErr) {
+      if (holErr && (holErr.code === 'PGRST205' || /could not find the table/i.test(holErr.message || ''))) {
+        setHolidayTableMissingFlag(true);
+        return;
+      }
       console.warn("Could not sync holidays to Supabase (table may not exist):", holErr);
     }
 
@@ -2227,6 +2243,18 @@ function setHolidayDeletionFlag(isCleared) {
     localStorage.setItem('adonis_holidays_cleared', '1');
   } else {
     localStorage.removeItem('adonis_holidays_cleared');
+  }
+}
+
+function getHolidayTableMissingFlag() {
+  return localStorage.getItem('adonis_holidays_missing') === '1';
+}
+
+function setHolidayTableMissingFlag(isMissing) {
+  if (isMissing) {
+    localStorage.setItem('adonis_holidays_missing', '1');
+  } else {
+    localStorage.removeItem('adonis_holidays_missing');
   }
 }
 

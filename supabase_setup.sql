@@ -20,6 +20,7 @@ create table employees (
   name text not null,
   pwd text not null,
   area text,
+  designation text,
   role text not null, -- 'emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'
   manager_id text references employees(id),
   doj date,

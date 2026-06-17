@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sankalp - Field Force Management System (Adonis Laboratories)</title>
+<link rel="icon" type="image/jpeg" href="logo.jpg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
@@ -120,6 +121,8 @@ table.tbl tr:last-child td{border-bottom:none}
 .modal-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #f1f5f9;padding-bottom:12px;letter-spacing:-0.4px}
 .modal-close{background:#f1f5f9;border:none;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all 0.15s}
 .modal-close:hover{background:#e2e8f0;color:var(--text)}
+.link-btn{background:none;border:none;padding:0;color:var(--primary-dark);font:inherit;font-weight:700;cursor:pointer;text-align:left}
+.link-btn:hover{text-decoration:underline}
 .sec-hdr{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--border)}
 .info-box{background:#f0f9ff;border-radius:12px;padding:14px;font-size:12.5px;color:#0369a1;line-height:1.6;margin-bottom:16px;border-left:4px solid var(--primary-light)}
 .info-box.green{background:#ecfdf5;color:#065f46;border-left-color:#10b981}
@@ -570,6 +573,10 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">Territory / HQ</label><input type="text" id="adm-emp-area" placeholder="HQ city"></div>
         </div>
         <div class="row2">
+          <div><label class="lbl">Designation</label><input type="text" id="adm-emp-designation" placeholder="e.g. Medical Representative"></div>
+          <div><label class="lbl">Reporting Manager</label><select id="adm-emp-mgr"><option value="">-- None / Root --</option></select></div>
+        </div>
+        <div class="row2">
           <div><label class="lbl">Role / Level</label>
             <select id="adm-emp-role">
               <option value="emp">Medical Representative (MR)</option>
@@ -581,18 +588,18 @@ table.tbl tr:last-child td{border-bottom:none}
               <option value="admin">System Administrator</option>
             </select>
           </div>
-          <div><label class="lbl">Reporting Manager</label><select id="adm-emp-mgr"><option value="">-- None / Root --</option></select></div>
+          <div><label class="lbl">Status</label><select id="adm-emp-status"><option>Active</option><option>Hold</option><option>Replace</option><option>Resign</option></select></div>
         </div>
         <div class="row3">
           <div><label class="lbl">DOJ</label><input type="date" id="adm-emp-doj"></div>
           <div><label class="lbl">State</label><input type="text" id="adm-emp-state" placeholder="State"></div>
-          <div><label class="lbl">Status</label><select id="adm-emp-status"><option>Active</option><option>Hold</option><option>Resign</option></select></div>
+          <div></div>
         </div>
         <button class="btn primary sm" onclick="addEmployee()">+ Save Employee Record</button>
       </div>
       <div class="card">
         <div class="card-title">Bulk Import Employees</div>
-        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Role, ManagerID, DOJ, State, Status</strong></div>
+        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Designation, Role, ManagerID, DOJ, State, Status</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
@@ -603,10 +610,10 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="card">
         <div class="card-title">Employee Registry (<span id="emp-count">0</span> records)</div>
-        <input type="text" id="adm-emp-search" placeholder="&#128269; Search employee master by name, ID, role, HQ, or state..." oninput="renderEmpTable()" style="margin-bottom:10px;background:#F1F5F9">
+        <input type="text" id="adm-emp-search" placeholder="&#128269; Search employee master by name, ID, designation, role, HQ, or state..." oninput="renderEmpTable()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-emps" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="check-all-emps" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Designation</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="emp-table-body"></tbody>
           </table>
         </div>
@@ -889,6 +896,14 @@ table.tbl tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- EMPLOYEE STATUS ACTION MODAL -->
+<div class="modal-bg" id="modal-emp-status">
+  <div class="modal" style="max-width: 520px;">
+    <div class="modal-title">Employee Status <button class="modal-close" onclick="closeModal('modal-emp-status')">&#215;</button></div>
+    <div id="emp-status-modal-content"></div>
+  </div>
+</div>
+
 <script>
 window.addEventListener('error', function(e) {
   var div = document.createElement('div');
@@ -909,15 +924,15 @@ window.addEventListener('error', function(e) {
 // Master Data Store
 var DEFAULT_DB={
   employees:[
-    {id:'ADMIN',name:'Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'NSM001',name:'Sanjay Kapoor',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',doj:'2025-01-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'ZM001',name:'Amitav Banerjee',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',doj:'2025-02-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'RM001',name:'Vikram Malhotra',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',doj:'2025-02-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'AM001',name:'Deepa Iyer',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',doj:'2025-03-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'FLM001',name:'Rajesh Verma',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',doj:'2025-03-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'EMP001',name:'Rahul Sharma',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',doj:'2025-04-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
-    {id:'EMP002',name:'Priya Mehta',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',doj:'2025-04-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'EMP003',name:'Karan Patel',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',doj:'2025-05-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
+    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'NSM001',name:'Sanjay Kapoor',designation:'National Sales Manager',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',doj:'2025-01-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'ZM001',name:'Amitav Banerjee',designation:'Zonal Manager',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',doj:'2025-02-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'RM001',name:'Vikram Malhotra',designation:'Regional Manager',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',doj:'2025-02-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'AM001',name:'Deepa Iyer',designation:'Area Manager',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',doj:'2025-03-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'FLM001',name:'Rajesh Verma',designation:'First Line Manager',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',doj:'2025-03-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP001',name:'Rahul Sharma',designation:'Medical Representative',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',doj:'2025-04-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
+    {id:'EMP002',name:'Priya Mehta',designation:'Medical Representative',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',doj:'2025-04-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP003',name:'Karan Patel',designation:'Medical Representative',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',doj:'2025-05-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
   ],
   doctors:[
     {id:'D001',code:'DOC001',name:'Dr. Anil Kumar',spec:'Cardiologist',qual:'MBBS, MD',address:'Bandra Medical Center',city:'Mumbai',area:'Bandra',phone:'9820000001',assignTo:'EMP001',status:'Active'},
@@ -1076,6 +1091,94 @@ function formatDateForPostgres(dateStr) {
   return null;
 }
 
+function getDefaultEmployeeDesignation(role) {
+  var map = {
+    admin: 'System Administrator',
+    nsm: 'National Sales Manager',
+    zm: 'Zonal Manager',
+    rm: 'Regional Manager',
+    am: 'Area Manager',
+    manager: 'First Line Manager',
+    emp: 'Medical Representative'
+  };
+  return map[(role || '').trim().toLowerCase()] || 'Employee';
+}
+
+function normalizeEmployeeStatus(status) {
+  var allowed = ['Active', 'Hold', 'Replace', 'Resign'];
+  var value = (status || 'Active').toString().trim();
+  if (!value) return 'Active';
+  var match = allowed.find(function(item) { return item.toLowerCase() === value.toLowerCase(); });
+  return match || 'Active';
+}
+
+function normalizeEmployeeRecord(emp) {
+  if (!emp) return emp;
+  emp.role = (emp.role || 'emp').trim().toLowerCase();
+  emp.designation = (emp.designation || '').trim() || getDefaultEmployeeDesignation(emp.role);
+  emp.status = normalizeEmployeeStatus(emp.status);
+  return emp;
+}
+
+function buildEmployeeSupabaseRow(emp, includeDesignation) {
+  var row = {
+    id: emp.id,
+    name: emp.name,
+    pwd: emp.pwd,
+    area: emp.area,
+    role: emp.role,
+    manager_id: emp.managerId || null,
+    doj: formatDateForPostgres(emp.doj),
+    state: emp.state || null,
+    status: normalizeEmployeeStatus(emp.status),
+    leaves: emp.leaves
+  };
+  if (includeDesignation !== false) {
+    row.designation = (emp.designation || '').trim() || getDefaultEmployeeDesignation(emp.role);
+  }
+  return row;
+}
+
+function stripDesignationFromRows(rows) {
+  return (rows || []).map(function(row) {
+    var copy = {};
+    Object.keys(row || {}).forEach(function(key) {
+      if (key !== 'designation') copy[key] = row[key];
+    });
+    return copy;
+  });
+}
+
+async function upsertEmployeeRowsToSupabase(rows) {
+  if (!rows || !rows.length) return;
+  try {
+    await upsertInBatches('employees', rows);
+  } catch (err) {
+    if (String((err && err.message) || '').toLowerCase().indexOf('designation') !== -1) {
+      console.warn('Supabase employees table is missing designation, retrying without that column.');
+      await upsertInBatches('employees', stripDesignationFromRows(rows));
+      return;
+    }
+    throw err;
+  }
+}
+
+async function insertEmployeeRowsToSupabase(rows) {
+  if (!rows || !rows.length) return;
+  try {
+    const res = await supabase.from('employees').insert(rows);
+    if (res && res.error) throw res.error;
+  } catch (err) {
+    if (String((err && err.message) || '').toLowerCase().indexOf('designation') !== -1) {
+      console.warn('Supabase employees table is missing designation, retrying without that column.');
+      const res2 = await supabase.from('employees').insert(stripDesignationFromRows(rows));
+      if (res2 && res2.error) throw res2.error;
+      return;
+    }
+    throw err;
+  }
+}
+
 function initSupabaseClient() {
   if (window.supabase) {
     supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -1126,7 +1229,7 @@ function ensureSupabaseLoaded(callback) {
 
 ensureSupabaseLoaded();
 
-async function fetchAllFromSupabase(table) {
+async function fetchAllFromSupabase(table, options) {
   let allData = [];
   let page = 0;
   const pageSize = 1000;
@@ -1136,7 +1239,10 @@ async function fetchAllFromSupabase(table) {
       .select('*')
       .range(page * pageSize, (page + 1) * pageSize - 1);
     if (error) {
-      console.error("Error fetching page " + page + " from table " + table + ":", error);
+      if (!(options && options.allowMissing && error && (error.code === 'PGRST205' || /could not find the table/i.test(error.message || '')))) {
+        console.error("Error fetching page " + page + " from table " + table + ":", error);
+      }
+      if (options && options.allowMissing) return [];
       throw error;
     }
     if (!data || data.length === 0) break;
@@ -1206,17 +1312,12 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('inputs_inventory')
     ]);
 
+    const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
     let holidays = [];
-    try {
-      const holData = await fetchAllFromSupabase('holidays');
-      if (holData && holData.length > 0) {
-        setHolidayDeletionFlag(false);
-        holidays = holData.map(h => ({ date: h.date, name: h.name, state: h.state || 'All' }));
-      } else {
-        holidays = getHolidayDeletionFlag() ? [] : (DB.holidays || DEFAULT_DB.holidays || []);
-      }
-    } catch (e) {
-      console.warn("Could not load holidays from Supabase (table may not exist):", e);
+    if (holData && holData.length > 0) {
+      setHolidayDeletionFlag(false);
+      holidays = holData.map(h => ({ date: h.date, name: h.name, state: h.state || 'All' }));
+    } else {
       holidays = getHolidayDeletionFlag() ? [] : (DB.holidays || DEFAULT_DB.holidays || []);
     }
     
@@ -1238,6 +1339,7 @@ async function initSupabaseData(isSilent) {
         doj: e.doj || '',
         state: e.state || '',
         status: e.status || 'Active',
+        designation: e.designation || getDefaultEmployeeDesignation(e.role),
         leaves: e.leaves
       })),
       doctors: (doctors || []).map(d => ({
@@ -1428,10 +1530,16 @@ function loadLocalDB() {
     if (!e.state) { e.state = def ? def.state : 'Maharashtra'; updated = true; }
     if (!e.status) { e.status = def ? def.status : 'Active'; updated = true; }
     if (!e.pwd) { e.pwd = def ? def.pwd : 'pass123'; updated = true; }
-    
     var normalizedRole = (e.role || 'emp').trim().toLowerCase();
     if (e.role !== normalizedRole) {
       e.role = normalizedRole;
+      updated = true;
+    }
+    var defaultDesignation = def ? def.designation : getDefaultEmployeeDesignation(e.role);
+    if (!e.designation) { e.designation = defaultDesignation; updated = true; }
+    var normalizedStatus = normalizeEmployeeStatus(e.status);
+    if (e.status !== normalizedStatus) {
+      e.status = normalizedStatus;
       updated = true;
     }
   });
@@ -1449,9 +1557,9 @@ function loadLocalDB() {
 }
 async function seedSupabaseDatabase() {
   try {
-    const dbEmps = DEFAULT_DB.employees.map(e => {
+    const dbEmps = DEFAULT_DB.employees.map(function(e) {
       var managerId = e.managerId || null;
-      if (managerId && !DEFAULT_DB.employees.find(x => x.id === managerId)) {
+      if (managerId && !DEFAULT_DB.employees.find(function(x) { return x.id === managerId; })) {
         managerId = null;
       }
       return {
@@ -1463,11 +1571,12 @@ async function seedSupabaseDatabase() {
         manager_id: managerId,
         doj: formatDateForPostgres(e.doj),
         state: e.state || null,
-        status: e.status || 'Active',
+        status: normalizeEmployeeStatus(e.status),
+        designation: (e.designation || '').trim() || getDefaultEmployeeDesignation(e.role),
         leaves: e.leaves
       };
     });
-    await supabase.from('employees').insert(dbEmps);
+    await insertEmployeeRowsToSupabase(dbEmps);
   } catch (e) { console.error("Error seeding employees:", e); }
   
   try {
@@ -1590,9 +1699,9 @@ function saveDB() {
 
 async function syncSupabaseDatabase() {
   try {
-    const dbEmps = DB.employees.map(e => {
+    const dbEmps = DB.employees.map(function(e) {
       var managerId = e.managerId || null;
-      if (managerId && !DB.employees.find(x => x.id === managerId)) {
+      if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
         managerId = null;
       }
       return {
@@ -1604,11 +1713,12 @@ async function syncSupabaseDatabase() {
         manager_id: managerId,
         doj: formatDateForPostgres(e.doj),
         state: e.state || null,
-        status: e.status || 'Active',
+        status: normalizeEmployeeStatus(e.status),
+        designation: (e.designation || '').trim() || getDefaultEmployeeDesignation(e.role),
         leaves: e.leaves
       };
     });
-    await upsertInBatches('employees', dbEmps);
+    await upsertEmployeeRowsToSupabase(dbEmps);
     await reconcileSupabaseRows('employees', DB.employees, function(row) {
       return String(row.id || '').toUpperCase();
     }, function(row) {
@@ -3778,6 +3888,7 @@ function addEmployee(){
   var name=document.getElementById('adm-emp-name').value.trim();
   var pwd=document.getElementById('adm-emp-pwd').value.trim();
   var area=document.getElementById('adm-emp-area').value.trim();
+  var designation=document.getElementById('adm-emp-designation').value.trim();
   var role=document.getElementById('adm-emp-role').value;
   var mgr=document.getElementById('adm-emp-mgr').value;
   var doj=document.getElementById('adm-emp-doj').value;
@@ -3792,11 +3903,12 @@ function addEmployee(){
     name:name,
     pwd:pwd,
     area:area,
+    designation:designation || getDefaultEmployeeDesignation(role),
     role:role,
     managerId:mgr,
     doj:doj,
     state:state,
-    status:status,
+    status:normalizeEmployeeStatus(status),
     leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
   });
   saveDB();
@@ -3805,6 +3917,7 @@ function addEmployee(){
   document.getElementById('adm-emp-name').value='';
   document.getElementById('adm-emp-pwd').value='';
   document.getElementById('adm-emp-area').value='';
+  document.getElementById('adm-emp-designation').value='';
   document.getElementById('adm-emp-doj').value='';
   document.getElementById('adm-emp-state').value='';
   document.getElementById('adm-emp-status').value='Active';
@@ -3826,7 +3939,22 @@ function uploadEmployees(inp){
       var cols=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
       if(!cols[0]||!cols[1])return;
       var pwd = cols[2] || 'pass123';
-      var rawRole = (cols[4] || '').trim().toLowerCase();
+      var designation = '';
+      var rawRole = '';
+      var mgrIndex = 5;
+      var dojIndex = 6;
+      var stateIndex = 7;
+      var statusIndex = 8;
+      if (cols.length >= 10) {
+        designation = cols[4] || '';
+        rawRole = (cols[5] || '').trim().toLowerCase();
+        mgrIndex = 6;
+        dojIndex = 7;
+        stateIndex = 8;
+        statusIndex = 9;
+      } else {
+        rawRole = (cols[4] || '').trim().toLowerCase();
+      }
       var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
       var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
@@ -3834,11 +3962,12 @@ function uploadEmployees(inp){
         existing.name=cols[1];
         existing.pwd=pwd;
         existing.area=cols[3]||'';
+        existing.designation=designation || existing.designation || getDefaultEmployeeDesignation(role);
         existing.role=role;
-        existing.managerId=cols[5]||'';
-        existing.doj=cols[6]||'';
-        existing.state=cols[7]||'';
-        existing.status=cols[8]||'Active';
+        existing.managerId=cols[mgrIndex]||'';
+        existing.doj=cols[dojIndex]||'';
+        existing.state=cols[stateIndex]||'';
+        existing.status=normalizeEmployeeStatus(cols[statusIndex]||'Active');
         count++;
       } else {
         DB.employees.push({
@@ -3846,11 +3975,12 @@ function uploadEmployees(inp){
           name:cols[1],
           pwd:pwd,
           area:cols[3]||'',
+          designation:designation || getDefaultEmployeeDesignation(role),
           role:role,
-          managerId:cols[5]||'',
-          doj:cols[6]||'',
-          state:cols[7]||'',
-          status:cols[8]||'Active',
+          managerId:cols[mgrIndex]||'',
+          doj:cols[dojIndex]||'',
+          state:cols[stateIndex]||'',
+          status:normalizeEmployeeStatus(cols[statusIndex]||'Active'),
           leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
         });
         count++;
@@ -3865,7 +3995,7 @@ function uploadEmployees(inp){
 }
 
 function downloadEmpTemplate(){
-  var csv='EmployeeID,Name,Password,Territory,Role,ManagerID,DOJ,State,Status\n';
+  var csv='EmployeeID,Name,Password,Territory,Designation,Role,ManagerID,DOJ,State,Status\n';
   var checked = document.querySelectorAll('.emp-row-check:checked');
   var list = [];
   if (checked.length > 0) {
@@ -3882,16 +4012,17 @@ function downloadEmpTemplate(){
         e.name || '',
         e.pwd || '',
         e.area || '',
+        e.designation || getDefaultEmployeeDesignation(e.role),
         e.role || '',
         e.managerId || '',
         e.doj || '',
         e.state || '',
-        e.status || 'Active'
+        normalizeEmployeeStatus(e.status)
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'employees_master.csv');
   } else {
-    csv += 'EMP004,Vikas Malhotra,pass123,Pune,emp,FLM001,2026-01-01,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,manager,RM001,2026-01-01,West Bengal,Active\n';
+    csv += 'EMP004,Vikas Malhotra,pass123,Pune,Medical Representative,emp,FLM001,2026-01-01,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,First Line Manager,manager,RM001,2026-01-01,West Bengal,Active\n';
     downloadData(csv,'employees_template.csv');
   }
 }
@@ -3909,9 +4040,10 @@ function renderEmpTable(){
       e.name,
       e.pwd,
       e.role,
+      e.designation,
       e.area,
       e.state,
-      e.status,
+      normalizeEmployeeStatus(e.status),
       mgr && mgr.name ? mgr.name : '',
       mgr && mgr.id ? mgr.id : ''
     ].join(' ').toLowerCase();
@@ -3920,7 +4052,7 @@ function renderEmpTable(){
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;
   if (!emps.length) {
-    tbody.innerHTML = '<tr><td colspan="11" class="empty">No matching employee records found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty">No matching employee records found</td></tr>';
     var masterCheckEmpty = document.getElementById('check-all-emps');
     if (masterCheckEmpty) masterCheckEmpty.checked = false;
     updateSelectedEmpsCount();
@@ -3932,7 +4064,7 @@ function renderEmpTable(){
       if (!e) return '';
       var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
       var roleName = (e.role || 'emp').toUpperCase();
-      return '<tr><td><input type="checkbox" class="emp-row-check" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name">'+(e.name || '')+'</td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(e.status||'Active')+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(\''+(e.id || '')+'\')">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="emp-row-check" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + JSON.stringify(e.id || '') + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.designation || getDefaultEmployeeDesignation(e.role))+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + JSON.stringify(e.id || '') + ')">Manage</button><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(' + JSON.stringify(e.id || '') + ')">Delete</button></td></tr>';
     }).join('');
   } catch (err) {
     console.error("Error rendering employee table:", err);
@@ -3941,6 +4073,41 @@ function renderEmpTable(){
   var masterCheck = document.getElementById('check-all-emps');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedEmpsCount();
+}
+
+function openEmployeeStatusModal(empId) {
+  var emp = DB.employees.find(function(e) { return e && e.id === empId; });
+  if (!emp) return;
+  normalizeEmployeeRecord(emp);
+  var mgr = emp.managerId ? DB.employees.find(function(m) { return m && m.id === emp.managerId; }) : null;
+  var modalBody = document.getElementById('emp-status-modal-content');
+  if (!modalBody) return;
+  modalBody.innerHTML = [
+    '<div class="info-box">',
+      '<strong>' + (emp.name || emp.id) + '</strong><br>',
+      'ID: ' + (emp.id || '-') + '<br>',
+      'Designation: ' + (emp.designation || getDefaultEmployeeDesignation(emp.role)) + '<br>',
+      'Current Status: ' + normalizeEmployeeStatus(emp.status) + '<br>',
+      'Reporting Manager: ' + (mgr && mgr.name ? mgr.name : 'None'),
+    '</div>',
+    '<div class="btn-row" style="flex-wrap:wrap">',
+      '<button class="btn warn sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + JSON.stringify(emp.id) + ', ' + JSON.stringify('Hold') + ')">Hold</button>',
+      '<button class="btn danger sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + JSON.stringify(emp.id) + ', ' + JSON.stringify('Resign') + ')">Resign</button>',
+      '<button class="btn gold sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + JSON.stringify(emp.id) + ', ' + JSON.stringify('Replace') + ')">Replace</button>',
+      '<button class="btn success sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + JSON.stringify(emp.id) + ', ' + JSON.stringify('Active') + ')">Active</button>',
+    '</div>'
+  ].join('');
+  document.getElementById('modal-emp-status').classList.add('on');
+}
+
+function setEmployeeStatus(empId, status) {
+  var emp = DB.employees.find(function(e) { return e && e.id === empId; });
+  if (!emp) return;
+  emp.status = normalizeEmployeeStatus(status);
+  saveDB();
+  renderEmpTable();
+  closeModal('modal-emp-status');
+  showToast((emp.name || emp.id) + ' marked as ' + emp.status);
 }
 
 function removeEmp(id){
@@ -4521,6 +4688,7 @@ function renderLeaveBalanceTable(){
     var haystack = [
       e.id,
       e.name,
+      e.designation,
       e.role,
       e.area,
       e.state,

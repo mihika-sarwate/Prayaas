@@ -15,7 +15,7 @@ alter table gifts_inventory disable row level security;
 alter table inputs_inventory disable row level security;
 
 -- 1. Employees Table
-create table employees (
+create table if not exists employees (
   id text primary key,
   name text not null,
   pwd text not null,
@@ -28,6 +28,7 @@ create table employees (
   status text not null default 'Active',
   leaves jsonb not null default '{"CL": 12, "SL": 10, "EL": 15, "LWP": 99, "CL_used": 0, "SL_used": 0, "EL_used": 0, "LWP_used": 0}'::jsonb
 );
+alter table employees add column if not exists designation text;
 
 -- 2. Doctors Table
 create table doctors (
@@ -181,10 +182,11 @@ create table inputs_inventory (
 -- ALTER TABLE holidays DROP CONSTRAINT holidays_pkey;
 -- ALTER TABLE holidays ADD COLUMN state text not null default 'All';
 -- ALTER TABLE holidays ADD PRIMARY KEY (date, state);
-create table holidays (
+create table if not exists holidays (
   date date not null,
   name text not null,
   state text not null default 'All',
   primary key (date, state)
 );
+alter table holidays add column if not exists state text not null default 'All';
 alter table holidays disable row level security;

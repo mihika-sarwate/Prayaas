@@ -1257,6 +1257,9 @@ async function fetchAllFromSupabase(table, options) {
     if (data.length < pageSize) break;
     page++;
   }
+  if (table === 'holidays') {
+    setHolidayTableMissingFlag(false);
+  }
   return allData;
 }
 
@@ -2246,15 +2249,18 @@ function setHolidayDeletionFlag(isCleared) {
   }
 }
 
+var HOLIDAY_TABLE_MISSING_RETRY_MS = 60000;
+
 function getHolidayTableMissingFlag() {
-  return localStorage.getItem('adonis_holidays_missing') === '1';
+  var ts = parseInt(localStorage.getItem('adonis_holidays_missing_at') || '0', 10);
+  return !!ts && (Date.now() - ts) < HOLIDAY_TABLE_MISSING_RETRY_MS;
 }
 
 function setHolidayTableMissingFlag(isMissing) {
   if (isMissing) {
-    localStorage.setItem('adonis_holidays_missing', '1');
+    localStorage.setItem('adonis_holidays_missing_at', String(Date.now()));
   } else {
-    localStorage.removeItem('adonis_holidays_missing');
+    localStorage.removeItem('adonis_holidays_missing_at');
   }
 }
 

@@ -3583,10 +3583,9 @@ function removeSFC(i){
   var target = DB.sfc[i];
   DB.sfc.splice(i,1);
   saveDB();
+  renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
     return q.eq('id', target && target.id ? target.id : -1);
-  }).then(function() {
-    renderSFCTable();
   });
 }
 
@@ -3626,15 +3625,14 @@ function bulkDeleteSelectedSFC() {
 
   DB.sfc = DB.sfc.filter(function(s, idx) { return !indicesToDelete.includes(idx); });
   saveDB();
+  renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
     return idsToDelete.length > 0 ? q.in('id', idsToDelete) : q;
-  }).then(function() {
-    showToast(checked.length + ' SFC records deleted successfully!');
-    var masterCheck = document.getElementById('check-all-sfc');
-    if (masterCheck) masterCheck.checked = false;
-    updateSelectedSFCCount();
-    renderSFCTable();
   });
+  showToast(checked.length + ' SFC records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-sfc');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedSFCCount();
 }
 
 function bulkDeleteAllSFC() {
@@ -3645,15 +3643,14 @@ function bulkDeleteAllSFC() {
   if (!confirm('WARNING: Are you sure you want to delete ALL SFC records (' + DB.sfc.length + ') from the system? This cannot be undone.')) return;
   DB.sfc = [];
   saveDB();
+  renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
     return q.gt('id', 0);
-  }).then(function() {
-    showToast('All SFC records deleted successfully!');
-    var masterCheck = document.getElementById('check-all-sfc');
-    if (masterCheck) masterCheck.checked = false;
-    updateSelectedSFCCount();
-    renderSFCTable();
   });
+  showToast('All SFC records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-sfc');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedSFCCount();
 }
 
 function uploadSFC(inp){
@@ -3933,10 +3930,9 @@ function removeEmp(id){
   if(!confirm('Delete employee '+id+'?'))return;
   DB.employees=DB.employees.filter(function(e){return e.id!==id;});
   saveDB();
+  renderEmpTable();
   runSupabaseDelete('employees', function(q) {
     return q.eq('id', id);
-  }).then(function() {
-    renderEmpTable();
   });
 }
 
@@ -3968,15 +3964,14 @@ function bulkDeleteSelectedEmployees() {
   var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
   DB.employees = DB.employees.filter(function(e) { return !idsToDelete.includes(e.id); });
   saveDB();
+  renderEmpTable();
   runSupabaseDelete('employees', function(q) {
     return q.in('id', idsToDelete);
-  }).then(function() {
-    showToast(checked.length + ' employees deleted successfully!');
-    var masterCheck = document.getElementById('check-all-emps');
-    if (masterCheck) masterCheck.checked = false;
-    updateSelectedEmpsCount();
-    renderEmpTable();
   });
+  showToast(checked.length + ' employees deleted successfully!');
+  var masterCheck = document.getElementById('check-all-emps');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedEmpsCount();
 }
 
 function bulkDeleteAllEmployees() {
@@ -3988,15 +3983,14 @@ function bulkDeleteAllEmployees() {
   if (!confirm('WARNING: Are you sure you want to delete ALL employee records (' + empsToDelete.length + ') from the system? This cannot be undone.')) return;
   DB.employees = DB.employees.filter(function(e){return e.id==='ADMIN';});
   saveDB();
+  renderEmpTable();
   runSupabaseDelete('employees', function(q) {
     return q.neq('id', 'ADMIN');
-  }).then(function() {
-    showToast('All employee records (excluding ADMIN) deleted successfully!');
-    var masterCheck = document.getElementById('check-all-emps');
-    if (masterCheck) masterCheck.checked = false;
-    updateSelectedEmpsCount();
-    renderEmpTable();
   });
+  showToast('All employee records (excluding ADMIN) deleted successfully!');
+  var masterCheck = document.getElementById('check-all-emps');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedEmpsCount();
 }
 
 // Doctor Master Management
@@ -4206,10 +4200,9 @@ function removeDoc(id){
   if(!confirm('Delete doctor record?'))return;
   DB.doctors=DB.doctors.filter(function(d){return d.id!==id;});
   saveDB();
+  renderAdminDocList();
   runSupabaseDelete('doctors', function(q) {
     return q.eq('id', id);
-  }).then(function() {
-    renderAdminDocList();
   });
 }
 
@@ -4241,15 +4234,14 @@ function bulkDeleteSelectedDoctors() {
   var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
   DB.doctors = DB.doctors.filter(function(d) { return !idsToDelete.includes(d.id); });
   saveDB();
+  renderAdminDocList();
   runSupabaseDelete('doctors', function(q) {
     return q.in('id', idsToDelete);
-  }).then(function() {
-    showToast(checked.length + ' doctors deleted successfully!');
-    var masterCheck = document.getElementById('check-all-docs');
-    if (masterCheck) masterCheck.checked = false;
-    updateSelectedDocsCount();
-    renderAdminDocList();
   });
+  showToast(checked.length + ' doctors deleted successfully!');
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedDocsCount();
 }
 
 function bulkDeleteAllDoctors() {
@@ -4260,15 +4252,14 @@ function bulkDeleteAllDoctors() {
   if (!confirm('WARNING: Are you sure you want to delete ALL doctor records (' + DB.doctors.length + ') from the system? This cannot be undone.')) return;
   DB.doctors = [];
   saveDB();
+  renderAdminDocList();
   runSupabaseDelete('doctors', function(q) {
     return q.neq('id', 'dummy_value_to_delete_all');
-  }).then(function() {
-    showToast('All doctor records deleted successfully!');
-    var masterCheck = document.getElementById('check-all-docs');
-    if (masterCheck) masterCheck.checked = false;
-    updateSelectedDocsCount();
-    renderAdminDocList();
   });
+  showToast('All doctor records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedDocsCount();
 }
 
 // Chemist Master Management
@@ -4432,10 +4423,9 @@ function removeChemist(id){
   if(!confirm('Delete chemist record?'))return;
   DB.chemists=DB.chemists.filter(function(c){return c.id!==id;});
   saveDB();
+  renderAdminChemistList();
   runSupabaseDelete('chemists', function(q) {
     return q.eq('id', id);
-  }).then(function() {
-    renderAdminChemistList();
   });
 }
 
@@ -4467,15 +4457,14 @@ function bulkDeleteSelectedChemists() {
   var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
   DB.chemists = DB.chemists.filter(function(c) { return !idsToDelete.includes(c.id); });
   saveDB();
+  renderAdminChemistList();
   runSupabaseDelete('chemists', function(q) {
     return q.in('id', idsToDelete);
-  }).then(function() {
-    showToast(checked.length + ' chemists deleted successfully!');
-    var masterCheck = document.getElementById('check-all-chems');
-    if (masterCheck) masterCheck.checked = false;
-    updateSelectedChemsCount();
-    renderAdminChemistList();
   });
+  showToast(checked.length + ' chemists deleted successfully!');
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedChemsCount();
 }
 
 function bulkDeleteAllChemists() {
@@ -4486,15 +4475,14 @@ function bulkDeleteAllChemists() {
   if (!confirm('WARNING: Are you sure you want to delete ALL chemist records (' + DB.chemists.length + ') from the system? This cannot be undone.')) return;
   DB.chemists = [];
   saveDB();
+  renderAdminChemistList();
   runSupabaseDelete('chemists', function(q) {
     return q.neq('id', 'dummy_value_to_delete_all');
-  }).then(function() {
-    showToast('All chemist records deleted successfully!');
-    var masterCheck = document.getElementById('check-all-chems');
-    if (masterCheck) masterCheck.checked = false;
-    updateSelectedChemsCount();
-    renderAdminChemistList();
   });
+  showToast('All chemist records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedChemsCount();
 }
 
 // ===== LEAVE BALANCE MASTER FUNCTIONS =====
@@ -4670,11 +4658,10 @@ function removeHoliday(index){
   if (!h) return;
   DB.holidays.splice(index, 1);
   saveDB();
+  renderHolidayTable();
   runSupabaseDelete('holidays', function(q) {
     return q.eq('date', formatDateForPostgres(h.date) || h.date)
       .eq('state', normalizeHolidayState(h.state));
-  }).then(function() {
-    renderHolidayTable();
   });
 }
 
@@ -4683,14 +4670,13 @@ function clearAllHolidays(){
     var holsToDelete = (DB.holidays || []).slice();
     DB.holidays = [];
     saveDB();
+    renderHolidayTable();
     Promise.all(holsToDelete.map(function(h) {
       return runSupabaseDelete('holidays', function(q) {
         return q.eq('date', formatDateForPostgres(h.date) || h.date)
           .eq('state', normalizeHolidayState(h.state));
       });
-    })).then(function() {
-      renderHolidayTable();
-    });
+    }));
   }
 }
 

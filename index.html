@@ -543,6 +543,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <button class="btn sm danger" onclick="bulkDeleteAllSFC()">&#128465; Delete All</button>
             <button class="btn sm danger" id="btn-bulk-delete-selected-sfc" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
           </div>
+          <input type="text" id="adm-sfc-search" placeholder="&#128269; Search SFC by from, to, mode, or fare..." oninput="renderSFCTable()" style="margin-bottom:10px;background:#F1F5F9">
         </div>
         <div class="card">
           <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
@@ -602,6 +603,7 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="card">
         <div class="card-title">Employee Registry (<span id="emp-count">0</span> records)</div>
+        <input type="text" id="adm-emp-search" placeholder="&#128269; Search employee master by name, ID, role, HQ, or state..." oninput="renderEmpTable()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
             <thead><tr><th><input type="checkbox" id="check-all-emps" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
@@ -673,6 +675,7 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="card">
         <div class="card-title">Employee Leave Balances (<span id="leave-bal-count">0</span> records)</div>
+        <input type="text" id="adm-leave-search" placeholder="&#128269; Search leave balances by employee, HQ, or designation..." oninput="renderLeaveBalanceTable()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl" id="leave-bal-table">
             <thead id="leave-bal-table-head"></thead>
@@ -696,6 +699,7 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="card">
         <div class="card-title">Holiday Calendar (<span id="holiday-count">0</span> records)</div>
+        <input type="text" id="adm-holiday-search" placeholder="&#128269; Search holiday master by date, name, or state..." oninput="renderHolidayTable()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
             <thead><tr><th>Date</th><th>Holiday Name</th><th>State</th><th>Action</th></tr></thead>
@@ -2065,6 +2069,36 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function getSearchQuery(inputId) {
+  var el = document.getElementById(inputId);
+  return (el && el.value ? el.value : '').trim().toLowerCase();
+}
+
+function normalizeHolidayState(state) {
+  return (state || 'All').trim() || 'All';
+}
+
+function runSupabaseDelete(table, queryFactory) {
+  if (!useSupabase || !supabase) {
+    return Promise.resolve();
+  }
+  try {
+    var query = queryFactory(supabase.from(table).delete());
+    return query.then(function(res) {
+      if (res && res.error) {
+        console.error('Error deleting from ' + table + ' Supabase:', res.error);
+      }
+      return res;
+    }).catch(function(err) {
+      console.error('Error deleting from ' + table + ' Supabase:', err);
+      return { error: err };
+    });
+  } catch (err) {
+    console.error('Error preparing delete for ' + table + ' Supabase:', err);
+    return Promise.resolve({ error: err });
+  }
 }
 
 function getDesignationLabel(role) {
@@ -3448,11 +3482,33 @@ function rejectLeave(){
 // ===== MASTER DATA MANAGEMENT =====
 // SFC Upload/Render
 function renderSFCTable(){
-  document.getElementById('sfc-count').textContent=DB.sfc.length;
+  var q = getSearchQuery('adm-sfc-search');
+  var filtered = DB.sfc.map(function(s, index) {
+    return { s: s, index: index };
+  }).filter(function(item){
+    if (!q) return true;
+    var s = item.s || {};
+    var haystack = [
+      s.from,
+      s.to,
+      s.mode,
+      s.distance,
+      s.fare,
+      s.da,
+      s.lodge,
+      s.other
+    ].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  });
+  document.getElementById('sfc-count').textContent=filtered.length;
   var tbody=document.getElementById('sfc-table-body');
-  if(!DB.sfc.length){tbody.innerHTML='<tr><td colspan="9" class="empty">No SFC records available</td></tr>';return;}
-  tbody.innerHTML=DB.sfc.map(function(s,i){
-    return '<tr><td><input type="checkbox" class="sfc-row-check" value="'+i+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeSFC('+i+')">Delete</button></td></tr>';
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="9" class="empty">'+(q ? 'No matching SFC records found' : 'No SFC records available')+'</td></tr>';
+    return;
+  }
+  tbody.innerHTML=filtered.map(function(item){
+    var s = item.s || {};
+    return '<tr><td><input type="checkbox" class="sfc-row-check" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-sfc');
@@ -3463,14 +3519,13 @@ function renderSFCTable(){
 function removeSFC(i){
   if(!confirm('Delete SFC record?'))return;
   var target = DB.sfc[i];
-  if (useSupabase && target && target.id) {
-    supabase.from('sfc').delete().eq('id', target.id).then(function(res) {
-      if (res.error) console.error("Error deleting SFC from Supabase:", res.error);
-    });
-  }
   DB.sfc.splice(i,1);
-  saveDB();
-  renderSFCTable();
+  runSupabaseDelete('sfc', function(q) {
+    return q.eq('id', target && target.id ? target.id : -1);
+  }).then(function() {
+    saveDB();
+    renderSFCTable();
+  });
 }
 
 function toggleSelectAllSFC(masterCheck) {
@@ -3508,18 +3563,16 @@ function bulkDeleteSelectedSFC() {
   });
 
   DB.sfc = DB.sfc.filter(function(s, idx) { return !indicesToDelete.includes(idx); });
-
-  if (useSupabase && idsToDelete.length > 0) {
-    supabase.from('sfc').delete().in('id', idsToDelete).then(function(res) {
-      if (res.error) console.error("Error deleting SFC rows from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  showToast(checked.length + ' SFC records deleted successfully!');
-  var masterCheck = document.getElementById('check-all-sfc');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedSFCCount();
-  renderSFCTable();
+  runSupabaseDelete('sfc', function(q) {
+    return idsToDelete.length > 0 ? q.in('id', idsToDelete) : q;
+  }).then(function() {
+    saveDB();
+    showToast(checked.length + ' SFC records deleted successfully!');
+    var masterCheck = document.getElementById('check-all-sfc');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedSFCCount();
+    renderSFCTable();
+  });
 }
 
 function bulkDeleteAllSFC() {
@@ -3528,19 +3581,17 @@ function bulkDeleteAllSFC() {
     return;
   }
   if (!confirm('WARNING: Are you sure you want to delete ALL SFC records (' + DB.sfc.length + ') from the system? This cannot be undone.')) return;
-  
-  if (useSupabase) {
-    supabase.from('sfc').delete().gt('id', 0).then(function(res) {
-      if (res.error) console.error("Error clearing SFC from Supabase:", res.error);
-    });
-  }
   DB.sfc = [];
-  saveDB();
-  showToast('All SFC records deleted successfully!');
-  var masterCheck = document.getElementById('check-all-sfc');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedSFCCount();
-  renderSFCTable();
+  runSupabaseDelete('sfc', function(q) {
+    return q.gt('id', 0);
+  }).then(function() {
+    saveDB();
+    showToast('All SFC records deleted successfully!');
+    var masterCheck = document.getElementById('check-all-sfc');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedSFCCount();
+    renderSFCTable();
+  });
 }
 
 function uploadSFC(inp){
@@ -3772,9 +3823,33 @@ function downloadEmpTemplate(){
 function renderEmpTable(){
   var tbody=document.getElementById('emp-table-body');
   if (!tbody) return;
-  var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
+  var q = getSearchQuery('adm-emp-search');
+  var emps=DB.employees.filter(function(e){
+    if (!e || e.id==='ADMIN') return false;
+    if (!q) return true;
+    var mgr = e.managerId ? DB.employees.find(function(m){ return m && m.id===e.managerId; }) : null;
+    var haystack = [
+      e.id,
+      e.name,
+      e.pwd,
+      e.role,
+      e.area,
+      e.state,
+      e.status,
+      mgr && mgr.name ? mgr.name : '',
+      mgr && mgr.id ? mgr.id : ''
+    ].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  });
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;
+  if (!emps.length) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty">No matching employee records found</td></tr>';
+    var masterCheckEmpty = document.getElementById('check-all-emps');
+    if (masterCheckEmpty) masterCheckEmpty.checked = false;
+    updateSelectedEmpsCount();
+    return;
+  }
   
   try {
     tbody.innerHTML=emps.map(function(e){
@@ -3795,13 +3870,12 @@ function renderEmpTable(){
 function removeEmp(id){
   if(!confirm('Delete employee '+id+'?'))return;
   DB.employees=DB.employees.filter(function(e){return e.id!==id;});
-  if (useSupabase) {
-    supabase.from('employees').delete().eq('id', id).then(function(res) {
-      if (res.error) console.error("Error deleting employee from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  renderEmpTable();
+  runSupabaseDelete('employees', function(q) {
+    return q.eq('id', id);
+  }).then(function() {
+    saveDB();
+    renderEmpTable();
+  });
 }
 
 function toggleSelectAllEmps(masterCheck) {
@@ -3831,17 +3905,16 @@ function bulkDeleteSelectedEmployees() {
   if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected employee records?')) return;
   var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
   DB.employees = DB.employees.filter(function(e) { return !idsToDelete.includes(e.id); });
-  if (useSupabase) {
-    supabase.from('employees').delete().in('id', idsToDelete).then(function(res) {
-      if (res.error) console.error("Error deleting employees from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  showToast(checked.length + ' employees deleted successfully!');
-  var masterCheck = document.getElementById('check-all-emps');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedEmpsCount();
-  renderEmpTable();
+  runSupabaseDelete('employees', function(q) {
+    return q.in('id', idsToDelete);
+  }).then(function() {
+    saveDB();
+    showToast(checked.length + ' employees deleted successfully!');
+    var masterCheck = document.getElementById('check-all-emps');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedEmpsCount();
+    renderEmpTable();
+  });
 }
 
 function bulkDeleteAllEmployees() {
@@ -3852,17 +3925,16 @@ function bulkDeleteAllEmployees() {
   }
   if (!confirm('WARNING: Are you sure you want to delete ALL employee records (' + empsToDelete.length + ') from the system? This cannot be undone.')) return;
   DB.employees = DB.employees.filter(function(e){return e.id==='ADMIN';});
-  if (useSupabase) {
-    supabase.from('employees').delete().neq('id', 'ADMIN').then(function(res) {
-      if (res.error) console.error("Error clearing employees from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  showToast('All employee records (excluding ADMIN) deleted successfully!');
-  var masterCheck = document.getElementById('check-all-emps');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedEmpsCount();
-  renderEmpTable();
+  runSupabaseDelete('employees', function(q) {
+    return q.neq('id', 'ADMIN');
+  }).then(function() {
+    saveDB();
+    showToast('All employee records (excluding ADMIN) deleted successfully!');
+    var masterCheck = document.getElementById('check-all-emps');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedEmpsCount();
+    renderEmpTable();
+  });
 }
 
 // Doctor Master Management
@@ -4071,13 +4143,12 @@ function renderAdminDocList(page = 1) {
 function removeDoc(id){
   if(!confirm('Delete doctor record?'))return;
   DB.doctors=DB.doctors.filter(function(d){return d.id!==id;});
-  if (useSupabase) {
-    supabase.from('doctors').delete().eq('id', id).then(function(res) {
-      if (res.error) console.error("Error deleting doctor from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  renderAdminDocList();
+  runSupabaseDelete('doctors', function(q) {
+    return q.eq('id', id);
+  }).then(function() {
+    saveDB();
+    renderAdminDocList();
+  });
 }
 
 function toggleSelectAllDocs(masterCheck) {
@@ -4107,17 +4178,16 @@ function bulkDeleteSelectedDoctors() {
   if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected doctor records?')) return;
   var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
   DB.doctors = DB.doctors.filter(function(d) { return !idsToDelete.includes(d.id); });
-  if (useSupabase) {
-    supabase.from('doctors').delete().in('id', idsToDelete).then(function(res) {
-      if (res.error) console.error("Error deleting doctors from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  showToast(checked.length + ' doctors deleted successfully!');
-  var masterCheck = document.getElementById('check-all-docs');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedDocsCount();
-  renderAdminDocList();
+  runSupabaseDelete('doctors', function(q) {
+    return q.in('id', idsToDelete);
+  }).then(function() {
+    saveDB();
+    showToast(checked.length + ' doctors deleted successfully!');
+    var masterCheck = document.getElementById('check-all-docs');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedDocsCount();
+    renderAdminDocList();
+  });
 }
 
 function bulkDeleteAllDoctors() {
@@ -4127,17 +4197,16 @@ function bulkDeleteAllDoctors() {
   }
   if (!confirm('WARNING: Are you sure you want to delete ALL doctor records (' + DB.doctors.length + ') from the system? This cannot be undone.')) return;
   DB.doctors = [];
-  if (useSupabase) {
-    supabase.from('doctors').delete().neq('id', 'dummy_value_to_delete_all').then(function(res) {
-      if (res.error) console.error("Error clearing doctors from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  showToast('All doctor records deleted successfully!');
-  var masterCheck = document.getElementById('check-all-docs');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedDocsCount();
-  renderAdminDocList();
+  runSupabaseDelete('doctors', function(q) {
+    return q.neq('id', 'dummy_value_to_delete_all');
+  }).then(function() {
+    saveDB();
+    showToast('All doctor records deleted successfully!');
+    var masterCheck = document.getElementById('check-all-docs');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedDocsCount();
+    renderAdminDocList();
+  });
 }
 
 // Chemist Master Management
@@ -4300,13 +4369,12 @@ function renderAdminChemistList(page = 1) {
 function removeChemist(id){
   if(!confirm('Delete chemist record?'))return;
   DB.chemists=DB.chemists.filter(function(c){return c.id!==id;});
-  if (useSupabase) {
-    supabase.from('chemists').delete().eq('id', id).then(function(res) {
-      if (res.error) console.error("Error deleting chemist from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  renderAdminChemistList();
+  runSupabaseDelete('chemists', function(q) {
+    return q.eq('id', id);
+  }).then(function() {
+    saveDB();
+    renderAdminChemistList();
+  });
 }
 
 function toggleSelectAllChems(masterCheck) {
@@ -4336,17 +4404,16 @@ function bulkDeleteSelectedChemists() {
   if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected chemist records?')) return;
   var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
   DB.chemists = DB.chemists.filter(function(c) { return !idsToDelete.includes(c.id); });
-  if (useSupabase) {
-    supabase.from('chemists').delete().in('id', idsToDelete).then(function(res) {
-      if (res.error) console.error("Error deleting chemists from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  showToast(checked.length + ' chemists deleted successfully!');
-  var masterCheck = document.getElementById('check-all-chems');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedChemsCount();
-  renderAdminChemistList();
+  runSupabaseDelete('chemists', function(q) {
+    return q.in('id', idsToDelete);
+  }).then(function() {
+    saveDB();
+    showToast(checked.length + ' chemists deleted successfully!');
+    var masterCheck = document.getElementById('check-all-chems');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedChemsCount();
+    renderAdminChemistList();
+  });
 }
 
 function bulkDeleteAllChemists() {
@@ -4356,17 +4423,16 @@ function bulkDeleteAllChemists() {
   }
   if (!confirm('WARNING: Are you sure you want to delete ALL chemist records (' + DB.chemists.length + ') from the system? This cannot be undone.')) return;
   DB.chemists = [];
-  if (useSupabase) {
-    supabase.from('chemists').delete().neq('id', 'dummy_value_to_delete_all').then(function(res) {
-      if (res.error) console.error("Error clearing chemists from Supabase:", res.error);
-    });
-  }
-  saveDB();
-  showToast('All chemist records deleted successfully!');
-  var masterCheck = document.getElementById('check-all-chems');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedChemsCount();
-  renderAdminChemistList();
+  runSupabaseDelete('chemists', function(q) {
+    return q.neq('id', 'dummy_value_to_delete_all');
+  }).then(function() {
+    saveDB();
+    showToast('All chemist records deleted successfully!');
+    var masterCheck = document.getElementById('check-all-chems');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedChemsCount();
+    renderAdminChemistList();
+  });
 }
 
 // ===== LEAVE BALANCE MASTER FUNCTIONS =====
@@ -4380,9 +4446,29 @@ function renderLeaveBalanceTable(){
   }
   var tbody=document.getElementById('leave-bal-table-body');
   if(!tbody) return;
-  var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
+  var q = getSearchQuery('adm-leave-search');
+  var emps=DB.employees.filter(function(e){
+    if (!e || e.id==='ADMIN') return false;
+    if (!q) return true;
+    var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
+    var haystack = [
+      e.id,
+      e.name,
+      e.role,
+      e.area,
+      e.state,
+      e.doj,
+      mgr && mgr.name ? mgr.name : '',
+      mgr && mgr.id ? mgr.id : ''
+    ].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  });
   var countEl = document.getElementById('leave-bal-count');
   if (countEl) countEl.textContent = emps.length;
+  if (!emps.length) {
+    tbody.innerHTML = '<tr><td colspan="18" class="empty">No matching leave balance records found</td></tr>';
+    return;
+  }
   tbody.innerHTML=emps.map(function(e, idx){
     var cl = e.leaves ? (e.leaves.CL || 0) : 0;
     var cl_used = e.leaves ? (e.leaves.CL_used || 0) : 0;
@@ -4496,35 +4582,51 @@ function renderHolidayTable(){
   var tbody=document.getElementById('holiday-table-body');
   if(!tbody) return;
   if(!DB.holidays) DB.holidays = [];
+  var q = getSearchQuery('adm-holiday-search');
+  var filtered = DB.holidays.map(function(h, index) {
+    return { h: h, index: index };
+  }).filter(function(item) {
+    if (!q) return true;
+    var h = item.h || {};
+    var haystack = [h.date, h.name, h.state || 'All'].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  });
   var countEl = document.getElementById('holiday-count');
-  if (countEl) countEl.textContent = DB.holidays.length;
-  tbody.innerHTML=DB.holidays.map(function(h, index){
-    return '<tr><td>'+h.date+'</td><td class="tbl-name">'+h.name+'</td><td>'+(h.state || 'All')+'</td><td><button class="btn sm danger" onclick="removeHoliday('+index+')">Delete</button></td></tr>';
+  if (countEl) countEl.textContent = filtered.length;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">No matching holiday records found</td></tr>';
+    return;
+  }
+  tbody.innerHTML=filtered.map(function(item){
+    var h = item.h;
+    return '<tr><td>'+h.date+'</td><td class="tbl-name">'+h.name+'</td><td>'+(h.state || 'All')+'</td><td><button class="btn sm danger" onclick="removeHoliday('+item.index+')">Delete</button></td></tr>';
   }).join('');
 }
 
 function removeHoliday(index){
   var h = DB.holidays[index];
+  if (!h) return;
   DB.holidays.splice(index, 1);
-  if (useSupabase && h) {
-    supabase.from('holidays').delete().eq('date', h.date).eq('state', h.state || 'All').then(function(res) {
-      if (res.error) console.error("Error deleting holiday from Supabase:", res.error);
+  runSupabaseDelete('holidays', function(q) {
+    return q.match({
+      date: formatDateForPostgres(h.date) || h.date,
+      state: normalizeHolidayState(h.state)
     });
-  }
-  saveDB();
-  renderHolidayTable();
+  }).then(function() {
+    saveDB();
+    renderHolidayTable();
+  });
 }
 
 function clearAllHolidays(){
   if(confirm("Are you sure you want to clear all holidays?")){
     DB.holidays = [];
-    if (useSupabase) {
-      supabase.from('holidays').delete().neq('name', 'dummy_value_to_delete_all').then(function(res) {
-        if (res.error) console.error("Error clearing holidays in Supabase:", res.error);
-      });
-    }
-    saveDB();
-    renderHolidayTable();
+    runSupabaseDelete('holidays', function(q) {
+      return q.neq('state', '__codex_delete_all__');
+    }).then(function() {
+      saveDB();
+      renderHolidayTable();
+    });
   }
 }
 

@@ -1711,15 +1711,23 @@ async function seedSupabaseDatabase() {
 }
 
 function saveDB() {
+  try {
+    localStorage.setItem('adonis_db', JSON.stringify(DB));
+  } catch (e) {
+    console.warn("localStorage quota exceeded. Attempting to save without large datasets.");
     try {
-      localStorage.setItem('adonis_db', JSON.stringify(DB));
-    } catch (e) {
-      console.warn("localStorage quota exceeded. Skipping local save to ensure Supabase sync runs.");
-    }
-    if (useSupabase) {
-      syncSupabaseDatabase();
+      var dbCopy = Object.assign({}, DB);
+      dbCopy.doctors = [];
+      dbCopy.chemists = [];
+      localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
+    } catch(e2) {
+      console.warn("Still exceeded quota even without doctors/chemists.");
     }
   }
+  if (useSupabase) {
+    syncSupabaseDatabase();
+  }
+}
 
 var isSyncing = false;
 var syncPending = false;
@@ -5054,7 +5062,10 @@ function uploadHolidays(inp){
       var dateVal = formatDateForPostgres(p[0]) || p[0];
       var nameVal = p[1];
       var stateVal = p[2] || 'All';
-      var existing = DB.holidays.find(function(h){return h.date === dateVal && h.state.toLowerCase() === stateVal.toLowerCase();});
+      var existing = DB.holidays.find(function(h){
+        var hs = h.state || 'All';
+        return h.date === dateVal && hs.toLowerCase() === stateVal.toLowerCase();
+      });
       if(existing){
         existing.name = nameVal;
       } else {

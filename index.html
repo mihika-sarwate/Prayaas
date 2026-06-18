@@ -3477,10 +3477,13 @@ function goAdminTab(name){
 function renderAdminStats(){
   var u=SESSION.user;
   // MR Subordinates mapping
-  var emps=DB.employees.filter(function(e){return resolveManagerId(e.managerId)===u.id || u.role==='admin';});
-  document.getElementById('adm-emp-count').textContent=DB.employees.length - 1; // excluding admin
-  document.getElementById('adm-doc-count').textContent=DB.doctors.length;
-  document.getElementById('adm-rep-count').textContent=DB.reports.length;
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+  var emps=DB.employees.filter(function(e){return (!teamIds || teamIds.includes(e.id)) && e.id !== 'ADMIN';});
+  document.getElementById('adm-emp-count').textContent=emps.length;
+  var docs=DB.doctors.filter(function(d){return !teamIds || teamIds.includes(d.assignTo);});
+  document.getElementById('adm-doc-count').textContent=docs.length;
+  var reps=DB.reports.filter(function(r){return !teamIds || teamIds.includes(r.empId);});
+  document.getElementById('adm-rep-count').textContent=reps.length;
   
   var pendingTP=DB.tourPlans.filter(function(t){return isPendingForUser(t.status, t.managerId, u);}).length;
   var pendingExp=DB.expenses.filter(function(e){return isPendingForUser(e.status, e.managerId, u);}).length;
@@ -3491,7 +3494,9 @@ function renderAdminStats(){
 
 function renderAdminDashTeamList(){
   var tbody=document.getElementById('adm-dash-team-body');
-  var team=DB.employees.filter(function(e){return e.role==='emp';});
+  var u=SESSION.user;
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+  var team=DB.employees.filter(function(e){return e.role==='emp' && (!teamIds || teamIds.includes(e.id));});
   
   tbody.innerHTML=team.map(function(e){
     var reportsCount=DB.reports.filter(function(r){return r.empId===e.id;}).length;
@@ -4079,8 +4084,10 @@ function renderEmpTable(){
   var tbody=document.getElementById('emp-table-body');
   if (!tbody) return;
   var q = getSearchQuery('adm-emp-search');
-  var emps=DB.employees.filter(function(e){
-    if (!e || e.id==='ADMIN') return false;
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+    var emps=DB.employees.filter(function(e){
+      if (!e || e.id==='ADMIN') return false;
+      if (teamIds && !teamIds.includes(e.id)) return false;
     if (!q) return true;
     var mgr = e.managerId ? DB.employees.find(function(m){ return m && m.id===e.managerId; }) : null;
     var haystack = [
@@ -4737,8 +4744,11 @@ function renderLeaveBalanceTable(){
   var tbody=document.getElementById('leave-bal-table-body');
   if(!tbody) return;
   var q = getSearchQuery('adm-leave-search');
+  var u = SESSION.user;
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var emps=DB.employees.filter(function(e){
     if (!e || e.id==='ADMIN') return false;
+    if (teamIds && !teamIds.includes(e.id)) return false;
     if (!q) return true;
     var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
     var haystack = [
@@ -5078,17 +5088,19 @@ function issueStockToMR(){
 }
 
 function renderAdminInventoryTables(){
-  var mrFilter=document.getElementById('inv-filter-emp').value;
+    var mrFilter=document.getElementById('inv-filter-emp').value;
+    var u=SESSION.user;
+    var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+    
+    // Render Samples
+    var samplesList = DB.samplesInventory.filter(function(s){return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId));});
+    document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
+      var emp=DB.employees.find(function(e){return e.id===s.empId;});
+      return '<tr><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+s.balance+'</td></tr>';
+    }).join(''):'<tr><td colspan="6" class="empty">No entries found</td></tr>';
   
-  // Render Samples
-  var samplesList = DB.samplesInventory.filter(function(s){return !mrFilter||s.empId===mrFilter;});
-  document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
-    var emp=DB.employees.find(function(e){return e.id===s.empId;});
-    return '<tr><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+s.balance+'</td></tr>';
-  }).join(''):'<tr><td colspan="6" class="empty">No entries found</td></tr>';
-
-  // Render Gifts
-  var giftsList = DB.giftsInventory.filter(function(g){return !mrFilter||g.empId===mrFilter;});
+    // Render Gifts
+    var giftsList = DB.giftsInventory.filter(function(g){return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId));});
   document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
     var emp=DB.employees.find(function(e){return e.id===g.empId;});
     return '<tr><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+g.balance+'</td></tr>';
@@ -5104,12 +5116,14 @@ function renderAdminInventoryTables(){
 
 // Global filter populator for reports/dropdowns
 function populateAdminEmpFilters(){
-  var selectList=['inv-issue-emp', 'inv-filter-emp', 'rep-filter-emp'];
+    var selectList=['inv-issue-emp', 'inv-filter-emp', 'rep-filter-emp'];
+    var u=SESSION.user;
+    var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   selectList.forEach(function(selId){
     var sel=document.getElementById(selId);
     if(sel){
       sel.innerHTML = selId==='rep-filter-emp'?'<option value="">All Employees</option>':'';
-      DB.employees.filter(function(e){return e.role==='emp';}).forEach(function(e){
+        DB.employees.filter(function(e){return e.role==='emp' && (!teamIds || teamIds.includes(e.id));}).forEach(function(e){
         var o=document.createElement('option');o.value=e.id;o.textContent=e.name+' ('+e.id+')';sel.appendChild(o);
       });
     }
@@ -5129,15 +5143,18 @@ function updateReportHeadersAndFilters(){
 }
 
 function runMISReport(){
-  var empId=document.getElementById('rep-filter-emp').value;
-  var from=document.getElementById('rep-from').value;
-  var to=document.getElementById('rep-to').value;
-  
-  var thead=document.getElementById('mis-report-thead');
-  var tbody=document.getElementById('mis-report-tbody');
-  
-  // Filter base calls reports
-  var baseReports=DB.reports.filter(function(r){
+    var empId=document.getElementById('rep-filter-emp').value;
+    var from=document.getElementById('rep-from').value;
+    var to=document.getElementById('rep-to').value;
+    
+    var thead=document.getElementById('mis-report-thead');
+    var tbody=document.getElementById('mis-report-tbody');
+    var u=SESSION.user;
+    var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+    
+    // Filter base calls reports
+    var baseReports=DB.reports.filter(function(r){
+      if(teamIds && !teamIds.includes(r.empId)) return false;
     if(empId&&r.empId!==empId)return false;
     if(from&&r.date<from)return false;
     if(to&&r.date>to)return false;

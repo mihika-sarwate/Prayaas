@@ -1370,19 +1370,25 @@ async function initSupabaseData(isSilent) {
     }
     
     DB = {
-      employees: emps.map(e => ({
-        id: e.id,
-        name: e.name,
-        pwd: e.pwd,
-        area: e.area,
-        role: (e.role || 'emp').trim().toLowerCase(),
-        managerId: e.manager_id,
-        doj: e.doj || '',
-        state: e.state || '',
-        status: e.status || 'Active',
-        designation: typeof e.designation !== 'undefined' ? e.designation : getDefaultEmployeeDesignation(e.role),
-        leaves: e.leaves
-      })),
+      employees: emps.map(e => {
+        var existing = (typeof DB !== 'undefined' && DB && DB.employees) ? DB.employees.find(em => em.id === e.id) : null;
+        var localDesig = existing ? existing.designation : undefined;
+        var cloudDesig = e.designation;
+        var safeRole = (e.role || 'emp').trim().toLowerCase();
+        return {
+          id: e.id,
+          name: e.name,
+          pwd: e.pwd,
+          area: e.area,
+          role: safeRole,
+          managerId: e.manager_id,
+          doj: e.doj || '',
+          state: e.state || '',
+          status: e.status || 'Active',
+          designation: typeof cloudDesig !== 'undefined' && cloudDesig !== null ? cloudDesig : (typeof localDesig !== 'undefined' ? localDesig : getDefaultEmployeeDesignation(safeRole)),
+          leaves: e.leaves
+        };
+      }),
       doctors: (doctors || []).map(d => ({
         id: d.id,
         code: d.code,

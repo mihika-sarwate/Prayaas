@@ -1354,6 +1354,18 @@ async function initSupabaseData(isSilent) {
       return;
     }
     
+    // Preserve local sort order if possible
+    if (typeof DB !== 'undefined' && DB && DB.employees && DB.employees.length > 0) {
+      const localIds = DB.employees.map(em => em.id);
+      emps.sort(function(a, b) {
+        var idxA = localIds.indexOf(a.id);
+        var idxB = localIds.indexOf(b.id);
+        if (idxA === -1) idxA = Infinity;
+        if (idxB === -1) idxB = Infinity;
+        return idxA - idxB;
+      });
+    }
+    
     // ABORT OVERWRITE IF A SYNC IS CURRENTLY RUNNING OR PENDING
     // Otherwise we will wipe out local changes that haven't been pushed to the cloud yet
     if (isSyncing || syncPending) {

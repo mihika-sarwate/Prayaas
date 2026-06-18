@@ -4112,7 +4112,7 @@ function renderEmpTable(){
       if (!e) return '';
       var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
       var roleName = (e.role || 'emp').toUpperCase();
-      return '<tr><td><input type="checkbox" class="emp-row-check" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + JSON.stringify(e.id || '') + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.designation || getDefaultEmployeeDesignation(e.role))+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + JSON.stringify(e.id || '') + ')">Manage</button><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(' + JSON.stringify(e.id || '') + ')">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="emp-row-check" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.designation || getDefaultEmployeeDesignation(e.role))+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
     }).join('');
   } catch (err) {
     console.error("Error rendering employee table:", err);
@@ -4139,10 +4139,10 @@ function openEmployeeStatusModal(empId) {
       'Reporting Manager: ' + (mgr && mgr.name ? mgr.name : 'None'),
     '</div>',
     '<div class="btn-row" style="flex-wrap:wrap">',
-      '<button class="btn warn sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + JSON.stringify(emp.id) + ', ' + JSON.stringify('Hold') + ')">Hold</button>',
-      '<button class="btn danger sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + JSON.stringify(emp.id) + ', ' + JSON.stringify('Resign') + ')">Resign</button>',
-      '<button class="btn gold sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + JSON.stringify(emp.id) + ', ' + JSON.stringify('Replace') + ')">Replace</button>',
-      '<button class="btn success sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + JSON.stringify(emp.id) + ', ' + JSON.stringify('Active') + ')">Active</button>',
+      '<button class="btn warn sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Hold')) + ')">Hold</button>',
+      '<button class="btn danger sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Resign')) + ')">Resign</button>',
+      '<button class="btn gold sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Replace')) + ')">Replace</button>',
+      '<button class="btn success sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Active')) + ')">Active</button>',
     '</div>'
   ].join('');
   document.getElementById('modal-emp-status').classList.add('on');
@@ -5368,6 +5368,10 @@ function downloadData(csv,fname){
 }
 
 // Utility Helpers
+function escapeHTML(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function closeModal(id){document.getElementById(id).classList.remove('on');}
 function showToast(msg){
   var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';

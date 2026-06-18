@@ -4159,6 +4159,7 @@ function uploadEmployees(inp){
       var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
       var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
+      var newEmp;
       if(existing){
         existing.name=cols[1];
         existing.pwd=pwd;
@@ -4169,9 +4170,9 @@ function uploadEmployees(inp){
         existing.doj=cols[dojIndex]||'';
         existing.state=cols[stateIndex]||'';
         existing.status=normalizeEmployeeStatus(cols[statusIndex]||'Active');
-        count++;
+        newEmp = existing;
       } else {
-        DB.employees.push({
+        newEmp = {
           id:cols[0].toUpperCase(),
           name:cols[1],
           pwd:pwd,
@@ -4183,9 +4184,15 @@ function uploadEmployees(inp){
           state:cols[stateIndex]||'',
           status:normalizeEmployeeStatus(cols[statusIndex]||'Active'),
           leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
-        });
-        count++;
+        };
       }
+      
+      var currentIdx = DB.employees.indexOf(newEmp);
+      if (currentIdx > -1) {
+        DB.employees.splice(currentIdx, 1);
+      }
+      DB.employees.push(newEmp);
+      count++;
     });
     saveDB();
     showToast(count+' employees processed successfully!');
@@ -4245,10 +4252,6 @@ function renderEmpTable(){
     return haystack.indexOf(q) !== -1;
   });
   
-  // Sort by Employee ID naturally
-  emps.sort(function(a,b) {
-    return (a.id || '').localeCompare(b.id || '', undefined, {numeric: true, sensitivity: 'base'});
-  });
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;
   if (!emps.length) {

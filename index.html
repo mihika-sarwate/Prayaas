@@ -4152,28 +4152,21 @@ function uploadEmployees(inp){
     if(!lines.length)return;
     var count=0;
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
-    var hasDesignationCol = hasHeader && lines[0].toLowerCase().indexOf('designation') !== -1;
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var cols=parseCSVLine(line);
       if(!cols[0]||!cols[1])return;
       var pwd = cols[2] || 'pass123';
-      var designation = '';
-      var rawRole = '';
-      var mgrIndex = 5;
-      var dojIndex = 6;
-      var stateIndex = 7;
-      var statusIndex = 8;
-      if (hasDesignationCol) {
-        designation = cols[4] || '';
-        rawRole = (cols[5] || '').trim().toLowerCase();
-        mgrIndex = 6;
-        dojIndex = 7;
-        stateIndex = 8;
-        statusIndex = 9;
-      } else {
-        rawRole = (cols[4] || '').trim().toLowerCase();
-      }
+      
+      // Fixed 10-column mapping from template
+      // 0:ID, 1:Name, 2:Pwd, 3:Territory, 4:Designation, 5:Role, 6:Manager, 7:DOJ, 8:State, 9:Status
+      var designation = cols[4] || '';
+      var rawRole = (cols[5] || '').trim().toLowerCase();
+      var mgrIndex = 6;
+      var dojIndex = 7;
+      var stateIndex = 8;
+      var statusIndex = 9;
+      
       var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
       var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
@@ -4257,18 +4250,19 @@ function renderEmpTable(){
     if (!q) return true;
     var mgr = e.managerId ? DB.employees.find(function(m){ return m && m.id===e.managerId; }) : null;
     var haystack = [
-      e.id,
-      e.name,
-      e.pwd,
-      e.role,
-      e.designation,
-      e.area,
-      e.state,
-      normalizeEmployeeStatus(e.status),
-      mgr && mgr.name ? mgr.name : '',
-      mgr && mgr.id ? mgr.id : ''
+      e.id, e.name, e.pwd, e.role, e.designation, e.area, e.state,
+      normalizeEmployeeStatus(e.status), mgr && mgr.name ? mgr.name : '', mgr && mgr.id ? mgr.id : ''
     ].join(' ').toLowerCase();
     return haystack.indexOf(q) !== -1;
+  });
+  
+  // Sort by Hierarchy then Name
+  var roleOrder = {'admin':1, 'nsm':2, 'zm':3, 'rm':4, 'am':5, 'manager':6, 'emp':7};
+  emps.sort(function(a,b) {
+    var wa = roleOrder[a.role] || 99;
+    var wb = roleOrder[b.role] || 99;
+    if (wa !== wb) return wa - wb;
+    return (a.name || '').localeCompare(b.name || '');
   });
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;

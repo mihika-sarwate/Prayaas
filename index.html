@@ -1123,16 +1123,7 @@ function formatDateForPostgres(dateStr) {
 }
 
 function getDefaultEmployeeDesignation(role) {
-  var map = {
-    admin: 'System Administrator',
-    nsm: 'National Sales Manager',
-    zm: 'Zonal Manager',
-    rm: 'Regional Manager',
-    am: 'Area Manager',
-    manager: 'First Line Manager',
-    emp: 'Medical Representative'
-  };
-  return map[(role || '').trim().toLowerCase()] || 'Employee';
+  return '';
 }
 
 function normalizeEmployeeStatus(status) {
@@ -2455,16 +2446,7 @@ async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn) 
 }
 
 function getDesignationLabel(role) {
-  var labels = {
-    admin: 'Administrator',
-    nsm: 'National Sales Manager',
-    zm: 'Zonal Manager',
-    rm: 'Regional Manager',
-    am: 'Area Manager',
-    manager: 'Field Manager',
-    emp: 'FieldForce'
-  };
-  return labels[(role || '').toLowerCase()] || (role ? role.toUpperCase() : '-');
+  return '';
 }
 
 function getLeaveLedger(emp) {
@@ -2507,7 +2489,7 @@ function buildLeaveBalanceTableHtml(records, includeRowNumbers) {
       (includeRowNumbers ? '<td>'+(index + 1)+'</td>' : '')+
       '<td>'+escapeHtml(record.id)+'</td>'+
       '<td class="tbl-name">'+escapeHtml(record.name)+'</td>'+
-      '<td>'+escapeHtml(getDesignationLabel(record.role))+'</td>'+
+      '<td>'+escapeHtml(record.designation || '')+'</td>'+
       '<td>'+escapeHtml(record.area || record.areaTerritory || '-').trim()+'</td>'+
       '<td>'+escapeHtml(record.doj || '-').trim()+'</td>'+
       '<td>'+ledger.cl.limit+'</td><td>'+ledger.pl.limit+'</td><td>'+ledger.sl.limit+'</td><td>'+ledger.lop.limit+'</td>'+
@@ -2528,7 +2510,7 @@ function buildLeaveBalanceExportCsv(records) {
       index + 1,
       record.id || '',
       record.name || '',
-      getDesignationLabel(record.role),
+      record.designation || '',
       record.area || record.areaTerritory || '',
       record.doj || '',
       ledger.cl.limit,
@@ -2555,7 +2537,7 @@ function showLeaveBalanceDetailsFor(emp, title) {
   var html = '<div style="margin-bottom:12px">'+
     '<div style="font-size:15px;font-weight:700">'+escapeHtml(title || (emp.name + ' Leave Balance'))+'</div>'+
     '<div style="margin-top:4px;font-size:12px;color:var(--text-muted)">'+
-      'Employee ID: <strong>'+escapeHtml(emp.id)+'</strong> | Designation: <strong>'+escapeHtml(getDesignationLabel(emp.role))+'</strong> | HQ: <strong>'+escapeHtml(emp.area || '-')+'</strong> | Joining Date: <strong>'+escapeHtml(emp.doj || '-')+'</strong>'+
+      'Employee ID: <strong>'+escapeHtml(emp.id)+'</strong> | Designation: <strong>'+escapeHtml(emp.designation || '')+'</strong> | HQ: <strong>'+escapeHtml(emp.area || '-')+'</strong> | Joining Date: <strong>'+escapeHtml(emp.doj || '-')+'</strong>'+
     '</div>'+
   '</div>';
   html += '<div class="tbl-wrap"><table class="tbl" style="min-width:1200px">'+buildLeaveBalanceTableHtml([emp], false).replace('<thead>', '<thead style="display:table-header-group">')+'</table></div>';

@@ -1714,9 +1714,14 @@ function saveDB() {
   }
 
 var isSyncing = false;
+var syncPending = false;
   async function syncSupabaseDatabase() {
-    if (isSyncing) return;
+    if (isSyncing) {
+      syncPending = true;
+      return;
+    }
     isSyncing = true;
+    syncPending = false;
     var dbStatus = document.getElementById('db-status-indicator');
     if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
     try {
@@ -1953,10 +1958,13 @@ var isSyncing = false;
       showToast("Cloud Sync Complete!", 3000);
 
       isSyncing = false;
+      if (syncPending) {
+        setTimeout(syncSupabaseDatabase, 1000);
+      }
     }
   }
 
-initSupabaseData();
+  initSupabaseData();
 
 // Poll Supabase database for updates every 15 seconds if Supabase is connected
 setInterval(async function() {

@@ -5875,17 +5875,17 @@ function runMISReport(){
   var html='';
   
   if(currentReportType==='doc_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
     currentMISData=docCalls.map(function(r){
-      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
+      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
     
   } else if(currentReportType==='chem_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th><th>Actions</th></tr>';
     var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
     currentMISData=chemCalls.map(function(r){
-      return [r.date, r.empId, r.empName, r.chemName, r.classification, r.orderAmount, r.stockStatus, r.remarks];
+      return [r.date, r.empId, r.empName, r.chemName, r.classification, r.orderAmount, r.stockStatus, r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
     
   } else if(currentReportType==='call_avg'){
@@ -6039,15 +6039,36 @@ function runMISReport(){
   }).join('');
 }
 
+function deleteAdminReport(id) {
+  if(!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
+  var idx = DB.reports.findIndex(function(r) { return r.id === id; });
+  if(idx > -1) {
+    DB.reports.splice(idx, 1);
+    saveDB();
+    showToast("Report deleted successfully!");
+    runMISReport(); // Refresh the table
+  }
+}
+
 function exportReportToCSV(){
   if(!currentMISData.length){showToast('No data to export! Please run a query first.');return;}
   var thead=document.getElementById('mis-report-thead');
   var headers=[];
-  thead.querySelectorAll('th').forEach(function(th){headers.push(th.textContent);});
+  var actionColIndex = -1;
+  thead.querySelectorAll('th').forEach(function(th, idx){
+    if (th.textContent === 'Actions') {
+      actionColIndex = idx;
+    } else {
+      headers.push(th.textContent);
+    }
+  });
   
   var csv=[headers.join(',')];
   currentMISData.forEach(function(row){
-    csv.push(row.map(function(val){
+    var filteredRow = row.filter(function(val, idx){
+      return idx !== actionColIndex;
+    });
+    csv.push(filteredRow.map(function(val){
       return '"'+(val||'').toString().replace(/"/g,'""')+'"';
     }).join(','));
   });

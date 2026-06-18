@@ -4923,29 +4923,6 @@ function deleteLeaveBalance(id) {
   }
 }
 
-function deleteSelectedLeaves() {
-  var checked = document.querySelectorAll('.leave-row-check:checked');
-  if(checked.length === 0) return;
-  if(!confirm('Clear leave data for ' + checked.length + ' employees?')) return;
-  checked.forEach(function(c){
-    var emp = DB.employees.find(function(e) { return e.id === c.value; });
-    if (emp) emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
-  });
-  saveDB();
-  renderLeaveBalanceTable();
-  showToast(checked.length + ' leave records cleared');
-}
-
-function deleteAllLeaves() {
-  if(!confirm('Are you sure you want to clear ALL leave records? This cannot be undone.')) return;
-  DB.employees.forEach(function(emp) {
-    emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
-  });
-  saveDB();
-  renderLeaveBalanceTable();
-  showToast('All leave records cleared');
-}
-
 function downloadLeaveBalanceData(){
   var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
   var csv = ',,,,,,' + monthYear + ',,,,,,,,,,,\n';

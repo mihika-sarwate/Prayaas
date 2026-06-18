@@ -1364,32 +1364,38 @@ async function initSupabaseData(isSilent) {
     // Preserve local sort order if possible
     if (typeof DB !== 'undefined' && DB) {
       if (DB.employees && DB.employees.length > 0) {
-        const localIds = DB.employees.map(em => em.id);
+        const localIds = DB.employees.map(em => String(em.id || '').trim().toUpperCase());
         emps.sort(function(a, b) {
-          var idxA = localIds.indexOf(a.id);
-          var idxB = localIds.indexOf(b.id);
-          if (idxA === -1) idxA = Infinity;
-          if (idxB === -1) idxB = Infinity;
+          var idA = String(a.id || '').trim().toUpperCase();
+          var idB = String(b.id || '').trim().toUpperCase();
+          var idxA = localIds.indexOf(idA);
+          var idxB = localIds.indexOf(idB);
+          if (idxA === -1) idxA = 999999;
+          if (idxB === -1) idxB = 999999;
           return idxA - idxB;
         });
       }
       if (DB.doctors && DB.doctors.length > 0) {
-        const localIds = DB.doctors.map(d => d.id);
+        const localIds = DB.doctors.map(d => String(d.id || '').trim().toUpperCase());
         doctors.sort(function(a, b) {
-          var idxA = localIds.indexOf(a.id);
-          var idxB = localIds.indexOf(b.id);
-          if (idxA === -1) idxA = Infinity;
-          if (idxB === -1) idxB = Infinity;
+          var idA = String(a.id || '').trim().toUpperCase();
+          var idB = String(b.id || '').trim().toUpperCase();
+          var idxA = localIds.indexOf(idA);
+          var idxB = localIds.indexOf(idB);
+          if (idxA === -1) idxA = 999999;
+          if (idxB === -1) idxB = 999999;
           return idxA - idxB;
         });
       }
       if (DB.chemists && DB.chemists.length > 0) {
-        const localIds = DB.chemists.map(c => c.id);
+        const localIds = DB.chemists.map(c => String(c.id || '').trim().toUpperCase());
         chemists.sort(function(a, b) {
-          var idxA = localIds.indexOf(a.id);
-          var idxB = localIds.indexOf(b.id);
-          if (idxA === -1) idxA = Infinity;
-          if (idxB === -1) idxB = Infinity;
+          var idA = String(a.id || '').trim().toUpperCase();
+          var idB = String(b.id || '').trim().toUpperCase();
+          var idxA = localIds.indexOf(idA);
+          var idxB = localIds.indexOf(idB);
+          if (idxA === -1) idxA = 999999;
+          if (idxB === -1) idxB = 999999;
           return idxA - idxB;
         });
       }

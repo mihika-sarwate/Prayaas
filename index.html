@@ -194,7 +194,6 @@ body:not(.is-admin) .admin-only { display: none !important; }
         <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
       </div>
       <div class="hdr-brand"><div class="hdr-title">Sankalp MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
-      <button class="hdr-badge" id="btn-switch-to-admin" onclick="switchToAdmin()" style="background:var(--primary);margin-right:8px;display:none;">Manager Panel</button>
       <button id="emp-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 4px 10px; font-size: 12px; width: auto; height: auto; line-height: 1.2; margin-right: 8px;">🔄 Sync</button>
       <button class="hdr-badge" onclick="doLogout()">Logout</button>
     </div>
@@ -472,7 +471,6 @@ body:not(.is-admin) .admin-only { display: none !important; }
         <div style="display:flex;align-items:center;gap:8px">
           <div class="hdr-title" id="adm-panel-title">Sankalp Admin Console</div>
           <span class="badge orange" id="adm-badge" style="padding:2px 8px;font-size:9px;text-transform:uppercase">ADM</span>
-          <button class="hdr-badge" id="btn-switch-to-emp" onclick="switchToEmp()" style="background:var(--primary);margin-right:8px;display:none;">MR Portal</button>
           <button id="admin-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 2px 8px; font-size: 10px; width: auto; height: auto; line-height: 1.2; margin-left: 8px;">🔄 Sync</button>
         </div>
         <div class="hdr-sub">Adonis Laboratories</div>
@@ -485,6 +483,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
     <div class="admin-tabs">
       <div class="admin-tab on" id="tab-adm-dash" onclick="goAdminTab('dash')">Dashboard</div>
       <div class="admin-tab" id="tab-adm-appr" onclick="goAdminTab('appr')">Approvals</div>
+      <div class="admin-tab" id="tab-adm-submit" onclick="goAdminTab('submit')">Submit DCR</div>
       <div class="admin-tab" id="tab-adm-master" onclick="goAdminTab('master')">Master Data</div>
       <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
       <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
@@ -2095,33 +2094,19 @@ function doLogin(){
   localStorage.setItem('adonis_session', JSON.stringify(SESSION));
   document.getElementById('scr-login').style.display='none';
   
-  window.switchToEmp = function() {
-    document.getElementById('scr-admin').classList.remove('on');
+  if (emp.role === 'emp') {
     document.getElementById('scr-emp').classList.add('on');
-    document.getElementById('btn-switch-to-admin').style.display = '';
-    document.getElementById('btn-switch-to-admin').textContent = SESSION.user.role === 'admin' ? 'Admin Panel' : 'Manager Panel';
     initEmpApp();
-  };
-  window.switchToAdmin = function() {
-    document.getElementById('scr-emp').classList.remove('on');
+  } else {
     document.getElementById('scr-admin').classList.add('on');
-    document.getElementById('adm-panel-title').textContent=(SESSION.user.role==='admin'?'Admin Panel':'Manager Panel') + ' - ' + SESSION.user.name;
-    document.getElementById('adm-badge').textContent=SESSION.user.role.toUpperCase();
-    if(SESSION.user.role!=='admin'){
+    document.getElementById('adm-panel-title').textContent=(emp.role==='admin'?'Admin Panel':'Manager Panel') + ' - ' + emp.name;
+    document.getElementById('adm-badge').textContent=emp.role.toUpperCase();
+    if(emp.role!=='admin'){
       document.getElementById('adm-sfc-section').style.display='none';
     } else {
       document.getElementById('adm-sfc-section').style.display='';
     }
     initAdminApp();
-  };
-
-  if (emp.role === 'emp') {
-    document.getElementById('scr-emp').classList.add('on');
-    document.getElementById('btn-switch-to-admin').style.display = 'none';
-    initEmpApp();
-  } else {
-    document.getElementById('btn-switch-to-emp').style.display = '';
-    switchToAdmin();
   }
 }
 
@@ -3502,7 +3487,13 @@ var currentTab = 'home';
 function goTab(name){
   currentTab = name;
   ['home','report','tour','expense','leave','doctors'].forEach(function(t){
-    var el=document.getElementById('tab-'+t);if(el)el.style.display=t===name?'block':'none';
+    var el=document.getElementById('tab-'+t);
+    if (el) {
+      if (t === 'report') {
+        document.getElementById('scr-emp').insertBefore(el, document.querySelector('.nav'));
+      }
+      el.style.display=t===name?'block':'none';
+    }
     var nb=document.getElementById('nb-'+t);if(nb)nb.className='nav-btn'+(t===name?' on':'');
   });
   if(name==='report') {
@@ -3576,12 +3567,28 @@ function initAdminApp(){
 
 function goAdminTab(name){
   currentAdminTab=name;
-  ['dash','appr','master','inventory','reports'].forEach(function(t){
+  ['dash','appr','submit','master','inventory','reports'].forEach(function(t){
     var el=document.getElementById('sec-adm-'+t);
     if(el) el.style.display=t===name?'block':'none';
     var btn=document.getElementById('tab-adm-'+t);
     if(btn) btn.className='admin-tab'+(t===name?' on':'');
   });
+  
+  if (name === 'submit') {
+    var rep = document.getElementById('tab-report');
+    if (rep) {
+      document.getElementById('sec-adm-submit').appendChild(rep);
+      rep.style.display = 'block';
+      populateReportingDropdowns();
+      populateJFWManagers();
+      checkMTPForSelectedDate();
+    }
+  } else {
+    var rep = document.getElementById('tab-report');
+    if (rep && rep.parentNode && rep.parentNode.id === 'sec-adm-submit') {
+      rep.style.display = 'none';
+    }
+  }
   if(name==='dash') renderAdminDashTeamList();
   if(name==='reports') updateReportHeadersAndFilters();
   if(name==='inventory') renderAdminInventoryTables();

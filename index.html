@@ -1365,17 +1365,22 @@ async function initSupabaseData(isSilent) {
     
     DB = {
       employees: emps.map(e => {
+        var safeRole = (e.role || 'emp').trim().toLowerCase();
+        var cloudDesigRaw = e.designation;
+        if ((typeof cloudDesigRaw === 'undefined' || cloudDesigRaw === null || cloudDesigRaw === '') && e.leaves && e.leaves._designation) {
+          cloudDesigRaw = e.leaves._designation;
+        }
+        var cloudDesig = cloudDesigRaw;
         var existing = (typeof DB !== 'undefined' && DB && DB.employees) ? DB.employees.find(em => em.id === e.id) : null;
         var localDesig = existing ? existing.designation : undefined;
-        var cloudDesig = e.designation;
-        var safeRole = (e.role || 'emp').trim().toLowerCase();
+
         return {
           id: e.id,
           name: e.name,
           pwd: e.pwd,
-          area: e.area,
+          area: e.area || '',
           role: safeRole,
-          managerId: e.manager_id,
+          managerId: e.manager_id || '',
           doj: e.doj || '',
           state: e.state || '',
           status: e.status || 'Active',
@@ -1627,7 +1632,7 @@ async function seedSupabaseDatabase() {
         state: e.state || null,
         status: normalizeEmployeeStatus(e.status),
         designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-        leaves: e.leaves
+        leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
       };
     });
     await insertEmployeeRowsToSupabase(dbEmps);
@@ -1805,7 +1810,7 @@ window.addEventListener('beforeunload', function (e) {
         state: e.state || null,
         status: normalizeEmployeeStatus(e.status),
         designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-        leaves: e.leaves
+        leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
       };
     });
     await upsertEmployeeRowsToSupabase(dbEmps);

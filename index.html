@@ -1340,6 +1340,13 @@ async function initSupabaseData(isSilent) {
       return;
     }
     
+    // ABORT OVERWRITE IF A SYNC IS CURRENTLY RUNNING OR PENDING
+    // Otherwise we will wipe out local changes that haven't been pushed to the cloud yet
+    if (isSyncing || syncPending) {
+      console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending.");
+      return;
+    }
+    
     DB = {
       employees: emps.map(e => ({
         id: e.id,
@@ -1740,7 +1747,7 @@ var syncPending = false;
         doj: formatDateForPostgres(e.doj),
         state: e.state || null,
         status: normalizeEmployeeStatus(e.status),
-        designation: (e.designation || '').trim() || getDefaultEmployeeDesignation(e.role),
+        // designation omitted because table doesn't have it
         leaves: e.leaves
       };
     });

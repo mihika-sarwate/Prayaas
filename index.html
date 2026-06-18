@@ -4197,6 +4197,8 @@ function uploadEmployees(inp){
     var count=0;
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
     var dataLines = hasHeader ? lines.slice(1) : lines;
+    var newEmps = [];
+    var touchedIds = [];
     dataLines.forEach(function(line){
       var cols=parseCSVLine(line);
       if(!cols[0]||!cols[1])return;
@@ -4242,13 +4244,13 @@ function uploadEmployees(inp){
         };
       }
       
-      var currentIdx = DB.employees.indexOf(newEmp);
-      if (currentIdx > -1) {
-        DB.employees.splice(currentIdx, 1);
-      }
-      DB.employees.push(newEmp);
+      newEmps.push(newEmp);
+      touchedIds.push(newEmp.id);
       count++;
     });
+    var untouched = DB.employees.filter(function(e){ return !touchedIds.includes(e.id); });
+    DB.employees = newEmps.concat(untouched);
+    
     saveDB();
     showToast(count+' employees processed successfully!');
     renderEmpTable();
@@ -4535,6 +4537,8 @@ function uploadDoctors(inp){
     var added=0;
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('code') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
     var dataLines = hasHeader ? lines.slice(1) : lines;
+    var newDocs = [];
+    var touchedCodes = [];
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
       if(!p[0]||!p[1])return;
@@ -4567,11 +4571,12 @@ function uploadDoctors(inp){
         };
       }
       
-      var currentIdx = DB.doctors.indexOf(newDoc);
-      if (currentIdx > -1) DB.doctors.splice(currentIdx, 1);
-      DB.doctors.push(newDoc);
+      newDocs.push(newDoc);
+      touchedCodes.push(newDoc.code);
       added++;
     });
+    var untouched = DB.doctors.filter(function(d){ return !touchedCodes.includes(d.code); });
+    DB.doctors = newDocs.concat(untouched);
     saveDB();
     showToast(added+' Doctor records processed successfully!');
     renderAdminDocList();
@@ -4788,6 +4793,8 @@ function uploadChemists(inp){
     var added=0;
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
     var dataLines = hasHeader ? lines.slice(1) : lines;
+    var newChems = [];
+    var touchedIds = [];
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
       if(!p[0]||!p[1])return;
@@ -4807,11 +4814,12 @@ function uploadChemists(inp){
         };
       }
       
-      var currentIdx = DB.chemists.indexOf(newChem);
-      if (currentIdx > -1) DB.chemists.splice(currentIdx, 1);
-      DB.chemists.push(newChem);
+      newChems.push(newChem);
+      touchedIds.push(newChem.id);
       added++;
     });
+    var untouched = DB.chemists.filter(function(c){ return !touchedIds.includes(c.id); });
+    DB.chemists = newChems.concat(untouched);
     saveDB();
     showToast(added+' Chemists processed successfully!');
     renderAdminChemistList();

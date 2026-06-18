@@ -639,7 +639,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
         <input type="text" id="adm-emp-search" placeholder="&#128269; Search employee master by name, ID, designation, role, HQ, or state..." oninput="renderEmpTable()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-emps" class="admin-only" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Territory</th><th>Designation</th><th>Role</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
+            <thead id="emp-table-head"></thead>
             <tbody id="emp-table-body"></tbody>
           </table>
         </div>
@@ -665,7 +665,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
         <input type="text" id="adm-doc-search" placeholder="&#128269; Search doctor master registry..." oninput="renderAdminDocList()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-docs" class="admin-only" onclick="toggleSelectAllDocs(this)"></th><th>Code</th><th>Name</th><th>Speciality</th><th>Area</th><th>Mobile</th><th>Assigned MR</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead id="doc-table-head"></thead>
             <tbody id="doc-table-body"></tbody>
           </table><div id="doc-pagination" style="margin-top:10px;text-align:right;"></div></div></div></div>
 
@@ -688,7 +688,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
         <input type="text" id="adm-chem-search" placeholder="&#128269; Search chemist master registry..." oninput="renderAdminChemistList()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-chems" class="admin-only" onclick="toggleSelectAllChems(this)"></th><th>Chemist ID</th><th>Name</th><th>Area</th><th>Assigned MR</th><th>Actions</th></tr></thead>
+            <thead id="chem-table-head"></thead>
             <tbody id="chem-table-body"></tbody>
           </table>
           <div id="chem-pagination" style="margin-top:10px;text-align:right;"></div>
@@ -4298,17 +4298,86 @@ function renderEmpTable(){
   if (!tbody) return;
   var q = getSearchQuery('adm-emp-search');
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
-    var emps=DB.employees.filter(function(e){
-      if (!e || e.id==='ADMIN') return false;
-      if (teamIds && !teamIds.includes(e.id)) return false;
-    if (!q) return true;
+  
+  var thead = document.getElementById('emp-table-head');
+  if (thead) {
+    thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-emps" class="admin-only" onclick="toggleSelectAllEmps(this)"></th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'id', 'ID') + renderFilterInput('employees', 'id') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'name', 'Name') + renderFilterInput('employees', 'name') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'pwd', 'Password') + renderFilterInput('employees', 'pwd') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'area', 'Territory') + renderFilterInput('employees', 'area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'designation', 'Designation') + renderFilterInput('employees', 'designation') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'role', 'Role') + renderFilterInput('employees', 'role') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'managerId', 'Manager') + renderFilterInput('employees', 'managerId') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'doj', 'DOJ') + renderFilterInput('employees', 'doj') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'state', 'State') + renderFilterInput('employees', 'state') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'status', 'Status') + renderFilterInput('employees', 'status') + '</th>' +
+      '<th style="vertical-align:top">Action</th></tr>';
+  }
+
+  var filters = adminTableState.employees.filters;
+  var emps=DB.employees.filter(function(e){
+    if (!e || e.id==='ADMIN') return false;
+    if (teamIds && !teamIds.includes(e.id)) return false;
+    
     var mgr = e.managerId ? DB.employees.find(function(m){ return m && m.id===e.managerId; }) : null;
-    var haystack = [
-      e.id, e.name, e.pwd, e.role, e.designation, e.area, e.state,
-      normalizeEmployeeStatus(e.status), mgr && mgr.name ? mgr.name : '', mgr && mgr.id ? mgr.id : ''
-    ].join(' ').toLowerCase();
-    return haystack.indexOf(q) !== -1;
+    var mgrName = mgr && mgr.name ? mgr.name : '';
+    
+    // Global search
+    if (q) {
+      var haystack = [
+        e.id, e.name, e.pwd, e.role, e.designation, e.area, e.state,
+        normalizeEmployeeStatus(e.status), mgrName, mgr ? mgr.id : ''
+      ].join(' ').toLowerCase();
+      if (haystack.indexOf(q) === -1) return false;
+    }
+    
+    // Column filters
+    if (filters.id && !(e.id||"").toLowerCase().includes(filters.id)) return false;
+    if (filters.name && !(e.name||"").toLowerCase().includes(filters.name)) return false;
+    if (filters.pwd && !(e.pwd||"").toLowerCase().includes(filters.pwd)) return false;
+    if (filters.area && !(e.area||"").toLowerCase().includes(filters.area)) return false;
+    var desig = typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role);
+    if (filters.designation && !(desig||"").toLowerCase().includes(filters.designation)) return false;
+    if (filters.role && !(e.role||"").toLowerCase().includes(filters.role)) return false;
+    if (filters.managerId && !(mgrName||"").toLowerCase().includes(filters.managerId) && !(e.managerId||"").toLowerCase().includes(filters.managerId)) return false;
+    if (filters.doj && !(e.doj||"").toLowerCase().includes(filters.doj)) return false;
+    if (filters.state && !(e.state||"").toLowerCase().includes(filters.state)) return false;
+    if (filters.status && !(normalizeEmployeeStatus(e.status)||"").toLowerCase().includes(filters.status)) return false;
+    
+    return true;
   });
+
+  // Apply visual sort
+  var sortCol = adminTableState.employees.sortCol;
+  if (sortCol) {
+    var sortAsc = adminTableState.employees.sortAsc ? 1 : -1;
+    emps = emps.slice().sort(function(a, b) {
+      var valA = '';
+      var valB = '';
+      
+      if (sortCol === 'managerId') {
+        var mgrA = a.managerId ? DB.employees.find(function(m){ return m && m.id===a.managerId; }) : null;
+        var mgrB = b.managerId ? DB.employees.find(function(m){ return m && m.id===b.managerId; }) : null;
+        valA = (mgrA && mgrA.name ? mgrA.name : (a.managerId||'')).toLowerCase();
+        valB = (mgrB && mgrB.name ? mgrB.name : (b.managerId||'')).toLowerCase();
+      } else if (sortCol === 'designation') {
+        valA = (typeof a.designation !== "undefined" ? a.designation : getDefaultEmployeeDesignation(a.role)).toLowerCase();
+        valB = (typeof b.designation !== "undefined" ? b.designation : getDefaultEmployeeDesignation(b.role)).toLowerCase();
+      } else if (sortCol === 'status') {
+        valA = normalizeEmployeeStatus(a.status).toLowerCase();
+        valB = normalizeEmployeeStatus(b.status).toLowerCase();
+      } else {
+        valA = (a[sortCol] || '').toLowerCase();
+        valB = (b[sortCol] || '').toLowerCase();
+      }
+      
+      if (valA < valB) return -1 * sortAsc;
+      if (valA > valB) return 1 * sortAsc;
+      return 0;
+    });
+  }
+
   
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;
@@ -4618,15 +4687,99 @@ function downloadDocTemplate(){
   }
 }
 
+var adminTableState = {
+  doctors: { sortCol: null, sortAsc: true, filters: {} },
+  chemists: { sortCol: null, sortAsc: true, filters: {} },
+  employees: { sortCol: null, sortAsc: true, filters: {} }
+};
+
+function handleTableSort(table, col) {
+  if (adminTableState[table].sortCol === col) {
+    if (adminTableState[table].sortAsc) {
+      adminTableState[table].sortAsc = false;
+    } else {
+      adminTableState[table].sortCol = null;
+      adminTableState[table].sortAsc = true;
+    }
+  } else {
+    adminTableState[table].sortCol = col;
+    adminTableState[table].sortAsc = true;
+  }
+  if (table === 'doctors') renderAdminDocList(1);
+  else if (table === 'chemists') renderAdminChemistList(1);
+  else if (table === 'employees') renderEmpTable();
+}
+
+function handleTableFilter(table, col, val) {
+  adminTableState[table].filters[col] = val.trim().toLowerCase();
+  if (table === 'doctors') renderAdminDocList(1);
+  else if (table === 'chemists') renderAdminChemistList(1);
+  else if (table === 'employees') renderEmpTable();
+}
+
+function renderSortHead(table, col, label) {
+  var icon = '<span style="color:#ccc;font-size:10px;margin-left:4px">&#9650;&#9660;</span>';
+  if (adminTableState[table].sortCol === col) {
+    icon = adminTableState[table].sortAsc ? '<span style="color:#000;font-size:10px;margin-left:4px">&#9650;</span>' : '<span style="color:#000;font-size:10px;margin-left:4px">&#9660;</span>';
+  }
+  return '<div style="cursor:pointer;user-select:none;display:inline-block;white-space:nowrap" onclick="handleTableSort(\''+table+'\', \''+col+'\')">' + label + icon + '</div>';
+}
+
+function renderFilterInput(table, col) {
+  var val = adminTableState[table].filters[col] || '';
+  return '<div style="margin-top:4px"><input type="text" class="tbl-filter" placeholder="Filter..." value="'+val+'" oninput="handleTableFilter(\''+table+'\', \''+col+'\', this.value)" style="width:100%;box-sizing:border-box;padding:2px 4px;font-size:11px;border:1px solid #ccc;border-radius:2px;background:#fff;font-weight:normal"></div>';
+}
+
 var currentDocPage = 1; var docsPerPage = 50;
 function renderAdminDocList(page = 1) {
   currentDocPage = page;
   var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  
+  var thead = document.getElementById('doc-table-head');
+  if (thead) {
+    thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-docs" class="admin-only" onclick="toggleSelectAllDocs(this)"></th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'code', 'Code') + renderFilterInput('doctors', 'code') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'name', 'Name') + renderFilterInput('doctors', 'name') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'spec', 'Speciality') + renderFilterInput('doctors', 'spec') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'area', 'Area') + renderFilterInput('doctors', 'area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'phone', 'Mobile') + renderFilterInput('doctors', 'phone') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'assignTo', 'Assigned MR') + renderFilterInput('doctors', 'assignTo') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'status', 'Status') + renderFilterInput('doctors', 'status') + '</th>' +
+      '<th style="vertical-align:top">Actions</th></tr>';
+  }
+
+  var filters = adminTableState.doctors.filters;
   var docs=DB.doctors.filter(function(d){
     if (teamIds && !teamIds.includes(d.assignTo)) return false;
-    return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);
+    
+    // Global search
+    if (q && !((d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q))) return false;
+    
+    // Column filters
+    if (filters.code && !(d.code||"").toLowerCase().includes(filters.code)) return false;
+    if (filters.name && !(d.name||"").toLowerCase().includes(filters.name)) return false;
+    if (filters.spec && !(d.spec||"").toLowerCase().includes(filters.spec)) return false;
+    if (filters.area && !(d.area||"").toLowerCase().includes(filters.area)) return false;
+    if (filters.phone && !(d.phone||"").toLowerCase().includes(filters.phone)) return false;
+    if (filters.assignTo && !(d.assignTo||"").toLowerCase().includes(filters.assignTo)) return false;
+    if (filters.status && !(d.status||"").toLowerCase().includes(filters.status)) return false;
+    
+    return true;
   });
+
+  // Apply visual sort
+  var sortCol = adminTableState.doctors.sortCol;
+  if (sortCol) {
+    var sortAsc = adminTableState.doctors.sortAsc ? 1 : -1;
+    docs = docs.slice().sort(function(a, b) {
+      var valA = (a[sortCol] || '').toLowerCase();
+      var valB = (b[sortCol] || '').toLowerCase();
+      if (valA < valB) return -1 * sortAsc;
+      if (valA > valB) return 1 * sortAsc;
+      return 0;
+    });
+  }
 
   var countEl = document.getElementById('doc-count');
   if (countEl) countEl.textContent = docs.length;
@@ -4860,10 +5013,45 @@ function renderAdminChemistList(page = 1) {
   currentChemPage = page;
   var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  
+  var thead = document.getElementById('chem-table-head');
+  if (thead) {
+    thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-chems" class="admin-only" onclick="toggleSelectAllChems(this)"></th>' +
+      '<th style="vertical-align:top">' + renderSortHead('chemists', 'id', 'Chemist ID') + renderFilterInput('chemists', 'id') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('chemists', 'name', 'Name') + renderFilterInput('chemists', 'name') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('chemists', 'area', 'Area') + renderFilterInput('chemists', 'area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('chemists', 'assignTo', 'Assigned MR') + renderFilterInput('chemists', 'assignTo') + '</th>' +
+      '<th style="vertical-align:top">Actions</th></tr>';
+  }
+
+  var filters = adminTableState.chemists.filters;
   var chems=DB.chemists.filter(function(c){
     if (teamIds && !teamIds.includes(c.assignTo)) return false;
-    return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);
+    
+    // Global search
+    if (q && !((c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q))) return false;
+    
+    // Column filters
+    if (filters.id && !(c.id||"").toLowerCase().includes(filters.id)) return false;
+    if (filters.name && !(c.name||"").toLowerCase().includes(filters.name)) return false;
+    if (filters.area && !(c.area||"").toLowerCase().includes(filters.area)) return false;
+    if (filters.assignTo && !(c.assignTo||"").toLowerCase().includes(filters.assignTo)) return false;
+    
+    return true;
   });
+
+  // Apply visual sort
+  var sortCol = adminTableState.chemists.sortCol;
+  if (sortCol) {
+    var sortAsc = adminTableState.chemists.sortAsc ? 1 : -1;
+    chems = chems.slice().sort(function(a, b) {
+      var valA = (a[sortCol] || '').toLowerCase();
+      var valB = (b[sortCol] || '').toLowerCase();
+      if (valA < valB) return -1 * sortAsc;
+      if (valA > valB) return 1 * sortAsc;
+      return 0;
+    });
+  }
 
   var countEl = document.getElementById('chem-count');
   if (countEl) countEl.textContent = chems.length;

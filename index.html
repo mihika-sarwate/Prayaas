@@ -1264,7 +1264,7 @@ async function fetchAllFromSupabase(table, options) {
   return allData;
 }
 
-async function upsertInBatches(table, dataArray, chunkSize = 200) {
+async function upsertInBatches(table, dataArray, chunkSize = 1000) {
   if (!dataArray || dataArray.length === 0) return;
   for (let i = 0; i < dataArray.length; i += chunkSize) {
     const chunk = dataArray.slice(i, i + chunkSize);
@@ -1717,6 +1717,8 @@ var isSyncing = false;
   async function syncSupabaseDatabase() {
     if (isSyncing) return;
     isSyncing = true;
+    var dbStatus = document.getElementById('db-status-indicator');
+    if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
     try {
     const dbEmps = DB.employees.map(function(e) {
       var managerId = e.managerId || null;
@@ -1946,6 +1948,10 @@ var isSyncing = false;
   } catch (err) {
       console.error("Supabase sync failed:", err);
     } finally {
+      var dbStatus = document.getElementById('db-status-indicator');
+      if (dbStatus) dbStatus.textContent = 'Database Connection: Supabase Cloud';
+      showToast("Cloud Sync Complete!", 3000);
+
       isSyncing = false;
     }
   }
@@ -5402,10 +5408,10 @@ function escapeHTML(str) {
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('on');}
-function showToast(msg){
+function showToast(msg, duration){
   var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
   clearTimeout(window._toastTimer);
-  window._toastTimer=setTimeout(function(){t.style.display='none';},2800);
+  window._toastTimer=setTimeout(function(){t.style.display='none';}, duration || 2800);
 }
 </script>
 </body>

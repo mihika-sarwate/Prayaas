@@ -4300,7 +4300,7 @@ function renderEmpTable(){
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   
   var thead = document.getElementById('emp-table-head');
-  if (thead) {
+  if (thead && !thead.innerHTML.includes('<th')) {
     thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-emps" class="admin-only" onclick="toggleSelectAllEmps(this)"></th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'id', 'ID') + renderFilterInput('employees', 'id') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'name', 'Name') + renderFilterInput('employees', 'name') + '</th>' +
@@ -4368,8 +4368,8 @@ function renderEmpTable(){
         valA = normalizeEmployeeStatus(a.status).toLowerCase();
         valB = normalizeEmployeeStatus(b.status).toLowerCase();
       } else {
-        valA = (a[sortCol] || '').toLowerCase();
-        valB = (b[sortCol] || '').toLowerCase();
+        valA = String(a[sortCol] || '').toLowerCase();
+        valB = String(b[sortCol] || '').toLowerCase();
       }
       
       if (valA < valB) return -1 * sortAsc;
@@ -4705,6 +4705,10 @@ function handleTableSort(table, col) {
     adminTableState[table].sortCol = col;
     adminTableState[table].sortAsc = true;
   }
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : 'emp-table-head');
+  var thead = document.getElementById(theadId);
+  if (thead) thead.innerHTML = ''; // Force header re-render to update sort arrows
+  
   if (table === 'doctors') renderAdminDocList(1);
   else if (table === 'chemists') renderAdminChemistList(1);
   else if (table === 'employees') renderEmpTable();
@@ -4712,6 +4716,7 @@ function handleTableSort(table, col) {
 
 function handleTableFilter(table, col, val) {
   adminTableState[table].filters[col] = val.trim().toLowerCase();
+  // We do NOT clear the thead here, so the input doesn't lose focus
   if (table === 'doctors') renderAdminDocList(1);
   else if (table === 'chemists') renderAdminChemistList(1);
   else if (table === 'employees') renderEmpTable();
@@ -4726,8 +4731,9 @@ function renderSortHead(table, col, label) {
 }
 
 function renderFilterInput(table, col) {
-  var val = adminTableState[table].filters[col] || '';
-  return '<div style="margin-top:4px"><input type="text" class="tbl-filter" placeholder="Filter..." value="'+val+'" oninput="handleTableFilter(\''+table+'\', \''+col+'\', this.value)" style="width:100%;box-sizing:border-box;padding:2px 4px;font-size:11px;border:1px solid #ccc;border-radius:2px;background:#fff;font-weight:normal"></div>';
+  // We no longer strictly enforce the lowercase value back into the input HTML
+  // to avoid confusing the user with lowercase letters when they type uppercase
+  return '<div style="margin-top:4px"><input type="text" class="tbl-filter" placeholder="Filter..." oninput="handleTableFilter(\''+table+'\', \''+col+'\', this.value)" style="width:100%;box-sizing:border-box;padding:2px 4px;font-size:11px;border:1px solid #ccc;border-radius:2px;background:#fff;font-weight:normal"></div>';
 }
 
 var currentDocPage = 1; var docsPerPage = 50;
@@ -4737,7 +4743,7 @@ function renderAdminDocList(page = 1) {
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   
   var thead = document.getElementById('doc-table-head');
-  if (thead) {
+  if (thead && !thead.innerHTML.includes('<th')) {
     thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-docs" class="admin-only" onclick="toggleSelectAllDocs(this)"></th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'code', 'Code') + renderFilterInput('doctors', 'code') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'name', 'Name') + renderFilterInput('doctors', 'name') + '</th>' +
@@ -4773,8 +4779,8 @@ function renderAdminDocList(page = 1) {
   if (sortCol) {
     var sortAsc = adminTableState.doctors.sortAsc ? 1 : -1;
     docs = docs.slice().sort(function(a, b) {
-      var valA = (a[sortCol] || '').toLowerCase();
-      var valB = (b[sortCol] || '').toLowerCase();
+      var valA = String(a[sortCol] || '').toLowerCase();
+      var valB = String(b[sortCol] || '').toLowerCase();
       if (valA < valB) return -1 * sortAsc;
       if (valA > valB) return 1 * sortAsc;
       return 0;
@@ -5015,7 +5021,7 @@ function renderAdminChemistList(page = 1) {
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   
   var thead = document.getElementById('chem-table-head');
-  if (thead) {
+  if (thead && !thead.innerHTML.includes('<th')) {
     thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-chems" class="admin-only" onclick="toggleSelectAllChems(this)"></th>' +
       '<th style="vertical-align:top">' + renderSortHead('chemists', 'id', 'Chemist ID') + renderFilterInput('chemists', 'id') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('chemists', 'name', 'Name') + renderFilterInput('chemists', 'name') + '</th>' +
@@ -5045,8 +5051,8 @@ function renderAdminChemistList(page = 1) {
   if (sortCol) {
     var sortAsc = adminTableState.chemists.sortAsc ? 1 : -1;
     chems = chems.slice().sort(function(a, b) {
-      var valA = (a[sortCol] || '').toLowerCase();
-      var valB = (b[sortCol] || '').toLowerCase();
+      var valA = String(a[sortCol] || '').toLowerCase();
+      var valB = String(b[sortCol] || '').toLowerCase();
       if (valA < valB) return -1 * sortAsc;
       if (valA > valB) return 1 * sortAsc;
       return 0;

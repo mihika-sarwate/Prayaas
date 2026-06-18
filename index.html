@@ -1496,6 +1496,8 @@ async function initSupabaseData(isSilent) {
       holidays: holidays
     };
     
+    hasInitializedData = true;
+
     // Save synchronized DB to local storage cache
     localStorage.setItem('adonis_db', JSON.stringify(DB));
     
@@ -1731,6 +1733,7 @@ function saveDB() {
 
 var isSyncing = false;
 var syncPending = false;
+var hasInitializedData = false;
 window.addEventListener('beforeunload', function (e) {
   if (isSyncing) {
     e.preventDefault();
@@ -1739,6 +1742,7 @@ window.addEventListener('beforeunload', function (e) {
 });
 
   async function syncSupabaseDatabase() {
+    if (!useSupabase || !hasInitializedData) return;
     if (isSyncing) {
       syncPending = true;
       return;

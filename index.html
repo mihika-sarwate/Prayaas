@@ -1165,7 +1165,7 @@ function buildEmployeeSupabaseRow(emp, includeDesignation) {
     leaves: emp.leaves
   };
   if (includeDesignation !== false) {
-    row.designation = (emp.designation || '').trim() || getDefaultEmployeeDesignation(emp.role);
+    row.designation = typeof emp.designation !== 'undefined' ? emp.designation.trim() : getDefaultEmployeeDesignation(emp.role);
   }
   return row;
 }

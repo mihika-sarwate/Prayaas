@@ -1232,9 +1232,6 @@ function ensureSupabaseLoaded(callback) {
 ensureSupabaseLoaded();
 
 async function fetchAllFromSupabase(table, options) {
-  if (table === 'holidays' && getHolidayTableMissingFlag()) {
-    return [];
-  }
   let allData = [];
   let page = 0;
   const pageSize = 1000;
@@ -5080,7 +5077,6 @@ function uploadHolidays(inp){
     if (DB.holidays.length > 0) {
       setHolidayDeletionFlag(false);
     }
-    DB.holidays.sort(function(a,b){return a.date.localeCompare(b.date) || a.state.localeCompare(b.state);});
     saveDB();
     showToast(added+' holiday list records processed successfully!');
     renderHolidayTable();

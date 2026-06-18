@@ -1170,14 +1170,9 @@ function buildEmployeeSupabaseRow(emp, includeDesignation) {
   return row;
 }
 
-function rows {
-  return (rows || []).map(function(row) {
-    var copy = {};
-    Object.keys(row || {}).forEach(function(key) {
-      if (key !== 'designation') copy[key] = row[key];
-    });
-    return copy;
-  });
+function stripDesignationFromRows(rows) {
+  // We no longer strip designation so it can sync with Supabase
+  return rows;
 }
 
 async function upsertEmployeeRowsToSupabase(rows) {

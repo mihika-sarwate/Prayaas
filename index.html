@@ -641,7 +641,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
         <input type="text" id="adm-emp-search" placeholder="&#128269; Search employee master by name, ID, designation, role, HQ, or state..." oninput="renderEmpTable()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-emps" class="admin-only" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Designation</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="check-all-emps" class="admin-only" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Territory</th><th>Designation</th><th>Role</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="emp-table-body"></tbody>
           </table>
         </div>
@@ -1146,7 +1146,7 @@ function normalizeEmployeeStatus(status) {
 function normalizeEmployeeRecord(emp) {
   if (!emp) return emp;
   emp.role = (emp.role || 'emp').trim().toLowerCase();
-  emp.designation = (emp.designation || '').trim() || getDefaultEmployeeDesignation(emp.role);
+  emp.designation = (typeof emp.designation === 'undefined') ? getDefaultEmployeeDesignation(emp.role) : emp.designation.trim();
   emp.status = normalizeEmployeeStatus(emp.status);
   return emp;
 }
@@ -4285,7 +4285,7 @@ function renderEmpTable(){
       if (!e) return '';
       var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
       var roleName = (e.role || 'emp').toUpperCase();
-      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.designation || getDefaultEmployeeDesignation(e.role))+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
     }).join('');
   } catch (err) {
     console.error("Error rendering employee table:", err);
@@ -4307,7 +4307,7 @@ function openEmployeeStatusModal(empId) {
     '<div class="info-box">',
       '<strong>' + (emp.name || emp.id) + '</strong><br>',
       'ID: ' + (emp.id || '-') + '<br>',
-      'Designation: ' + (emp.designation || getDefaultEmployeeDesignation(emp.role)) + '<br>',
+      'Designation: ' + (typeof emp.designation !== "undefined" ? emp.designation : getDefaultEmployeeDesignation(emp.role)) + '<br>',
       'Current Status: ' + normalizeEmployeeStatus(emp.status) + '<br>',
       'Reporting Manager: ' + (mgr && mgr.name ? mgr.name : 'None'),
     '</div>',

@@ -4801,6 +4801,7 @@ function renderLeaveBalanceTable(){
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var emps=DB.employees.filter(function(e){
     if (!e || e.id==='ADMIN') return false;
+    if (!e.leaves) return false;
     if (teamIds && !teamIds.includes(e.id)) return false;
     if (!q) return true;
     var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;

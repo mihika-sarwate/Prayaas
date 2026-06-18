@@ -4131,7 +4131,7 @@ function addEmployee(){
     name:name,
     pwd:pwd,
     area:area,
-    designation:designation || getDefaultEmployeeDesignation(role),
+    designation:designation,
     role:role,
     managerId:mgr,
     doj:doj,
@@ -4184,7 +4184,7 @@ function uploadEmployees(inp){
         existing.name=cols[1];
         existing.pwd=pwd;
         existing.area=cols[3]||'';
-        existing.designation=designation || existing.designation || getDefaultEmployeeDesignation(role);
+        existing.designation=designation || existing.designation;
         existing.role=role;
         existing.managerId=cols[mgrIndex]||'';
         existing.doj=cols[dojIndex]||'';
@@ -4197,7 +4197,7 @@ function uploadEmployees(inp){
           name:cols[1],
           pwd:pwd,
           area:cols[3]||'',
-          designation:designation || getDefaultEmployeeDesignation(role),
+          designation:designation,
           role:role,
           managerId:cols[mgrIndex]||'',
           doj:cols[dojIndex]||'',

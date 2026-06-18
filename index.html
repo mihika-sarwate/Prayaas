@@ -539,7 +539,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
       <div id="adm-sfc-section" class="master-sub-sec">
         <div class="sec-hdr">&#128506; Fare &amp; Distance Master (SFC)</div>
         <div class="card">
-          <div class="info-box">Upload SFC CSV with columns: <strong>FromLocation, ToLocation, DistanceKM, TravelMode, FareAmount, DAAllowance, LodgingAllowance, OtherAllowance</strong></div>
+          <div class="info-box">Upload SFC CSV with columns: <strong>WorkingDays, EmpName, HQ, State, From, To, Category, Distance, Mode, Fare, DA, Total, Doctors, Business</strong></div>
           <div class="btn-row" style="margin-bottom:10px">
             <button class="btn sm success admin-only" onclick="downloadSFCTemplate()">&#8595; SFC Template</button>
             <button class="btn sm primary admin-only" onclick="document.getElementById('sfc-upload').click()">&#8593; Upload SFC CSV</button>
@@ -553,7 +553,32 @@ body:not(.is-admin) .admin-only { display: none !important; }
           <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
           <div class="tbl-wrap">
             <table class="tbl">
-              <thead><tr><th><input type="checkbox" id="check-all-sfc" class="admin-only" onclick="toggleSelectAllSFC(this)"></th><th>From</th><th>To</th><th>Distance</th><th>Mode</th><th>Fare</th><th>DA</th><th>Lodge</th><th>Actions</th></tr></thead>
+              <thead>
+                <tr>
+                  <th rowspan="3"><input type="checkbox" id="check-all-sfc" class="admin-only" onclick="toggleSelectAllSFC(this)"></th>
+                  <th rowspan="3">Working<br>Days</th>
+                  <th rowspan="3">Name of BE</th>
+                  <th rowspan="3">HQ</th>
+                  <th rowspan="3">State</th>
+                  <th colspan="2" style="text-align:center">TOWN</th>
+                  <th rowspan="3">HQ/<br>EX /OS</th>
+                  <th rowspan="3">DIST<br>(One<br>Way)</th>
+                  <th rowspan="3">MODE</th>
+                  <th rowspan="3">Up<br>&amp; Down<br>FARE</th>
+                  <th rowspan="3">DA</th>
+                  <th rowspan="3">TOTAL</th>
+                  <th rowspan="3">No. of<br>Doctors</th>
+                  <th rowspan="3">Expected<br>Business<br>/Month</th>
+                  <th rowspan="3">Actions</th>
+                </tr>
+                <tr>
+                  <th colspan="2" style="text-align:center; font-weight:normal">( Locality / Street / Town )</th>
+                </tr>
+                <tr>
+                  <th>FROM</th>
+                  <th>TO</th>
+                </tr>
+              </thead>
               <tbody id="sfc-table-body"></tbody>
             </table>
           </div>
@@ -1455,16 +1480,27 @@ async function initSupabaseData(isSilent) {
         remarks: lv.remarks
       })),
       cityRates: DEFAULT_DB.cityRates,
-      sfc: (sfc || []).map(s => ({
-        from: s.from_loc,
-        to: s.to_loc,
-        distance: s.distance,
-        mode: s.mode,
-        fare: s.fare,
-        da: s.da,
-        lodge: s.lodge,
-        other: s.other
-      })),
+      sfc: (sfc || []).map(s => {
+        let extra = {};
+        try { if (s.mode && s.mode.startsWith('{')) extra = JSON.parse(s.mode); } catch(e){}
+        return {
+          id: s.id,
+          from: s.from_loc,
+          to: s.to_loc,
+          distance: s.distance,
+          mode: extra.mode || s.mode,
+          fare: s.fare,
+          da: s.da,
+          workingDays: extra.workingDays || '',
+          empName: extra.empName || '',
+          hq: extra.hq || '',
+          state: extra.state || '',
+          category: extra.category || '',
+          total: extra.total || (s.fare + s.da),
+          doctors: extra.doctors || '',
+          business: extra.business || ''
+        };
+      }),
       samplesInventory: (samplesInv || []).map(s => ({
         id: s.id,
         prodName: s.prod_name,
@@ -1938,12 +1974,12 @@ window.addEventListener('beforeunload', function (e) {
       id: s.id || undefined,
       from_loc: s.from,
       to_loc: s.to,
-      distance: s.distance,
-      mode: s.mode,
-      fare: s.fare,
-      da: s.da,
-      lodge: s.lodge,
-      other: s.other || 0
+      distance: s.distance || 0,
+      mode: JSON.stringify({ mode: s.mode, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
+      fare: s.fare || 0,
+      da: s.da || 0,
+      lodge: 0,
+      other: 0
     }));
     await upsertInBatches('sfc', dbSfc);
     await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
@@ -3783,26 +3819,34 @@ function renderSFCTable(){
     if (!q) return true;
     var s = item.s || {};
     var haystack = [
-      s.from,
-      s.to,
-      s.mode,
-      s.distance,
-      s.fare,
-      s.da,
-      s.lodge,
-      s.other
+      s.workingDays, s.empName, s.hq, s.state, s.from, s.to, s.category, s.distance, s.mode, s.fare, s.da, s.total
     ].join(' ').toLowerCase();
     return haystack.indexOf(q) !== -1;
   });
   document.getElementById('sfc-count').textContent=filtered.length;
   var tbody=document.getElementById('sfc-table-body');
   if(!filtered.length){
-    tbody.innerHTML='<tr><td colspan="9" class="empty">'+(q ? 'No matching SFC records found' : 'No SFC records available')+'</td></tr>';
+    tbody.innerHTML='<tr><td colspan="16" class="empty">'+(q ? 'No matching SFC records found' : 'No SFC records available')+'</td></tr>';
     return;
   }
   tbody.innerHTML=filtered.map(function(item){
     var s = item.s || {};
-    return '<tr><td><input type="checkbox" class="sfc-row-check admin-only" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="sfc-row-check admin-only" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td>' +
+           '<td>'+(s.workingDays||'')+'</td>' +
+           '<td>'+(s.empName||'')+'</td>' +
+           '<td>'+(s.hq||'')+'</td>' +
+           '<td>'+(s.state||'')+'</td>' +
+           '<td>'+(s.from||'')+'</td>' +
+           '<td>'+(s.to||'')+'</td>' +
+           '<td>'+(s.category||'')+'</td>' +
+           '<td>'+(s.distance||0)+'</td>' +
+           '<td>'+(s.mode||'')+'</td>' +
+           '<td>&#x20B9;'+(s.fare||0)+'</td>' +
+           '<td>&#x20B9;'+(s.da||0)+'</td>' +
+           '<td>&#x20B9;'+(s.total||(s.fare+s.da))+'</td>' +
+           '<td>'+(s.doctors||'')+'</td>' +
+           '<td>'+(s.business||'')+'</td>' +
+           '<td><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-sfc');
@@ -3896,27 +3940,43 @@ function uploadSFC(inp){
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(p.length<8||!p[0]||!p[1])return;
+      if(p.length<6||!p[4]||!p[5])return;
       var existing = DB.sfc.find(function(s){
-        return s.from.toLowerCase() === p[0].toLowerCase() && s.to.toLowerCase() === p[1].toLowerCase();
+        return s.from.toLowerCase() === p[4].toLowerCase() && s.to.toLowerCase() === p[5].toLowerCase();
       });
+      var fare = parseFloat(p[9])||0;
+      var da = parseFloat(p[10])||0;
+      var total = parseFloat(p[11]) || (fare + da);
+
       if(existing){
-        existing.distance = parseInt(p[2])||0;
-        existing.mode = p[3];
-        existing.fare = parseFloat(p[4])||0;
-        existing.da = parseFloat(p[5])||0;
-        existing.lodge = parseFloat(p[6])||0;
-        existing.other = parseFloat(p[7])||0;
+        existing.workingDays = p[0]||'';
+        existing.empName = p[1]||'';
+        existing.hq = p[2]||'';
+        existing.state = p[3]||'';
+        existing.category = p[6]||'';
+        existing.distance = parseInt(p[7])||0;
+        existing.mode = p[8]||'';
+        existing.fare = fare;
+        existing.da = da;
+        existing.total = total;
+        existing.doctors = p[12]||'';
+        existing.business = p[13]||'';
       } else {
         DB.sfc.push({
-          from: p[0],
-          to: p[1],
-          distance: parseInt(p[2])||0,
-          mode: p[3],
-          fare: parseFloat(p[4])||0,
-          da: parseFloat(p[5])||0,
-          lodge: parseFloat(p[6])||0,
-          other: parseFloat(p[7])||0
+          workingDays: p[0]||'',
+          empName: p[1]||'',
+          hq: p[2]||'',
+          state: p[3]||'',
+          from: p[4]||'',
+          to: p[5]||'',
+          category: p[6]||'',
+          distance: parseInt(p[7])||0,
+          mode: p[8]||'',
+          fare: fare,
+          da: da,
+          total: total,
+          doctors: p[12]||'',
+          business: p[13]||''
         });
       }
       added++;

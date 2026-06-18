@@ -3870,6 +3870,16 @@ function renderSFCTable(){
     ].join(' ').toLowerCase();
     return haystack.indexOf(q) !== -1;
   });
+  filtered.sort(function(a,b) {
+
+    var sA = a.s || {};
+
+    var sB = b.s || {};
+
+    return (sA.empName || '').localeCompare(sB.empName || '', undefined, {numeric: true, sensitivity: 'base'});
+
+  });
+
   document.getElementById('sfc-count').textContent=filtered.length;
   var tbody=document.getElementById('sfc-table-body');
   if(!filtered.length){
@@ -4256,13 +4266,9 @@ function renderEmpTable(){
     return haystack.indexOf(q) !== -1;
   });
   
-  // Sort by Hierarchy then Name
-  var roleOrder = {'admin':1, 'nsm':2, 'zm':3, 'rm':4, 'am':5, 'manager':6, 'emp':7};
+  // Sort by Employee ID naturally
   emps.sort(function(a,b) {
-    var wa = roleOrder[a.role] || 99;
-    var wb = roleOrder[b.role] || 99;
-    if (wa !== wb) return wa - wb;
-    return (a.name || '').localeCompare(b.name || '');
+    return (a.id || '').localeCompare(b.id || '', undefined, {numeric: true, sensitivity: 'base'});
   });
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;
@@ -4572,6 +4578,12 @@ function renderAdminDocList(page = 1) {
     if (teamIds && !teamIds.includes(d.assignTo)) return false;
     return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);
   });
+  docs.sort(function(a,b) {
+
+    return (a.id || '').localeCompare(b.id || '', undefined, {numeric: true, sensitivity: 'base'});
+
+  });
+
   var countEl = document.getElementById('doc-count');
   if (countEl) countEl.textContent = docs.length;
   var totalPages = Math.ceil(docs.length / docsPerPage);
@@ -4799,6 +4811,12 @@ function renderAdminChemistList(page = 1) {
     if (teamIds && !teamIds.includes(c.assignTo)) return false;
     return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);
   });
+  chems.sort(function(a,b) {
+
+    return (a.id || '').localeCompare(b.id || '', undefined, {numeric: true, sensitivity: 'base'});
+
+  });
+
   var countEl = document.getElementById('chem-count');
   if (countEl) countEl.textContent = chems.length;
   var totalPages = Math.ceil(chems.length / chemsPerPage);

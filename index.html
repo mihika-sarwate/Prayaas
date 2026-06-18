@@ -1379,7 +1379,7 @@ async function initSupabaseData(isSilent) {
           doj: e.doj || '',
           state: e.state || '',
           status: e.status || 'Active',
-          designation: typeof cloudDesig !== 'undefined' && cloudDesig !== null ? cloudDesig : (typeof localDesig !== 'undefined' ? localDesig : getDefaultEmployeeDesignation(safeRole)),
+          designation: (typeof cloudDesig !== 'undefined' && cloudDesig !== null && cloudDesig !== '') ? cloudDesig : (typeof localDesig !== 'undefined' && localDesig !== '' ? localDesig : ''),
           leaves: e.leaves
         };
       }),

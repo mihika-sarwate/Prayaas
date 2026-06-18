@@ -4401,11 +4401,7 @@ function renderEmpTable(){
     
     // Global search
     if (q) {
-      var haystack = [
-        e.id, e.name, e.pwd, e.role, e.designation, e.area, e.state,
-        normalizeEmployeeStatus(e.status), mgrName, mgr ? mgr.id : ''
-      ].join(' ').toLowerCase();
-      if (haystack.indexOf(q) === -1) return false;
+      if (!(e.name || '').toLowerCase().includes(q)) return false;
     }
     
     // Column filters
@@ -4968,7 +4964,7 @@ function renderAdminDocList(page = 1) {
     if (teamIds && !teamIds.includes(d.assignTo)) return false;
     
     // Global search
-    if (q && !((d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q))) return false;
+    if (q && !((d.name||"").toLowerCase().includes(q))) return false;
     
     // Column filters
     var cols = ['code', 'name', 'spec', 'area', 'phone', 'assignTo', 'status'];
@@ -5244,7 +5240,7 @@ function renderAdminChemistList(page = 1) {
     if (teamIds && !teamIds.includes(c.assignTo)) return false;
     
     // Global search
-    if (q && !((c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q))) return false;
+    if (q && !((c.name||"").toLowerCase().includes(q))) return false;
     
     // Column filters
     var cols = ['id', 'name', 'area', 'assignTo'];
@@ -5384,19 +5380,7 @@ function renderLeaveBalanceTable(){
     if (!e.leaves || Object.keys(e.leaves).length === 0) return false;
     if (teamIds && !teamIds.includes(e.id)) return false;
     if (!q) return true;
-    var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
-    var haystack = [
-      e.id,
-      e.name,
-      e.designation,
-      e.role,
-      e.area,
-      e.state,
-      e.doj,
-      mgr && mgr.name ? mgr.name : '',
-      mgr && mgr.id ? mgr.id : ''
-    ].join(' ').toLowerCase();
-    return haystack.indexOf(q) !== -1;
+    return (e.name || '').toLowerCase().includes(q);
   });
   var countEl = document.getElementById('leave-bal-count');
   if (countEl) countEl.textContent = emps.length;

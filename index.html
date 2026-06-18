@@ -3626,6 +3626,9 @@ function toggleDocChemistSubtab(type){
 
 var currentTab = 'home';
 function goTab(name){
+  if (currentTab === name && document.getElementById('tab-' + name) && document.getElementById('tab-' + name).style.display === 'block') {
+    return; // Already on this tab, don't wipe state
+  }
   currentTab = name;
   ['home','report','tour','expense','leave','doctors'].forEach(function(t){
     var el=document.getElementById('tab-'+t);

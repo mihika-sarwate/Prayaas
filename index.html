@@ -1262,6 +1262,19 @@ async function fetchAllFromSupabase(table, options) {
   }
   return allData;
 }
+
+async function upsertInBatches(table, dataArray, chunkSize = 200) {
+  if (!dataArray || dataArray.length === 0) return;
+  for (let i = 0; i < dataArray.length; i += chunkSize) {
+    const chunk = dataArray.slice(i, i + chunkSize);
+    const { error } = await supabase.from(table).upsert(chunk);
+    if (error) {
+      console.error("Batch upsert failed on table " + table + ":", error);
+    }
+  }
+}
+
+async function initSupabaseData(isSilent) {
   if (!supabase) {
     ensureSupabaseLoaded(function() {
       if (supabase) {

@@ -1702,11 +1702,15 @@ async function seedSupabaseDatabase() {
 }
 
 function saveDB() {
-  localStorage.setItem('adonis_db', JSON.stringify(DB));
-  if (useSupabase) {
-    syncSupabaseDatabase();
+    try {
+      localStorage.setItem('adonis_db', JSON.stringify(DB));
+    } catch (e) {
+      console.warn("localStorage quota exceeded. Skipping local save to ensure Supabase sync runs.");
+    }
+    if (useSupabase) {
+      syncSupabaseDatabase();
+    }
   }
-}
 
 async function syncSupabaseDatabase() {
   try {

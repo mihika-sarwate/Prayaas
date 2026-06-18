@@ -2038,6 +2038,11 @@ window.addEventListener('beforeunload', function (e) {
       next_visit: formatDateForPostgres(r.nextVisit)
     }));
     await upsertInBatches('reports', dbReports);
+    await reconcileSupabaseRows('reports', DB.reports, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('reports').delete().eq('id', row.id);
+    });
 
     const dbTourPlans = DB.tourPlans.map(tp => ({
       id: tp.id,
@@ -2055,6 +2060,11 @@ window.addEventListener('beforeunload', function (e) {
       revision_history: tp.revisionHistory || []
     }));
     await upsertInBatches('tour_plans', dbTourPlans);
+    await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('tour_plans').delete().eq('id', row.id);
+    });
 
     const dbExpenses = DB.expenses.map(ex => ({
       id: ex.id,
@@ -2070,6 +2080,11 @@ window.addEventListener('beforeunload', function (e) {
       remarks: ex.remarks || null
     }));
     await upsertInBatches('expenses', dbExpenses);
+    await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('expenses').delete().eq('id', row.id);
+    });
 
     const dbLeaves = DB.leaves.map(lv => ({
       id: lv.id,
@@ -2086,6 +2101,11 @@ window.addEventListener('beforeunload', function (e) {
       remarks: lv.remarks || null
     }));
     await upsertInBatches('leaves', dbLeaves);
+    await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('leaves').delete().eq('id', row.id);
+    });
 
     const dbSamples = DB.samplesInventory.map(s => ({
       id: s.id || undefined,

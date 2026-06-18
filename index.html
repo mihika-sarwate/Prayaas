@@ -4185,7 +4185,7 @@ function uploadEmployees(inp){
         existing.name=cols[1];
         existing.pwd=pwd;
         existing.area=cols[3]||'';
-        existing.designation=designation || existing.designation;
+        existing.designation = typeof cols[4] !== 'undefined' ? cols[4].trim() : existing.designation;
         existing.role=role;
         existing.managerId=cols[mgrIndex]||'';
         existing.doj=cols[dojIndex]||'';
@@ -4235,7 +4235,7 @@ function downloadEmpTemplate(){
         e.name || '',
         e.pwd || '',
         e.area || '',
-        e.designation || getDefaultEmployeeDesignation(e.role),
+        typeof e.designation !== 'undefined' ? e.designation : getDefaultEmployeeDesignation(e.role),
         e.role || '',
         e.managerId || '',
         e.doj || '',
@@ -4965,7 +4965,7 @@ function renderLeaveBalanceTable(){
     var pl_bal = pl - pl_used;
     var lop_bal = lop - lop_used;
 
-    var desig = e.designation || getDefaultEmployeeDesignation(e.role);
+    var desig = typeof e.designation !== 'undefined' ? e.designation : getDefaultEmployeeDesignation(e.role);
     var hq = e.area || 'HQ';
     var joinDate = e.doj || '01-Jan-2023';
 

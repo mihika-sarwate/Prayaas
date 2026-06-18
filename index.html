@@ -1270,8 +1270,9 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
     const chunk = dataArray.slice(i, i + chunkSize);
     const { error } = await supabase.from(table).upsert(chunk);
     if (error) {
-      console.error("Batch upsert failed on table " + table + ":", error);
-    }
+        console.error("Batch upsert failed on table " + table + ":", error);
+        throw error;
+      }
   }
 }
 
@@ -1712,8 +1713,11 @@ function saveDB() {
     }
   }
 
-async function syncSupabaseDatabase() {
-  try {
+var isSyncing = false;
+  async function syncSupabaseDatabase() {
+    if (isSyncing) return;
+    isSyncing = true;
+    try {
     const dbEmps = DB.employees.map(function(e) {
       var managerId = e.managerId || null;
       if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
@@ -1940,18 +1944,20 @@ async function syncSupabaseDatabase() {
     }
 
   } catch (err) {
-    console.error("Supabase sync failed:", err);
+      console.error("Supabase sync failed:", err);
+    } finally {
+      isSyncing = false;
+    }
   }
-}
 
 initSupabaseData();
 
 // Poll Supabase database for updates every 15 seconds if Supabase is connected
 setInterval(async function() {
-  if (useSupabase) {
-    console.log("Auto-polling Supabase data...");
-    await initSupabaseData(true);
-  }
+  if (useSupabase && !isSyncing) {
+      console.log("Auto-polling Supabase data...");
+      await initSupabaseData(true);
+    }
 }, 15000);
 
 var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};

@@ -299,8 +299,8 @@ body:not(.is-admin) .admin-only { display: none !important; }
 
     <!-- Joint Field Work (JFW) Accompainment -->
     <div class="card">
-      <div class="card-title">&#129309; Joint Field Work Accompaniment</div>
-      <div class="fw"><label class="lbl">Accompanied By Manager</label>
+      <div class="card-title">&#129309; Joint Field Work</div>
+      <div class="fw"><label class="lbl">Worked With (Hierarchy)</label>
         <select id="r-jfw-manager"><option value="">-- Working Alone --</option></select>
       </div>
     </div>
@@ -2216,8 +2216,9 @@ function populateJFWManagers(){
   var jfwSel=document.getElementById('r-jfw-manager');
   jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
   
-  // Pull hierarchy automatically
   var chain=[];
+  
+  // Upward chain
   var currentId=SESSION.user.managerId;
   while(currentId){
     var mgr=DB.employees.find(function(e){return e.id===currentId;});
@@ -2228,8 +2229,30 @@ function populateJFWManagers(){
       break;
     }
   }
+
+  // Downward chain
+  function getSubordinates(mgrId) {
+    var subs = DB.employees.filter(function(e){return e.managerId===mgrId;});
+    var allSubs = [].concat(subs);
+    subs.forEach(function(s) {
+      allSubs = allSubs.concat(getSubordinates(s.id));
+    });
+    return allSubs;
+  }
   
-  chain.forEach(function(m){
+  var downChain = getSubordinates(SESSION.user.id);
+  chain = chain.concat(downChain);
+
+  var uniqueChain = [];
+  var seenIds = {};
+  chain.forEach(function(c) {
+    if(!seenIds[c.id]) {
+      seenIds[c.id] = true;
+      uniqueChain.push(c);
+    }
+  });
+
+  uniqueChain.forEach(function(m){
     var o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.role.toUpperCase()+')';jfwSel.appendChild(o);
   });
 }

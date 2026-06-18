@@ -157,6 +157,7 @@ table.tbl tr:last-child td{border-bottom:none}
 .password-container{position:relative;width:100%}
 .password-toggle-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;user-select:none;padding:4px}
 .password-toggle-btn:hover{color:var(--primary)}
+body:not(.is-admin) .admin-only { display: none !important; }
 </style>
 </head>
 <body>
@@ -540,11 +541,11 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card">
           <div class="info-box">Upload SFC CSV with columns: <strong>FromLocation, ToLocation, DistanceKM, TravelMode, FareAmount, DAAllowance, LodgingAllowance, OtherAllowance</strong></div>
           <div class="btn-row" style="margin-bottom:10px">
-            <button class="btn sm success" onclick="downloadSFCTemplate()">&#8595; SFC Template</button>
-            <button class="btn sm primary" onclick="document.getElementById('sfc-upload').click()">&#8593; Upload SFC CSV</button>
+            <button class="btn sm success admin-only" onclick="downloadSFCTemplate()">&#8595; SFC Template</button>
+            <button class="btn sm primary admin-only" onclick="document.getElementById('sfc-upload').click()">&#8593; Upload SFC CSV</button>
             <input type="file" id="sfc-upload" accept=".csv" onchange="uploadSFC(this)" style="display:none">
-            <button class="btn sm danger" onclick="bulkDeleteAllSFC()">&#128465; Delete All</button>
-            <button class="btn sm danger" id="btn-bulk-delete-selected-sfc" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
+            <button class="btn sm danger admin-only" onclick="bulkDeleteAllSFC()">&#128465; Delete All</button>
+            <button class="btn sm danger" id="btn-bulk-delete-selected-sfc" class="btn sm danger admin-only" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
           </div>
           <input type="text" id="adm-sfc-search" placeholder="&#128269; Search SFC by from, to, mode, or fare..." oninput="renderSFCTable()" style="margin-bottom:10px;background:#F1F5F9">
         </div>
@@ -552,7 +553,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
           <div class="tbl-wrap">
             <table class="tbl">
-              <thead><tr><th><input type="checkbox" id="check-all-sfc" onclick="toggleSelectAllSFC(this)"></th><th>From</th><th>To</th><th>Distance</th><th>Mode</th><th>Fare</th><th>DA</th><th>Lodge</th><th>Actions</th></tr></thead>
+              <thead><tr><th><input type="checkbox" id="check-all-sfc" class="admin-only" onclick="toggleSelectAllSFC(this)"></th><th>From</th><th>To</th><th>Distance</th><th>Mode</th><th>Fare</th><th>DA</th><th>Lodge</th><th>Actions</th></tr></thead>
               <tbody id="sfc-table-body"></tbody>
             </table>
           </div>
@@ -595,17 +596,17 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">State</label><input type="text" id="adm-emp-state" placeholder="State"></div>
           <div></div>
         </div>
-        <button class="btn primary sm" onclick="addEmployee()">+ Save Employee Record</button>
+        <button class="btn primary sm admin-only" onclick="addEmployee()">+ Save Employee Record</button>
       </div>
       <div class="card">
         <div class="card-title">Bulk Import Employees</div>
         <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Designation, Role, ManagerID, DOJ, State, Status</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
+          <button class="btn sm primary admin-only" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
           <input type="file" id="emp-upload" accept=".csv" onchange="uploadEmployees(this)" style="display:none">
-          <button class="btn sm danger" onclick="bulkDeleteAllEmployees()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-emps" onclick="bulkDeleteSelectedEmployees()" style="display:none">&#128465; Delete Selected (0)</button>
+          <button class="btn sm danger admin-only" onclick="bulkDeleteAllEmployees()">&#128465; Delete All</button>
+          <button class="btn sm danger" id="btn-bulk-delete-selected-emps" class="btn sm danger admin-only" onclick="bulkDeleteSelectedEmployees()" style="display:none">&#128465; Delete Selected (0)</button>
         </div>
       </div>
       <div class="card">
@@ -613,7 +614,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <input type="text" id="adm-emp-search" placeholder="&#128269; Search employee master by name, ID, designation, role, HQ, or state..." oninput="renderEmpTable()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-emps" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Designation</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="check-all-emps" class="admin-only" onclick="toggleSelectAllEmps(this)"></th><th>ID</th><th>Name</th><th>Password</th><th>Role</th><th>Designation</th><th>Territory</th><th>Reporting Manager</th><th>DOJ</th><th>State</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="emp-table-body"></tbody>
           </table>
         </div>
@@ -627,19 +628,19 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="info-box">Upload Doctor CSV. Columns: <strong>DoctorCode, Name, Speciality, Qualification, Address, City, Area, Mobile, AssignToEmpID, Status</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadDocTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary" onclick="document.getElementById('doc-upload').click()">&#8593; Upload Doctor CSV</button>
+          <button class="btn sm primary admin-only" onclick="document.getElementById('doc-upload').click()">&#8593; Upload Doctor CSV</button>
           <input type="file" id="doc-upload" accept=".csv" onchange="uploadDoctors(this)" style="display:none">
-          <button class="btn sm danger" onclick="bulkDeleteAllDoctors()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-docs" onclick="bulkDeleteSelectedDoctors()" style="display:none">&#128465; Delete Selected (0)</button>
+          <button class="btn sm danger admin-only" onclick="bulkDeleteAllDoctors()">&#128465; Delete All</button>
+          <button class="btn sm danger" id="btn-bulk-delete-selected-docs" class="btn sm danger admin-only" onclick="bulkDeleteSelectedDoctors()" style="display:none">&#128465; Delete Selected (0)</button>
         </div>
-        <button class="btn sm" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
+        <button class="btn sm admin-only" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
       </div>
       <div class="card">
         <div class="card-title">Doctor Registry (<span id="doc-count">0</span> records)</div>
         <input type="text" id="adm-doc-search" placeholder="&#128269; Search doctor master registry..." oninput="renderAdminDocList()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-docs" onclick="toggleSelectAllDocs(this)"></th><th>Code</th><th>Name</th><th>Speciality</th><th>Area</th><th>Mobile</th><th>Assigned MR</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="check-all-docs" class="admin-only" onclick="toggleSelectAllDocs(this)"></th><th>Code</th><th>Name</th><th>Speciality</th><th>Area</th><th>Mobile</th><th>Assigned MR</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="doc-table-body"></tbody>
           </table><div id="doc-pagination" style="margin-top:10px;text-align:right;"></div></div></div></div>
 
@@ -650,19 +651,19 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="info-box">Upload Chemist CSV. Columns: <strong>ChemistID, Name, Area, AssignToEmpID</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadChemTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary" onclick="document.getElementById('chem-upload').click()">&#8593; Upload Chemist CSV</button>
+          <button class="btn sm primary admin-only" onclick="document.getElementById('chem-upload').click()">&#8593; Upload Chemist CSV</button>
           <input type="file" id="chem-upload" accept=".csv" onchange="uploadChemists(this)" style="display:none">
-          <button class="btn sm danger" onclick="bulkDeleteAllChemists()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-chems" onclick="bulkDeleteSelectedChemists()" style="display:none">&#128465; Delete Selected (0)</button>
+          <button class="btn sm danger admin-only" onclick="bulkDeleteAllChemists()">&#128465; Delete All</button>
+          <button class="btn sm danger" id="btn-bulk-delete-selected-chems" class="btn sm danger admin-only" onclick="bulkDeleteSelectedChemists()" style="display:none">&#128465; Delete Selected (0)</button>
         </div>
-        <button class="btn sm" onclick="addChemistManual()">+ Add Single Chemist Manual</button>
+        <button class="btn sm admin-only" onclick="addChemistManual()">+ Add Single Chemist Manual</button>
       </div>
       <div class="card">
         <div class="card-title">Chemist Registry (<span id="chem-count">0</span> records)</div>
         <input type="text" id="adm-chem-search" placeholder="&#128269; Search chemist master registry..." oninput="renderAdminChemistList()" style="margin-bottom:10px;background:#F1F5F9">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-chems" onclick="toggleSelectAllChems(this)"></th><th>Chemist ID</th><th>Name</th><th>Area</th><th>Assigned MR</th><th>Actions</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="check-all-chems" class="admin-only" onclick="toggleSelectAllChems(this)"></th><th>Chemist ID</th><th>Name</th><th>Area</th><th>Assigned MR</th><th>Actions</th></tr></thead>
             <tbody id="chem-table-body"></tbody>
           </table>
         </div>
@@ -676,7 +677,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="info-box">Upload Leave Balance CSV. Ensure format matches the downloaded template exactly.</div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadLeaveBalanceData()">&#8595; Download Leave Balance</button>
-          <button class="btn sm primary" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload Leave Balance CSV</button>
+          <button class="btn sm primary admin-only" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload Leave Balance CSV</button>
           <input type="file" id="leave-bal-upload" accept=".csv" onchange="uploadLeaveBalances(this)" style="display:none">
         </div>
       </div>
@@ -699,9 +700,9 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="info-box">Upload Holiday List CSV. Columns: <strong>Date (YYYY-MM-DD), HolidayName, State</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadHolidayList()">&#8595; Download Holiday List</button>
-          <button class="btn sm primary" onclick="document.getElementById('holiday-upload').click()">&#8593; Upload Holiday CSV</button>
+          <button class="btn sm primary admin-only" onclick="document.getElementById('holiday-upload').click()">&#8593; Upload Holiday CSV</button>
           <input type="file" id="holiday-upload" accept=".csv" onchange="uploadHolidays(this)" style="display:none">
-          <button class="btn sm danger" onclick="clearAllHolidays()">&#128465; Delete All</button>
+          <button class="btn sm danger admin-only" onclick="clearAllHolidays()">&#128465; Delete All</button>
         </div>
       </div>
       <div class="card">
@@ -730,7 +731,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">Item Name</label><select id="inv-issue-item"></select></div>
           <div><label class="lbl">Quantity to Issue</label><input type="number" id="inv-issue-qty" min="1" placeholder="Qty"></div>
         </div>
-        <button class="btn success sm" onclick="issueStockToMR()">Issue / Allocate Stock</button>
+        <button class="btn success sm admin-only" onclick="issueStockToMR()">Issue / Allocate Stock</button>
       </div>
 
       <div class="sec-hdr">&#128196; Employee Inventory Registers</div>
@@ -3429,6 +3430,7 @@ function goMasterSubTab(id) {
 }
 
 function initAdminApp(){
+  document.body.classList.toggle('is-admin', SESSION.user.role === 'admin');
   renderAdminStats();
   renderAdminDashTeamList();
   renderAdminTPApprovals();
@@ -3750,7 +3752,7 @@ function renderSFCTable(){
   }
   tbody.innerHTML=filtered.map(function(item){
     var s = item.s || {};
-    return '<tr><td><input type="checkbox" class="sfc-row-check" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="sfc-row-check admin-only" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-sfc');
@@ -4119,7 +4121,7 @@ function renderEmpTable(){
       if (!e) return '';
       var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
       var roleName = (e.role || 'emp').toUpperCase();
-      return '<tr><td><input type="checkbox" class="emp-row-check" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.designation || getDefaultEmployeeDesignation(e.role))+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.designation || getDefaultEmployeeDesignation(e.role))+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
     }).join('');
   } catch (err) {
     console.error("Error rendering employee table:", err);
@@ -4423,7 +4425,7 @@ function renderAdminDocList(page = 1) {
   
   tbody.innerHTML=pagedDocs.map(function(d){
     var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
-    return '<tr><td><input type="checkbox" class="doc-row-check" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-docs');
@@ -4650,7 +4652,7 @@ function renderAdminChemistList(page = 1) {
   
   tbody.innerHTML=pagedChems.map(function(c){
     var emp=DB.employees.find(function(e){return e.id===c.assignTo;});
-    return '<tr><td><input type="checkbox" class="chem-row-check" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="chem-row-check admin-only" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-chems');
@@ -4950,7 +4952,7 @@ function renderHolidayTable(){
   }
   tbody.innerHTML=filtered.map(function(item){
     var h = item.h;
-    return '<tr><td>'+h.date+'</td><td class="tbl-name">'+h.name+'</td><td>'+(h.state || 'All')+'</td><td><button class="btn sm danger" onclick="removeHoliday('+item.index+')">Delete</button></td></tr>';
+    return '<tr><td>'+h.date+'</td><td class="tbl-name">'+h.name+'</td><td>'+(h.state || 'All')+'</td><td><button class="btn sm danger admin-only" onclick="removeHoliday('+item.index+')">Delete</button></td></tr>';
   }).join('');
 }
 

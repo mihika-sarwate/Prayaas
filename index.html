@@ -1262,20 +1262,6 @@ async function fetchAllFromSupabase(table, options) {
   }
   return allData;
 }
-
-async function upsertInBatches(table, dataArray, chunkSize = 200) {
-  if (!dataArray || dataArray.length === 0) return;
-  for (let i = 0; i < dataArray.length; i += chunkSize) {
-    const chunk = dataArray.slice(i, i + chunkSize);
-    const { error } = await supabase.from(table).upsert(chunk);
-    if (error) {
-      console.error("Batch upsert failed on table " + table + ":", error);
-      throw error;
-    }
-  }
-}
-
-async function initSupabaseData(isSilent) {
   if (!supabase) {
     ensureSupabaseLoaded(function() {
       if (supabase) {
@@ -2182,6 +2168,21 @@ function renderPlannedTargetsForReport(plannedDay){
     '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor or chemist as an unplanned call.</div></div>';
 }
 
+
+function getAllSubordinateIds(managerId) {
+  let subIds = new Set();
+  let toCheck = [managerId];
+  while (toCheck.length > 0) {
+    let currentId = toCheck.pop();
+    subIds.add(currentId);
+    DB.employees.forEach(emp => {
+      if (emp.managerId === currentId && !subIds.has(emp.id)) {
+        toCheck.push(emp.id);
+      }
+    });
+  }
+  return Array.from(subIds);
+}
 
 function resolveManagerId(rawMgr) {
   if (!rawMgr) return null;
@@ -3824,7 +3825,7 @@ function uploadSFC(inp){
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && lines[0].toLowerCase().indexOf('from') !== -1;
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
-      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      var p=parseCSVLine(line);
       if(p.length<8||!p[0]||!p[1])return;
       var existing = DB.sfc.find(function(s){
         return s.from.toLowerCase() === p[0].toLowerCase() && s.to.toLowerCase() === p[1].toLowerCase();
@@ -3970,7 +3971,7 @@ function uploadEmployees(inp){
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
-      var cols=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      var cols=parseCSVLine(line);
       if(!cols[0]||!cols[1])return;
       var pwd = cols[2] || 'pass123';
       var designation = '';
@@ -4312,7 +4313,7 @@ function uploadDoctors(inp){
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('code') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
-      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      var p=parseCSVLine(line);
       if(!p[0]||!p[1])return;
       var existing = DB.doctors.find(function(d){ return d.code === p[0]; });
       if(existing){
@@ -4386,7 +4387,11 @@ var currentDocPage = 1; var docsPerPage = 50;
 function renderAdminDocList(page = 1) {
   currentDocPage = page;
   var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
-  var docs=DB.doctors.filter(function(d){return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);});
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  var docs=DB.doctors.filter(function(d){
+    if (teamIds && !teamIds.includes(d.assignTo)) return false;
+    return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);
+  });
   var countEl = document.getElementById('doc-count');
   if (countEl) countEl.textContent = docs.length;
   var totalPages = Math.ceil(docs.length / docsPerPage);
@@ -4554,7 +4559,7 @@ function uploadChemists(inp){
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
-      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      var p=parseCSVLine(line);
       if(!p[0]||!p[1])return;
       var existing = DB.chemists.find(function(c){ return c.id === p[0]; });
       if(existing){
@@ -4609,7 +4614,11 @@ var currentChemPage = 1; var chemsPerPage = 50;
 function renderAdminChemistList(page = 1) {
   currentChemPage = page;
   var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
-  var chems=DB.chemists.filter(function(c){return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);});
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  var chems=DB.chemists.filter(function(c){
+    if (teamIds && !teamIds.includes(c.assignTo)) return false;
+    return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);
+  });
   var countEl = document.getElementById('chem-count');
   if (countEl) countEl.textContent = chems.length;
   var totalPages = Math.ceil(chems.length / chemsPerPage);
@@ -4771,6 +4780,56 @@ function renderLeaveBalanceTable(){
   }).join('');
 }
 
+
+function toggleSelectAllLeaves(chk) {
+  document.querySelectorAll('.leave-row-check').forEach(function(c){ c.checked = chk.checked; });
+  updateSelectedLeavesCount();
+}
+
+function updateSelectedLeavesCount() {
+  var count = document.querySelectorAll('.leave-row-check:checked').length;
+  var btn = document.getElementById('btn-del-sel-leave');
+  var span = document.getElementById('sel-leave-count');
+  if(btn && span) {
+    if(count > 0) { btn.style.display='inline-block'; span.textContent=count; }
+    else { btn.style.display='none'; }
+  }
+}
+
+function deleteLeaveBalance(id) {
+  if(!confirm('Clear leave data for '+id+'?')) return;
+  var emp = DB.employees.find(function(e) { return e.id === id; });
+  if (emp) {
+    emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+    saveDB();
+    renderLeaveBalanceTable();
+    showToast('Leave data cleared for ' + id);
+  }
+}
+
+function deleteSelectedLeaves() {
+  var checked = document.querySelectorAll('.leave-row-check:checked');
+  if(checked.length === 0) return;
+  if(!confirm('Clear leave data for ' + checked.length + ' employees?')) return;
+  checked.forEach(function(c){
+    var emp = DB.employees.find(function(e) { return e.id === c.value; });
+    if (emp) emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+  });
+  saveDB();
+  renderLeaveBalanceTable();
+  showToast(checked.length + ' leave records cleared');
+}
+
+function deleteAllLeaves() {
+  if(!confirm('Are you sure you want to clear ALL leave records? This cannot be undone.')) return;
+  DB.employees.forEach(function(emp) {
+    emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+  });
+  saveDB();
+  renderLeaveBalanceTable();
+  showToast('All leave records cleared');
+}
+
 function downloadLeaveBalanceData(){
   var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
   var csv = ',,,,,,' + monthYear + ',,,,,,,,,,,\n';
@@ -4817,7 +4876,7 @@ function uploadLeaveBalances(inp){
     if(!lines.length)return;
     var updated=0;
     lines.forEach(function(line){
-      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      var p=parseCSVLine(line);
       if(p.length < 18) return; // Need at least 18 columns for the new format
       
       // employee ID is in p[1]
@@ -4887,14 +4946,14 @@ function removeHoliday(index){
   });
 }
 
-function clearAllHolidays(){
+async function clearAllHolidays(){
   if(confirm("Are you sure you want to clear all holidays?")){
     var holsToDelete = (DB.holidays || []).slice();
     DB.holidays = [];
     setHolidayDeletionFlag(true);
     saveDB();
     renderHolidayTable();
-    Promise.all(holsToDelete.map(function(h) {
+    await Promise.all(holsToDelete.map(function(h) {
       return runSupabaseDelete('holidays', function(q) {
         return q.eq('date', formatDateForPostgres(h.date) || h.date)
           .eq('state', normalizeHolidayState(h.state));
@@ -4926,7 +4985,7 @@ function uploadHolidays(inp){
     var dataLines = hasHeader ? lines.slice(1) : lines;
     if(!DB.holidays) DB.holidays = [];
     dataLines.forEach(function(line){
-      var p=line.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+      var p=parseCSVLine(line);
       if(!p[0]||!p[1])return;
       var dateVal = formatDateForPostgres(p[0]) || p[0];
       var nameVal = p[1];
@@ -5254,6 +5313,38 @@ function exportReportToCSV(){
   });
   
   downloadData(csv.join('\n'), 'adonis_mis_report_'+currentReportType+'.csv');
+}
+
+function parseCSVLine(text) {
+  var ret = [];
+  var inQuote = false;
+  var val = '';
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (inQuote) {
+      if (c === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          val += '"';
+          i++;
+        } else {
+          inQuote = false;
+        }
+      } else {
+        val += c;
+      }
+    } else {
+      if (c === '"') {
+        inQuote = true;
+      } else if (c === ',') {
+        ret.push(val.trim());
+        val = '';
+      } else {
+        val += c;
+      }
+    }
+  }
+  ret.push(val.trim());
+  return ret;
 }
 
 function downloadData(csv,fname){

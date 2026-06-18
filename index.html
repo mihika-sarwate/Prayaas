@@ -1171,8 +1171,11 @@ function buildEmployeeSupabaseRow(emp, includeDesignation) {
 }
 
 function stripDesignationFromRows(rows) {
-  // We no longer strip designation so it can sync with Supabase
-  return rows;
+  return rows.map(function(r) {
+    var copy = Object.assign({}, r);
+    delete copy.designation;
+    return copy;
+  });
 }
 
 async function upsertEmployeeRowsToSupabase(rows) {
@@ -1182,7 +1185,7 @@ async function upsertEmployeeRowsToSupabase(rows) {
   } catch (err) {
     if (String((err && err.message) || '').toLowerCase().indexOf('designation') !== -1) {
       console.warn('Supabase employees table is missing designation, retrying without that column.');
-      await upsertInBatches('employees', rows);
+      await upsertInBatches('employees', stripDesignationFromRows(rows));
       return;
     }
     throw err;
@@ -1197,7 +1200,7 @@ async function insertEmployeeRowsToSupabase(rows) {
   } catch (err) {
     if (String((err && err.message) || '').toLowerCase().indexOf('designation') !== -1) {
       console.warn('Supabase employees table is missing designation, retrying without that column.');
-      const res2 = await supabase.from('employees').insert(rows);
+      const res2 = await supabase.from('employees').insert(stripDesignationFromRows(rows));
       if (res2 && res2.error) throw res2.error;
       return;
     }

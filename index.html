@@ -194,6 +194,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
         <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
       </div>
       <div class="hdr-brand"><div class="hdr-title">Sankalp MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
+      <button class="hdr-badge" id="btn-switch-to-admin" onclick="switchToAdmin()" style="background:var(--primary);margin-right:8px;display:none;">Manager Panel</button>
       <button id="emp-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 4px 10px; font-size: 12px; width: auto; height: auto; line-height: 1.2; margin-right: 8px;">🔄 Sync</button>
       <button class="hdr-badge" onclick="doLogout()">Logout</button>
     </div>
@@ -472,6 +473,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
         <div style="display:flex;align-items:center;gap:8px">
           <div class="hdr-title" id="adm-panel-title">Sankalp Admin Console</div>
           <span class="badge orange" id="adm-badge" style="padding:2px 8px;font-size:9px;text-transform:uppercase">ADM</span>
+          <button class="hdr-badge" id="btn-switch-to-emp" onclick="switchToEmp()" style="background:var(--primary);margin-right:8px;display:none;">MR Portal</button>
           <button id="admin-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 2px 8px; font-size: 10px; width: auto; height: auto; line-height: 1.2; margin-left: 8px;">🔄 Sync</button>
         </div>
         <div class="hdr-sub">Adonis Laboratories</div>
@@ -2094,19 +2096,33 @@ function doLogin(){
   localStorage.setItem('adonis_session', JSON.stringify(SESSION));
   document.getElementById('scr-login').style.display='none';
   
-  if (emp.role === 'emp') {
+  window.switchToEmp = function() {
+    document.getElementById('scr-admin').classList.remove('on');
     document.getElementById('scr-emp').classList.add('on');
+    document.getElementById('btn-switch-to-admin').style.display = '';
+    document.getElementById('btn-switch-to-admin').textContent = SESSION.user.role === 'admin' ? 'Admin Panel' : 'Manager Panel';
     initEmpApp();
-  } else {
+  };
+  window.switchToAdmin = function() {
+    document.getElementById('scr-emp').classList.remove('on');
     document.getElementById('scr-admin').classList.add('on');
-    document.getElementById('adm-panel-title').textContent=(emp.role==='admin'?'Admin Panel':'Manager Panel') + ' - ' + emp.name;
-    document.getElementById('adm-badge').textContent=emp.role.toUpperCase();
-    if(emp.role!=='admin'){
+    document.getElementById('adm-panel-title').textContent=(SESSION.user.role==='admin'?'Admin Panel':'Manager Panel') + ' - ' + SESSION.user.name;
+    document.getElementById('adm-badge').textContent=SESSION.user.role.toUpperCase();
+    if(SESSION.user.role!=='admin'){
       document.getElementById('adm-sfc-section').style.display='none';
     } else {
       document.getElementById('adm-sfc-section').style.display='';
     }
     initAdminApp();
+  };
+
+  if (emp.role === 'emp') {
+    document.getElementById('scr-emp').classList.add('on');
+    document.getElementById('btn-switch-to-admin').style.display = 'none';
+    initEmpApp();
+  } else {
+    document.getElementById('btn-switch-to-emp').style.display = '';
+    switchToAdmin();
   }
 }
 

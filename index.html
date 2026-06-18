@@ -4801,7 +4801,7 @@ function renderLeaveBalanceTable(){
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var emps=DB.employees.filter(function(e){
     if (!e || e.id==='ADMIN') return false;
-    if (!e.leaves) return false;
+    if (!e.leaves || Object.keys(e.leaves).length === 0) return false;
     if (teamIds && !teamIds.includes(e.id)) return false;
     if (!q) return true;
     var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
@@ -4868,7 +4868,7 @@ async function deleteLeaveRecord(empId) {
   if(!confirm("Are you sure you want to delete leave data for employee " + empId + "?")) return;
   var emp = DB.employees.find(function(e) { return e.id === empId; });
   if (emp) {
-    emp.leaves = null;
+    emp.leaves = {};
     saveDB();
     showToast("Leave data deleted for " + empId);
     renderLeaveBalanceTable();
@@ -4881,7 +4881,7 @@ async function deleteSelectedLeaves() {
   if(!confirm("Are you sure you want to delete leave data for the " + checks.length + " selected employees?")) return;
   checks.forEach(function(c) {
     var emp = DB.employees.find(function(e) { return e.id === c.value; });
-    if (emp) emp.leaves = null;
+    if (emp) emp.leaves = {};
   });
   saveDB();
   showToast(checks.length + " leave records deleted.");
@@ -4892,7 +4892,7 @@ async function deleteSelectedLeaves() {
 async function deleteAllLeaves() {
   if(!confirm("Are you sure you want to delete leave data for ALL employees? This action cannot be undone.")) return;
   DB.employees.forEach(function(emp) {
-    emp.leaves = null;
+    emp.leaves = {};
   });
   saveDB();
   showToast("All leave data deleted.");

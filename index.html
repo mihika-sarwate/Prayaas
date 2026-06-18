@@ -1363,8 +1363,11 @@ async function initSupabaseData(isSilent) {
     
     // Preserve local sort order if possible
     if (typeof DB !== 'undefined' && DB) {
-      if (DB.employees && DB.employees.length > 0) {
-        const localIds = DB.employees.map(em => String(em.id || '').trim().toUpperCase());
+      var empOrderRaw = [];
+      try { empOrderRaw = JSON.parse(localStorage.getItem('adonis_order_emps') || '[]'); } catch(e){}
+      if (DB.employees && DB.employees.length > 0) empOrderRaw = DB.employees.map(em => em.id);
+      if (empOrderRaw && empOrderRaw.length > 0) {
+        const localIds = empOrderRaw.map(id => String(id || '').trim().toUpperCase());
         emps.sort(function(a, b) {
           var idA = String(a.id || '').trim().toUpperCase();
           var idB = String(b.id || '').trim().toUpperCase();
@@ -1375,8 +1378,12 @@ async function initSupabaseData(isSilent) {
           return idxA - idxB;
         });
       }
-      if (DB.doctors && DB.doctors.length > 0) {
-        const localIds = DB.doctors.map(d => String(d.id || '').trim().toUpperCase());
+      
+      var docOrderRaw = [];
+      try { docOrderRaw = JSON.parse(localStorage.getItem('adonis_order_docs') || '[]'); } catch(e){}
+      if (DB.doctors && DB.doctors.length > 0) docOrderRaw = DB.doctors.map(d => d.id);
+      if (docOrderRaw && docOrderRaw.length > 0) {
+        const localIds = docOrderRaw.map(id => String(id || '').trim().toUpperCase());
         doctors.sort(function(a, b) {
           var idA = String(a.id || '').trim().toUpperCase();
           var idB = String(b.id || '').trim().toUpperCase();
@@ -1387,8 +1394,12 @@ async function initSupabaseData(isSilent) {
           return idxA - idxB;
         });
       }
-      if (DB.chemists && DB.chemists.length > 0) {
-        const localIds = DB.chemists.map(c => String(c.id || '').trim().toUpperCase());
+      
+      var chemOrderRaw = [];
+      try { chemOrderRaw = JSON.parse(localStorage.getItem('adonis_order_chems') || '[]'); } catch(e){}
+      if (DB.chemists && DB.chemists.length > 0) chemOrderRaw = DB.chemists.map(c => c.id);
+      if (chemOrderRaw && chemOrderRaw.length > 0) {
+        const localIds = chemOrderRaw.map(id => String(id || '').trim().toUpperCase());
         chemists.sort(function(a, b) {
           var idA = String(a.id || '').trim().toUpperCase();
           var idB = String(b.id || '').trim().toUpperCase();
@@ -1795,6 +1806,12 @@ async function seedSupabaseDatabase() {
 }
 
 function saveDB() {
+  try {
+    localStorage.setItem('adonis_order_emps', JSON.stringify((DB.employees||[]).map(x=>x.id)));
+    localStorage.setItem('adonis_order_docs', JSON.stringify((DB.doctors||[]).map(x=>x.id)));
+    localStorage.setItem('adonis_order_chems', JSON.stringify((DB.chemists||[]).map(x=>x.id)));
+  } catch(e) {}
+
   try {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
   } catch (e) {

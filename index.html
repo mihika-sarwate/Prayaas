@@ -680,6 +680,8 @@ body:not(.is-admin) .admin-only { display: none !important; }
           <button class="btn sm success" onclick="downloadLeaveBalanceData()">&#8595; Download Leave Balance</button>
           <button class="btn sm primary admin-only" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload Leave Balance CSV</button>
           <input type="file" id="leave-bal-upload" accept=".csv" onchange="uploadLeaveBalances(this)" style="display:none">
+          <button class="btn sm danger admin-only" onclick="deleteSelectedLeaves()">&#128465; Delete Selected</button>
+          <button class="btn sm danger admin-only" onclick="deleteAllLeaves()">&#128465; Delete All</button>
         </div>
       </div>
       <div class="card">
@@ -4037,6 +4039,7 @@ function uploadEmployees(inp){
     if(!lines.length)return;
     var count=0;
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var hasDesignationCol = hasHeader && lines[0].toLowerCase().indexOf('designation') !== -1;
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var cols=parseCSVLine(line);
@@ -4048,7 +4051,7 @@ function uploadEmployees(inp){
       var dojIndex = 6;
       var stateIndex = 7;
       var statusIndex = 8;
-      if (cols.length >= 10) {
+      if (hasDesignationCol) {
         designation = cols[4] || '';
         rawRole = (cols[5] || '').trim().toLowerCase();
         mgrIndex = 6;
@@ -4787,8 +4790,8 @@ function renderLeaveBalanceTable(){
   var thead = document.getElementById('leave-bal-table-head');
   if(thead) {
     var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-    thead.innerHTML = '<tr><th colspan="6" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th></tr>' +
-      '<tr><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2">Designation</th><th rowspan="2">HQ</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th></tr>' +
+    thead.innerHTML = '<tr><th colspan="7" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th><th style="border:none"></th></tr>' +
+      '<tr><th rowspan="2"><input type="checkbox" id="check-all-leaves" class="admin-only" onclick="toggleSelectAllLeaves(this)"></th><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2">Designation</th><th rowspan="2">HQ</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th><th rowspan="2">Action</th></tr>' +
       '<tr><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th></tr>';
   }
   var tbody=document.getElementById('leave-bal-table-body');
@@ -4835,11 +4838,12 @@ function renderLeaveBalanceTable(){
     var pl_bal = pl - pl_used;
     var lop_bal = lop - lop_used;
 
-    var desig = e.role === 'admin' ? 'Admin' : (e.managerId ? 'Medical Representative' : 'Manager');
-    var hq = e.headquarter || 'HQ';
-    var joinDate = e.joiningDate || '01-Jan-2023';
+    var desig = e.designation || getDefaultEmployeeDesignation(e.role);
+    var hq = e.area || 'HQ';
+    var joinDate = e.doj || '01-Jan-2023';
 
     return '<tr>'+
+      '<td><input type="checkbox" class="leave-row-check admin-only" value="'+(e.id || '')+'"></td>'+
       '<td>'+(idx+1)+'</td>'+
       '<td>'+(e.id||'')+'</td>'+
       '<td class="tbl-name">'+(e.name||'')+'</td>'+
@@ -4849,6 +4853,7 @@ function renderLeaveBalanceTable(){
       '<td>'+cl+'</td><td>'+pl+'</td><td>'+sl+'</td><td>'+lop+'</td>'+
       '<td>'+cl_used+'</td><td>'+pl_used+'</td><td>'+sl_used+'</td><td>'+lop_used+'</td>'+
       '<td>'+cl_bal+'</td><td>'+pl_bal+'</td><td>'+sl_bal+'</td><td>'+lop_bal+'</td>'+
+      '<td><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="deleteLeaveRecord(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td>'+
       '</tr>';
   }).join('');
 }
@@ -4856,7 +4861,44 @@ function renderLeaveBalanceTable(){
 
 function toggleSelectAllLeaves(chk) {
   document.querySelectorAll('.leave-row-check').forEach(function(c){ c.checked = chk.checked; });
-  updateSelectedLeavesCount();
+}
+
+async function deleteLeaveRecord(empId) {
+  if(!confirm("Are you sure you want to delete leave data for employee " + empId + "?")) return;
+  var emp = DB.employees.find(function(e) { return e.id === empId; });
+  if (emp) {
+    delete emp.leaves;
+    saveDB();
+    showToast("Leave data deleted for " + empId);
+    renderLeaveBalanceTable();
+  }
+}
+
+async function deleteSelectedLeaves() {
+  var checks = document.querySelectorAll('.leave-row-check:checked');
+  if(!checks.length) { alert("Please select at least one record to delete."); return; }
+  if(!confirm("Are you sure you want to delete leave data for the " + checks.length + " selected employees?")) return;
+  checks.forEach(function(c) {
+    var emp = DB.employees.find(function(e) { return e.id === c.value; });
+    if (emp) delete emp.leaves;
+  });
+  saveDB();
+  showToast(checks.length + " leave records deleted.");
+  document.getElementById('check-all-leaves').checked = false;
+  renderLeaveBalanceTable();
+}
+
+async function deleteAllLeaves() {
+  if(!confirm("Are you sure you want to delete leave data for ALL employees? This action cannot be undone.")) return;
+  DB.employees.forEach(function(emp) {
+    delete emp.leaves;
+  });
+  saveDB();
+  showToast("All leave data deleted.");
+  if (document.getElementById('check-all-leaves')) {
+    document.getElementById('check-all-leaves').checked = false;
+  }
+  renderLeaveBalanceTable();
 }
 
 function updateSelectedLeavesCount() {

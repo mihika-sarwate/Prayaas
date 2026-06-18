@@ -1753,12 +1753,17 @@ function saveDB() {
       var dbCopy = Object.assign({}, DB);
       dbCopy.doctors = [];
       dbCopy.chemists = [];
+      dbCopy.reports = [];
+      dbCopy.tourPlans = [];
+      dbCopy.expenses = [];
+      dbCopy.leaves = [];
+      dbCopy.sfc = [];
       localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
     } catch(e2) {
-      console.warn("Still exceeded quota even without doctors/chemists.");
+      console.warn("Still exceeded quota even without large datasets.");
     }
   }
-  if (useSupabase) {
+  if (typeof syncSupabaseDatabase === 'function') {
     syncSupabaseDatabase();
   }
 }

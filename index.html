@@ -3989,7 +3989,7 @@ function uploadSFC(inp){
 }
 
 function downloadSFCTemplate(){
-  var csv='FromLocation,ToLocation,DistanceKM,TravelMode,FareAmount,DAAllowance,LodgingAllowance,OtherAllowance\n';
+  var csv='WorkingDays,EmpName,HQ,State,From,To,Category,Distance,Mode,Fare,DA,Total,Doctors,Business\n';
   var checked = document.querySelectorAll('.sfc-row-check:checked');
   var list = [];
   if (checked.length > 0) {
@@ -4002,19 +4002,25 @@ function downloadSFCTemplate(){
   if (list.length > 0) {
     list.forEach(function(s){
       csv += [
+        s.workingDays || '',
+        s.empName || '',
+        s.hq || '',
+        s.state || '',
         s.from || '',
         s.to || '',
+        s.category || '',
         s.distance || '',
         s.mode || '',
         s.fare || '',
         s.da || '',
-        s.lodge || '',
-        s.other || '0'
+        s.total || (s.fare + s.da) || '',
+        s.doctors || '',
+        s.business || ''
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'sfc_distance_master.csv');
   } else {
-    csv += 'Mumbai,Pune,150,Bus,350,600,1200,100\nMumbai,Nashik,180,Train,250,450,800,50\n';
+    csv += '24,John Doe,Mumbai,MH,Mumbai,Pune,EX,150,Bus,350,600,950,10,1L\n24,Jane Smith,Delhi,DL,Delhi,Agra,OS,180,Train,250,450,700,15,2L\n';
     downloadData(csv,'sfc_distance_template.csv');
   }
 }

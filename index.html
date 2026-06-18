@@ -4434,6 +4434,15 @@ function renderEmpTable(){
     });
   }
 
+  // Apply relevance sort if searching
+  if (q) {
+    emps.sort(function(a, b) {
+      var aMatch = (a.name||"").toLowerCase().includes(q) ? 1 : 0;
+      var bMatch = (b.name||"").toLowerCase().includes(q) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  }
+
   
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;

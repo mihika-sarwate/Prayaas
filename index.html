@@ -1807,6 +1807,7 @@ async function seedSupabaseDatabase() {
 
 function saveDB() {
   try {
+    localStorage.removeItem('adonis_db');
     localStorage.setItem('adonis_order_emps', JSON.stringify((DB.employees||[]).map(x=>x.id)));
     localStorage.setItem('adonis_order_docs', JSON.stringify((DB.doctors||[]).map(x=>x.id)));
     localStorage.setItem('adonis_order_chems', JSON.stringify((DB.chemists||[]).map(x=>x.id)));

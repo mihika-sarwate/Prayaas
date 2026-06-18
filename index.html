@@ -4401,7 +4401,11 @@ function renderEmpTable(){
     
     // Global search
     if (q) {
-      if (!(e.name || '').toLowerCase().includes(q)) return false;
+      var haystack = [
+        e.id, e.name, e.pwd, e.role, e.designation, e.area, e.state,
+        normalizeEmployeeStatus(e.status), mgrName, mgr ? mgr.id : ''
+      ].join(' ').toLowerCase();
+      if (haystack.indexOf(q) === -1) return false;
     }
     
     // Column filters
@@ -4964,7 +4968,14 @@ function renderAdminDocList(page = 1) {
     if (teamIds && !teamIds.includes(d.assignTo)) return false;
     
     // Global search
-    if (q && !((d.name||"").toLowerCase().includes(q))) return false;
+    if (q) {
+      var mr = DB.employees.find(function(e){return e.id===d.assignTo;});
+      var mrName = mr && mr.name ? mr.name : '';
+      var haystack = [
+        d.code, d.name, d.spec, d.area, d.phone, d.assignTo, mrName, d.status
+      ].join(' ').toLowerCase();
+      if (haystack.indexOf(q) === -1) return false;
+    }
     
     // Column filters
     var cols = ['code', 'name', 'spec', 'area', 'phone', 'assignTo', 'status'];
@@ -4989,6 +5000,15 @@ function renderAdminDocList(page = 1) {
       var valA = String(getCellValue('doctors', sortCol, a) || '');
       var valB = String(getCellValue('doctors', sortCol, b) || '');
       return sortAsc * valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  // Apply relevance sort if searching
+  if (q) {
+    docs.sort(function(a, b) {
+      var aMatch = (a.name||"").toLowerCase().includes(q) ? 1 : 0;
+      var bMatch = (b.name||"").toLowerCase().includes(q) ? 1 : 0;
+      return bMatch - aMatch;
     });
   }
 
@@ -5240,7 +5260,14 @@ function renderAdminChemistList(page = 1) {
     if (teamIds && !teamIds.includes(c.assignTo)) return false;
     
     // Global search
-    if (q && !((c.name||"").toLowerCase().includes(q))) return false;
+    if (q) {
+      var mr = DB.employees.find(function(e){return e.id===c.assignTo;});
+      var mrName = mr && mr.name ? mr.name : '';
+      var haystack = [
+        c.id, c.name, c.area, c.assignTo, mrName
+      ].join(' ').toLowerCase();
+      if (haystack.indexOf(q) === -1) return false;
+    }
     
     // Column filters
     var cols = ['id', 'name', 'area', 'assignTo'];
@@ -5265,6 +5292,15 @@ function renderAdminChemistList(page = 1) {
       var valA = String(getCellValue('chemists', sortCol, a) || '');
       var valB = String(getCellValue('chemists', sortCol, b) || '');
       return sortAsc * valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  // Apply relevance sort if searching
+  if (q) {
+    chems.sort(function(a, b) {
+      var aMatch = (a.name||"").toLowerCase().includes(q) ? 1 : 0;
+      var bMatch = (b.name||"").toLowerCase().includes(q) ? 1 : 0;
+      return bMatch - aMatch;
     });
   }
 
@@ -5380,8 +5416,30 @@ function renderLeaveBalanceTable(){
     if (!e.leaves || Object.keys(e.leaves).length === 0) return false;
     if (teamIds && !teamIds.includes(e.id)) return false;
     if (!q) return true;
-    return (e.name || '').toLowerCase().includes(q);
+    var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
+    var haystack = [
+      e.id,
+      e.name,
+      e.designation,
+      e.role,
+      e.area,
+      e.state,
+      e.doj,
+      mgr && mgr.name ? mgr.name : '',
+      mgr && mgr.id ? mgr.id : ''
+    ].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
   });
+
+  // Apply relevance sort if searching
+  if (q) {
+    emps.sort(function(a, b) {
+      var aMatch = (a.name||"").toLowerCase().includes(q) ? 1 : 0;
+      var bMatch = (b.name||"").toLowerCase().includes(q) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  }
+
   var countEl = document.getElementById('leave-bal-count');
   if (countEl) countEl.textContent = emps.length;
   if (!emps.length) {

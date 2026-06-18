@@ -563,7 +563,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
       <!-- Employee Master -->
       <div id="adm-emp-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128101; Hierarchy &amp; Employee Management</div>
-      <div class="card">
+      <div class="card admin-only">
         <div class="card-title">Add New Employee Record</div>
         <div class="row2">
           <div><label class="lbl">Employee ID</label><input type="text" id="adm-emp-id" placeholder="e.g. EMP004"></div>
@@ -598,7 +598,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
         </div>
         <button class="btn primary sm admin-only" onclick="addEmployee()">+ Save Employee Record</button>
       </div>
-      <div class="card">
+      <div class="card admin-only">
         <div class="card-title">Bulk Import Employees</div>
         <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Designation, Role, ManagerID, DOJ, State, Status</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
@@ -721,7 +721,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
 
   <!-- ADMIN INVENTORY PANEL -->
     <div id="sec-adm-inventory" style="display:none">
-      <div class="card">
+      <div class="card admin-only">
         <div class="card-title">&#128230; Issue Stock to Representative</div>
         <div class="row2">
           <div><label class="lbl">Select Employee (MR)</label><select id="inv-issue-emp"></select></div>
@@ -3752,7 +3752,7 @@ function renderSFCTable(){
   }
   tbody.innerHTML=filtered.map(function(item){
     var s = item.s || {};
-    return '<tr><td><input type="checkbox" class="sfc-row-check admin-only" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="sfc-row-check admin-only" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-sfc');
@@ -4425,7 +4425,7 @@ function renderAdminDocList(page = 1) {
   
   tbody.innerHTML=pagedDocs.map(function(d){
     var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
-    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-docs');
@@ -4652,7 +4652,7 @@ function renderAdminChemistList(page = 1) {
   
   tbody.innerHTML=pagedChems.map(function(c){
     var emp=DB.employees.find(function(e){return e.id===c.assignTo;});
-    return '<tr><td><input type="checkbox" class="chem-row-check admin-only" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="chem-row-check admin-only" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-chems');

@@ -1722,6 +1722,13 @@ function saveDB() {
 
 var isSyncing = false;
 var syncPending = false;
+window.addEventListener('beforeunload', function (e) {
+  if (isSyncing) {
+    e.preventDefault();
+    e.returnValue = 'Data is currently syncing to the cloud. If you leave now, recent changes may be lost.';
+  }
+});
+
   async function syncSupabaseDatabase() {
     if (isSyncing) {
       syncPending = true;

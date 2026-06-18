@@ -4428,28 +4428,9 @@ function renderEmpTable(){
   if (sortCol) {
     var sortAsc = adminTableState.employees.sortAsc ? 1 : -1;
     emps = emps.slice().sort(function(a, b) {
-      var valA = '';
-      var valB = '';
-      
-      if (sortCol === 'managerId') {
-        var mgrA = a.managerId ? DB.employees.find(function(m){ return m && m.id===a.managerId; }) : null;
-        var mgrB = b.managerId ? DB.employees.find(function(m){ return m && m.id===b.managerId; }) : null;
-        valA = (mgrA && mgrA.name ? mgrA.name : (a.managerId||'')).toLowerCase();
-        valB = (mgrB && mgrB.name ? mgrB.name : (b.managerId||'')).toLowerCase();
-      } else if (sortCol === 'designation') {
-        valA = (typeof a.designation !== "undefined" ? a.designation : getDefaultEmployeeDesignation(a.role)).toLowerCase();
-        valB = (typeof b.designation !== "undefined" ? b.designation : getDefaultEmployeeDesignation(b.role)).toLowerCase();
-      } else if (sortCol === 'status') {
-        valA = normalizeEmployeeStatus(a.status).toLowerCase();
-        valB = normalizeEmployeeStatus(b.status).toLowerCase();
-      } else {
-        valA = String(a[sortCol] || '').toLowerCase();
-        valB = String(b[sortCol] || '').toLowerCase();
-      }
-      
-      if (valA < valB) return -1 * sortAsc;
-      if (valA > valB) return 1 * sortAsc;
-      return 0;
+      var valA = String(getCellValue('employees', sortCol, a) || '');
+      var valB = String(getCellValue('employees', sortCol, b) || '');
+      return sortAsc * valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
     });
   }
 
@@ -4803,6 +4784,9 @@ function getCellValue(table, col, item) {
     if (col === 'status') {
       return normalizeEmployeeStatus(item.status);
     }
+    if (col === 'role') {
+      return ROLE_MAPPING[item.role] || item.role || '';
+    }
   }
   if (table === 'doctors' || table === 'chemists') {
     if (col === 'assignTo') {
@@ -4952,7 +4936,7 @@ function renderSortHead(table, col, label) {
   
   var isFiltered = adminTableState[table].filters[col] && adminTableState[table].filters[col].length > 0;
   var filterColor = isFiltered ? 'var(--primary)' : '#ccc';
-  var filterIcon = '<span class="filter-icon" style="color:'+filterColor+';font-size:12px;margin-left:6px;cursor:pointer;user-select:none" onclick="openExcelFilter(event, \''+table+'\', \''+col+'\')">&#9072;</span>';
+  var filterIcon = '<svg class="filter-icon" onclick="openExcelFilter(event, \''+table+'\', \''+col+'\')" width="12" height="12" viewBox="0 0 24 24" fill="'+(isFiltered?'var(--primary)':'none')+'" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:'+filterColor+';margin-left:6px;cursor:pointer;user-select:none"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" style="pointer-events:none"></polygon></svg>';
   
   return '<div style="display:flex;align-items:center;white-space:nowrap">' +
            '<div style="cursor:pointer;user-select:none" onclick="handleTableSort(\''+table+'\', \''+col+'\')">' + label + icon + '</div>' +
@@ -5006,11 +4990,9 @@ function renderAdminDocList(page = 1) {
   if (sortCol) {
     var sortAsc = adminTableState.doctors.sortAsc ? 1 : -1;
     docs = docs.slice().sort(function(a, b) {
-      var valA = String(a[sortCol] || '').toLowerCase();
-      var valB = String(b[sortCol] || '').toLowerCase();
-      if (valA < valB) return -1 * sortAsc;
-      if (valA > valB) return 1 * sortAsc;
-      return 0;
+      var valA = String(getCellValue('doctors', sortCol, a) || '');
+      var valB = String(getCellValue('doctors', sortCol, b) || '');
+      return sortAsc * valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
     });
   }
 
@@ -5284,11 +5266,9 @@ function renderAdminChemistList(page = 1) {
   if (sortCol) {
     var sortAsc = adminTableState.chemists.sortAsc ? 1 : -1;
     chems = chems.slice().sort(function(a, b) {
-      var valA = String(a[sortCol] || '').toLowerCase();
-      var valB = String(b[sortCol] || '').toLowerCase();
-      if (valA < valB) return -1 * sortAsc;
-      if (valA > valB) return 1 * sortAsc;
-      return 0;
+      var valA = String(getCellValue('chemists', sortCol, a) || '');
+      var valB = String(getCellValue('chemists', sortCol, b) || '');
+      return sortAsc * valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
     });
   }
 

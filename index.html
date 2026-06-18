@@ -1584,7 +1584,7 @@ async function seedSupabaseDatabase() {
         doj: formatDateForPostgres(e.doj),
         state: e.state || null,
         status: normalizeEmployeeStatus(e.status),
-        designation: (e.designation || '').trim() || getDefaultEmployeeDesignation(e.role),
+        // designation omitted because table doesn't have it
         leaves: e.leaves
       };
     });

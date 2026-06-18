@@ -1632,7 +1632,7 @@ async function seedSupabaseDatabase() {
         doj: formatDateForPostgres(e.doj),
         state: e.state || null,
         status: normalizeEmployeeStatus(e.status),
-        // designation omitted because table doesn't have it
+        designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
         leaves: e.leaves
       };
     });
@@ -1805,7 +1805,7 @@ window.addEventListener('beforeunload', function (e) {
         doj: formatDateForPostgres(e.doj),
         state: e.state || null,
         status: normalizeEmployeeStatus(e.status),
-        // designation omitted because table doesn't have it
+        designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
         leaves: e.leaves
       };
     });

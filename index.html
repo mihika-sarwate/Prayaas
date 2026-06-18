@@ -1170,7 +1170,7 @@ function buildEmployeeSupabaseRow(emp, includeDesignation) {
   return row;
 }
 
-function stripDesignationFromRows(rows) {
+function rows {
   return (rows || []).map(function(row) {
     var copy = {};
     Object.keys(row || {}).forEach(function(key) {
@@ -1187,7 +1187,7 @@ async function upsertEmployeeRowsToSupabase(rows) {
   } catch (err) {
     if (String((err && err.message) || '').toLowerCase().indexOf('designation') !== -1) {
       console.warn('Supabase employees table is missing designation, retrying without that column.');
-      await upsertInBatches('employees', stripDesignationFromRows(rows));
+      await upsertInBatches('employees', rows);
       return;
     }
     throw err;
@@ -1202,7 +1202,7 @@ async function insertEmployeeRowsToSupabase(rows) {
   } catch (err) {
     if (String((err && err.message) || '').toLowerCase().indexOf('designation') !== -1) {
       console.warn('Supabase employees table is missing designation, retrying without that column.');
-      const res2 = await supabase.from('employees').insert(stripDesignationFromRows(rows));
+      const res2 = await supabase.from('employees').insert(rows);
       if (res2 && res2.error) throw res2.error;
       return;
     }
@@ -1385,7 +1385,7 @@ async function initSupabaseData(isSilent) {
         doj: e.doj || '',
         state: e.state || '',
         status: e.status || 'Active',
-        designation: e.designation || getDefaultEmployeeDesignation(e.role),
+        designation: typeof e.designation !== 'undefined' ? e.designation : getDefaultEmployeeDesignation(e.role),
         leaves: e.leaves
       })),
       doctors: (doctors || []).map(d => ({

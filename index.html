@@ -3704,26 +3704,45 @@ function renderMTPDaysUI(isReadOnly, existing){
 
   var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return day.workType === 'FIELD WORK' && !!(day.areaTerritory||'').trim();}) : currentMTPDays;
 
-  var mrAreas = [];
   var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  
   if (SESSION.user) {
-    var areaSet = new Set();
     DB.doctors.forEach(function(d) {
       if (String(d.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && d.status === 'Active') {
-        if (d.area) areaSet.add(d.area.trim());
         var tType = (d.territoryType || '').trim().toUpperCase();
-        if (d.city && tType) {
+        if (tType) {
           if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
-          mrTownsByTerritory[tType].add(d.city.trim());
+          if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
+          if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
+          if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
         }
       }
     });
+
+    var areaToTType = {};
+    Object.keys(mrAreasByTerritory).forEach(function(tt) {
+      mrAreasByTerritory[tt].forEach(function(a) {
+        if (!areaToTType[a]) areaToTType[a] = [];
+        areaToTType[a].push(tt);
+      });
+    });
+
     DB.chemists.forEach(function(c) {
       if (String(c.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && c.area) {
-        areaSet.add(c.area.trim());
+        var cArea = c.area.trim();
+        var tTypes = areaToTType[cArea];
+        if (tTypes && tTypes.length > 0) {
+          tTypes.forEach(function(tt) {
+            mrAreasByTerritory[tt].add(cArea);
+            if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
+          });
+        } else {
+          mrAreasByTerritory['HQ'].add(cArea);
+          if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
+        }
       }
     });
-    mrAreas = Array.from(areaSet).sort();
   }
 
   html += daysToRender.map(function(d){
@@ -3771,14 +3790,15 @@ function renderMTPDaysUI(isReadOnly, existing){
         '</select>';
         
       // Patch Dropdown
-      var currentAreas = mrAreas.slice();
+      var lookupTerritory = (territory || 'HQ').trim().toUpperCase();
+      var currentAreas = mrAreasByTerritory[lookupTerritory] ? Array.from(mrAreasByTerritory[lookupTerritory]).sort() : [];
       if (area && !currentAreas.includes(area)) {
         currentAreas.push(area);
       }
       patchSelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPPatch('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
         '<option value="">-- Select Patch --</option>' +
         currentAreas.map(function(a) {
-          return '<option value="' + a + '"' + (area === a ? ' selected' : '') + '>' + a + '</option>';
+          return '<option value="' + escapeHTML(a) + '"' + (area === a ? ' selected' : '') + '>' + escapeHTML(a) + '</option>';
         }).join('') +
         '</select>';
     }

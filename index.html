@@ -2342,6 +2342,73 @@ function initEmpApp(){
 var _allReportingDocs = [];
 var _allReportingChems = [];
 
+function updateMRInitialStock(type, itemName, newVal) {
+  var val = parseInt(newVal) || 0;
+  var empId = SESSION.user.id;
+  var table = '';
+  var invArray = [];
+  
+  if (type === 'sample') {
+    table = 'samples_inventory';
+    invArray = DB.samplesInventory;
+  } else if (type === 'gift') {
+    table = 'gifts_inventory';
+    invArray = DB.giftsInventory;
+  } else if (type === 'input') {
+    table = 'inputs_inventory';
+    invArray = DB.inputsInventory;
+  }
+  
+  if (!invArray) {
+    invArray = [];
+    if (type === 'sample') DB.samplesInventory = invArray;
+    else if (type === 'gift') DB.giftsInventory = invArray;
+    else DB.inputsInventory = invArray;
+  }
+  
+  var record = invArray.find(function(s){
+    if (type === 'sample') return s.empId === empId && s.prodName === itemName;
+    if (type === 'gift') return s.empId === empId && s.giftName === itemName;
+    return s.empId === empId && s.inputName === itemName;
+  });
+  
+  if (!record) {
+    record = {
+      id: type.toUpperCase() + 'INV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+      empId: empId,
+      opening: 0,
+      received: val,
+      distributed: 0,
+      balance: val
+    };
+    if (type === 'sample') record.prodName = itemName;
+    else if (type === 'gift') record.giftName = itemName;
+    else record.inputName = itemName;
+    invArray.push(record);
+  } else {
+    record.received = val - (record.opening || 0);
+    record.balance = val - (record.distributed || 0);
+  }
+  
+  saveDB();
+  populateReportingDropdowns();
+}
+
+function calculateReportingBalance(type, idx, availableBal) {
+  var distInp = document.getElementById(type === 'sample' ? 'smp-' + idx : (type === 'gift' ? 'gft-' + idx : 'inp-' + idx));
+  var balSpan = document.getElementById(type === 'sample' ? 'smp-bal-' + idx : (type === 'gift' ? 'gft-bal-' + idx : 'inp-bal-' + idx));
+  if (!distInp || !balSpan) return;
+  var distVal = parseInt(distInp.value) || 0;
+  
+  distInp.max = availableBal;
+  if (distVal > availableBal) {
+    distInp.value = availableBal;
+    distVal = availableBal;
+  }
+  
+  balSpan.textContent = Math.max(0, availableBal - distVal);
+}
+
 function renderDoctorOptions(list) {
   var docSel = document.getElementById('r-doctor');
   var currentVal = docSel.value;
@@ -2466,22 +2533,73 @@ function populateReportingDropdowns(){
   // Samples
   document.getElementById('samples-list').innerHTML=DB.products.map(function(p,i){
     var myStock=(DB.samplesInventory || []).find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row"><div class="sample-name">'+p+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" class="sample-inp"></div></div>';
+    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
+      '<div style="display: flex; gap: 12px; align-items: center;">'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
+          '<input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="smp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
 
   // Gifts
   document.getElementById('gifts-list').innerHTML=DB.gifts.map(function(g,i){
     var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row"><div class="sample-name">'+g+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" class="gift-inp"></div></div>';
+    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
+      '<div style="display: flex; gap: 12px; align-items: center;">'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
+          '<input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="gft-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
 
   // Inputs
   document.getElementById('inputs-list').innerHTML=DB.inputs.map(function(ip,i){
     var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row"><div class="sample-name">'+ip+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" class="input-inp"></div></div>';
+    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
+      '<div style="display: flex; gap: 12px; align-items: center;">'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
+          '<input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="inp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
 }
 

@@ -3736,9 +3736,24 @@ function renderHomeStats(){
 function repRow(r){
   var title = r.targetType==='Doctor' ? r.docName : r.chemName;
   var sub = r.targetType==='Doctor' ? r.docSpec+' | '+r.docArea : 'Chemist | '+r.chemArea;
-  var val = r.targetType==='Doctor' ? Object.keys(r.samples).length+' sample(s) distributed' : 'Order Claim: \u20B9'+r.orderAmount;
+  
+  var val = '';
+  if (r.targetType==='Doctor') {
+    var details = [];
+    if (r.promotedProducts && r.promotedProducts.length) details.push('Promoted: ' + r.promotedProducts.join(', '));
+    var sKeys = r.samples ? Object.keys(r.samples) : [];
+    if (sKeys.length) details.push('Samples: ' + sKeys.map(function(k){return k+' ('+r.samples[k]+')';}).join(', '));
+    var gKeys = r.gifts ? Object.keys(r.gifts) : [];
+    if (gKeys.length) details.push('Gifts: ' + gKeys.map(function(k){return k+' ('+r.gifts[k]+')';}).join(', '));
+    var iKeys = r.inputs ? Object.keys(r.inputs) : [];
+    if (iKeys.length) details.push('Inputs: ' + iKeys.map(function(k){return k+' ('+r.inputs[k]+')';}).join(', '));
+    val = details.length ? details.join('<br>') : 'No promotional items distributed';
+  } else {
+    val = 'Order Claim: \u20B9' + r.orderAmount;
+  }
+  
   var badgeClass=r.classification==='Planned Call' ? 'green' : 'orange';
-  return '<div class="report-row"><div class="report-doc">'+title+' <span class="badge '+badgeClass+'">'+r.classification+'</span></div><div class="report-meta">'+r.date+' '+r.time+' | '+sub+'</div><div class="report-value">'+val+'</div></div>';
+  return '<div class="report-row"><div class="report-doc">'+title+' <span class="badge '+badgeClass+'">'+r.classification+'</span></div><div class="report-meta">'+r.date+' '+r.time+' | '+sub+'</div><div class="report-value" style="font-size:0.85rem; line-height:1.4;">'+val+'</div></div>';
 }
 
 // ===== TOUR PLAN MTP FUNCTIONS =====
@@ -7481,10 +7496,14 @@ function runMISReport(){
   var html='';
   
   if(currentReportType==='doc_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
     currentMISData=docCalls.map(function(r){
-      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
+      var promoted = r.promotedProducts && r.promotedProducts.length ? r.promotedProducts.join(', ') : 'None';
+      var samples = r.samples ? Object.keys(r.samples).map(function(k){return k+' ('+r.samples[k]+')';}).join(', ') : 'None';
+      var gifts = r.gifts ? Object.keys(r.gifts).map(function(k){return k+' ('+r.gifts[k]+')';}).join(', ') : 'None';
+      var inputs = r.inputs ? Object.keys(r.inputs).map(function(k){return k+' ('+r.inputs[k]+')';}).join(', ') : 'None';
+      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
     
   } else if(currentReportType==='chem_calls'){

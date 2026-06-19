@@ -2255,7 +2255,8 @@ function populateReportingDropdowns(){
   docSel.innerHTML='<option value="">-- Select Doctor --</option>';
   DB.doctors.filter(function(d){
     if (teamIds) {
-      return teamIds.includes(String(d.assignTo || '').trim().toUpperCase()) && d.status === 'Active';
+      var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      return assignedList.some(function(a){ return teamIds.includes(a); }) && d.status === 'Active';
     }
     return d.status === 'Active'; // Admin sees all active
   }).forEach(function(d){
@@ -2266,7 +2267,8 @@ function populateReportingDropdowns(){
   chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
   DB.chemists.filter(function(c){
     if (teamIds) {
-      return teamIds.includes(String(c.assignTo || '').trim().toUpperCase());
+      var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      return assignedList.some(function(a){ return teamIds.includes(a); });
     }
     return true; // Admin sees all
   }).forEach(function(c){

@@ -2378,6 +2378,7 @@ function populateJFWManagers(){
   var chain = DB.employees.filter(function(e) {
     if (e.id === SESSION.user.id) return false;
     if (e.status !== 'Active') return false;
+    if ((e.role || '').toLowerCase() === 'admin') return false; // Explicitly hide admin
     
     var roleStr = (e.role || '').toLowerCase();
     var eLevel = levels[roleStr] || 0;
@@ -2396,7 +2397,8 @@ function populateJFWManagers(){
   chain.forEach(function(m){
     var o=document.createElement('option');
     o.value=m.id;
-    o.textContent=m.name+' ('+m.role.toUpperCase()+')';
+    var desig = typeof m.designation !== 'undefined' ? m.designation : getDefaultEmployeeDesignation(m.role);
+    o.textContent=m.name+' ('+(desig || '').toUpperCase()+')';
     jfwSel.appendChild(o);
   });
 }

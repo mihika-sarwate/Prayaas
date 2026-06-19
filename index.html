@@ -4225,7 +4225,7 @@ function getMyDoctors(){
 }
 
 function renderDocList(){
-  var q=(document.getElementById('doc-search').value||'').toLowerCase();
+  var q=(document.getElementById('doc-search').value||'').trim().toLowerCase();
   var docs=getMyDoctors().filter(function(d){return !q||(d.name||'').toLowerCase().includes(q)||(d.spec||'').toLowerCase().includes(q)||(d.area||'').toLowerCase().includes(q);});
   var el=document.getElementById('doc-list');
   if(!docs.length){el.innerHTML='<div class="empty">No doctors found</div>';return;}
@@ -4238,7 +4238,7 @@ function renderDocList(){
 }
 
 function renderChemistList(){
-  var q=(document.getElementById('chem-search').value||'').toLowerCase();
+  var q=(document.getElementById('chem-search').value||'').trim().toLowerCase();
   
   // Find all areas where this MR has active doctors assigned
   var activeDocAreas = new Set();
@@ -5740,7 +5740,7 @@ function renderSortHead(table, col, label) {
 var currentDocPage = 1; var docsPerPage = 50;
 function renderAdminDocList(page = 1) {
   currentDocPage = page;
-  var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
+  var q=(document.getElementById('adm-doc-search').value||'').trim().toLowerCase();
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   
   var thead = document.getElementById('doc-table-head');
@@ -6085,7 +6085,7 @@ function downloadChemTemplate(){
 var currentChemPage = 1; var chemsPerPage = 50;
 function renderAdminChemistList(page = 1) {
   currentChemPage = page;
-  var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
+  var q=(document.getElementById('adm-chem-search').value||'').trim().toLowerCase();
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   
   var thead = document.getElementById('chem-table-head');
@@ -6408,7 +6408,7 @@ function downloadStockistTemplate() {
 var currentStockistPage = 1; var stockistsPerPage = 50;
 function renderAdminStockistList(page = 1) {
   currentStockistPage = page;
-  var q = (document.getElementById('adm-stockist-search').value||'').toLowerCase();
+  var q = (document.getElementById('adm-stockist-search').value||'').trim().toLowerCase();
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   
   var thead = document.getElementById('stockist-table-head');

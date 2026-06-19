@@ -2326,15 +2326,30 @@ function initEmpApp(){
 }
 
 function populateReportingDropdowns(){
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  if (teamIds) {
+    teamIds.push(SESSION.user.id);
+  }
+
   var docSel=document.getElementById('r-doctor');
   docSel.innerHTML='<option value="">-- Select Doctor --</option>';
-  DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active';}).forEach(function(d){
+  DB.doctors.filter(function(d){
+    if (teamIds) {
+      return teamIds.includes(d.assignTo) && d.status === 'Active';
+    }
+    return d.status === 'Active'; // Admin sees all active
+  }).forEach(function(d){
     var o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.spec+' - '+d.area+')';docSel.appendChild(o);
   });
 
   var chemSel=document.getElementById('r-chemist');
   chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
-  DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).forEach(function(c){
+  DB.chemists.filter(function(c){
+    if (teamIds) {
+      return teamIds.includes(c.assignTo);
+    }
+    return true; // Admin sees all
+  }).forEach(function(c){
     var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.area+')';chemSel.appendChild(o);
   });
   docSel.onchange=updateReportClassificationFromTarget;

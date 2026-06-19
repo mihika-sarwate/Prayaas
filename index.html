@@ -326,7 +326,7 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="row2">
         <div><label class="lbl">Time</label><input type="time" id="r-time"></div>
-        <div><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option></select></div>
+        <div><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option><option>Stockist</option></select></div>
       </div>
       
       <!-- Doctor Selection -->
@@ -341,6 +341,13 @@ table.tbl tr:last-child td{border-bottom:none}
         <label class="lbl">Chemist</label>
         <input type="text" id="r-chem-search-inp" placeholder="🔍 Type chemist name or area to filter..." oninput="filterReportingChemistsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
         <select id="r-chemist" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Chemist --</option></select>
+      </div>
+      
+      <!-- Stockist Selection -->
+      <div class="fw" id="r-stockist-wrap" style="display:none">
+        <label class="lbl">Stockist</label>
+        <input type="text" id="r-stockist-search-inp" placeholder="🔍 Type stockist name or area to filter..." oninput="filterReportingStockistsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
+        <select id="r-stockist" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Stockist --</option></select>
       </div>
       <div class="fw" id="r-planned-targets-wrap" style="display:none"></div>
       
@@ -392,6 +399,17 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="row2">
           <div><label class="lbl">Orders Discussed (&#x20B9;)</label><input type="number" id="r-chem-order" placeholder="0"></div>
           <div><label class="lbl">Stock Availability</label><select id="r-chem-stock"><option>Adequate Stock</option><option>Low Stock</option><option>Out of Stock</option></select></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stockist Specific Form Fields -->
+    <div id="r-stockist-details-wrap" style="display:none">
+      <div class="card">
+        <div class="card-title">&#128221; Order &amp; Stock Info</div>
+        <div class="row2">
+          <div><label class="lbl">Orders Discussed (&#x20B9;)</label><input type="number" id="r-stockist-order" placeholder="0"></div>
+          <div><label class="lbl">Stock Availability</label><select id="r-stockist-stock"><option>Adequate Stock</option><option>Low Stock</option><option>Out of Stock</option></select></div>
         </div>
       </div>
     </div>
@@ -2732,6 +2750,33 @@ function filterReportingChemistsDropdown() {
   renderChemistOptions(filtered.slice(0, 200));
 }
 
+function renderStockistOptions(list) {
+  var stockSel = document.getElementById('r-stockist');
+  if(!stockSel) return;
+  var currentVal = stockSel.value;
+  stockSel.innerHTML = '<option value="">-- Select Stockist --</option>';
+  list.forEach(function(s){
+    var o = document.createElement('option');
+    o.value = s.id;
+    o.textContent = (s.name || '') + ' (' + (s.area || 'No Area') + ')';
+    stockSel.appendChild(o);
+  });
+  if (list.some(function(s) { return s.id === currentVal; })) {
+    stockSel.value = currentVal;
+  }
+}
+
+function filterReportingStockistsDropdown() {
+  var q = (document.getElementById('r-stockist-search-inp').value || '').toLowerCase().trim();
+  var filtered = window._allReportingStockists || [];
+  if (q) {
+    filtered = filtered.filter(function(s) {
+      return (s.name || '').toLowerCase().includes(q) || (s.area || '').toLowerCase().includes(q);
+    });
+  }
+  renderStockistOptions(filtered.slice(0, 200));
+}
+
 function populateReportingDropdowns(){
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   if (teamIds) {
@@ -2794,6 +2839,27 @@ function populateReportingDropdowns(){
   if (docSearchInp) docSearchInp.value = '';
   var chemSearchInp = document.getElementById('r-chem-search-inp');
   if (chemSearchInp) chemSearchInp.value = '';
+  
+  var stockSel=document.getElementById('r-stockist');
+  if(stockSel) {
+    var finalStockists = DB.stockists.filter(function(s){
+      if (teamIds) {
+        var assignedList = String(s.assignTo || '').toUpperCase().split(',').map(function(x){return x.trim();});
+        var hasAssign = assignedList.some(function(a){ return teamIds.includes(a); });
+        var unassigned = !s.assignTo || s.assignTo.trim() === '';
+        var inMyAreas = unassigned && s.area && activeDocAreas.has(s.area.toLowerCase().trim());
+        return hasAssign || inMyAreas;
+      }
+      return true;
+    });
+    if (finalStockists.length === 0) finalStockists = DB.stockists;
+    finalStockists.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
+    window._allReportingStockists = finalStockists;
+    renderStockistOptions(finalStockists.slice(0, 200));
+    stockSel.onchange=updateReportClassificationFromTarget;
+  }
+  var stockSearchInp = document.getElementById('r-stockist-search-inp');
+  if (stockSearchInp) stockSearchInp.value = '';
   
   // Product checklist grid
   var promoProductsGrid=document.getElementById('r-promo-products');
@@ -2978,17 +3044,17 @@ function populateJFWManagers(){
 
 function toggleReportTargetFields(){
   var type=document.getElementById('r-target-type').value;
-  if(type==='Doctor'){
-    document.getElementById('r-doctor-wrap').style.display='block';
-    document.getElementById('r-chemist-wrap').style.display='none';
-    document.getElementById('r-doctor-details-wrap').style.display='block';
-    document.getElementById('r-chemist-details-wrap').style.display='none';
-  } else {
-    document.getElementById('r-doctor-wrap').style.display='none';
-    document.getElementById('r-chemist-wrap').style.display='block';
-    document.getElementById('r-doctor-details-wrap').style.display='none';
-    document.getElementById('r-chemist-details-wrap').style.display='block';
-  }
+  var dw = document.getElementById('r-doctor-wrap'), cw = document.getElementById('r-chemist-wrap'), sw = document.getElementById('r-stockist-wrap');
+  var ddw = document.getElementById('r-doctor-details-wrap'), cdw = document.getElementById('r-chemist-details-wrap'), sdw = document.getElementById('r-stockist-details-wrap');
+  
+  if (dw) dw.style.display = type === 'Doctor' ? 'block' : 'none';
+  if (cw) cw.style.display = type === 'Chemist' ? 'block' : 'none';
+  if (sw) sw.style.display = type === 'Stockist' ? 'block' : 'none';
+  
+  if (ddw) ddw.style.display = type === 'Doctor' ? 'block' : 'none';
+  if (cdw) cdw.style.display = type === 'Chemist' ? 'block' : 'none';
+  if (sdw) sdw.style.display = type === 'Stockist' ? 'block' : 'none';
+  
   updateReportClassificationFromTarget();
 }
 
@@ -3023,7 +3089,7 @@ function renderPlannedTargetsForReport(plannedDay){
   wrap.innerHTML='<label class="lbl">Approved MTP Targets for this Date</label><div class="info-box green" style="margin-bottom:0">'+
     (docBtns ? '<div style="margin-bottom:6px"><strong>Doctors:</strong><br>'+docBtns+'</div>' : '')+
     (chemBtns ? '<div><strong>Chemists:</strong><br>'+chemBtns+'</div>' : '')+
-    '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor or chemist as an unplanned call.</div></div>';
+    '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor, chemist, or stockist as an unplanned call.</div></div>';
 }
 
 
@@ -3406,7 +3472,7 @@ function submitReport(){
     });
     repObj.inputs = inputs;
     
-  } else {
+  } else if (targetType === 'Chemist') {
     var chemId=document.getElementById('r-chemist').value;
     if(!chemId){showToast('Please select chemist');return;}
     var chem=DB.chemists.find(function(c){return c.id===chemId;});
@@ -3415,6 +3481,15 @@ function submitReport(){
     repObj.chemArea=chem?chem.area:'';
     repObj.orderAmount=parseFloat(document.getElementById('r-chem-order').value)||0;
     repObj.stockStatus=document.getElementById('r-chem-stock').value;
+  } else if (targetType === 'Stockist') {
+    var stockId=document.getElementById('r-stockist').value;
+    if(!stockId){showToast('Please select stockist');return;}
+    var stock=DB.stockists.find(function(s){return s.id===stockId;});
+    repObj.stockId=stockId;
+    repObj.stockName=stock?stock.name:'';
+    repObj.stockArea=stock?stock.area:'';
+    repObj.orderAmount=parseFloat(document.getElementById('r-stockist-order').value)||0;
+    repObj.stockStatus=document.getElementById('r-stockist-stock').value;
   }
   
   DB.reports.unshift(repObj);
@@ -3427,6 +3502,8 @@ function submitReport(){
   document.getElementById('r-doctor').value='';
   document.getElementById('r-chemist').value='';
   document.getElementById('r-chem-order').value='';
+  if (document.getElementById('r-stockist')) document.getElementById('r-stockist').value='';
+  if (document.getElementById('r-stockist-order')) document.getElementById('r-stockist-order').value='';
   document.querySelectorAll('.promo-prod-check').forEach(function(cb){cb.checked=false;});
   document.querySelectorAll('.sample-inp, .gift-inp, .input-inp').forEach(function(ip){ip.value='';});
   

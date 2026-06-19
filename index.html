@@ -3258,14 +3258,32 @@ function getDesignationLabel(role) {
 
 function getLeaveLedger(emp) {
   var leaves = emp && emp.leaves ? emp.leaves : {};
-  var clLimit = parseInt(leaves.CL, 10) || 0;
-  var clUsed = parseInt(leaves.CL_used, 10) || 0;
-  var plLimit = parseInt(leaves.EL, 10) || 0;
-  var plUsed = parseInt(leaves.EL_used, 10) || 0;
-  var slLimit = parseInt(leaves.SL, 10) || 0;
-  var slUsed = parseInt(leaves.SL_used, 10) || 0;
-  var lopLimit = parseInt(leaves.LWP, 10) || 0;
-  var lopUsed = parseInt(leaves.LWP_used, 10) || 0;
+  var clLimit = parseFloat(leaves.CL) || 0;
+  var plLimit = parseFloat(leaves.EL) || 0;
+  var slLimit = parseFloat(leaves.SL) || 0;
+  var lopLimit = parseFloat(leaves.LWP) || 0;
+
+  var clUsed = 0, plUsed = 0, slUsed = 0, lopUsed = 0;
+  
+  if (emp && emp.id && Array.isArray(window.DB ? DB.leaves : [])) {
+    DB.leaves.forEach(function(l) {
+      // Consider it used if approved or pending (some systems deduct on submit, we'll deduct on Approved to match existing logic, but maybe we should include pending so users can't overdraft?)
+      // Let's include 'Submitted' and 'Approved by Manager' so pending leaves also deduct balance
+      if (l.empId === emp.id && (l.status === 'Approved' || l.status === 'Submitted' || l.status === 'Approved by Manager' || l.status === 'Approved by Admin')) {
+        var days = parseFloat(l.days) || 0;
+        if (l.type === 'Casual Leave') clUsed += days;
+        else if (l.type === 'Sick Leave') slUsed += days;
+        else if (l.type === 'Earned Leave') plUsed += days;
+        else if (l.type === 'Leave Without Pay' || l.type === 'LWP') lopUsed += days;
+      }
+    });
+  }
+
+  if (clUsed === 0 && (parseFloat(leaves.CL_used) || 0) > 0) clUsed = parseFloat(leaves.CL_used) || 0;
+  if (plUsed === 0 && (parseFloat(leaves.EL_used) || 0) > 0) plUsed = parseFloat(leaves.EL_used) || 0;
+  if (slUsed === 0 && (parseFloat(leaves.SL_used) || 0) > 0) slUsed = parseFloat(leaves.SL_used) || 0;
+  if (lopUsed === 0 && (parseFloat(leaves.LWP_used) || 0) > 0) lopUsed = parseFloat(leaves.LWP_used) || 0;
+
   return {
     cl: { limit: clLimit, used: clUsed, balance: Math.max(0, clLimit - clUsed) },
     pl: { limit: plLimit, used: plUsed, balance: Math.max(0, plLimit - plUsed) },
@@ -4299,8 +4317,14 @@ function submitLeave(){
   var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   
   // Check leave balance availability
+  var ledger = getLeaveLedger(SESSION.user);
+  var bal = 0;
   var key = type==='Casual Leave'?'CL':type==='Sick Leave'?'SL':type==='Earned Leave'?'EL':'LWP';
-  var bal = SESSION.user.leaves[key] - SESSION.user.leaves[key+'_used'];
+  
+  if (type === 'Casual Leave') bal = ledger.cl.balance;
+  else if (type === 'Sick Leave') bal = ledger.sl.balance;
+  else if (type === 'Earned Leave') bal = ledger.pl.balance;
+  else if (type === 'LWP') bal = ledger.lop.balance;
   
   if(key!=='LWP' && diffDays > bal){
     showToast('Insufficient '+type+' balance! Available: '+bal+' days');
@@ -4809,7 +4833,8 @@ function approveLeave(){
       var emp=DB.employees.find(function(e){return e.id===lv.empId;});
       if(emp){
         var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':'LWP';
-        emp.leaves[key+'_used'] += lv.days;
+        if (!emp.leaves) emp.leaves = {};
+        emp.leaves[key+'_used'] = (parseFloat(emp.leaves[key+'_used']) || 0) + parseFloat(lv.days || 0);
       }
     }
   }

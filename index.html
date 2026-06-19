@@ -2102,11 +2102,14 @@ window.addEventListener('beforeunload', function (e) {
         };
       });
       await upsertInBatches('doctors', dbDocs);
+      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
+      /*
       await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('doctors').delete().eq('id', row.id);
       });
+      */
     } catch (e) {
       console.error("Error syncing doctors:", e);
     }
@@ -2126,11 +2129,14 @@ window.addEventListener('beforeunload', function (e) {
         };
       });
       await upsertInBatches('chemists', dbChems);
+      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
+      /*
       await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('chemists').delete().eq('id', row.id);
       });
+      */
     } catch (e) {
       console.error("Error syncing chemists:", e);
     }
@@ -2150,11 +2156,14 @@ window.addEventListener('beforeunload', function (e) {
         };
       });
       await upsertInBatches('stockists', dbStockists);
+      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
+      /*
       await reconcileSupabaseRows('stockists', DB.stockists, function(row) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('stockists').delete().eq('id', row.id);
       });
+      */
     } catch (e) {
       console.error("Error syncing stockists:", e);
     }

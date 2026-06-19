@@ -3625,7 +3625,7 @@ function renderMTPDaysUI(isReadOnly, existing){
   if (SESSION.user) {
     var areaSet = new Set();
     DB.doctors.forEach(function(d) {
-      if (d.assignTo === SESSION.user.id && d.status === 'Active') {
+      if (String(d.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && d.status === 'Active') {
         if (d.area) areaSet.add(d.area.trim());
         var tType = (d.territoryType || 'HQ').trim().toUpperCase();
         if (d.city) {
@@ -3635,7 +3635,7 @@ function renderMTPDaysUI(isReadOnly, existing){
       }
     });
     DB.chemists.forEach(function(c) {
-      if (c.assignTo === SESSION.user.id && c.area) {
+      if (String(c.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && c.area) {
         areaSet.add(c.area.trim());
       }
     });

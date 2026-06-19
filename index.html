@@ -1132,7 +1132,7 @@ var DEFAULT_DB={
 
 var DB = DEFAULT_DB;
 var supabaseUrl = 'https://ajifnoazcvxvpyzlusuy.supabase.co';
-var supabaseKey = 'sb_publishable_7oOvIeoxeOyamPmeNZpTmg_HOEo68ss';
+var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MjA5OTksImV4cCI6MjA5NjM5Njk5OX0.OULR1ym0Bl3Bu_xyFt-IaX8pDqu7qQZ5VKNUWp1igLE';
 var supabase = null;
 var useSupabase = false;
 var isLoadingData = false;
@@ -1407,11 +1407,6 @@ async function initSupabaseData(isSilent) {
   try {
     const emps = await fetchAllFromSupabase('employees');
     
-    useSupabase = true;
-    console.log("Connected to Supabase successfully.");
-    var indicator = document.getElementById('db-status-indicator');
-    if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
-    
     const [
       doctors,
       chemists,
@@ -1439,6 +1434,12 @@ async function initSupabaseData(isSilent) {
     ]);
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
+    
+    useSupabase = true;
+    console.log("Connected to Supabase successfully.");
+    var indicator = document.getElementById('db-status-indicator');
+    if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
+
     let holidays = [];
     if (holData && holData.length > 0) {
       setHolidayDeletionFlag(false);
@@ -1782,8 +1783,10 @@ async function initSupabaseData(isSilent) {
     
   } catch (err) {
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
-    if (isSilent !== true) showToast("Using local database cache.");
-    loadLocalDB();
+    if (isSilent !== true) {
+      showToast("Using local database cache.");
+      loadLocalDB();
+    }
     isLoadingData = false;
   }
 }
@@ -2002,20 +2005,27 @@ function saveDB() {
   try {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
   } catch (e) {
-    console.warn("localStorage quota exceeded. Attempting to save without large datasets.");
+    console.warn("localStorage quota exceeded. Attempting to save without reports.");
     try {
       var dbCopy = Object.assign({}, DB);
-      dbCopy.doctors = [];
-      dbCopy.chemists = [];
-      dbCopy.stockists = [];
       dbCopy.reports = [];
-      dbCopy.tourPlans = [];
-      dbCopy.expenses = [];
-      dbCopy.leaves = [];
-      dbCopy.sfc = [];
       localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
-    } catch(e2) {
-      console.warn("Still exceeded quota even without large datasets.");
+    } catch (e2) {
+      console.warn("Still exceeded quota. Attempting to save without large datasets.");
+      try {
+        var dbCopy2 = Object.assign({}, DB);
+        dbCopy2.doctors = [];
+        dbCopy2.chemists = [];
+        dbCopy2.stockists = [];
+        dbCopy2.reports = [];
+        dbCopy2.tourPlans = [];
+        dbCopy2.expenses = [];
+        dbCopy2.leaves = [];
+        dbCopy2.sfc = [];
+        localStorage.setItem('adonis_db', JSON.stringify(dbCopy2));
+      } catch(e3) {
+        console.warn("Still exceeded quota even without large datasets.");
+      }
     }
   }
   if (typeof syncSupabaseDatabase === 'function') {

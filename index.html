@@ -1371,54 +1371,58 @@ async function initSupabaseData(isSilent) {
     }
     
     // Preserve local sort order if possible
-    if (typeof DB !== 'undefined' && DB) {
-      var empOrderRaw = [];
-      try { empOrderRaw = JSON.parse(localStorage.getItem('adonis_order_emps') || '[]'); } catch(e){}
-      if (DB.employees && DB.employees.length > 0) empOrderRaw = DB.employees.map(em => em.id);
-      if (empOrderRaw && empOrderRaw.length > 0) {
-        const localIds = empOrderRaw.map(id => String(id || '').trim().toUpperCase());
-        emps.sort(function(a, b) {
-          var idA = String(a.id || '').trim().toUpperCase();
-          var idB = String(b.id || '').trim().toUpperCase();
-          var idxA = localIds.indexOf(idA);
-          var idxB = localIds.indexOf(idB);
-          if (idxA === -1) idxA = 999999;
-          if (idxB === -1) idxB = 999999;
-          return idxA - idxB;
-        });
+    try {
+      if (typeof DB !== 'undefined' && DB) {
+        var empOrderRaw = [];
+        try { empOrderRaw = JSON.parse(localStorage.getItem('adonis_order_emps') || '[]'); } catch(e){}
+        if (DB.employees && DB.employees.length > 0) empOrderRaw = DB.employees.map(em => em.id);
+        if (empOrderRaw && empOrderRaw.length > 0) {
+          const localIds = empOrderRaw.map(id => String(id || '').trim().toUpperCase());
+          emps.sort(function(a, b) {
+            var idA = String(a.id || '').trim().toUpperCase();
+            var idB = String(b.id || '').trim().toUpperCase();
+            var idxA = localIds.indexOf(idA);
+            var idxB = localIds.indexOf(idB);
+            if (idxA === -1) idxA = 999999;
+            if (idxB === -1) idxB = 999999;
+            return idxA - idxB;
+          });
+        }
+        
+        var docOrderRaw = [];
+        try { docOrderRaw = JSON.parse(localStorage.getItem('adonis_order_docs') || '[]'); } catch(e){}
+        if (DB.doctors && DB.doctors.length > 0) docOrderRaw = DB.doctors.map(d => d.id);
+        if (docOrderRaw && docOrderRaw.length > 0) {
+          const localIds = docOrderRaw.map(id => String(id || '').trim().toUpperCase());
+          doctors.sort(function(a, b) {
+            var idA = String(a.id || '').trim().toUpperCase();
+            var idB = String(b.id || '').trim().toUpperCase();
+            var idxA = localIds.indexOf(idA);
+            var idxB = localIds.indexOf(idB);
+            if (idxA === -1) idxA = 999999;
+            if (idxB === -1) idxB = 999999;
+            return idxA - idxB;
+          });
+        }
+        
+        var chemOrderRaw = [];
+        try { chemOrderRaw = JSON.parse(localStorage.getItem('adonis_order_chems') || '[]'); } catch(e){}
+        if (DB.chemists && DB.chemists.length > 0) chemOrderRaw = DB.chemists.map(c => c.id);
+        if (chemOrderRaw && chemOrderRaw.length > 0) {
+          const localIds = chemOrderRaw.map(id => String(id || '').trim().toUpperCase());
+          chemists.sort(function(a, b) {
+            var idA = String(a.id || '').trim().toUpperCase();
+            var idB = String(b.id || '').trim().toUpperCase();
+            var idxA = localIds.indexOf(idA);
+            var idxB = localIds.indexOf(idB);
+            if (idxA === -1) idxA = 999999;
+            if (idxB === -1) idxB = 999999;
+            return idxA - idxB;
+          });
+        }
       }
-      
-      var docOrderRaw = [];
-      try { docOrderRaw = JSON.parse(localStorage.getItem('adonis_order_docs') || '[]'); } catch(e){}
-      if (DB.doctors && DB.doctors.length > 0) docOrderRaw = DB.doctors.map(d => d.id);
-      if (docOrderRaw && docOrderRaw.length > 0) {
-        const localIds = docOrderRaw.map(id => String(id || '').trim().toUpperCase());
-        doctors.sort(function(a, b) {
-          var idA = String(a.id || '').trim().toUpperCase();
-          var idB = String(b.id || '').trim().toUpperCase();
-          var idxA = localIds.indexOf(idA);
-          var idxB = localIds.indexOf(idB);
-          if (idxA === -1) idxA = 999999;
-          if (idxB === -1) idxB = 999999;
-          return idxA - idxB;
-        });
-      }
-      
-      var chemOrderRaw = [];
-      try { chemOrderRaw = JSON.parse(localStorage.getItem('adonis_order_chems') || '[]'); } catch(e){}
-      if (DB.chemists && DB.chemists.length > 0) chemOrderRaw = DB.chemists.map(c => c.id);
-      if (chemOrderRaw && chemOrderRaw.length > 0) {
-        const localIds = chemOrderRaw.map(id => String(id || '').trim().toUpperCase());
-        chemists.sort(function(a, b) {
-          var idA = String(a.id || '').trim().toUpperCase();
-          var idB = String(b.id || '').trim().toUpperCase();
-          var idxA = localIds.indexOf(idA);
-          var idxB = localIds.indexOf(idB);
-          if (idxA === -1) idxA = 999999;
-          if (idxB === -1) idxB = 999999;
-          return idxA - idxB;
-        });
-      }
+    } catch(e) {
+      console.warn("Sorting failed:", e);
     }
     
     // ABORT OVERWRITE IF A SYNC IS CURRENTLY RUNNING OR PENDING
@@ -1651,13 +1655,34 @@ async function initSupabaseData(isSilent) {
 }
 
 function loadLocalDB() {
-  DB = JSON.parse(localStorage.getItem('adonis_db')) || DEFAULT_DB;
-  if (!DB.reports || DB.reports.length === 0) {
-    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
+  try {
+    var raw = localStorage.getItem('adonis_db');
+    DB = raw ? JSON.parse(raw) : DEFAULT_DB;
+  } catch(e) {
+    DB = DEFAULT_DB;
   }
-  // Enforce doj, state, status, pwd and role defaults / normalization for all local employees
+  if (!DB || typeof DB !== 'object') {
+    DB = DEFAULT_DB;
+  }
+  if (!Array.isArray(DB.employees)) DB.employees = DEFAULT_DB.employees || [];
+  if (!Array.isArray(DB.doctors)) DB.doctors = DEFAULT_DB.doctors || [];
+  if (!Array.isArray(DB.chemists)) DB.chemists = DEFAULT_DB.chemists || [];
+  if (!Array.isArray(DB.products)) DB.products = DEFAULT_DB.products || [];
+  if (!Array.isArray(DB.gifts)) DB.gifts = DEFAULT_DB.gifts || [];
+  if (!Array.isArray(DB.inputs)) DB.inputs = DEFAULT_DB.inputs || [];
+  if (!Array.isArray(DB.reports)) DB.reports = DEFAULT_DB.reports || [];
+  if (!Array.isArray(DB.tourPlans)) DB.tourPlans = DEFAULT_DB.tourPlans || [];
+  if (!Array.isArray(DB.expenses)) DB.expenses = DEFAULT_DB.expenses || [];
+  if (!Array.isArray(DB.leaves)) DB.leaves = DEFAULT_DB.leaves || [];
+  if (!Array.isArray(DB.holidays)) DB.holidays = DEFAULT_DB.holidays || [];
+
+  if (DB.reports.length === 0) {
+    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports || []));
+  }
+  
   var updated = false;
   DB.employees.forEach(function(e) {
+    if (!e || !e.id) return;
     var def = DEFAULT_DB.employees.find(function(d){return d.id === e.id;});
     if (!e.doj) { e.doj = def ? def.doj : '2026-01-01'; updated = true; }
     if (!e.state) { e.state = def ? def.state : 'Maharashtra'; updated = true; }
@@ -1676,11 +1701,11 @@ function loadLocalDB() {
       updated = true;
     }
   });
+
   if (getHolidayDeletionFlag()) {
-    DB.holidays = Array.isArray(DB.holidays) ? DB.holidays : [];
     DB.holidays = [];
     updated = true;
-  } else if (!DB.holidays) {
+  } else if (DB.holidays.length === 0) {
     DB.holidays = JSON.parse(JSON.stringify(DEFAULT_DB.holidays || []));
     updated = true;
   }

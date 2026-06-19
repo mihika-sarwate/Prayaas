@@ -7,10 +7,15 @@ try:
     cur = conn.cursor()
     cur.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
     tables = [row[0] for row in cur.fetchall()]
-    print("Tables in public schema:")
-    for t in tables:
-        print("-", t)
+    
+    with open("db_tables.txt", "w") as f:
+        f.write("Tables in public schema:\n")
+        for t in tables:
+            f.write(f"- {t}\n")
+            
     cur.close()
     conn.close()
+    print("Wrote tables list to db_tables.txt successfully!")
 except Exception as e:
-    print("Error:", e)
+    with open("db_tables.txt", "w") as f:
+        f.write(f"Error: {e}\n")

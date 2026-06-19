@@ -3621,11 +3621,17 @@ function renderMTPDaysUI(isReadOnly, existing){
   var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return day.workType === 'FIELD WORK' && !!(day.areaTerritory||'').trim();}) : currentMTPDays;
 
   var mrAreas = [];
+  var mrTownsByTerritory = { 'HQ': new Set(), 'Ex': new Set(), 'OS': new Set() };
   if (SESSION.user) {
     var areaSet = new Set();
     DB.doctors.forEach(function(d) {
-      if (d.assignTo === SESSION.user.id && d.status === 'Active' && d.area) {
-        areaSet.add(d.area.trim());
+      if (d.assignTo === SESSION.user.id && d.status === 'Active') {
+        if (d.area) areaSet.add(d.area.trim());
+        var tType = d.territoryType || 'HQ';
+        if (d.city) {
+          if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
+          mrTownsByTerritory[tType].add(d.city.trim());
+        }
       }
     });
     DB.chemists.forEach(function(c) {
@@ -3674,7 +3680,7 @@ function renderMTPDaysUI(isReadOnly, existing){
         '</select>';
         
       // Territory Dropdown
-      territorySelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPTerritory('+originalIdx+', this.value)">' +
+      territorySelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPTerritory('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
         '<option value="HQ"' + (territory === 'HQ' ? ' selected' : '') + '>HQ</option>' +
         '<option value="Ex"' + (territory === 'Ex' ? ' selected' : '') + '>Ex</option>' +
         '<option value="OS"' + (territory === 'OS' ? ' selected' : '') + '>OS</option>' +
@@ -3693,7 +3699,16 @@ function renderMTPDaysUI(isReadOnly, existing){
         '</select>';
     }
 
-    var cityInput = '<input type="text" '+(isFieldWork?'':'disabled')+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)">';
+    var availableTowns = mrTownsByTerritory[territory] ? Array.from(mrTownsByTerritory[territory]).sort() : [];
+    if (city && !availableTowns.includes(city)) {
+      availableTowns.push(city);
+    }
+    var cityInput = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPCity('+originalIdx+', this.value)">' +
+      '<option value="">-- Town/City --</option>' +
+      availableTowns.map(function(t) {
+        return '<option value="' + escapeHTML(t) + '"' + (city === t ? ' selected' : '') + '>' + escapeHTML(t) + '</option>';
+      }).join('') +
+      '</select>';
 
     return '<tr class="mtp-area-row"'+holidayRowStyle+'>'+
       '<td class="tbl-name">'+d.date+holidayText+'</td>'+
@@ -3731,6 +3746,7 @@ function updateMTPWorkType(idx, value){
 
 function updateMTPTerritory(idx, value){
   currentMTPDays[idx].territory = value.trim();
+  currentMTPDays[idx].stayCity = ''; // clear city when territory changes
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
 

@@ -157,7 +157,15 @@ table.tbl tr:last-child td{border-bottom:none}
 .password-container{position:relative;width:100%}
 .password-toggle-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;user-select:none;padding:4px}
 .password-toggle-btn:hover{color:var(--primary)}
-body:not(.is-admin) .admin-only { display: none !important; }
+    .admin-tab { display: inline-block; padding: 10px 15px; cursor: pointer; color: #555; font-weight: 500; font-size: 14px; border-bottom: 2px solid transparent; }
+    .admin-tab:hover { color: #007bb5; }
+    .admin-tab.on { color: #007bb5; border-bottom: 2px solid #007bb5; }
+    .admin-sub-tab { display: inline-block; padding: 6px 12px; margin: 0 5px 10px 0; cursor: pointer; color: #666; font-size: 13px; border: 1px solid #ddd; border-radius: 4px; background: #fff; }
+    .admin-sub-tab.on { background: #007bb5; color: #fff; border-color: #007bb5; }
+    
+    .admin-only { /* controlled by JS body class */ }
+    body:not(.is-admin) .admin-only { display: none !important; }
+    body.is-admin .manager-only { display: none !important; }
 .excel-filter-popup {
   position: absolute;
   z-index: 99999;
@@ -562,7 +570,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
       <div class="admin-tab" id="tab-adm-master" onclick="goAdminTab('master')">Master Data</div>
       <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
       <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
-      <div class="admin-tab" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
+      <div class="admin-tab manager-only" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
     </div>
 
     <!-- ADMIN SECTIONS -->
@@ -2319,6 +2327,18 @@ function populateJFWManagers(){
   
   var myLevel = getLevel(SESSION.user.role, SESSION.user.designation);
   
+  function isSubordinate(mgrId, empId) {
+    if (!mgrId) return false;
+    var current = DB.employees.find(function(x) { return x.id === empId; });
+    var maxDepth = 10;
+    while (current && current.managerId && maxDepth > 0) {
+      if (current.managerId === mgrId) return true;
+      current = DB.employees.find(function(x) { return x.id === current.managerId; });
+      maxDepth--;
+    }
+    return false;
+  }
+  
   var chain = DB.employees.filter(function(e) {
     if (e.id === SESSION.user.id) return false;
     if (e.status !== 'Active') return false;
@@ -2326,13 +2346,14 @@ function populateJFWManagers(){
     
     var eLevel = getLevel(e.role, e.designation);
     var isHigher = eLevel > myLevel;
+    var isSub = isSubordinate(SESSION.user.id, e.id);
     
     // If the user is an Admin (testing the system), let them see everyone.
     if (myLevel === 99) isHigher = true; 
     
     var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
     
-    return isHigher || isJayashree;
+    return isHigher || isJayashree || isSub;
   });
 
   var uniqueChain = [];

@@ -340,22 +340,28 @@ table.tbl tr:last-child td{border-bottom:none}
       <!-- Doctor Selection -->
       <div class="fw" id="r-doctor-wrap">
         <label class="lbl">Doctor</label>
-        <input type="text" id="r-doc-search" placeholder="🔍 Type doctor name or area to filter..." oninput="filterReportingDoctorsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
-        <select id="r-doctor" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Doctor --</option></select>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="r-doc-search" placeholder="🔍 Type to filter..." oninput="filterReportingDoctorsDropdown()" style="background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; box-sizing: border-box; flex: 1;">
+          <select id="r-doctor" onchange="updateReportClassificationFromTarget()" style="flex: 2;"><option value="">-- Select Doctor --</option></select>
+        </div>
       </div>
       
       <!-- Chemist Selection -->
       <div class="fw" id="r-chemist-wrap" style="display:none">
         <label class="lbl">Chemist</label>
-        <input type="text" id="r-chem-search-inp" placeholder="🔍 Type chemist name or area to filter..." oninput="filterReportingChemistsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
-        <select id="r-chemist" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Chemist --</option></select>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="r-chem-search-inp" placeholder="🔍 Type to filter..." oninput="filterReportingChemistsDropdown()" style="background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; box-sizing: border-box; flex: 1;">
+          <select id="r-chemist" onchange="updateReportClassificationFromTarget()" style="flex: 2;"><option value="">-- Select Chemist --</option></select>
+        </div>
       </div>
       
       <!-- Stockist Selection -->
       <div class="fw" id="r-stockist-wrap" style="display:none">
         <label class="lbl">Stockist</label>
-        <input type="text" id="r-stockist-search-inp" placeholder="🔍 Type stockist name or area to filter..." oninput="filterReportingStockistsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
-        <select id="r-stockist" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Stockist --</option></select>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="r-stockist-search-inp" placeholder="🔍 Type to filter..." oninput="filterReportingStockistsDropdown()" style="background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; box-sizing: border-box; flex: 1;">
+          <select id="r-stockist" onchange="updateReportClassificationFromTarget()" style="flex: 2;"><option value="">-- Select Stockist --</option></select>
+        </div>
       </div>
       <div class="fw" id="r-planned-targets-wrap" style="display:none"></div>
       

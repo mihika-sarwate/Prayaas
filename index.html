@@ -3061,7 +3061,7 @@ function getAssignedDoctorsForArea(area){
   if(!clean)return [];
   return DB.doctors.filter(function(d){
     var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-    return assigned && d.status==='Active' && d.area.toLowerCase()===clean;
+    return assigned && d.status==='Active' && (d.area || '').toLowerCase()===clean;
   });
 }
 
@@ -3071,7 +3071,7 @@ function getAssignedChemistsForArea(area){
   return DB.chemists.filter(function(c){
     var assigned = String(c.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
     var unassigned = !c.assignTo || c.assignTo.trim() === '';
-    return (assigned || unassigned) && c.area.toLowerCase()===clean;
+    return (assigned || unassigned) && (c.area || '').toLowerCase()===clean;
   });
 }
 
@@ -3232,7 +3232,10 @@ function updateMTPPatch(idx, value){
   currentMTPDays[idx].plannedChems = getAssignedChemistsForArea(patch).map(function(chem){return chem.id;});
   
   if (patch) {
-    var matchedDoc = DB.doctors.find(function(d){return d.area.toLowerCase() === patch.toLowerCase() && d.assignTo === SESSION.user.id;});
+    var matchedDoc = DB.doctors.find(function(d){
+      var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+      return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
+    });
     if (matchedDoc && matchedDoc.city) {
       currentMTPDays[idx].stayCity = matchedDoc.city;
     }

@@ -2255,7 +2255,7 @@ function populateReportingDropdowns(){
   docSel.innerHTML='<option value="">-- Select Doctor --</option>';
   DB.doctors.filter(function(d){
     if (teamIds) {
-      return teamIds.includes(d.assignTo) && d.status === 'Active';
+      return teamIds.includes(String(d.assignTo || '').trim().toUpperCase()) && d.status === 'Active';
     }
     return d.status === 'Active'; // Admin sees all active
   }).forEach(function(d){
@@ -2266,7 +2266,7 @@ function populateReportingDropdowns(){
   chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
   DB.chemists.filter(function(c){
     if (teamIds) {
-      return teamIds.includes(c.assignTo);
+      return teamIds.includes(String(c.assignTo || '').trim().toUpperCase());
     }
     return true; // Admin sees all
   }).forEach(function(c){
@@ -2329,11 +2329,13 @@ function populateJFWManagers(){
   
   function isSubordinate(mgrId, empId) {
     if (!mgrId) return false;
-    var current = DB.employees.find(function(x) { return x.id === empId; });
+    var targetMgr = String(mgrId).trim().toUpperCase();
+    var current = DB.employees.find(function(x) { return String(x.id).trim().toUpperCase() === String(empId).trim().toUpperCase(); });
     var maxDepth = 10;
     while (current && current.managerId && maxDepth > 0) {
-      if (current.managerId === mgrId) return true;
-      current = DB.employees.find(function(x) { return x.id === current.managerId; });
+      var mId = String(current.managerId).trim().toUpperCase();
+      if (mId === targetMgr) return true;
+      current = DB.employees.find(function(x) { return String(x.id).trim().toUpperCase() === mId; });
       maxDepth--;
     }
     return false;
@@ -2431,13 +2433,14 @@ function renderPlannedTargetsForReport(plannedDay){
 
 function getAllSubordinateIds(managerId) {
   let subIds = new Set();
-  let toCheck = [managerId];
+  let toCheck = [String(managerId || '').trim().toUpperCase()];
   while (toCheck.length > 0) {
     let currentId = toCheck.pop();
     subIds.add(currentId);
     DB.employees.forEach(emp => {
-      if (emp.managerId === currentId && !subIds.has(emp.id)) {
-        toCheck.push(emp.id);
+      var mId = String(emp.managerId || '').trim().toUpperCase();
+      if (mId === currentId && !subIds.has(emp.id)) {
+        toCheck.push(String(emp.id).trim().toUpperCase());
       }
     });
   }

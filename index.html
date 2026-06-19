@@ -1724,7 +1724,25 @@ async function initSupabaseData(isSilent) {
     hasInitializedData = true;
 
     // Save synchronized DB to local storage cache
-    localStorage.setItem('adonis_db', JSON.stringify(DB));
+    try {
+      localStorage.setItem('adonis_db', JSON.stringify(DB));
+    } catch (e) {
+      console.warn("Failed to cache synchronized DB to localStorage (quota exceeded):", e);
+      try {
+        var dbCopy = Object.assign({}, DB);
+        dbCopy.doctors = [];
+        dbCopy.chemists = [];
+        dbCopy.stockists = [];
+        dbCopy.reports = [];
+        dbCopy.tourPlans = [];
+        dbCopy.expenses = [];
+        dbCopy.leaves = [];
+        dbCopy.sfc = [];
+        localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
+      } catch (e2) {
+        console.warn("Failed to save even truncated DB cache to localStorage:", e2);
+      }
+    }
     
     // Refresh the UI with the fresh data
     if (SESSION.user) {
@@ -1831,7 +1849,11 @@ function loadLocalDB() {
     updated = true;
   }
   if (updated || !localStorage.getItem('adonis_db')) {
-    localStorage.setItem('adonis_db', JSON.stringify(DB));
+    try {
+      localStorage.setItem('adonis_db', JSON.stringify(DB));
+    } catch(e) {
+      console.warn("Failed to save DB in loadLocalDB (quota exceeded):", e);
+    }
   }
 }
 async function seedSupabaseDatabase() {
@@ -1985,6 +2007,7 @@ function saveDB() {
       var dbCopy = Object.assign({}, DB);
       dbCopy.doctors = [];
       dbCopy.chemists = [];
+      dbCopy.stockists = [];
       dbCopy.reports = [];
       dbCopy.tourPlans = [];
       dbCopy.expenses = [];

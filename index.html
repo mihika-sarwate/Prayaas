@@ -5446,7 +5446,7 @@ function uploadDoctors(inp){
         else if (h.indexOf('speciality') !== -1 || h === 'spec') specCol = idx;
         else if (h.indexOf('qualification') !== -1 || h === 'qual') qualCol = idx;
         else if (h.indexOf('address') !== -1) addCol = idx;
-        else if (h === 'city') cityCol = idx;
+        else if (h === 'city' || h.indexOf('town') !== -1 || h.indexOf('locality') !== -1) cityCol = idx;
         else if (h.indexOf('patch') !== -1 || h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
         else if (h === 'state') stateCol = idx;
         else if (h.indexOf('territory type') !== -1 || h.indexOf('type') !== -1) typeCol = idx;

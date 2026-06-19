@@ -2372,29 +2372,52 @@ function populateJFWManagers(){
   var jfwSel=document.getElementById('r-jfw-manager');
   jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
   
-  var levels = { 'emp': 1, 'manager': 2, 'am': 3, 'rm': 4, 'zm': 5, 'nsm': 6, 'avp': 7, 'admin': 8 };
-  var myLevel = levels[(SESSION.user.role || '').toLowerCase()] || 0;
+  var chain=[];
   
-  var chain = DB.employees.filter(function(e) {
+  // Upward chain
+  var currentId=SESSION.user.managerId;
+  while(currentId){
+    var mgr=DB.employees.find(function(e){return e.id===currentId;});
+    if(mgr){
+      if ((mgr.role || '').toLowerCase() !== 'admin') {
+        chain.push(mgr);
+      }
+      currentId=mgr.managerId;
+    } else {
+      break;
+    }
+  }
+
+  // Add Jayashree / AVP
+  var extras = DB.employees.filter(function(e) {
     if (e.id === SESSION.user.id) return false;
     if (e.status !== 'Active') return false;
-    if ((e.role || '').toLowerCase() === 'admin') return false; // Explicitly hide admin
-    
-    var roleStr = (e.role || '').toLowerCase();
-    var eLevel = levels[roleStr] || 0;
-    
-    var isHigher = eLevel > myLevel;
+    if ((e.role || '').toLowerCase() === 'admin') return false;
     var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
-    var isAVP = roleStr === 'avp';
-    
-    return isHigher || isJayashree || isAVP;
+    var isAVP = (e.role || '').toLowerCase() === 'avp' || (e.designation || '').toLowerCase().indexOf('avp') !== -1;
+    return isJayashree || isAVP;
+  });
+  
+  extras.forEach(function(ex) {
+    if (!chain.find(function(c) { return c.id === ex.id; })) {
+      chain.push(ex);
+    }
   });
 
-  chain.sort(function(a,b) {
-    return a.name.localeCompare(b.name);
+  var uniqueChain = [];
+  var seenIds = {};
+  chain.forEach(function(c) {
+    if(!seenIds[c.id]) {
+      seenIds[c.id] = true;
+      uniqueChain.push(c);
+    }
   });
 
-  chain.forEach(function(m){
+  uniqueChain.sort(function(a,b) {
+    return (a.name||'').localeCompare(b.name||'');
+  });
+
+  uniqueChain.forEach(function(m){
     var o=document.createElement('option');
     o.value=m.id;
     var desig = typeof m.designation !== 'undefined' ? m.designation : getDefaultEmployeeDesignation(m.role);

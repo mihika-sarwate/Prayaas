@@ -1430,7 +1430,7 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('samples_inventory'),
       fetchAllFromSupabase('gifts_inventory'),
       fetchAllFromSupabase('inputs_inventory'),
-      fetchAllFromSupabase('stockists', { allowMissing: true })
+      fetchAllFromSupabase('stockists')
     ]);
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });

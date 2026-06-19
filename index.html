@@ -5580,31 +5580,56 @@ function uploadLeaveBalances(inp){
   var reader=new FileReader();
   reader.onload=function(e){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
-    if(!lines.length)return;
+    if(lines.length < 2) { showToast("CSV file is empty or missing data."); return; }
+    
+    var headers = parseCSVLine(lines[0]).map(function(h) { return h.toLowerCase().replace(/[^a-z0-9]/g, ''); });
+    
+    // Find column indices
+    var idCol = -1, clCol = -1, plCol = -1, slCol = -1, lopCol = -1;
+    var clUsedCol = -1, plUsedCol = -1, slUsedCol = -1, lopUsedCol = -1;
+    
+    headers.forEach(function(h, i) {
+      if (h.indexOf('employeeid') !== -1 || h === 'id') idCol = i;
+      else if (h === 'cl' || h === 'casualleave') clCol = i;
+      else if (h === 'pl' || h === 'privilegeleave' || h === 'el' || h === 'earnedleave') plCol = i;
+      else if (h === 'sl' || h === 'sickleave') slCol = i;
+      else if (h === 'lop' || h === 'lossifpay' || h === 'lossofpay') lopCol = i;
+      else if (h === 'clused') clUsedCol = i;
+      else if (h === 'plused' || h === 'elused') plUsedCol = i;
+      else if (h === 'slused') slUsedCol = i;
+      else if (h === 'lopused') lopUsedCol = i;
+    });
+    
+    if (idCol === -1) {
+      // Fallback to strict column mapping if headers are completely unrecognizable
+      idCol = 1; clCol = 6; plCol = 7; slCol = 8; lopCol = 9;
+      clUsedCol = 10; plUsedCol = 11; slUsedCol = 12; lopUsedCol = 13;
+    }
+    
     var updated=0;
-    lines.forEach(function(line){
-      var p=parseCSVLine(line);
-      if(!p[1]) return; // Need at least Employee ID
+    for (var i = 1; i < lines.length; i++) {
+      var p = parseCSVLine(lines[i]);
+      if (!p[idCol]) continue;
       
-      // employee ID is in p[1]
-      var empId = p[1].toUpperCase();
+      var empId = String(p[idCol]).trim().toUpperCase();
       var emp = DB.employees.find(function(x){return x.id === empId;});
       if(emp){
         if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
         
-        emp.leaves.CL = parseInt(p[6]) || 0;
-        emp.leaves.EL = parseInt(p[7]) || 0; // PL mapped to EL
-        emp.leaves.SL = parseInt(p[8]) || 0;
-        emp.leaves.LWP = parseInt(p[9]) || 0;
+        if (clCol !== -1 && p[clCol]) emp.leaves.CL = parseInt(p[clCol]) || 0;
+        if (plCol !== -1 && p[plCol]) emp.leaves.EL = parseInt(p[plCol]) || 0; // PL mapped to EL
+        if (slCol !== -1 && p[slCol]) emp.leaves.SL = parseInt(p[slCol]) || 0;
+        if (lopCol !== -1 && p[lopCol]) emp.leaves.LWP = parseInt(p[lopCol]) || 0;
         
-        emp.leaves.CL_used = parseInt(p[10]) || 0;
-        emp.leaves.EL_used = parseInt(p[11]) || 0;
-        emp.leaves.SL_used = parseInt(p[12]) || 0;
-        emp.leaves.LWP_used = parseInt(p[13]) || 0;
+        if (clUsedCol !== -1 && p[clUsedCol]) emp.leaves.CL_used = parseInt(p[clUsedCol]) || 0;
+        if (plUsedCol !== -1 && p[plUsedCol]) emp.leaves.EL_used = parseInt(p[plUsedCol]) || 0;
+        if (slUsedCol !== -1 && p[slUsedCol]) emp.leaves.SL_used = parseInt(p[slUsedCol]) || 0;
+        if (lopUsedCol !== -1 && p[lopUsedCol]) emp.leaves.LWP_used = parseInt(p[lopUsedCol]) || 0;
         
         updated++;
       }
-    });
+    }
+    
     saveDB();
     showToast(updated+' employee leave balances updated successfully!');
     renderLeaveBalanceTable();

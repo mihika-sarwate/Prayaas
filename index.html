@@ -1368,13 +1368,36 @@ async function fetchAllFromSupabase(table, options) {
 
 async function upsertInBatches(table, dataArray, chunkSize = 1000) {
   if (!dataArray || dataArray.length === 0) return;
-  for (let i = 0; i < dataArray.length; i += chunkSize) {
-    const chunk = dataArray.slice(i, i + chunkSize);
+  // Deduplicate by primary key to prevent PostgreSQL error 21000
+  // "ON CONFLICT DO UPDATE command cannot affect row a second time"
+  var seen = {};
+  var deduped = [];
+  for (var di = 0; di < dataArray.length; di++) {
+    var row = dataArray[di];
+    // Build a unique key for deduplication
+    var rowKey;
+    if (table === 'holidays') {
+      rowKey = (row.date || '') + '|' + (row.state || 'All');
+    } else if (table === 'sfc') {
+      rowKey = (row.from_loc || '') + '|' + (row.to_loc || '') + '|' + (row.mode || '');
+    } else {
+      rowKey = String(row.id || di);
+    }
+    if (!seen[rowKey]) {
+      seen[rowKey] = true;
+      deduped.push(row);
+    }
+  }
+  if (deduped.length < dataArray.length) {
+    console.warn('upsertInBatches(' + table + '): removed ' + (dataArray.length - deduped.length) + ' duplicate rows before upsert.');
+  }
+  for (let i = 0; i < deduped.length; i += chunkSize) {
+    const chunk = deduped.slice(i, i + chunkSize);
     const { error } = await supabase.from(table).upsert(chunk);
     if (error) {
-        console.error("Batch upsert failed on table " + table + ":", error);
-        throw error;
-      }
+      console.error("Batch upsert failed on table " + table + ":", error);
+      throw error;
+    }
   }
 }
 
@@ -5413,10 +5436,14 @@ function uploadDoctors(inp){
     var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newDocs = [];
     var touchedCodes = [];
+    var seenInBatch = {};
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
       if(!p[idCol]||!p[nameCol])return;
-      var existing = DB.doctors.find(function(d){ return d.code === p[idCol]; });
+      var docCode = String(p[idCol]).trim();
+      if(seenInBatch[docCode]) return; // skip duplicate codes in the CSV
+      seenInBatch[docCode] = true;
+      var existing = DB.doctors.find(function(d){ return d.code === docCode; });
       var newDoc;
       if(existing){
         existing.name = p[nameCol];
@@ -5437,7 +5464,7 @@ function uploadDoctors(inp){
       } else {
         newDoc = {
           id: 'D'+Date.now()+Math.random(),
-          code: p[idCol],
+          code: docCode,
           assignTo: (p[empIdCol]||'').toUpperCase(),
           beName: p[beNameCol]||'',
           hq: p[hqCol]||'',
@@ -5991,10 +6018,14 @@ function uploadChemists(inp){
     var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newChems = [];
     var touchedIds = [];
+    var seenInBatch = {};
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
       if(!p[idCol]||!p[nameCol])return;
-      var existing = DB.chemists.find(function(c){ return c.id === p[idCol]; });
+      var chemId = String(p[idCol]).trim();
+      if(seenInBatch[chemId]) return; // skip duplicate IDs in the CSV
+      seenInBatch[chemId] = true;
+      var existing = DB.chemists.find(function(c){ return c.id === chemId; });
       var newChem;
       if(existing){
         existing.name = p[nameCol];
@@ -6003,7 +6034,7 @@ function uploadChemists(inp){
         newChem = existing;
       } else {
         newChem = {
-          id: p[idCol],
+          id: chemId,
           name: p[nameCol],
           area: p[areaCol]||'',
           assignTo: (p[assignCol]||'').toUpperCase()
@@ -6310,10 +6341,14 @@ function uploadStockists(inp) {
     var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newStockists = [];
     var touchedIds = [];
+    var seenInBatch = {};
     dataLines.forEach(function(line){
       var p = parseCSVLine(line);
       if(!p[idCol] || !p[nameCol])return;
-      var existing = DB.stockists.find(function(s){ return s.id === p[idCol]; });
+      var stockistId = String(p[idCol]).trim();
+      if(seenInBatch[stockistId]) return; // skip duplicate IDs in the CSV
+      seenInBatch[stockistId] = true;
+      var existing = DB.stockists.find(function(s){ return s.id === stockistId; });
       var newStk;
       if(existing){
         existing.name = p[nameCol];
@@ -6322,7 +6357,7 @@ function uploadStockists(inp) {
         newStk = existing;
       } else {
         newStk = {
-          id: p[idCol],
+          id: stockistId,
           name: p[nameCol],
           area: p[areaCol]||'',
           assignTo: (p[assignCol]||'').toUpperCase()

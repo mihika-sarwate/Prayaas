@@ -2332,18 +2332,19 @@ function populateJFWManagers(){
   function isSubordinate(mgrId, empId) {
     if (!mgrId) return false;
     var targetMgr = String(mgrId).trim().toUpperCase();
-    var current = DB.employees.find(function(x) { return String(x.id).trim().toUpperCase() === String(empId).trim().toUpperCase(); });
+    var current = DB.employees.find(function(x) { return x && x.id && String(x.id).trim().toUpperCase() === String(empId).trim().toUpperCase(); });
     var maxDepth = 10;
     while (current && current.managerId && maxDepth > 0) {
       var mId = String(current.managerId).trim().toUpperCase();
       if (mId === targetMgr) return true;
-      current = DB.employees.find(function(x) { return String(x.id).trim().toUpperCase() === mId; });
+      current = DB.employees.find(function(x) { return x && x.id && String(x.id).trim().toUpperCase() === mId; });
       maxDepth--;
     }
     return false;
   }
   
   var chain = DB.employees.filter(function(e) {
+    if (!e) return false;
     if (e.id === SESSION.user.id) return false;
     if (e.status !== 'Active') return false;
     if ((e.role || '').toLowerCase() === 'admin') return false; // Explicitly hide admin
@@ -2440,6 +2441,7 @@ function getAllSubordinateIds(managerId) {
     let currentId = toCheck.pop();
     subIds.add(currentId);
     DB.employees.forEach(emp => {
+      if (!emp) return;
       var mId = String(emp.managerId || '').trim().toUpperCase();
       if (mId === currentId && !subIds.has(emp.id)) {
         toCheck.push(String(emp.id).trim().toUpperCase());

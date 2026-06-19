@@ -2327,6 +2327,9 @@ function populateJFWManagers(){
     var eLevel = getLevel(e.role, e.designation);
     var isHigher = eLevel > myLevel;
     
+    // If the user is an Admin (testing the system), let them see everyone.
+    if (myLevel === 99) isHigher = true; 
+    
     var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
     
     return isHigher || isJayashree;

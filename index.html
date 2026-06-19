@@ -1031,110 +1031,22 @@ window.addEventListener('error', function(e) {
 // Master Data Store
 var DEFAULT_DB={
   employees:[
-    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'NSM001',name:'Sanjay Kapoor',designation:'National Sales Manager',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',doj:'2025-01-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'ZM001',name:'Amitav Banerjee',designation:'Zonal Manager',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',doj:'2025-02-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'RM001',name:'Vikram Malhotra',designation:'Regional Manager',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',doj:'2025-02-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'AM001',name:'Deepa Iyer',designation:'Area Manager',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',doj:'2025-03-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'FLM001',name:'Rajesh Verma',designation:'First Line Manager',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',doj:'2025-03-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'EMP001',name:'Rahul Sharma',designation:'Medical Representative',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',doj:'2025-04-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
-    {id:'EMP002',name:'Priya Mehta',designation:'Medical Representative',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',doj:'2025-04-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'EMP003',name:'Karan Patel',designation:'Medical Representative',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',doj:'2025-05-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
+    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}}
   ],
-  doctors:[
-    {id:'D001',code:'DOC001',name:'Dr. Anil Kumar',spec:'Cardiologist',qual:'MBBS, MD',address:'Bandra Medical Center',city:'Mumbai',area:'Bandra',phone:'9820000001',assignTo:'EMP001',status:'Active'},
-    {id:'D002',code:'DOC002',name:'Dr. Sunita Rao',spec:'Gynaecologist',qual:'MD, DGO',address:'Holy Spirit Compound',city:'Mumbai',area:'Andheri',phone:'9820000002',assignTo:'EMP002',status:'Active'},
-    {id:'D003',code:'DOC003',name:'Dr. Pradeep Joshi',spec:'Paediatrician',qual:'MBBS, DCH',address:'Hinduja Clinic Road',city:'Mumbai',area:'Bandra',phone:'9820000003',assignTo:'EMP001',status:'Active'},
-    {id:'D004',code:'DOC004',name:'Dr. Meera Nair',spec:'General Physician',qual:'MBBS',address:'KEM OPD Block',city:'Mumbai',area:'Dadar',phone:'9820000004',assignTo:'EMP001',status:'Active'},
-    {id:'D005',code:'DOC005',name:'Dr. Vikram Singh',spec:'ENT Specialist',qual:'MS (ENT)',address:'Kokilaben Hospital Wing C',city:'Mumbai',area:'Vile Parle',phone:'9820000005',assignTo:'EMP002',status:'Active'},
-    {id:'D006',code:'DOC006',name:'Dr. Kavita Shah',spec:'Dermatologist',qual:'MD (Skin)',address:'Sai Skin Clinic',city:'Mumbai',area:'Malad',phone:'9820000006',assignTo:'EMP002',status:'Active'},
-    {id:'D007',code:'DOC007',name:'Dr. Rohit Desai',spec:'Orthopaedic',qual:'MS (Ortho)',address:'Deenanath Hospital',city:'Pune',area:'Kothrud',phone:'9820000007',assignTo:'EMP003',status:'Active'},
-    {id:'D008',code:'DOC008',name:'Dr. Smita Kulkarni',spec:'Neurologist',qual:'DM (Neuro)',address:'Ruby Hall OPD',city:'Pune',area:'Wakad',phone:'9820000008',assignTo:'EMP003',status:'Active'}
-  ],
-  chemists:[
-    {id:'C001',name:'Noble Chemist',area:'Bandra',assignTo:'EMP001'},
-    {id:'C002',name:'Wellness Forever',area:'Andheri',assignTo:'EMP002'},
-    {id:'C003',name:'Apollo Pharmacy',area:'Dadar',assignTo:'EMP001'},
-    {id:'C004',name:'Kothrud Medicals',area:'Kothrud',assignTo:'EMP003'}
-  ],
+  doctors:[],
+  chemists:[],
   products:['Aminoglobin-XT Susp','Arden 250','Arden 500','Arden 650','Arden A','Arden Junior','Arden MF Susp','Arden Spas','Coldaid+','Coldaid Susp','Coniderm-F','Hepaheal Syrup','Loramyl','ORT+','Servil Herbal','Servil Junior','Servil LS-Baby','Servil-D','Servil-LS Junior','Servil-LS Syrup','MV 30 Syrup','MV 30 Tab'],
   gifts:['Pen Set','Notepad','Visiting Card Holder','Anatomy Chart','Drug Compendium','Umbrella','Calendar','Desk Clock'],
   inputs:['Visual Aid Folder','Product Literature','Leave Behind Cards','Table Calendar','Brand Samples Box'],
-  reports:[
-    {
-      id: 'REP_MOCK_1',
-      empId: 'EMP001',
-      empName: 'Rahul Sharma',
-      date: '2026-06-01',
-      time: '10:30',
-      targetType: 'Doctor',
-      classification: 'Planned Call',
-      callType: 'Regular Visit',
-      docId: 'D001',
-      docName: 'Dr. Anil Kumar',
-      docSpec: 'Cardiologist',
-      docArea: 'Bandra',
-      promotedProducts: ['Arden 650', 'Coldaid+'],
-      samples: {'Arden 650': 2, 'Coldaid+': 1},
-      gifts: {'Pen Set': 1},
-      inputs: {'Product Literature': 1},
-      jfwMgrId: '',
-      lat: '19.0543',
-      lng: '72.8402',
-      remarks: 'Detailed visual aid. Doctor was positive about Arden 650.',
-      nextVisit: '2026-06-15'
-    },
-    {
-      id: 'REP_MOCK_2',
-      empId: 'EMP001',
-      empName: 'Rahul Sharma',
-      date: '2026-06-02',
-      time: '14:15',
-      targetType: 'Chemist',
-      classification: 'Planned Call',
-      callType: 'Regular Visit',
-      chemId: 'C001',
-      chemName: 'Noble Chemist',
-      chemArea: 'Bandra',
-      orderAmount: 12500,
-      stockStatus: 'Adequate Stock',
-      jfwMgrId: 'FLM001',
-      jfwMgrName: 'Rajesh Verma',
-      lat: '19.0545',
-      lng: '72.8410',
-      remarks: 'Joint field work with manager. Collected order of Rs 12,500.',
-      nextVisit: ''
-    }
-  ],
+  reports:[],
   tourPlans:[],
   expenses:[],
   leaves:[],
   cityRates:{daA:700,daB:500,daC:300,lodgeA:1500,lodgeB:1000,lodgeC:0,localConv:120},
-  sfc:[
-    {from:'Mumbai',to:'Pune',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
-    {from:'Pune',to:'Mumbai',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
-    {from:'Mumbai',to:'Nashik',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
-    {from:'Nashik',to:'Mumbai',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
-    {from:'Mumbai',to:'Aurangabad',distance:330,mode:'Bus',fare:600,da:450,lodge:800,other:150},
-    {from:'Pune',to:'Nashik',distance:210,mode:'Bus',fare:400,da:450,lodge:800,other:100},
-    {from:'Pune',to:'Aurangabad',distance:230,mode:'Bus',fare:450,da:450,lodge:800,other:100}
-  ],
-  samplesInventory:[
-    {prodName:'Arden 650',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
-    {prodName:'Coldaid+',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
-    {prodName:'Servil-D',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
-    {prodName:'Arden 650',empId:'EMP002',opening:100,received:100,distributed:0,balance:100},
-    {prodName:'Coldaid+',empId:'EMP002',opening:100,received:100,distributed:0,balance:100}
-  ],
-  giftsInventory:[
-    {giftName:'Pen Set',empId:'EMP001',opening:30,received:30,distributed:0,balance:30},
-    {giftName:'Notepad',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
-    {giftName:'Pen Set',empId:'EMP002',opening:30,received:30,distributed:0,balance:30}
-  ],
-  inputsInventory:[
-    {inputName:'Visual Aid Folder',empId:'EMP001',opening:10,received:10,distributed:0,balance:10},
-    {inputName:'Product Literature',empId:'EMP001',opening:100,received:100,distributed:0,balance:100}
-  ],
+  sfc:[],
+  samplesInventory:[],
+  giftsInventory:[],
+  inputsInventory:[],
   holidays:[
     {date: '2026-01-01', name: 'New Year Day'},
     {date: '2026-01-26', name: 'Republic Day'},

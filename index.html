@@ -1308,6 +1308,12 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
 
 async function initSupabaseData(isSilent) {
   if (!supabase) {
+    if (window._hasAttemptedSupabaseLoad) {
+      console.warn("Supabase load already attempted. Using local database.");
+      loadLocalDB();
+      return;
+    }
+    window._hasAttemptedSupabaseLoad = true;
     ensureSupabaseLoaded(function() {
       if (supabase) {
         initSupabaseData(isSilent);
@@ -1364,6 +1370,12 @@ async function initSupabaseData(isSilent) {
     }
     
     if (!emps || emps.length === 0) {
+      if (window._hasSeededSupabase) {
+        console.warn("Seeding already attempted. Bailing out of init recursion.");
+        loadLocalDB();
+        return;
+      }
+      window._hasSeededSupabase = true;
       if (isSilent !== true) showToast("Seeding database with default records...");
       await seedSupabaseDatabase();
       await initSupabaseData(isSilent);

@@ -3627,8 +3627,8 @@ function renderMTPDaysUI(isReadOnly, existing){
     DB.doctors.forEach(function(d) {
       if (String(d.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && d.status === 'Active') {
         if (d.area) areaSet.add(d.area.trim());
-        var tType = (d.territoryType || 'HQ').trim().toUpperCase();
-        if (d.city) {
+        var tType = (d.territoryType || '').trim().toUpperCase();
+        if (d.city && tType) {
           if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
           mrTownsByTerritory[tType].add(d.city.trim());
         }
@@ -5447,9 +5447,9 @@ function uploadDoctors(inp){
         else if (h.indexOf('qualification') !== -1 || h === 'qual') qualCol = idx;
         else if (h.indexOf('address') !== -1) addCol = idx;
         else if (h === 'city' || h.indexOf('town') !== -1 || h.indexOf('locality') !== -1) cityCol = idx;
+        else if (h.indexOf('territory type') !== -1 || h.indexOf('type') !== -1) typeCol = idx;
         else if (h.indexOf('patch') !== -1 || h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
         else if (h === 'state') stateCol = idx;
-        else if (h.indexOf('territory type') !== -1 || h.indexOf('type') !== -1) typeCol = idx;
         else if (h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) phoneCol = idx;
       });
     }

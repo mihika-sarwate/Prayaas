@@ -13,6 +13,7 @@ alter table sfc disable row level security;
 alter table samples_inventory disable row level security;
 alter table gifts_inventory disable row level security;
 alter table inputs_inventory disable row level security;
+alter table stockists disable row level security;
 
 -- 1. Employees Table
 create table if not exists employees (
@@ -52,6 +53,14 @@ create table doctors (
 
 -- 3. Chemists Table
 create table chemists (
+  id text primary key,
+  name text not null,
+  area text,
+  assign_to text references employees(id)
+);
+
+-- 3b. Stockists Table
+create table stockists (
   id text primary key,
   name text not null,
   area text,

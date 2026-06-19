@@ -625,6 +625,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="admin-tab" id="subtab-adm-emp" onclick="goMasterSubTab('emp')">Employee Master</div>
         <div class="admin-tab" id="subtab-adm-doc" onclick="goMasterSubTab('doc')">Doctor Master</div>
         <div class="admin-tab" id="subtab-adm-chem" onclick="goMasterSubTab('chem')">Chemist Master</div>
+        <div class="admin-tab" id="subtab-adm-stockist" onclick="goMasterSubTab('stockist')">Stockist Master</div>
         <div class="admin-tab" id="subtab-adm-leave" onclick="goMasterSubTab('leave')">Leave Balance Master</div>
         <div class="admin-tab" id="subtab-adm-holiday" onclick="goMasterSubTab('holiday')">Holiday Master</div>
       </div>
@@ -786,6 +787,33 @@ table.tbl tr:last-child td{border-bottom:none}
             <tbody id="chem-table-body"></tbody>
           </table>
           <div id="chem-pagination" style="margin-top:10px;text-align:right;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stockist Master -->
+    <div id="adm-stockist-section" class="master-sub-sec" style="display:none">
+      <div class="sec-hdr">&#128221; Stockist Master Management</div>
+      <div class="card">
+        <div class="info-box">Upload Stockist CSV. Columns: <strong>StockistID, Name, Area, AssignToEmpID</strong></div>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn sm success" onclick="downloadStockistTemplate()">&#8595; Download Selected/All</button>
+          <button class="btn sm primary admin-only" onclick="document.getElementById('stockist-upload').click()">&#8593; Upload Stockist CSV</button>
+          <input type="file" id="stockist-upload" accept=".csv" onchange="uploadStockists(this)" style="display:none">
+          <button class="btn sm danger admin-only" onclick="bulkDeleteAllStockists()">&#128465; Delete All</button>
+          <button class="btn sm danger" id="btn-bulk-delete-selected-stockists" onclick="bulkDeleteSelectedStockists()" style="display:none">&#128465; Delete Selected (0)</button>
+        </div>
+        <button class="btn sm admin-only" onclick="addStockistManual()">+ Add Single Stockist Manual</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Stockist Registry (<span id="stockist-count">0</span> records)</div>
+        <input type="text" id="adm-stockist-search" placeholder="&#128269; Search stockist master registry..." oninput="renderAdminStockistList()" style="margin-bottom:10px;background:#F1F5F9">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead id="stockist-table-head"></thead>
+            <tbody id="stockist-table-body"></tbody>
+          </table>
+          <div id="stockist-pagination" style="margin-top:10px;text-align:right;"></div>
         </div>
       </div>
     </div>
@@ -986,6 +1014,21 @@ table.tbl tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- SINGLE STOCKIST MODAL -->
+<div class="modal-bg" id="modal-add-stockist">
+  <div class="modal">
+    <div class="modal-title"><span id="stockist-modal-title-text">Add Stockist</span> <button class="modal-close" onclick="closeModal('modal-add-stockist')">&#215;</button></div>
+    <input type="hidden" id="ms-id">
+    <div class="fw"><label class="lbl">Stockist Code / ID</label><input type="text" id="ms-code" placeholder="STK001"></div>
+    <div class="fw"><label class="lbl">Stockist Name</label><input type="text" id="ms-name" placeholder="Stockist name"></div>
+    <div class="row2">
+      <div><label class="lbl">Area</label><input type="text" id="ms-area" placeholder="Area"></div>
+      <div><label class="lbl">Assign To MR</label><select id="ms-assign"><option value="">-- Assign MR --</option></select></div>
+    </div>
+    <div class="btn-row"><button class="btn primary" onclick="saveStockist()">Save Stockist Record</button></div>
+  </div>
+</div>
+
 <!-- TOUR PLAN DETAIL MODAL -->
 <div class="modal-bg" id="modal-tp-detail">
   <div class="modal" style="max-width: 700px;">
@@ -1062,6 +1105,7 @@ var DEFAULT_DB={
   ],
   doctors:[],
   chemists:[],
+  stockists:[],
   products:['Aminoglobin-XT Susp','Arden 250','Arden 500','Arden 650','Arden A','Arden Junior','Arden MF Susp','Arden Spas','Coldaid+','Coldaid Susp','Coniderm-F','Hepaheal Syrup','Loramyl','ORT+','Servil Herbal','Servil Junior','Servil LS-Baby','Servil-D','Servil-LS Junior','Servil-LS Syrup','MV 30 Syrup','MV 30 Tab'],
   gifts:['Pen Set','Notepad','Visiting Card Holder','Anatomy Chart','Drug Compendium','Umbrella','Calendar','Desk Clock'],
   inputs:['Visual Aid Folder','Product Literature','Leave Behind Cards','Table Calendar','Brand Samples Box'],
@@ -1375,7 +1419,8 @@ async function initSupabaseData(isSilent) {
       sfc,
       samplesInv,
       giftsInv,
-      inputsInv
+      inputsInv,
+      stockists
     ] = await Promise.all([
       fetchAllFromSupabase('doctors'),
       fetchAllFromSupabase('chemists'),
@@ -1386,7 +1431,8 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('sfc'),
       fetchAllFromSupabase('samples_inventory'),
       fetchAllFromSupabase('gifts_inventory'),
-      fetchAllFromSupabase('inputs_inventory')
+      fetchAllFromSupabase('inputs_inventory'),
+      fetchAllFromSupabase('stockists', { allowMissing: true })
     ]);
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
@@ -1461,6 +1507,23 @@ async function initSupabaseData(isSilent) {
             return idxA - idxB;
           });
         }
+
+        var stockistOrderRaw = [];
+        try { stockistOrderRaw = JSON.parse(localStorage.getItem('adonis_order_stockists') || '[]'); } catch(e){}
+        if (DB.stockists && DB.stockists.length > 0) stockistOrderRaw = DB.stockists.map(s => s.id);
+        if (stockistOrderRaw && stockistOrderRaw.length > 0) {
+          const stockistMap = {};
+          stockistOrderRaw.forEach((id, idx) => { stockistMap[String(id || '').trim().toUpperCase()] = idx; });
+          if (stockists) {
+            stockists.sort(function(a, b) {
+              var idA = String(a.id || '').trim().toUpperCase();
+              var idB = String(b.id || '').trim().toUpperCase();
+              var idxA = stockistMap[idA] !== undefined ? stockistMap[idA] : 999999;
+              var idxB = stockistMap[idB] !== undefined ? stockistMap[idB] : 999999;
+              return idxA - idxB;
+            });
+          }
+        }
       }
     } catch(e) {
       console.warn("Sorting failed:", e);
@@ -1522,6 +1585,12 @@ async function initSupabaseData(isSilent) {
         name: c.name,
         area: c.area,
         assignTo: c.assign_to
+      })),
+      stockists: (stockists || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        area: s.area,
+        assignTo: s.assign_to
       })),
       products: DEFAULT_DB.products,
       gifts: DEFAULT_DB.gifts,
@@ -1711,6 +1780,7 @@ function loadLocalDB() {
   if (!Array.isArray(DB.employees)) DB.employees = DEFAULT_DB.employees || [];
   if (!Array.isArray(DB.doctors)) DB.doctors = DEFAULT_DB.doctors || [];
   if (!Array.isArray(DB.chemists)) DB.chemists = DEFAULT_DB.chemists || [];
+  if (!Array.isArray(DB.stockists)) DB.stockists = DEFAULT_DB.stockists || [];
   if (!Array.isArray(DB.products)) DB.products = DEFAULT_DB.products || [];
   if (!Array.isArray(DB.gifts)) DB.gifts = DEFAULT_DB.gifts || [];
   if (!Array.isArray(DB.inputs)) DB.inputs = DEFAULT_DB.inputs || [];
@@ -2022,6 +2092,25 @@ window.addEventListener('beforeunload', function (e) {
       return String(row.id || '').toUpperCase();
     }, function(row) {
       return supabase.from('chemists').delete().eq('id', row.id);
+    });
+
+    const dbStockists = DB.stockists.map(s => {
+      var assignTo = s.assignTo || null;
+      if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
+        assignTo = null;
+      }
+      return {
+        id: s.id,
+        name: s.name,
+        area: s.area,
+        assign_to: assignTo
+      };
+    });
+    await upsertInBatches('stockists', dbStockists);
+    await reconcileSupabaseRows('stockists', DB.stockists, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('stockists').delete().eq('id', row.id);
     });
 
     const dbReports = DB.reports.map(r => ({
@@ -4099,6 +4188,7 @@ function goMasterSubTab(id) {
   else if (id === 'emp') renderEmpTable();
   else if (id === 'doc') renderAdminDocList();
   else if (id === 'chem') renderAdminChemistList();
+  else if (id === 'stockist') renderAdminStockistList();
   else if (id === 'leave') renderLeaveBalanceTable();
   else if (id === 'holiday') renderHolidayTable();
 }
@@ -4113,6 +4203,7 @@ function initAdminApp(){
   renderEmpTable();
   renderAdminDocList();
   renderAdminChemistList();
+  renderAdminStockistList();
   renderLeaveBalanceTable();
   renderHolidayTable();
   renderSFCTable();
@@ -5269,6 +5360,7 @@ function downloadDocTemplate(){
 var adminTableState = {
   doctors: { sortCol: null, sortAsc: true, filters: {} },
   chemists: { sortCol: null, sortAsc: true, filters: {} },
+  stockists: { sortCol: null, sortAsc: true, filters: {} },
   employees: { sortCol: null, sortAsc: true, filters: {} }
 };
 
@@ -5284,12 +5376,13 @@ function handleTableSort(table, col) {
     adminTableState[table].sortCol = col;
     adminTableState[table].sortAsc = true;
   }
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : 'emp-table-head');
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : 'emp-table-head'));
   var thead = document.getElementById(theadId);
   if (thead) thead.innerHTML = ''; // Force header re-render to update sort arrows
   
   if (table === 'doctors') renderAdminDocList(1);
   else if (table === 'chemists') renderAdminChemistList(1);
+  else if (table === 'stockists') renderAdminStockistList(1);
   else if (table === 'employees') renderEmpTable();
 }
 
@@ -5311,7 +5404,7 @@ function getCellValue(table, col, item) {
       return ROLE_MAPPING[item.role] || item.role || '';
     }
   }
-  if (table === 'doctors' || table === 'chemists') {
+  if (table === 'doctors' || table === 'chemists' || table === 'stockists') {
     if (col === 'assignTo') {
       var emp = DB.employees.find(function(e){return e.id===item.assignTo;});
       return emp ? emp.name + ' (' + item.assignTo + ')' : 'Unassigned';
@@ -5425,7 +5518,7 @@ function applyExcelFilter() {
   
   closeExcelFilter();
   
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : 'emp-table-head');
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : 'emp-table-head'));
   var thead = document.getElementById(theadId);
   if (thead) {
     thead.innerHTML = ''; // Force header re-render to update filter icon colors
@@ -5433,6 +5526,7 @@ function applyExcelFilter() {
   
   if (table === 'doctors') renderAdminDocList(1);
   else if (table === 'chemists') renderAdminChemistList(1);
+  else if (table === 'stockists') renderAdminStockistList(1);
   else if (table === 'employees') renderEmpTable();
 }
 
@@ -5964,6 +6058,326 @@ function bulkDeleteAllChemists() {
   var masterCheck = document.getElementById('check-all-chems');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedChemsCount();
+}
+
+// ===== STOCKIST MASTER FUNCTIONS =====
+function addStockistManual() {
+  document.getElementById('stockist-modal-title-text').textContent = 'Add Stockist';
+  document.getElementById('ms-id').value = '';
+  document.getElementById('ms-code').value = '';
+  document.getElementById('ms-code').disabled = false;
+  document.getElementById('ms-name').value = '';
+  document.getElementById('ms-area').value = '';
+  
+  var sel = document.getElementById('ms-assign');
+  sel.innerHTML = '<option value="">-- Assign MR --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-stockist').classList.add('on');
+}
+
+function editStockist(id) {
+  var stockist = DB.stockists.find(function(s){return s.id===id;});
+  if(!stockist) return;
+  
+  document.getElementById('stockist-modal-title-text').textContent = 'Edit Stockist';
+  document.getElementById('ms-id').value = stockist.id;
+  document.getElementById('ms-code').value = stockist.id;
+  document.getElementById('ms-code').disabled = true;
+  document.getElementById('ms-name').value = stockist.name;
+  document.getElementById('ms-area').value = stockist.area;
+  
+  var sel = document.getElementById('ms-assign');
+  sel.innerHTML = '<option value="">-- Unassigned --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'" '+(e.id===stockist.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-stockist').classList.add('on');
+}
+
+function saveStockist() {
+  var id = document.getElementById('ms-id').value;
+  var code = document.getElementById('ms-code').value.trim();
+  var name = document.getElementById('ms-name').value.trim();
+  var area = document.getElementById('ms-area').value.trim();
+  
+  if(!code || !name){showToast('Stockist ID and Name required!');return;}
+  
+  if(!id){
+    if(DB.stockists.some(function(s){return s.id===code;})){
+      showToast('Stockist ID already exists!');
+      return;
+    }
+    DB.stockists.push({
+      id: code,
+      name: name,
+      area: area,
+      assignTo: document.getElementById('ms-assign').value
+    });
+  } else {
+    var stockist = DB.stockists.find(function(s){return s.id===id;});
+    if(stockist){
+      stockist.name = name;
+      stockist.area = area;
+      stockist.assignTo = document.getElementById('ms-assign').value;
+    }
+  }
+  
+  saveDB();
+  closeModal('modal-add-stockist');
+  showToast('Stockist record saved successfully.');
+  renderAdminStockistList();
+}
+
+function uploadStockists(inp) {
+  var file = inp.files[0];if(!file)return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var lines = e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var added = 0;
+    
+    var headerLineIndex = -1;
+    var headers = [];
+    for (var j = 0; j < Math.min(3, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
+      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('stockist') !== -1 || c.indexOf('name') !== -1;})) {
+        headerLineIndex = j;
+        headers = candidate;
+        break;
+      }
+    }
+    
+    var idCol = 0, nameCol = 1, areaCol = 2, assignCol = 3;
+    if (headers.length > 0) {
+      headers.forEach(function(h, idx) {
+        if (h === 'code' || h === 'id' || h === 'stockist code' || h === 'stockistid') idCol = idx;
+        else if (h.indexOf('name') !== -1) nameCol = idx;
+        else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
+        else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
+      });
+    }
+    
+    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
+    var newStockists = [];
+    var touchedIds = [];
+    dataLines.forEach(function(line){
+      var p = parseCSVLine(line);
+      if(!p[idCol] || !p[nameCol])return;
+      var existing = DB.stockists.find(function(s){ return s.id === p[idCol]; });
+      var newStk;
+      if(existing){
+        existing.name = p[nameCol];
+        existing.area = p[areaCol]||'';
+        existing.assignTo = (p[assignCol]||'').toUpperCase();
+        newStk = existing;
+      } else {
+        newStk = {
+          id: p[idCol],
+          name: p[nameCol],
+          area: p[areaCol]||'',
+          assignTo: (p[assignCol]||'').toUpperCase()
+        };
+      }
+      
+      newStockists.push(newStk);
+      touchedIds.push(newStk.id);
+      added++;
+    });
+    var untouched = DB.stockists.filter(function(s){ return !touchedIds.includes(s.id); });
+    DB.stockists = newStockists.concat(untouched);
+    saveDB();
+    showToast(added+' Stockists processed successfully!');
+    renderAdminStockistList();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadStockistTemplate() {
+  var csv = 'StockistID,Name,Area,AssignToEmpID\n';
+  var checked = document.querySelectorAll('.stockist-row-check:checked');
+  var stkToExport = [];
+  if (checked.length > 0) {
+    var ids = Array.from(checked).map(c => c.value);
+    stkToExport = DB.stockists.filter(s => ids.includes(s.id));
+  } else {
+    stkToExport = DB.stockists || [];
+  }
+
+  if(stkToExport.length > 0) {
+    stkToExport.forEach(function(s){
+      csv += [
+        s.id || '',
+        s.name || '',
+        s.area || '',
+        s.assignTo || ''
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'stockist_master.csv');
+  } else {
+    csv += 'STK009,Vikas Stockist,Dadar,EMP001\n';
+    downloadData(csv,'stockist_master_template.csv');
+  }
+}
+
+var currentStockistPage = 1; var stockistsPerPage = 50;
+function renderAdminStockistList(page = 1) {
+  currentStockistPage = page;
+  var q = (document.getElementById('adm-stockist-search').value||'').toLowerCase();
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  
+  var thead = document.getElementById('stockist-table-head');
+  if (thead && !thead.innerHTML.includes('<th')) {
+    thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-stockists" class="admin-only" onclick="toggleSelectAllStockists(this)"></th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'id', 'Stockist ID') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'name', 'Name') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'area', 'Area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'assignTo', 'Assigned MR') + '</th>' +
+      '<th style="vertical-align:top">Actions</th></tr>';
+  }
+
+  var filters = adminTableState.stockists.filters;
+  var stockists = DB.stockists.filter(function(s){
+    if (teamIds && !teamIds.includes(s.assignTo)) return false;
+    
+    // Global search
+    if (q) {
+      var mr = DB.employees.find(function(e){return e.id===s.assignTo;});
+      var mrName = mr && mr.name ? mr.name : '';
+      var haystack = [
+        s.id, s.name, s.area, s.assignTo, mrName
+      ].join(' ').toLowerCase();
+      if (haystack.indexOf(q) === -1) return false;
+    }
+    
+    // Column filters
+    var cols = ['id', 'name', 'area', 'assignTo'];
+    for (var i = 0; i < cols.length; i++) {
+      var colName = cols[i];
+      if (filters[colName]) {
+        var v = getCellValue('stockists', colName, s);
+        if (v === null || v === undefined || v === '') v = '(Blanks)';
+        else v = String(v).trim();
+        if (!filters[colName].includes(v)) return false;
+      }
+    }
+    
+    return true;
+  });
+
+  // Apply visual sort
+  var sortCol = adminTableState.stockists.sortCol;
+  if (sortCol) {
+    var sortAsc = adminTableState.stockists.sortAsc ? 1 : -1;
+    stockists = stockists.slice().sort(function(a, b) {
+      var valA = String(getCellValue('stockists', sortCol, a) || '');
+      var valB = String(getCellValue('stockists', sortCol, b) || '');
+      return sortAsc * valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  // Apply relevance sort if searching
+  if (q) {
+    stockists.sort(function(a, b) {
+      var aMatch = (a.name||"").toLowerCase().includes(q) ? 1 : 0;
+      var bMatch = (b.name||"").toLowerCase().includes(q) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  }
+
+  var countEl = document.getElementById('stockist-count');
+  if (countEl) countEl.textContent = stockists.length;
+  var totalPages = Math.ceil(stockists.length / stockistsPerPage);
+  if (currentStockistPage > totalPages) currentStockistPage = totalPages || 1;
+  var startIdx = (currentStockistPage - 1) * stockistsPerPage;
+  var endIdx = startIdx + stockistsPerPage;
+  var pagedStockists = stockists.slice(startIdx, endIdx);
+  var tbody = document.getElementById('stockist-table-body');
+  if(!tbody) return;
+  
+  tbody.innerHTML = pagedStockists.map(function(s){
+    var emp = DB.employees.find(function(e){return e.id===s.assignTo;});
+    return '<tr><td><input type="checkbox" class="stockist-row-check admin-only" value="'+s.id+'" onchange="updateSelectedStockistsCount()"></td><td>'+s.id+'</td><td class="tbl-name">'+s.name+'</td><td>'+s.area+'</td><td>'+(emp?emp.name+' ('+s.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editStockist(\''+s.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeStockist(\''+s.id+'\')">Del</button></td></tr>';
+  }).join('');
+  
+  var masterCheck = document.getElementById('check-all-stockists');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedStockistsCount();
+  var pagEl = document.getElementById('stockist-pagination');
+  if (pagEl) {
+    var phtml = '';
+    if (currentStockistPage > 1) phtml += '<button class="btn sm" onclick="renderAdminStockistList('+(currentStockistPage-1)+')">Prev</button> ';
+    phtml += '<span style="font-size:12px;margin:0 10px;">Page ' + currentStockistPage + ' of ' + (totalPages || 1) + '</span>';
+    if (currentStockistPage < totalPages) phtml += ' <button class="btn sm" onclick="renderAdminStockistList('+(currentStockistPage+1)+')">Next</button>';
+    pagEl.innerHTML = phtml;
+  }
+}
+
+function removeStockist(id) {
+  if(!confirm('Delete stockist record?'))return;
+  DB.stockists = DB.stockists.filter(function(s){return s.id!==id;});
+  saveDB();
+  renderAdminStockistList();
+  runSupabaseDelete('stockists', function(q) {
+    return q.eq('id', id);
+  });
+}
+
+function toggleSelectAllStockists(masterCheck) {
+  var checks = document.querySelectorAll('.stockist-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedStockistsCount();
+}
+
+function updateSelectedStockistsCount() {
+  var selected = document.querySelectorAll('.stockist-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-stockists');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedStockists() {
+  var checked = document.querySelectorAll('.stockist-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected stockist records?')) return;
+  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.stockists = DB.stockists.filter(function(s) { return !idsToDelete.includes(s.id); });
+  saveDB();
+  renderAdminStockistList();
+  runSupabaseDelete('stockists', function(q) {
+    return q.in('id', idsToDelete);
+  });
+  showToast(checked.length + ' stockists deleted successfully!');
+  var masterCheck = document.getElementById('check-all-stockists');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedStockistsCount();
+}
+
+function bulkDeleteAllStockists() {
+  if (DB.stockists.length === 0) {
+    showToast('Stockist list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL stockist records (' + DB.stockists.length + ') from the system? This cannot be undone.')) return;
+  DB.stockists = [];
+  saveDB();
+  renderAdminStockistList();
+  runSupabaseDelete('stockists', function(q) {
+    return q.neq('id', 'dummy_value_to_delete_all');
+  });
+  showToast('All stockist records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-stockists');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedStockistsCount();
 }
 
 // ===== LEAVE BALANCE MASTER FUNCTIONS =====

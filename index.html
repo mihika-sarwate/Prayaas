@@ -4284,51 +4284,72 @@ function uploadEmployees(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var count=0;
-    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
-    var dataLines = hasHeader ? lines.slice(1) : lines;
+    
+    var headerLineIndex = -1;
+    var headers = [];
+    for (var j = 0; j < Math.min(3, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
+      if (candidate.some(function(c){return c === 'id' || c.indexOf('employee') !== -1 || c.indexOf('name') !== -1;})) {
+        headerLineIndex = j;
+        headers = candidate;
+        break;
+      }
+    }
+    
+    var idCol=0, nameCol=1, pwdCol=2, terrCol=3, desigCol=4, roleCol=5, mgrCol=6, dojCol=7, stateCol=8, statusCol=9;
+    if (headers.length > 0) {
+      headers.forEach(function(h, idx) {
+        if (h === 'id' || h === 'employee id' || h === 'employeeid' || h === 'code') idCol = idx;
+        else if (h.indexOf('name') !== -1) nameCol = idx;
+        else if (h.indexOf('password') !== -1 || h === 'pwd') pwdCol = idx;
+        else if (h.indexOf('territory') !== -1 || h === 'area') terrCol = idx;
+        else if (h.indexOf('designation') !== -1) desigCol = idx;
+        else if (h.indexOf('role') !== -1) roleCol = idx;
+        else if (h.indexOf('manager') !== -1) mgrCol = idx;
+        else if (h.indexOf('doj') !== -1 || h.indexOf('joining') !== -1) dojCol = idx;
+        else if (h.indexOf('state') !== -1) stateCol = idx;
+        else if (h.indexOf('status') !== -1) statusCol = idx;
+      });
+    }
+    
+    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newEmps = [];
     var touchedIds = [];
     dataLines.forEach(function(line){
       var cols=parseCSVLine(line);
-      if(!cols[0]||!cols[1])return;
-      var pwd = cols[2] || 'pass123';
-      
-      // Fixed 10-column mapping from template
-      // 0:ID, 1:Name, 2:Pwd, 3:Territory, 4:Designation, 5:Role, 6:Manager, 7:DOJ, 8:State, 9:Status
-      var designation = cols[4] || '';
-      var rawRole = (cols[5] || '').trim().toLowerCase();
-      var mgrIndex = 6;
-      var dojIndex = 7;
-      var stateIndex = 8;
-      var statusIndex = 9;
-      
+      if(!cols[idCol]||!cols[nameCol])return;
+      var pwd = cols[pwdCol] || 'pass123';
+      var designation = cols[desigCol] || '';
+      var rawRole = (cols[roleCol] || '').trim().toLowerCase();
       var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
-      var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
+      
+      var eId = cols[idCol].toUpperCase();
+      var existing=DB.employees.find(function(em){return em && em.id===eId;});
       var newEmp;
       if(existing){
-        existing.name=cols[1];
+        existing.name=cols[nameCol];
         existing.pwd=pwd;
-        existing.area=cols[3]||'';
-        existing.designation = typeof cols[4] !== 'undefined' ? cols[4].trim() : existing.designation;
+        existing.area=cols[terrCol]||'';
+        existing.designation = typeof cols[desigCol] !== 'undefined' ? cols[desigCol].trim() : existing.designation;
         existing.role=role;
-        existing.managerId=cols[mgrIndex]||'';
-        existing.doj=cols[dojIndex]||'';
-        existing.state=cols[stateIndex]||'';
-        existing.status=normalizeEmployeeStatus(cols[statusIndex]||'Active');
+        existing.managerId=cols[mgrCol]||'';
+        existing.doj=cols[dojCol]||'';
+        existing.state=cols[stateCol]||'';
+        existing.status=normalizeEmployeeStatus(cols[statusCol]||'Active');
         newEmp = existing;
       } else {
         newEmp = {
-          id:cols[0].toUpperCase(),
-          name:cols[1],
+          id:eId,
+          name:cols[nameCol],
           pwd:pwd,
-          area:cols[3]||'',
+          area:cols[terrCol]||'',
           designation:designation,
           role:role,
-          managerId:cols[mgrIndex]||'',
-          doj:cols[dojIndex]||'',
-          state:cols[stateIndex]||'',
-          status:normalizeEmployeeStatus(cols[statusIndex]||'Active'),
+          managerId:cols[mgrCol]||'',
+          doj:cols[dojCol]||'',
+          state:cols[stateCol]||'',
+          status:normalizeEmployeeStatus(cols[statusCol]||'Active'),
           leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
         };
       }
@@ -4682,39 +4703,66 @@ function uploadDoctors(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var added=0;
-    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('code') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
-    var dataLines = hasHeader ? lines.slice(1) : lines;
+    
+    var headerLineIndex = -1;
+    var headers = [];
+    for (var j = 0; j < Math.min(3, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
+      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('doctor') !== -1 || c.indexOf('name') !== -1;})) {
+        headerLineIndex = j;
+        headers = candidate;
+        break;
+      }
+    }
+    
+    var idCol=0, nameCol=1, specCol=2, qualCol=3, addCol=4, cityCol=5, areaCol=6, phoneCol=7, assignCol=8, statusCol=9;
+    if (headers.length > 0) {
+      headers.forEach(function(h, idx) {
+        if (h === 'code' || h === 'id' || h === 'doctor code') idCol = idx;
+        else if (h.indexOf('name') !== -1) nameCol = idx;
+        else if (h.indexOf('speciality') !== -1 || h === 'spec') specCol = idx;
+        else if (h.indexOf('qualification') !== -1 || h === 'qual') qualCol = idx;
+        else if (h.indexOf('address') !== -1) addCol = idx;
+        else if (h.indexOf('city') !== -1) cityCol = idx;
+        else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
+        else if (h.indexOf('phone') !== -1 || h.indexOf('mobile') !== -1) phoneCol = idx;
+        else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
+        else if (h.indexOf('status') !== -1) statusCol = idx;
+      });
+    }
+    
+    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newDocs = [];
     var touchedCodes = [];
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(!p[0]||!p[1])return;
-      var existing = DB.doctors.find(function(d){ return d.code === p[0]; });
+      if(!p[idCol]||!p[nameCol])return;
+      var existing = DB.doctors.find(function(d){ return d.code === p[idCol]; });
       var newDoc;
       if(existing){
-        existing.name = p[1];
-        existing.spec = p[2]||'';
-        existing.qual = p[3]||'';
-        existing.address = p[4]||'';
-        existing.city = p[5]||'';
-        existing.area = p[6]||'';
-        existing.phone = p[7]||'';
-        existing.assignTo = (p[8]||'').toUpperCase();
-        existing.status = p[9]||'Active';
+        existing.name = p[nameCol];
+        existing.spec = p[specCol]||'';
+        existing.qual = p[qualCol]||'';
+        existing.address = p[addCol]||'';
+        existing.city = p[cityCol]||'';
+        existing.area = p[areaCol]||'';
+        existing.phone = p[phoneCol]||'';
+        existing.assignTo = (p[assignCol]||'').toUpperCase();
+        existing.status = p[statusCol]||'Active';
         newDoc = existing;
       } else {
         newDoc = {
           id: 'D'+Date.now()+Math.random(),
-          code: p[0],
-          name: p[1],
-          spec: p[2]||'',
-          qual: p[3]||'',
-          address: p[4]||'',
-          city: p[5]||'',
-          area: p[6]||'',
-          phone: p[7]||'',
-          assignTo: (p[8]||'').toUpperCase(),
-          status: p[9]||'Active'
+          code: p[idCol],
+          name: p[nameCol],
+          spec: p[specCol]||'',
+          qual: p[qualCol]||'',
+          address: p[addCol]||'',
+          city: p[cityCol]||'',
+          area: p[areaCol]||'',
+          phone: p[phoneCol]||'',
+          assignTo: (p[assignCol]||'').toUpperCase(),
+          status: p[statusCol]||'Active'
         };
       }
       
@@ -5197,26 +5245,47 @@ function uploadChemists(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var added=0;
-    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
-    var dataLines = hasHeader ? lines.slice(1) : lines;
+    
+    var headerLineIndex = -1;
+    var headers = [];
+    for (var j = 0; j < Math.min(3, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
+      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('chemist') !== -1 || c.indexOf('name') !== -1;})) {
+        headerLineIndex = j;
+        headers = candidate;
+        break;
+      }
+    }
+    
+    var idCol=0, nameCol=1, areaCol=2, assignCol=3;
+    if (headers.length > 0) {
+      headers.forEach(function(h, idx) {
+        if (h === 'code' || h === 'id' || h === 'chemist code') idCol = idx;
+        else if (h.indexOf('name') !== -1) nameCol = idx;
+        else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
+        else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
+      });
+    }
+    
+    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newChems = [];
     var touchedIds = [];
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(!p[0]||!p[1])return;
-      var existing = DB.chemists.find(function(c){ return c.id === p[0]; });
+      if(!p[idCol]||!p[nameCol])return;
+      var existing = DB.chemists.find(function(c){ return c.id === p[idCol]; });
       var newChem;
       if(existing){
-        existing.name = p[1];
-        existing.area = p[2]||'';
-        existing.assignTo = (p[3]||'').toUpperCase();
+        existing.name = p[nameCol];
+        existing.area = p[areaCol]||'';
+        existing.assignTo = (p[assignCol]||'').toUpperCase();
         newChem = existing;
       } else {
         newChem = {
-          id: p[0],
-          name: p[1],
-          area: p[2]||'',
-          assignTo: (p[3]||'').toUpperCase()
+          id: p[idCol],
+          name: p[nameCol],
+          area: p[areaCol]||'',
+          assignTo: (p[assignCol]||'').toUpperCase()
         };
       }
       

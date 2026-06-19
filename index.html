@@ -2986,18 +2986,30 @@ function renderTPDaysForMonth(){
     var dayStr = i < 10 ? '0'+i : i;
     var fullDateStr = month+'-'+dayStr;
     var existingDay = existing ? existing.days.find(function(d){return d.date===fullDateStr;}) : null;
-    currentMTPDays.push(existingDay ? JSON.parse(JSON.stringify(existingDay)) : {
+    var dayObj = {
       date: fullDateStr,
       dayNum: i,
-      category:'HQ',
-      areaTerritory:'',
-      fromLocation:SESSION.user.area,
-      toLocation:'',
-      stayCity:'',
-      objective:'',
-      plannedDocs:[],
-      plannedChems:[]
-    });
+      category: 'HQ',
+      workType: 'FIELD WORK',
+      territory: 'HQ',
+      fromLocation: SESSION.user.area,
+      toLocation: '',
+      areaTerritory: '',
+      stayCity: '',
+      objective: '',
+      plannedDocs: [],
+      plannedChems: []
+    };
+    if (existingDay) {
+      dayObj.workType = existingDay.workType || (['Weekly Off', 'Leave', 'Transit', 'Holiday', 'Meeting'].includes(existingDay.areaTerritory) ? existingDay.areaTerritory.toUpperCase() : 'FIELD WORK');
+      dayObj.territory = existingDay.territory || 'HQ';
+      dayObj.stayCity = existingDay.stayCity || '';
+      dayObj.areaTerritory = existingDay.areaTerritory || '';
+      dayObj.toLocation = existingDay.toLocation || '';
+      dayObj.plannedDocs = existingDay.plannedDocs || [];
+      dayObj.plannedChems = existingDay.plannedChems || [];
+    }
+    currentMTPDays.push(dayObj);
     
     i++;
     date.setDate(date.getDate() + 1);
@@ -3036,7 +3048,7 @@ function getHolidayForDateAndState(dateStr, state) {
 
 function renderMTPDaysUI(isReadOnly, existing){
   var c=document.getElementById('tp-days-container');
-  var readOnlyAttr = '';
+  var readOnlyAttr = isReadOnly ? 'disabled' : '';
   var html = '';
   isReadOnly = false;
   
@@ -3055,9 +3067,9 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 
   html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
-    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Town / City</th></tr></thead><tbody>';
+    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Type of Working</th><th>Territory</th><th>Town / City</th><th>Patch</th></tr></thead><tbody>';
 
-  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return !!(day.areaTerritory||day.toLocation||'').trim();}) : currentMTPDays;
+  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return day.workType === 'FIELD WORK' && !!(day.areaTerritory||'').trim();}) : currentMTPDays;
 
   var mrAreas = [];
   if (SESSION.user) {
@@ -3077,12 +3089,11 @@ function renderMTPDaysUI(isReadOnly, existing){
 
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);
-    var area=d.areaTerritory||d.toLocation||'';
+    var area=d.areaTerritory||'';
     var city=d.stayCity||'';
-    var docs=getAssignedDoctorsForArea(area);
-    var chems=getAssignedChemistsForArea(area);
-    d.plannedDocs=docs.map(function(doc){return doc.id;});
-    d.plannedChems=chems.map(function(chem){return chem.id;});
+    var workType=d.workType||'FIELD WORK';
+    var territory=d.territory||'HQ';
+    
     var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
     
     var holiday = getHolidayForDateAndState(d.date, SESSION.user ? SESSION.user.state : '');
@@ -3093,34 +3104,55 @@ function renderMTPDaysUI(isReadOnly, existing){
       holidayRowStyle = ' style="background-color: #FFF5F5"';
     }
     
-    var areaSelect = '';
+    var workTypeSelect = '';
+    var territorySelect = '';
+    var patchSelect = '';
+    var isFieldWork = (workType === 'FIELD WORK');
+    
     if (isReadOnly) {
-      areaSelect = '<span>' + (area || '--') + '</span>';
+      workTypeSelect = '<span>' + workType + '</span>';
+      territorySelect = '<span>' + (isFieldWork ? territory : '--') + '</span>';
+      patchSelect = '<span>' + (isFieldWork ? (area || '--') : '--') + '</span>';
     } else {
+      // Work Type Dropdown
+      workTypeSelect = '<select style="width:100%" onchange="updateMTPWorkType('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="FIELD WORK"' + (workType === 'FIELD WORK' ? ' selected' : '') + '>FIELD WORK</option>' +
+        '<option value="WEEKLY OFF"' + (workType === 'WEEKLY OFF' ? ' selected' : '') + '>WEEKLY OFF</option>' +
+        '<option value="LEAVE"' + (workType === 'LEAVE' ? ' selected' : '') + '>LEAVE</option>' +
+        '<option value="HOLIDAY"' + (workType === 'HOLIDAY' ? ' selected' : '') + '>HOLIDAY</option>' +
+        '<option value="MEETING"' + (workType === 'MEETING' ? ' selected' : '') + '>MEETING</option>' +
+        '<option value="TRANSIT"' + (workType === 'TRANSIT' ? ' selected' : '') + '>TRANSIT</option>' +
+        '</select>';
+        
+      // Territory Dropdown
+      territorySelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPTerritory('+originalIdx+', this.value)">' +
+        '<option value="HQ"' + (territory === 'HQ' ? ' selected' : '') + '>HQ</option>' +
+        '<option value="Ex"' + (territory === 'Ex' ? ' selected' : '') + '>Ex</option>' +
+        '<option value="OS"' + (territory === 'OS' ? ' selected' : '') + '>OS</option>' +
+        '</select>';
+        
+      // Patch Dropdown
       var currentAreas = mrAreas.slice();
-      if (area && !currentAreas.includes(area) && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
+      if (area && !currentAreas.includes(area)) {
         currentAreas.push(area);
       }
-      areaSelect = '<select style="width:100%" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
-        '<option value="">-- Select Area --</option>' +
-        '<option value="Weekly Off"' + (area === 'Weekly Off' ? ' selected' : '') + '>Weekly Off</option>' +
-        '<option value="Leave"' + (area === 'Leave' ? ' selected' : '') + '>Leave</option>' +
-        '<option value="Transit"' + (area === 'Transit' ? ' selected' : '') + '>Transit</option>' +
-        '<option value="HQ"' + (area === 'HQ' ? ' selected' : '') + '>HQ</option>' +
-        '<option value="Holiday"' + (area === 'Holiday' ? ' selected' : '') + '>Holiday</option>' +
+      patchSelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPPatch('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="">-- Select Patch --</option>' +
         currentAreas.map(function(a) {
           return '<option value="' + a + '"' + (area === a ? ' selected' : '') + '>' + a + '</option>';
         }).join('') +
         '</select>';
     }
 
+    var cityInput = '<input type="text" '+(isFieldWork?'':'disabled')+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)">';
+
     return '<tr class="mtp-area-row"'+holidayRowStyle+'>'+
       '<td class="tbl-name">'+d.date+holidayText+'</td>'+
       '<td>'+dow+'</td>'+
-      '<td>'+areaSelect+'</td>'+
-      '<td><input type="text" '+readOnlyAttr+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)"></td>'+
-      
-      
+      '<td>'+workTypeSelect+'</td>'+
+      '<td>'+territorySelect+'</td>'+
+      '<td>'+cityInput+'</td>'+
+      '<td>'+patchSelect+'</td>'+
       '</tr>';
   }).join('');
 
@@ -3133,23 +3165,38 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 }
 
-function updateMTPArea(idx, value){
-  var area=value.trim();
-  currentMTPDays[idx].areaTerritory=area;
-  currentMTPDays[idx].toLocation=area;
-  currentMTPDays[idx].fromLocation=SESSION.user.area;
-  currentMTPDays[idx].category=area ? 'HQ' : 'HQ';
-  currentMTPDays[idx].plannedDocs=getAssignedDoctorsForArea(area).map(function(doc){return doc.id;});
-  currentMTPDays[idx].plannedChems=getAssignedChemistsForArea(area).map(function(chem){return chem.id;});
+function updateMTPWorkType(idx, value){
+  var wt = value.trim().toUpperCase();
+  currentMTPDays[idx].workType = wt;
+  if (wt !== 'FIELD WORK') {
+    currentMTPDays[idx].areaTerritory = '';
+    currentMTPDays[idx].toLocation = '';
+    currentMTPDays[idx].stayCity = '';
+    currentMTPDays[idx].plannedDocs = [];
+    currentMTPDays[idx].plannedChems = [];
+  } else {
+    currentMTPDays[idx].territory = 'HQ';
+  }
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function updateMTPTerritory(idx, value){
+  currentMTPDays[idx].territory = value.trim();
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function updateMTPPatch(idx, value){
+  var patch = value.trim();
+  currentMTPDays[idx].areaTerritory = patch;
+  currentMTPDays[idx].toLocation = patch;
+  currentMTPDays[idx].plannedDocs = getAssignedDoctorsForArea(patch).map(function(doc){return doc.id;});
+  currentMTPDays[idx].plannedChems = getAssignedChemistsForArea(patch).map(function(chem){return chem.id;});
   
-  // Set stayCity automatically based on the area!
-  if (area && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
-    var matchedDoc = DB.doctors.find(function(d){return d.area.toLowerCase() === area.toLowerCase() && d.assignTo === SESSION.user.id;});
+  if (patch) {
+    var matchedDoc = DB.doctors.find(function(d){return d.area.toLowerCase() === patch.toLowerCase() && d.assignTo === SESSION.user.id;});
     if (matchedDoc && matchedDoc.city) {
       currentMTPDays[idx].stayCity = matchedDoc.city;
     }
-  } else if (area === 'Weekly Off' || area === 'Leave' || area === 'Transit' || area === 'HQ' || area === 'Holiday') {
-    currentMTPDays[idx].stayCity = 'HQ';
   }
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }

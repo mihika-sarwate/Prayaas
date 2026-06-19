@@ -98,7 +98,7 @@ create table tour_plans (
   month text not null, -- YYYY-MM
   manager_id text references employees(id),
   manager_name text,
-  days jsonb not null, -- Array of planned days
+  days jsonb not null, -- Array of planned days: [{date, workType, territory, stayCity, areaTerritory, plannedDocs, plannedChems}]
   status text not null default 'Draft', -- 'Draft', 'Submitted', 'Approved', 'Rejected'
   remarks text,
   submitted_at timestamp with time zone,

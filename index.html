@@ -2043,6 +2043,7 @@ window.addEventListener('beforeunload', function (e) {
     syncPending = false;
     var dbStatus = document.getElementById('db-status-indicator');
     if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
+    try {
     // Sync Employees
     try {
       const dbEmps = DB.employees.map(function(e) {

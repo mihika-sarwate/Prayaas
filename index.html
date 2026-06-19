@@ -3776,9 +3776,10 @@ function renderDocList(){
   var el=document.getElementById('doc-list');
   if(!docs.length){el.innerHTML='<div class="empty">No doctors found</div>';return;}
   el.innerHTML=docs.map(function(d){
-    var ini=(d.name||'').replace('Dr. ','').split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    var nameVal = d.name || '';
+    var ini=nameVal.replace('Dr. ','').split(' ').filter(Boolean).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
     var actBadge=d.status==='Active'?'<span class="badge green">Active</span>':'<span class="badge red">Inactive</span>';
-    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+(d.name||'')+' '+actBadge+'</div><div class="doc-spec">'+(d.spec||'')+' ('+(d.qual||'')+')</div><div class="doc-area">&#128205; '+(d.area||'No Patch')+' | '+(d.address||'')+' | Phone: '+(d.phone||'')+'</div></div></div>';
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+nameVal+' '+actBadge+'</div><div class="doc-spec">'+(d.spec||'')+' ('+(d.qual||'')+')</div><div class="doc-area">&#128205; '+(d.area||'No Patch')+' | '+(d.address||'')+' | Phone: '+(d.phone||'')+'</div></div></div>';
   }).join('');
 }
 
@@ -3803,8 +3804,9 @@ function renderChemistList(){
   var el=document.getElementById('chemist-list');
   if(!chemists.length){el.innerHTML='<div class="empty">No chemists found</div>';return;}
   el.innerHTML=chemists.map(function(c){
-    var ini=c.name.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
-    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+c.name+'</div><div class="doc-area">&#128205; '+c.area+'</div></div></div>';
+    var nameVal = c.name || '';
+    var ini=nameVal.split(' ').filter(Boolean).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+nameVal+'</div><div class="doc-area">&#128205; '+(c.area || '')+'</div></div></div>';
   }).join('');
 }
 

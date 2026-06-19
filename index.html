@@ -322,6 +322,14 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card-title">&#128203; Submit Daily Call Report</div>
       <div class="row2">
         <div><label class="lbl">Date</label><input type="date" id="r-date" onchange="checkMTPForSelectedDate()"></div>
+        <div><label class="lbl">Type of Working</label><select id="r-work-type" onchange="toggleReportWorkTypeFields()"><option value="FIELD WORK">FIELD WORK</option><option value="WEEKLY OFF">WEEKLY OFF</option><option value="LEAVE">LEAVE</option><option value="HOLIDAY">HOLIDAY</option><option value="MEETING">MEETING</option><option value="TRANSIT">TRANSIT</option></select></div>
+      </div>
+      <div class="row2">
+        <div><label class="lbl">Territory</label><select id="r-territory" onchange="populateReportCityPatch()"><option value="HQ">HQ</option><option value="Ex">Ex</option><option value="OS">OS</option></select></div>
+        <div><label class="lbl">Town / City</label><select id="r-city"><option value="">-- Select Town --</option></select></div>
+      </div>
+      <div class="row2">
+        <div><label class="lbl">Patch</label><select id="r-patch"><option value="">-- Select Patch --</option></select></div>
         <div><label class="lbl">Call Classification</label><select id="r-classification"><option>Planned Call</option><option>Unplanned Call</option></select></div>
       </div>
       <div class="row2">
@@ -2777,6 +2785,101 @@ function filterReportingStockistsDropdown() {
   renderStockistOptions(filtered.slice(0, 200));
 }
 
+function populateReportTerritoryDropdowns() {
+  if (!SESSION.user) return;
+  var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  
+  DB.doctors.forEach(function(d) {
+    if (String(d.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && d.status === 'Active') {
+      var tType = (d.territoryType || '').trim().toUpperCase();
+      if (tType) {
+        if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
+        if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
+        if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
+        if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
+      }
+    }
+  });
+
+  var areaToTType = {};
+  Object.keys(mrAreasByTerritory).forEach(function(tt) {
+    mrAreasByTerritory[tt].forEach(function(a) {
+      if (!areaToTType[a]) areaToTType[a] = [];
+      areaToTType[a].push(tt);
+    });
+  });
+
+  DB.chemists.forEach(function(c) {
+    if (String(c.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && c.area) {
+      var cArea = c.area.trim();
+      var tTypes = areaToTType[cArea];
+      if (tTypes && tTypes.length > 0) {
+        tTypes.forEach(function(tt) {
+          mrAreasByTerritory[tt].add(cArea);
+          if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
+        });
+      } else {
+        mrAreasByTerritory['HQ'].add(cArea);
+        if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
+      }
+    }
+  });
+  
+  window._mrTownsByTerritory = mrTownsByTerritory;
+  window._mrAreasByTerritory = mrAreasByTerritory;
+  
+  populateReportCityPatch();
+}
+
+function populateReportCityPatch() {
+  var tSel = document.getElementById('r-territory');
+  if (!tSel) return;
+  var territory = (tSel.value || 'HQ').trim().toUpperCase();
+  
+  var mrTownsByTerritory = window._mrTownsByTerritory || {};
+  var availableTowns = mrTownsByTerritory[territory] ? Array.from(mrTownsByTerritory[territory]).sort() : [];
+  
+  var citySel = document.getElementById('r-city');
+  if (citySel) {
+    citySel.innerHTML = '<option value="">-- Select Town --</option>' + availableTowns.map(function(t) {
+      return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>';
+    }).join('');
+  }
+  
+  var mrAreasByTerritory = window._mrAreasByTerritory || {};
+  var availablePatches = mrAreasByTerritory[territory] ? Array.from(mrAreasByTerritory[territory]).sort() : [];
+  
+  var patchSel = document.getElementById('r-patch');
+  if (patchSel) {
+    patchSel.innerHTML = '<option value="">-- Select Patch --</option>' + availablePatches.map(function(p) {
+      return '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>';
+    }).join('');
+  }
+}
+
+function toggleReportWorkTypeFields() {
+  var wt = document.getElementById('r-work-type');
+  var isFieldWork = wt && wt.value === 'FIELD WORK';
+  
+  ['r-territory', 'r-city', 'r-patch', 'r-target-type', 'r-classification', 'r-calltype'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !isFieldWork;
+  });
+  
+  var w1 = document.getElementById('r-doctor-wrap');
+  var w2 = document.getElementById('r-chemist-wrap');
+  var w3 = document.getElementById('r-stockist-wrap');
+  
+  if (!isFieldWork) {
+    if(w1) w1.style.display = 'none';
+    if(w2) w2.style.display = 'none';
+    if(w3) w3.style.display = 'none';
+  } else {
+    toggleReportTargetFields();
+  }
+}
+
 function populateReportingDropdowns(){
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   if (teamIds) {
@@ -3412,6 +3515,10 @@ function submitReport(){
     empId:SESSION.user.id,
     empName:SESSION.user.name,
     date:date,
+    workType: document.getElementById('r-work-type') ? document.getElementById('r-work-type').value : 'FIELD WORK',
+    territory: document.getElementById('r-territory') ? document.getElementById('r-territory').value : '',
+    city: document.getElementById('r-city') ? document.getElementById('r-city').value : '',
+    patch: document.getElementById('r-patch') ? document.getElementById('r-patch').value : '',
     time:time,
     targetType:targetType,
     classification:classification,
@@ -4482,6 +4589,7 @@ function goTab(name){
   });
   if(name==='report') {
     populateReportingDropdowns();
+    populateReportTerritoryDropdowns();
     populateJFWManagers();
     checkMTPForSelectedDate();
   }

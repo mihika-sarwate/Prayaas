@@ -538,6 +538,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <div class="admin-tabs" style="margin-bottom:10px">
       <div class="admin-tab on" id="doc-subtab-btn" onclick="toggleDocChemistSubtab('doc')">Doctors</div>
       <div class="admin-tab" id="chem-subtab-btn" onclick="toggleDocChemistSubtab('chem')">Chemists</div>
+      <div class="admin-tab" id="stockist-subtab-btn" onclick="toggleDocChemistSubtab('stockist')">Stockists</div>
     </div>
     <div id="doc-subtab-content">
       <div class="card" style="padding:10px 14px;margin-bottom:10px">
@@ -550,6 +551,12 @@ table.tbl tr:last-child td{border-bottom:none}
         <input type="text" id="chem-search" placeholder="&#128269; Search chemists by name or area..." oninput="renderChemistList()" style="background:#F1F5F9">
       </div>
       <div class="card"><div id="chemist-list"><div class="empty">No chemists assigned</div></div></div>
+    </div>
+    <div id="stockist-subtab-content" style="display:none">
+      <div class="card" style="padding:10px 14px;margin-bottom:10px">
+        <input type="text" id="stockist-search" placeholder="&#128269; Search stockists by name or area..." oninput="renderStockistList()" style="background:#F1F5F9">
+      </div>
+      <div class="card"><div id="stockist-list"><div class="empty">No stockists assigned</div></div></div>
     </div>
   </div>
 
@@ -4284,17 +4291,54 @@ function renderChemistList(){
   }).join('');
 }
 
+function renderStockistList(){
+  var q=(document.getElementById('stockist-search').value||'').trim().toLowerCase();
+  
+  // Find all areas where this MR has active doctors assigned
+  var activeDocAreas = new Set();
+  getMyDoctors().forEach(function(d){
+    if (d.status === 'Active' && d.area) {
+      activeDocAreas.add(d.area.toLowerCase().trim());
+    }
+  });
+
+  var stockists=DB.stockists.filter(function(s){
+    var assigned = String(s.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    var unassigned = !s.assignTo || s.assignTo.trim() === '';
+    var inMyAreas = unassigned && s.area && activeDocAreas.has(s.area.toLowerCase().trim());
+    return assigned || inMyAreas;
+  }).filter(function(s){return !q||(s.name||'').toLowerCase().includes(q)||(s.area||'').toLowerCase().includes(q);});
+  
+  var el=document.getElementById('stockist-list');
+  if(!stockists.length){el.innerHTML='<div class="empty">No stockists found</div>';return;}
+  el.innerHTML=stockists.map(function(s){
+    var nameVal = s.name || '';
+    var ini=nameVal.split(' ').filter(Boolean).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+nameVal+'</div><div class="doc-area">&#128205; '+(s.area || '')+'</div></div></div>';
+  }).join('');
+}
+
 function toggleDocChemistSubtab(type){
+  document.getElementById('doc-subtab-btn').classList.remove('on');
+  document.getElementById('chem-subtab-btn').classList.remove('on');
+  var sBtn = document.getElementById('stockist-subtab-btn');
+  if(sBtn) sBtn.classList.remove('on');
+  
+  document.getElementById('doc-subtab-content').style.display='none';
+  document.getElementById('chem-subtab-content').style.display='none';
+  var sCont = document.getElementById('stockist-subtab-content');
+  if(sCont) sCont.style.display='none';
+  
   if(type==='doc'){
     document.getElementById('doc-subtab-btn').classList.add('on');
-    document.getElementById('chem-subtab-btn').classList.remove('on');
     document.getElementById('doc-subtab-content').style.display='block';
-    document.getElementById('chem-subtab-content').style.display='none';
-  } else {
-    document.getElementById('doc-subtab-btn').classList.remove('on');
+  } else if(type==='chem') {
     document.getElementById('chem-subtab-btn').classList.add('on');
-    document.getElementById('doc-subtab-content').style.display='none';
     document.getElementById('chem-subtab-content').style.display='block';
+  } else if(type==='stockist') {
+    if(sBtn) sBtn.classList.add('on');
+    if(sCont) sCont.style.display='block';
+    renderStockistList();
   }
 }
 

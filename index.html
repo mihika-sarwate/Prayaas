@@ -326,10 +326,10 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="row2">
         <div><label class="lbl">Territory</label><select id="r-territory" onchange="populateReportCityPatch()"><option value="HQ">HQ</option><option value="Ex">Ex</option><option value="OS">OS</option></select></div>
-        <div><label class="lbl">Town / City</label><select id="r-city"><option value="">-- Select Town --</option></select></div>
+        <div><label class="lbl">Town / City</label><select id="r-city" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Town --</option></select></div>
       </div>
       <div class="row2">
-        <div><label class="lbl">Patch</label><select id="r-patch"><option value="">-- Select Patch --</option></select></div>
+        <div><label class="lbl">Patch</label><select id="r-patch" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Patch --</option></select></div>
         <div><label class="lbl">Call Classification</label><select id="r-classification"><option>Planned Call</option><option>Unplanned Call</option></select></div>
       </div>
       <div class="row2">
@@ -2739,23 +2739,48 @@ function renderChemistOptions(list) {
 function filterReportingDoctorsDropdown() {
   var q = (document.getElementById('r-doc-search').value || '').toLowerCase().trim();
   var filtered = window._allReportingDocs || [];
-  if (q) {
-    filtered = filtered.filter(function(d) {
-      return (d.name || '').toLowerCase().includes(q) || (d.area || '').toLowerCase().includes(q) || (d.spec || '').toLowerCase().includes(q);
-    });
-  }
+  
+  var citySel = document.getElementById('r-city');
+  var patchSel = document.getElementById('r-patch');
+  var city = citySel ? citySel.value.toLowerCase().trim() : '';
+  var patch = patchSel ? patchSel.value.toLowerCase().trim() : '';
+  
+  filtered = filtered.filter(function(d) {
+    if (city && (d.city || '').toLowerCase().trim() !== city) return false;
+    if (patch && (d.area || '').toLowerCase().trim() !== patch) return false;
+    if (q) {
+      if (!((d.name || '').toLowerCase().includes(q) || (d.area || '').toLowerCase().includes(q) || (d.spec || '').toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
   renderDoctorOptions(filtered.slice(0, 200));
 }
 
 function filterReportingChemistsDropdown() {
   var q = (document.getElementById('r-chem-search-inp').value || '').toLowerCase().trim();
   var filtered = window._allReportingChems || [];
-  if (q) {
-    filtered = filtered.filter(function(c) {
-      return (c.name || '').toLowerCase().includes(q) || (c.area || '').toLowerCase().includes(q);
-    });
-  }
+  
+  var citySel = document.getElementById('r-city');
+  var patchSel = document.getElementById('r-patch');
+  var city = citySel ? citySel.value.toLowerCase().trim() : '';
+  var patch = patchSel ? patchSel.value.toLowerCase().trim() : '';
+
+  filtered = filtered.filter(function(c) {
+    if (city && (c.city || '').toLowerCase().trim() !== city) return false;
+    if (patch && (c.area || '').toLowerCase().trim() !== patch) return false;
+    if (q) {
+      if (!((c.name || '').toLowerCase().includes(q) || (c.area || '').toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
   renderChemistOptions(filtered.slice(0, 200));
+}
+
+function filterReportingDropdownsByPatch() {
+  filterReportingDoctorsDropdown();
+  filterReportingChemistsDropdown();
 }
 
 function renderStockistOptions(list) {

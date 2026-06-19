@@ -3712,18 +3712,20 @@ function renderMyLeaves(){
 
 // ===== LISTING SUB-MODULE FUNCTIONS =====
 function getMyDoctors(){
-  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id;});
+  return DB.doctors.filter(function(d){
+    return String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+  });
 }
 
 function renderDocList(){
   var q=(document.getElementById('doc-search').value||'').toLowerCase();
-  var docs=getMyDoctors().filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q);});
+  var docs=getMyDoctors().filter(function(d){return !q||(d.name||'').toLowerCase().includes(q)||(d.spec||'').toLowerCase().includes(q)||(d.area||'').toLowerCase().includes(q);});
   var el=document.getElementById('doc-list');
   if(!docs.length){el.innerHTML='<div class="empty">No doctors found</div>';return;}
   el.innerHTML=docs.map(function(d){
-    var ini=d.name.replace('Dr. ','').split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    var ini=(d.name||'').replace('Dr. ','').split(' ').map(function(w){return w[0];}).join('').slice(0,2);
     var actBadge=d.status==='Active'?'<span class="badge green">Active</span>':'<span class="badge red">Inactive</span>';
-    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+d.name+' '+actBadge+'</div><div class="doc-spec">'+d.spec+' ('+d.qual+')</div><div class="doc-area">&#128205; '+d.area+' | '+d.address+' | Phone: '+d.phone+'</div></div></div>';
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+(d.name||'')+' '+actBadge+'</div><div class="doc-spec">'+(d.spec||'')+' ('+(d.qual||'')+')</div><div class="doc-area">&#128205; '+(d.area||'No Patch')+' | '+(d.address||'')+' | Phone: '+(d.phone||'')+'</div></div></div>';
   }).join('');
 }
 
@@ -3743,7 +3745,7 @@ function renderChemistList(){
     var unassigned = !c.assignTo || c.assignTo.trim() === '';
     var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
     return assigned || inMyAreas;
-  }).filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q);});
+  }).filter(function(c){return !q||(c.name||'').toLowerCase().includes(q)||(c.area||'').toLowerCase().includes(q);});
   
   var el=document.getElementById('chemist-list');
   if(!chemists.length){el.innerHTML='<div class="empty">No chemists found</div>';return;}

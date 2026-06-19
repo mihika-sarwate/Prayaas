@@ -2,6 +2,9 @@ name: Run SQL DDL
 
 on: [push]
 
+permissions:
+  contents: write
+
 jobs:
   run-sql:
     runs-on: ubuntu-latest
@@ -21,3 +24,11 @@ jobs:
       - name: Run SQL Script
         run: |
           python run_sql.py
+
+      - name: Commit and Push output
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add db_tables.txt
+          git commit -m "chore: save database tables list [skip ci]" || exit 0
+          git push

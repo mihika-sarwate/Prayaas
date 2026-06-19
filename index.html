@@ -7612,19 +7612,71 @@ function runMISReport(){
     });
     
   } else if(currentReportType==='samples_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed</th><th>Current Balance</th></tr>';
-    var filteredSamples = DB.samplesInventory.filter(function(s){return !empId||s.empId===empId;});
-    currentMISData=filteredSamples.map(function(s){
-      var emp=DB.employees.find(function(e){return e.id===s.empId;});
-      return [emp?emp.name:'', s.prodName, s.opening, s.received, s.distributed, s.balance];
+    thead.innerHTML='<tr><th>MR Name</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    var empsToProcess = DB.employees.filter(function(e){ return e.role === 'emp' && (!empId || e.id === empId); });
+    
+    empsToProcess.forEach(function(e) {
+      // Get all samples ever allocated
+      var myInv = DB.samplesInventory.filter(function(s){ return s.empId === e.id; });
+      var itemsMap = {};
+      myInv.forEach(function(s){
+        itemsMap[s.prodName] = { opening: s.opening, received: s.received, balance: s.balance, distributed: 0 };
+      });
+      
+      // Calculate distributed in date range from reports
+      var myReports = DB.reports.filter(function(r){
+        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+      });
+      myReports.forEach(function(r) {
+        if (r.samples) {
+          for (var p in r.samples) {
+            if (!itemsMap[p]) itemsMap[p] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+            itemsMap[p].distributed += r.samples[p];
+          }
+        }
+      });
+      
+      // Add to table
+      for (var p in itemsMap) {
+        // Only show if there was inventory or if it was distributed
+        if (itemsMap[p].opening > 0 || itemsMap[p].received > 0 || itemsMap[p].distributed > 0 || itemsMap[p].balance > 0) {
+          currentMISData.push([e.name, p, itemsMap[p].opening, itemsMap[p].received, itemsMap[p].distributed, itemsMap[p].balance]);
+        }
+      }
     });
     
   } else if(currentReportType==='gifts_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed</th><th>Current Balance</th></tr>';
-    var filteredGifts = DB.giftsInventory.filter(function(g){return !empId||g.empId===empId;});
-    currentMISData=filteredGifts.map(function(g){
-      var emp=DB.employees.find(function(e){return e.id===g.empId;});
-      return [emp?emp.name:'', g.giftName, g.opening, g.received, g.distributed, g.balance];
+    thead.innerHTML='<tr><th>MR Name</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    var empsToProcess = DB.employees.filter(function(e){ return e.role === 'emp' && (!empId || e.id === empId); });
+    
+    empsToProcess.forEach(function(e) {
+      // Get all gifts ever allocated
+      var myInv = DB.giftsInventory.filter(function(g){ return g.empId === e.id; });
+      var itemsMap = {};
+      myInv.forEach(function(g){
+        itemsMap[g.giftName] = { opening: g.opening, received: g.received, balance: g.balance, distributed: 0 };
+      });
+      
+      // Calculate distributed in date range from reports
+      var myReports = DB.reports.filter(function(r){
+        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+      });
+      myReports.forEach(function(r) {
+        if (r.gifts) {
+          for (var g in r.gifts) {
+            if (!itemsMap[g]) itemsMap[g] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+            itemsMap[g].distributed += r.gifts[g];
+          }
+        }
+      });
+      
+      // Add to table
+      for (var g in itemsMap) {
+        // Only show if there was inventory or if it was distributed
+        if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
+          currentMISData.push([e.name, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
+        }
+      }
     });
     
   } else if(currentReportType==='expenses_rep'){

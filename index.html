@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sankalp - Field Force Management System (Adonis Laboratories)</title>
 <link rel="icon" type="image/jpeg" href="logo.jpg">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
@@ -1221,19 +1221,35 @@ function ensureSupabaseLoaded(callback) {
     return;
   }
   
-  console.log("Supabase not loaded. Trying UNPKG...");
+  console.log("Supabase not loaded. Trying local file...");
   var s = document.createElement('script');
-  s.src = "https://unpkg.com/@supabase/supabase-js@2";
+  s.src = "supabase.js";
   s.onload = function() {
     if (initSupabaseClient()) {
-      console.log("Supabase loaded from UNPKG.");
+      console.log("Supabase loaded from local file.");
       if (callback) callback();
     } else {
-      tryCDNJS();
+      tryUnpkg();
     }
   };
-  s.onerror = tryCDNJS;
+  s.onerror = tryUnpkg;
   document.head.appendChild(s);
+
+  function tryUnpkg() {
+    console.log("Local file failed. Trying UNPKG...");
+    var sU = document.createElement('script');
+    sU.src = "https://unpkg.com/@supabase/supabase-js@2";
+    sU.onload = function() {
+      if (initSupabaseClient()) {
+        console.log("Supabase loaded from UNPKG.");
+        if (callback) callback();
+      } else {
+        tryCDNJS();
+      }
+    };
+    sU.onerror = tryCDNJS;
+    document.head.appendChild(sU);
+  }
 
   function tryCDNJS() {
     console.log("UNPKG failed. Trying CDNJS...");

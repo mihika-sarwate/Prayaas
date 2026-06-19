@@ -736,7 +736,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div id="adm-doc-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128203; Doctor Master Management</div>
       <div class="card">
-        <div class="info-box">Upload Doctor CSV. Columns: <strong>DoctorCode, Name, Speciality, Qualification, Address, City, Area, Mobile, AssignToEmpID, Status</strong></div>
+        <div class="info-box">Upload Doctor CSV. Columns: <strong>DoctorCode, Emp Id, Name of BE, HQ, Reporting Manager, Name of Doctor, Speciality, Qualification, Address, City, Patch, State, Territory Type (HQ/Ex/OS), Mobile</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadDocTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary admin-only" onclick="document.getElementById('doc-upload').click()">&#8593; Upload Doctor CSV</button>
@@ -929,24 +929,35 @@ table.tbl tr:last-child td{border-bottom:none}
     <input type="hidden" id="md-id">
     <div class="row2">
       <div><label class="lbl">Doctor Code</label><input type="text" id="md-code" placeholder="DOC001"></div>
-      <div><label class="lbl">Name</label><input type="text" id="md-name" placeholder="Dr. Name"></div>
+      <div><label class="lbl">Name of Doctor</label><input type="text" id="md-name" placeholder="Dr. Name"></div>
     </div>
     <div class="row2">
+      <div><label class="lbl">Name of BE</label><input type="text" id="md-bename" placeholder="BE Name"></div>
+      <div><label class="lbl">HQ</label><input type="text" id="md-hq" placeholder="HQ"></div>
+    </div>
+    <div class="row2">
+      <div><label class="lbl">Reporting Manager</label><input type="text" id="md-managername" placeholder="Reporting Manager"></div>
+      <div><label class="lbl">State</label><input type="text" id="md-state" placeholder="State"></div>
+    </div>
+    <div class="row2">
+      <div><label class="lbl">Territory Type (HQ/Ex/OS)</label><select id="md-territorytype"><option value="">-- Select --</option><option>HQ</option><option>Ex</option><option>OS</option></select></div>
       <div><label class="lbl">Speciality</label><input type="text" id="md-spec" placeholder="Cardiology..."></div>
-      <div><label class="lbl">Qualification</label><input type="text" id="md-qual" placeholder="MBBS, MD..."></div>
     </div>
     <div class="row2">
+      <div><label class="lbl">Qualification</label><input type="text" id="md-qual" placeholder="MBBS, MD..."></div>
       <div><label class="lbl">City</label><input type="text" id="md-city" placeholder="City"></div>
-      <div><label class="lbl">Area</label><input type="text" id="md-area" placeholder="Local Area"></div>
+    </div>
+    <div class="row2">
+      <div><label class="lbl">Patch (Area)</label><input type="text" id="md-area" placeholder="Local Area"></div>
+      <div><label class="lbl">Mobile</label><input type="text" id="md-phone" placeholder="Mobile"></div>
     </div>
     <div class="fw"><label class="lbl">Address</label><input type="text" id="md-address" placeholder="Hospital address"></div>
     <div class="row2">
-      <div><label class="lbl">Mobile</label><input type="text" id="md-phone" placeholder="Mobile"></div>
       <div><label class="lbl">Assign To MR</label><select id="md-assign"><option value="">-- Assign MR --</option></select></div>
-    </div>
-    <div class="fw">
-      <label class="lbl">Status</label>
-      <select id="md-status"><option>Active</option><option>Inactive</option></select>
+      <div>
+        <label class="lbl">Status</label>
+        <select id="md-status"><option>Active</option><option>Inactive</option></select>
+      </div>
     </div>
     <div class="btn-row"><button class="btn primary" onclick="saveDoctor()">Save Doctor Record</button></div>
   </div>
@@ -1446,11 +1457,16 @@ async function initSupabaseData(isSilent) {
         id: d.id,
         code: d.code,
         name: d.name,
+        beName: d.be_name,
+        hq: d.hq,
+        managerName: d.manager_name,
         spec: d.spec,
         qual: d.qual,
         address: d.address,
         city: d.city,
         area: d.area,
+        state: d.state,
+        territoryType: d.territory_type,
         phone: d.phone,
         assignTo: d.assign_to,
         status: d.status
@@ -1894,12 +1910,17 @@ window.addEventListener('beforeunload', function (e) {
         id: d.id,
         code: d.code,
         name: d.name,
-        spec: d.spec,
-        qual: d.qual,
-        address: d.address,
-        city: d.city,
-        area: d.area,
-        phone: d.phone,
+        be_name: d.beName || '',
+        hq: d.hq || '',
+        manager_name: d.managerName || '',
+        spec: d.spec || '',
+        qual: d.qual || '',
+        address: d.address || '',
+        city: d.city || '',
+        area: d.area || '',
+        state: d.state || '',
+        territory_type: d.territoryType || '',
+        phone: d.phone || '',
         assign_to: assignTo,
         status: d.status
       };
@@ -4658,6 +4679,11 @@ function editDoctor(id){
   document.getElementById('md-id').value=doc.id;
   document.getElementById('md-code').value=doc.code;
   document.getElementById('md-name').value=doc.name;
+  document.getElementById('md-bename').value=doc.beName||'';
+  document.getElementById('md-hq').value=doc.hq||'';
+  document.getElementById('md-managername').value=doc.managerName||'';
+  document.getElementById('md-state').value=doc.state||'';
+  document.getElementById('md-territorytype').value=doc.territoryType||'';
   document.getElementById('md-spec').value=doc.spec;
   document.getElementById('md-qual').value=doc.qual||'';
   document.getElementById('md-city').value=doc.city||'';
@@ -4688,6 +4714,11 @@ function saveDoctor(){
       id: docId,
       code: code,
       name: name,
+      beName: document.getElementById('md-bename').value.trim(),
+      hq: document.getElementById('md-hq').value.trim(),
+      managerName: document.getElementById('md-managername').value.trim(),
+      state: document.getElementById('md-state').value.trim(),
+      territoryType: document.getElementById('md-territorytype').value,
       spec: document.getElementById('md-spec').value.trim(),
       qual: document.getElementById('md-qual').value.trim(),
       city: document.getElementById('md-city').value.trim(),
@@ -4703,6 +4734,11 @@ function saveDoctor(){
     if(doc){
       doc.code=code;
       doc.name=name;
+      doc.beName=document.getElementById('md-bename').value.trim();
+      doc.hq=document.getElementById('md-hq').value.trim();
+      doc.managerName=document.getElementById('md-managername').value.trim();
+      doc.state=document.getElementById('md-state').value.trim();
+      doc.territoryType=document.getElementById('md-territorytype').value;
       doc.spec=document.getElementById('md-spec').value.trim();
       doc.qual=document.getElementById('md-qual').value.trim();
       doc.city=document.getElementById('md-city').value.trim();
@@ -4739,19 +4775,23 @@ function uploadDoctors(inp){
       }
     }
     
-    var idCol=0, nameCol=1, specCol=2, qualCol=3, addCol=4, cityCol=5, areaCol=6, phoneCol=7, assignCol=8, statusCol=9;
+    var idCol=0, empIdCol=1, beNameCol=2, hqCol=3, mgrNameCol=4, nameCol=5, specCol=6, qualCol=7, addCol=8, cityCol=9, areaCol=10, stateCol=11, typeCol=12, phoneCol=13;
     if (headers.length > 0) {
       headers.forEach(function(h, idx) {
-        if (h === 'code' || h === 'id' || h === 'doctor code') idCol = idx;
-        else if (h.indexOf('name') !== -1) nameCol = idx;
+        if (h.indexOf('doctorcode') !== -1 || h === 'code' || h === 'id') idCol = idx;
+        else if (h.indexOf('emp id') !== -1 || h === 'emp id' || h.indexOf('assign') !== -1) empIdCol = idx;
+        else if (h.indexOf('name of be') !== -1 || h.indexOf('be name') !== -1) beNameCol = idx;
+        else if (h === 'hq' || h.indexOf('hq') !== -1) hqCol = idx;
+        else if (h.indexOf('reporting manager') !== -1 || h.indexOf('manager') !== -1) mgrNameCol = idx;
+        else if (h.indexOf('name of doctor') !== -1 || h === 'name' || h.indexOf('doctor') !== -1) nameCol = idx;
         else if (h.indexOf('speciality') !== -1 || h === 'spec') specCol = idx;
         else if (h.indexOf('qualification') !== -1 || h === 'qual') qualCol = idx;
         else if (h.indexOf('address') !== -1) addCol = idx;
-        else if (h.indexOf('city') !== -1) cityCol = idx;
-        else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
-        else if (h.indexOf('phone') !== -1 || h.indexOf('mobile') !== -1) phoneCol = idx;
-        else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
-        else if (h.indexOf('status') !== -1) statusCol = idx;
+        else if (h === 'city') cityCol = idx;
+        else if (h.indexOf('patch') !== -1 || h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
+        else if (h === 'state') stateCol = idx;
+        else if (h.indexOf('territory type') !== -1 || h.indexOf('type') !== -1) typeCol = idx;
+        else if (h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) phoneCol = idx;
       });
     }
     
@@ -4765,28 +4805,38 @@ function uploadDoctors(inp){
       var newDoc;
       if(existing){
         existing.name = p[nameCol];
+        existing.assignTo = (p[empIdCol]||'').toUpperCase();
+        existing.beName = p[beNameCol]||'';
+        existing.hq = p[hqCol]||'';
+        existing.managerName = p[mgrNameCol]||'';
         existing.spec = p[specCol]||'';
         existing.qual = p[qualCol]||'';
         existing.address = p[addCol]||'';
         existing.city = p[cityCol]||'';
         existing.area = p[areaCol]||'';
+        existing.state = p[stateCol]||'';
+        existing.territoryType = p[typeCol]||'';
         existing.phone = p[phoneCol]||'';
-        existing.assignTo = (p[assignCol]||'').toUpperCase();
-        existing.status = p[statusCol]||'Active';
+        existing.status = 'Active';
         newDoc = existing;
       } else {
         newDoc = {
           id: 'D'+Date.now()+Math.random(),
           code: p[idCol],
+          assignTo: (p[empIdCol]||'').toUpperCase(),
+          beName: p[beNameCol]||'',
+          hq: p[hqCol]||'',
+          managerName: p[mgrNameCol]||'',
           name: p[nameCol],
           spec: p[specCol]||'',
           qual: p[qualCol]||'',
           address: p[addCol]||'',
           city: p[cityCol]||'',
           area: p[areaCol]||'',
+          state: p[stateCol]||'',
+          territoryType: p[typeCol]||'',
           phone: p[phoneCol]||'',
-          assignTo: (p[assignCol]||'').toUpperCase(),
-          status: p[statusCol]||'Active'
+          status: 'Active'
         };
       }
       
@@ -4804,7 +4854,7 @@ function uploadDoctors(inp){
 }
 
 function downloadDocTemplate(){
-  var csv='DoctorCode,Name,Speciality,Qualification,Address,City,Area,Mobile,AssignToEmpID,Status\n';
+  var csv='DoctorCode,Emp Id,Name of BE,HQ,Reporting Manager,Name of Doctor,Speciality,Qualification,Address,City,Patch,State,Territory Type (HQ/Ex/OS),Mobile\n';
   var checked = document.querySelectorAll('.doc-row-check:checked');
   var docsToExport = [];
   if (checked.length > 0) {
@@ -4818,20 +4868,24 @@ function downloadDocTemplate(){
     docsToExport.forEach(function(d){
       csv += [
         d.code || '',
+        d.assignTo || '',
+        d.beName || '',
+        d.hq || '',
+        d.managerName || '',
         d.name || '',
         d.spec || '',
         d.qual || '',
         d.address || '',
         d.city || '',
         d.area || '',
-        d.phone || '',
-        d.assignTo || '',
-        d.status || 'Active'
+        d.state || '',
+        d.territoryType || '',
+        d.phone || ''
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'doctor_master.csv');
   } else {
-    csv += 'DOC009,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,9830000001,EMP002,Active\n';
+    csv += 'DOC009,EMP002,BE Name,Mumbai HQ,Reporting Mgr,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,Maharashtra,HQ,9830000001\n';
     downloadData(csv,'doctor_master_template.csv');
   }
 }
@@ -5046,12 +5100,20 @@ function renderAdminDocList(page = 1) {
   var thead = document.getElementById('doc-table-head');
   if (thead && !thead.innerHTML.includes('<th')) {
     thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-docs" class="admin-only" onclick="toggleSelectAllDocs(this)"></th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'code', 'Code') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'name', 'Name') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'code', 'DoctorCode') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'assignTo', 'Emp Id') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'beName', 'Name of BE') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'hq', 'HQ') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'managerName', 'Reporting Manager') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'name', 'Name of Doctor') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'spec', 'Speciality') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'area', 'Area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'qual', 'Qualification') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'address', 'Address') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'city', 'City') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'area', 'Patch') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'state', 'State') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'territoryType', 'Territory Type') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'phone', 'Mobile') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'assignTo', 'Assigned MR') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'status', 'Status') + '</th>' +
       '<th style="vertical-align:top">Actions</th></tr>';
   }
@@ -5116,7 +5178,24 @@ function renderAdminDocList(page = 1) {
   
   tbody.innerHTML=pagedDocs.map(function(d){
     var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
-    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td>' +
+      '<td>'+(d.code||'')+'</td>' +
+      '<td>'+(d.assignTo||'Unassigned')+'</td>' +
+      '<td>'+(d.beName||'')+'</td>' +
+      '<td>'+(d.hq||'')+'</td>' +
+      '<td>'+(d.managerName||'')+'</td>' +
+      '<td class="tbl-name">'+(d.name||'')+'</td>' +
+      '<td>'+(d.spec||'')+'</td>' +
+      '<td>'+(d.qual||'')+'</td>' +
+      '<td>'+(d.address||'')+'</td>' +
+      '<td>'+(d.city||'')+'</td>' +
+      '<td>'+(d.area||'')+'</td>' +
+      '<td>'+(d.state||'')+'</td>' +
+      '<td>'+(d.territoryType||'')+'</td>' +
+      '<td>'+(d.phone||'')+'</td>' +
+      '<td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+(d.status||'Active')+'</span></td>' +
+      '<td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button>' +
+      '<button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-docs');

@@ -42,7 +42,12 @@ create table doctors (
   area text,
   phone text,
   assign_to text references employees(id),
-  status text not null default 'Active'
+  status text not null default 'Active',
+  be_name text,
+  hq text,
+  manager_name text,
+  state text,
+  territory_type text
 );
 
 -- 3. Chemists Table

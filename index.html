@@ -1421,14 +1421,13 @@ async function initSupabaseData(isSilent) {
         try { empOrderRaw = JSON.parse(localStorage.getItem('adonis_order_emps') || '[]'); } catch(e){}
         if (DB.employees && DB.employees.length > 0) empOrderRaw = DB.employees.map(em => em.id);
         if (empOrderRaw && empOrderRaw.length > 0) {
-          const localIds = empOrderRaw.map(id => String(id || '').trim().toUpperCase());
+          const empMap = {};
+          empOrderRaw.forEach((id, idx) => { empMap[String(id || '').trim().toUpperCase()] = idx; });
           emps.sort(function(a, b) {
             var idA = String(a.id || '').trim().toUpperCase();
             var idB = String(b.id || '').trim().toUpperCase();
-            var idxA = localIds.indexOf(idA);
-            var idxB = localIds.indexOf(idB);
-            if (idxA === -1) idxA = 999999;
-            if (idxB === -1) idxB = 999999;
+            var idxA = empMap[idA] !== undefined ? empMap[idA] : 999999;
+            var idxB = empMap[idB] !== undefined ? empMap[idB] : 999999;
             return idxA - idxB;
           });
         }
@@ -1437,14 +1436,13 @@ async function initSupabaseData(isSilent) {
         try { docOrderRaw = JSON.parse(localStorage.getItem('adonis_order_docs') || '[]'); } catch(e){}
         if (DB.doctors && DB.doctors.length > 0) docOrderRaw = DB.doctors.map(d => d.id);
         if (docOrderRaw && docOrderRaw.length > 0) {
-          const localIds = docOrderRaw.map(id => String(id || '').trim().toUpperCase());
+          const docMap = {};
+          docOrderRaw.forEach((id, idx) => { docMap[String(id || '').trim().toUpperCase()] = idx; });
           doctors.sort(function(a, b) {
             var idA = String(a.id || '').trim().toUpperCase();
             var idB = String(b.id || '').trim().toUpperCase();
-            var idxA = localIds.indexOf(idA);
-            var idxB = localIds.indexOf(idB);
-            if (idxA === -1) idxA = 999999;
-            if (idxB === -1) idxB = 999999;
+            var idxA = docMap[idA] !== undefined ? docMap[idA] : 999999;
+            var idxB = docMap[idB] !== undefined ? docMap[idB] : 999999;
             return idxA - idxB;
           });
         }
@@ -1453,14 +1451,13 @@ async function initSupabaseData(isSilent) {
         try { chemOrderRaw = JSON.parse(localStorage.getItem('adonis_order_chems') || '[]'); } catch(e){}
         if (DB.chemists && DB.chemists.length > 0) chemOrderRaw = DB.chemists.map(c => c.id);
         if (chemOrderRaw && chemOrderRaw.length > 0) {
-          const localIds = chemOrderRaw.map(id => String(id || '').trim().toUpperCase());
+          const chemMap = {};
+          chemOrderRaw.forEach((id, idx) => { chemMap[String(id || '').trim().toUpperCase()] = idx; });
           chemists.sort(function(a, b) {
             var idA = String(a.id || '').trim().toUpperCase();
             var idB = String(b.id || '').trim().toUpperCase();
-            var idxA = localIds.indexOf(idA);
-            var idxB = localIds.indexOf(idB);
-            if (idxA === -1) idxA = 999999;
-            if (idxB === -1) idxB = 999999;
+            var idxA = chemMap[idA] !== undefined ? chemMap[idA] : 999999;
+            var idxB = chemMap[idB] !== undefined ? chemMap[idB] : 999999;
             return idxA - idxB;
           });
         }

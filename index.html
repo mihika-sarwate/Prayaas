@@ -3130,33 +3130,28 @@ function populateJFWManagers(){
   
   var myLevel = getLevel(SESSION.user.role, SESSION.user.designation);
   
-  function isSubordinate(mgrId, empId) {
-    if (!mgrId) return false;
-    var targetMgr = String(mgrId).trim().toUpperCase();
-    var current = DB.employees.find(function(x) { return x && x.id && String(x.id).trim().toUpperCase() === String(empId).trim().toUpperCase(); });
-    var maxDepth = 10;
+  var myManagerChainIds = [];
+  if (myLevel !== 99) {
+    var current = SESSION.user;
+    var maxDepth = 20;
     while (current && current.managerId && maxDepth > 0) {
       var mId = String(current.managerId).trim().toUpperCase();
-      if (mId === targetMgr) return true;
+      myManagerChainIds.push(mId);
       current = DB.employees.find(function(x) { return x && x.id && String(x.id).trim().toUpperCase() === mId; });
       maxDepth--;
     }
-    return false;
   }
-  
+
   var chain = DB.employees.filter(function(e) {
     if (!e) return false;
     if (e.id === SESSION.user.id) return false;
     if (e.status !== 'Active') return false;
     if ((e.role || '').toLowerCase() === 'admin') return false; // Explicitly hide admin
     
-    var eLevel = getLevel(e.role, e.designation);
-    var isHigher = eLevel > myLevel;
-    
     // If the user is an Admin (testing the system), let them see everyone.
     if (myLevel === 99) return true; 
     
-    return isHigher;
+    return myManagerChainIds.includes(String(e.id).trim().toUpperCase());
   });
 
   var uniqueChain = [];

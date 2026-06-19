@@ -5584,7 +5584,7 @@ function uploadLeaveBalances(inp){
     var updated=0;
     lines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(p.length < 18) return; // Need at least 18 columns for the new format
+      if(!p[1]) return; // Need at least Employee ID
       
       // employee ID is in p[1]
       var empId = p[1].toUpperCase();

@@ -5582,32 +5582,62 @@ function uploadLeaveBalances(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(lines.length < 2) { showToast("CSV file is empty or missing data."); return; }
     
-    var headers = parseCSVLine(lines[0]).map(function(h) { return h.toLowerCase().replace(/[^a-z0-9]/g, ''); });
+    // Combine the first 5 rows to catch headers spread across multiple lines (like Leave Eligibility -> CL)
+    var headerLineIndex = 0;
+    var headers = [];
+    var combinedHeaders = [];
+    
+    for (var j = 0; j < Math.min(5, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]);
+      var flatCandidate = candidate.map(function(h) { return String(h).toLowerCase().replace(/[^a-z0-9]/g, ''); });
+      
+      // Update combined headers
+      for (var c = 0; c < flatCandidate.length; c++) {
+        if (!combinedHeaders[c]) combinedHeaders[c] = '';
+        if (flatCandidate[c]) combinedHeaders[c] += flatCandidate[c];
+      }
+      
+      if (flatCandidate.some(function(h) { return h.indexOf('employee') !== -1 || h === 'id' || h === 'empid'; })) {
+        headerLineIndex = j;
+      }
+    }
+    
+    headers = combinedHeaders;
     
     // Find column indices
     var idCol = -1, clCol = -1, plCol = -1, slCol = -1, lopCol = -1;
     var clUsedCol = -1, plUsedCol = -1, slUsedCol = -1, lopUsedCol = -1;
     
     headers.forEach(function(h, i) {
-      if (h.indexOf('employeeid') !== -1 || h === 'id') idCol = i;
-      else if (h === 'cl' || h === 'casualleave') clCol = i;
-      else if (h === 'pl' || h === 'privilegeleave' || h === 'el' || h === 'earnedleave') plCol = i;
-      else if (h === 'sl' || h === 'sickleave') slCol = i;
-      else if (h === 'lop' || h === 'lossifpay' || h === 'lossofpay') lopCol = i;
-      else if (h === 'clused') clUsedCol = i;
-      else if (h === 'plused' || h === 'elused') plUsedCol = i;
-      else if (h === 'slused') slUsedCol = i;
-      else if (h === 'lopused') lopUsedCol = i;
+      if (h.indexOf('employeeid') !== -1 || h.indexOf('empid') !== -1 || h === 'id' || h === 'employee') idCol = i;
+      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('cl') !== -1 || h.indexOf('casualleave') !== -1)) clCol = i;
+      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('pl') !== -1 || h.indexOf('el') !== -1 || h.indexOf('privilege') !== -1)) plCol = i;
+      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('sl') !== -1 || h.indexOf('sick') !== -1)) slCol = i;
+      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('lop') !== -1 || h.indexOf('lwp') !== -1)) lopCol = i;
+      else if (h.indexOf('leavetakencl') !== -1 || h === 'clused') clUsedCol = i;
+      else if (h.indexOf('leavetakenpl') !== -1 || h.indexOf('leavetakenel') !== -1 || h === 'plused' || h === 'elused') plUsedCol = i;
+      else if (h.indexOf('leavetakensl') !== -1 || h === 'slused') slUsedCol = i;
+      else if (h.indexOf('leavetakenlop') !== -1 || h.indexOf('leavetakenlwp') !== -1 || h === 'lopused') lopUsedCol = i;
     });
     
-    if (idCol === -1) {
-      // Fallback to strict column mapping if headers are completely unrecognizable
-      idCol = 1; clCol = 6; plCol = 7; slCol = 8; lopCol = 9;
-      clUsedCol = 10; plUsedCol = 11; slUsedCol = 12; lopUsedCol = 13;
+    // If dynamic detection failed completely OR if it perfectly matches the known template structure
+    // (where Leave Eligibility is at col 6 and Taken is at col 10), we force the default known positions.
+    if (idCol === -1 || clCol === -1 || clUsedCol === -1 || idCol <= 1) {
+      if (idCol === -1) idCol = 1; 
+      clCol = idCol + 5; 
+      plCol = idCol + 6; 
+      slCol = idCol + 7; 
+      lopCol = idCol + 8;
+      clUsedCol = idCol + 9; 
+      plUsedCol = idCol + 10; 
+      slUsedCol = idCol + 11; 
+      lopUsedCol = idCol + 12;
     }
     
     var updated=0;
-    for (var i = 1; i < lines.length; i++) {
+    var notFoundIds = [];
+    
+    for (var i = headerLineIndex + 1; i < lines.length; i++) {
       var p = parseCSVLine(lines[i]);
       if (!p[idCol]) continue;
       
@@ -5627,11 +5657,20 @@ function uploadLeaveBalances(inp){
         if (lopUsedCol !== -1 && p[lopUsedCol]) emp.leaves.LWP_used = parseInt(p[lopUsedCol]) || 0;
         
         updated++;
+      } else {
+        if (empId) notFoundIds.push(empId);
       }
     }
     
     saveDB();
-    showToast(updated+' employee leave balances updated successfully!');
+    
+    var totalRows = lines.length - headerLineIndex - 1;
+    if (updated < totalRows) {
+      alert("WARNING: Only " + updated + " out of " + totalRows + " rows were successfully updated!\n\nThe following Employee IDs were found in your CSV but DO NOT EXIST in the Employee Master:\n" + notFoundIds.slice(0, 10).join(", ") + (notFoundIds.length > 10 ? " ...and " + (notFoundIds.length - 10) + " more" : "") + "\n\nYou must add these employees to the Employee Master first before you can attach leave balances to them.");
+    } else {
+      showToast(updated+' employee leave balances updated successfully!');
+    }
+    
     renderLeaveBalanceTable();
   };
   reader.readAsText(file);inp.value='';

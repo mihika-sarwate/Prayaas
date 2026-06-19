@@ -1,1090 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Sankalp - Field Force Management System (Adonis Laboratories)</title>
-<link rel="icon" type="image/jpeg" href="logo.jpg">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-<script src="supabase.js"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
-:root {
-  --primary: #0084c2;
-  --primary-light: #38bdf8;
-  --primary-dark: #00679a;
-  --secondary: #dc2626;
-  --secondary-light: #f87171;
-  --secondary-dark: #991b1b;
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --success: #10b981;
-  --danger: var(--secondary);
-  --warning: #f59e0b;
-  --accent: #e0f2fe;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-main);color:var(--text);min-height:100vh}
-.screen{display:none;min-height:100vh;width:100%;flex-direction:column}
-.screen.on{display:flex}
-.hdr{background:linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);padding:max(16px,env(safe-area-inset-top)) 20px 16px;flex-shrink:0;box-shadow:0 4px 20px rgba(0,132,194,0.15)}
-.hdr-row{display:flex;align-items:center;justify-content:space-between}
-.logo{height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.hdr-brand{margin-left:12px;flex:1}
-.hdr-title{font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.3px}
-.hdr-sub{font-size:11px;color:rgba(255,255,255,0.75);margin-top:1px;font-weight:400}
-.hdr-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;transition:all 0.2s}
-.hdr-badge:hover{background:rgba(255,255,255,0.2);transform:translateY(-1px)}
-.body{flex:1;overflow-y:auto;padding:20px;padding-bottom:max(30px,env(safe-area-inset-bottom))}
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:18px;box-shadow:0 4px 24px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.02);transition:all 0.2s}
-.card:hover{box-shadow:0 6px 30px rgba(15,23,42,0.06);transform:translateY(-1px)}
-.card-title{font-size:15px;font-weight:700;color:var(--primary-dark);margin-bottom:16px;display:flex;align-items:center;gap:8px;border-bottom:1.5px solid #f1f5f9;padding-bottom:10px}
-.header-icon{color:var(--primary) !important;background:rgba(0,132,194,0.08);padding:6px;border-radius:8px;margin-right:8px;font-size:18px !important;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
-label.lbl{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px}
-input[type=text],input[type=password],input[type=number],input[type=date],input[type=time],input[type=month],textarea,select{width:100%;border:1.5px solid var(--border);border-radius:12px;background:#f8fafc;color:var(--text);font-family:inherit;font-size:14px;padding:0 14px;height:46px;outline:none;transition:all 0.2s}
-textarea{height:90px;padding:12px 14px;resize:none;line-height:1.5}
-input:focus,textarea:focus,select:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(0,132,194,0.12)}
-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%2364748b' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;appearance:none}
-.fw{margin-bottom:16px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
-.btn{height:46px;border-radius:12px;border:1.5px solid var(--border);background:#ffffff;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;transition:all 0.2s;box-shadow:0 2px 4px rgba(15,23,42,0.02)}
-.btn:hover{background:#f8fafc;transform:translateY(-1px)}
-.btn:active{transform:scale(0.98)}
-.btn.primary{background:linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);color:#fff;border:none;box-shadow:0 4px 14px rgba(0,132,194,0.25)}
-.btn.primary:hover{background:linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);box-shadow:0 6px 20px rgba(0,132,194,0.35)}
-.btn.success{background:linear-gradient(135deg, var(--success) 0%, #059669 100%);color:#fff;border:none;box-shadow:0 4px 14px rgba(16,185,129,0.25)}
-.btn.success:hover{background:linear-gradient(135deg, #34d399 0%, var(--success) 100%);box-shadow:0 6px 20px rgba(16,185,129,0.35)}
-.btn.danger{background:linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);color:#fff;border:none;box-shadow:0 4px 14px rgba(244,63,94,0.25)}
-.btn.danger:hover{background:linear-gradient(135deg, var(--secondary-light) 0%, var(--secondary) 100%);box-shadow:0 6px 20px rgba(244,63,94,0.35)}
-.btn.gold{background:linear-gradient(135deg, var(--accent) 0%, #c7d2fe 100%);color:var(--primary-dark);border-color:var(--accent)}
-.btn.gold:hover{background:linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%)}
-.btn.warn{background:linear-gradient(135deg, var(--warning) 0%, #d97706 100%);color:#fff;border:none}
-.btn-row{display:flex;gap:12px;margin-top:16px}
-.btn-row .btn{flex:1}
-.btn.sm{height:36px;font-size:12px;border-radius:10px;padding:0 12px}
-.badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.3px}
-.badge.green{background:#d1fae5;color:#065f46}
-.badge.blue{background:#e0f2fe;color:#0369a1}
-.badge.orange{background:#fef3c7;color:#92400e}
-.badge.red{background:#fee2e2;color:#991b1b}
-.badge.grey{background:#f1f5f9;color:#475569}
-.nav{display:flex;background:#ffffff;border-bottom:1.5px solid var(--border);flex-shrink:0;box-shadow:0 4px 20px rgba(15,23,42,0.04)}
-.nav-btn{flex:1;background:none;border:none;padding:14px 2px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;font-size:10px;font-weight:600;color:var(--text-muted);transition:all 0.2s}
-.nav-btn.on{color:var(--primary);position:relative}
-.nav-btn.on::after{content:'';position:absolute;top:0;width:30px;height:4px;background:var(--primary);border-radius:0 0 4px 4px}
-.nav-btn .ni{font-size:24px;transition:transform 0.2s;font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24}
-.nav-btn.on .ni{font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24}
-.nav-btn:hover .ni{transform:translateY(-2px)}
-.doc-card{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1.5px solid #f1f5f9;cursor:pointer;transition:all 0.15s}
-.doc-card:hover{transform:translateX(4px)}
-.doc-card:last-child{border-bottom:none}
-.doc-avatar{width:42px;height:42px;border-radius:50%;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#0369a1;flex-shrink:0;border:1px solid #bae6fd}
-.doc-info{flex:1;min-width:0}
-.doc-name{font-size:14px;font-weight:700;color:var(--text)}
-.doc-spec{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:500}
-.doc-area{font-size:10.5px;color:var(--text-muted);margin-top:3px}
-.sample-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1.5px solid #f1f5f9}
-.sample-row:last-child{border-bottom:none}
-.sample-name{flex:1;font-size:13px;font-weight:600;color:var(--text)}
-.sample-qty{width:90px;flex-shrink:0}
-.sample-qty input{height:36px;text-align:center;font-size:14px;border-radius:10px}
-.report-row{padding:14px 0;border-bottom:1.5px solid #f1f5f9;transition:all 0.2s}
-.report-row:last-child{border-bottom:none}
-.report-doc{font-size:14px;font-weight:700;color:var(--primary-dark);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.report-meta{font-size:11px;color:var(--text-muted);margin-top:4px}
-.report-value{font-size:11.5px;font-weight:600;color:var(--success);margin-top:4px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;box-shadow:0 2px 8px rgba(15,23,42,0.01)}
-.stat-l{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
-.stat-v{font-size:24px;font-weight:800;color:var(--text);margin-top:6px;letter-spacing:-0.5px}
-.stat-v.green{color:var(--success)}
-.stat-v.orange{color:var(--warning)}
-.login-wrap{min-height:100vh;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at center, var(--primary) 0%, var(--primary-dark) 100%)}
-.login-card{background:#fff;border-radius:24px;padding:40px 32px;width:100%;max-width:400px;box-shadow:0 20px 40px rgba(15,23,42,0.3)}
-.login-title{text-align:center;font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-0.5px}
-.login-sub{text-align:center;font-size:14px;color:var(--text-muted);margin-bottom:32px}
-.gps-bar{display:flex;align-items:center;gap:10px;background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text-muted);margin-bottom:16px}
-.gps-bar.got{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
-.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--border)}
-table.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:600px}
-table.tbl th{font-size:11px;font-weight:700;color:var(--text-muted);text-align:left;padding:12px 14px;border-bottom:1.5px solid var(--border);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;background:#f8fafc}
-table.tbl td{padding:14px;border-bottom:1px solid #f1f5f9;color:var(--text);vertical-align:middle}
-table.tbl tr:last-child td{border-bottom:none}
-.tbl-name{font-weight:600;color:var(--text)}
-.empty{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;font-weight:500}
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.95);color:#fff;font-size:13px;font-weight:600;padding:14px 28px;border-radius:30px;z-index:999;display:none;white-space:nowrap;box-shadow:0 10px 25px rgba(0,0,0,0.2);backdrop-filter:blur(8px)}
-.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.4);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
-.modal-bg.on{display:flex}
-.modal{background:#fff;border-radius:20px;padding:28px;width:92%;max-width:560px;max-height:85vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25)}
-.modal-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #f1f5f9;padding-bottom:12px;letter-spacing:-0.4px}
-.modal-close{background:#f1f5f9;border:none;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all 0.15s}
-.modal-close:hover{background:#e2e8f0;color:var(--text)}
-.link-btn{background:none;border:none;padding:0;color:var(--primary-dark);font:inherit;font-weight:700;cursor:pointer;text-align:left}
-.link-btn:hover{text-decoration:underline}
-.sec-hdr{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--border)}
-.info-box{background:#f0f9ff;border-radius:12px;padding:14px;font-size:12.5px;color:#0369a1;line-height:1.6;margin-bottom:16px;border-left:4px solid var(--primary-light)}
-.info-box.green{background:#ecfdf5;color:#065f46;border-left-color:#10b981}
-.info-box.orange{background:#fffbeb;color:#92400e;border-left-color:#f59e0b}
-.tp-day{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
-.tp-day-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.tp-day-date{font-size:14px;font-weight:700;color:var(--text)}
-.tp-day-label{font-size:11px;color:var(--text-muted)}
-.exp-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #f1f5f9}
-.exp-row:last-child{border-bottom:none}
-.exp-label{flex:1;font-size:13px;font-weight:600;color:var(--text)}
-.exp-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
-.exp-amt{font-size:14px;font-weight:700;color:var(--success);width:90px;text-align:right;flex-shrink:0}
-.exp-total{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-top:2.5px solid var(--border);margin-top:12px}
-.exp-total-label{font-size:15px;font-weight:700;color:var(--text)}
-.exp-total-amt{font-size:20px;font-weight:800;color:var(--success)}
-.appr-card{border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all 0.2s}
-.appr-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,23,42,0.06);border-color:#cbd5e1}
-.appr-card.pending{border-left:5px solid var(--warning)}
-.appr-card.approved{border-left:5px solid var(--success)}
-.appr-card.rejected{border-left:5px solid var(--danger)}
-.appr-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.appr-name{font-size:14px;font-weight:700;color:var(--text)}
-.appr-meta{font-size:11px;color:var(--text-muted);margin-top:3px}
-.checklist-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:10px;max-height:160px;overflow-y:auto;border:1.5px solid var(--border);padding:12px;border-radius:12px;background:#f8fafc}
-.checklist-item{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;cursor:pointer}
-.checklist-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary)}
-.admin-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.admin-tab{padding:10px 16px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s}
-.admin-tab:hover{color:var(--primary)}
-.admin-tab.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
-.password-container{position:relative;width:100%}
-.password-toggle-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;user-select:none;padding:4px}
-.password-toggle-btn:hover{color:var(--primary)}
-    .admin-tab { display: inline-block; padding: 10px 15px; cursor: pointer; color: #555; font-weight: 500; font-size: 14px; border-bottom: 2px solid transparent; }
-    .admin-tab:hover { color: #007bb5; }
-    .admin-tab.on { color: #007bb5; border-bottom: 2px solid #007bb5; }
-    .admin-sub-tab { display: inline-block; padding: 6px 12px; margin: 0 5px 10px 0; cursor: pointer; color: #666; font-size: 13px; border: 1px solid #ddd; border-radius: 4px; background: #fff; }
-    .admin-sub-tab.on { background: #007bb5; color: #fff; border-color: #007bb5; }
-    
-    .admin-only { /* controlled by JS body class */ }
-    body:not(.is-admin) .admin-only { display: none !important; }
-    body.is-admin .manager-only { display: none !important; }
-.excel-filter-popup {
-  position: absolute;
-  z-index: 99999;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  width: 220px;
-  max-height: 350px;
-  display: flex;
-  flex-direction: column;
-  font-size: 12px;
-  color: var(--text);
-  overflow: hidden;
-}
-.excel-filter-header {
-  padding: 8px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-.excel-filter-header input {
-  height: 28px !important;
-  font-size: 11px !important;
-  padding: 0 8px !important;
-  border-radius: 4px !important;
-}
-.excel-filter-actions {
-  display: flex;
-  gap: 8px;
-  padding: 6px 8px;
-  border-bottom: 1px solid #f1f5f9;
-}
-.excel-filter-actions a {
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-.excel-filter-actions a:hover { text-decoration: underline; }
-.excel-filter-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0;
-  max-height: 200px;
-}
-.excel-filter-item {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.excel-filter-item:hover { background: #f1f5f9; }
-.excel-filter-item input {
-  margin-right: 6px;
-  cursor: pointer;
-}
-.excel-filter-footer {
-  padding: 8px;
-  border-top: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  background: #f8fafc;
-}
-.excel-filter-footer button {
-  height: 26px;
-  padding: 0 12px;
-  font-size: 11px;
-  border-radius: 4px;
-}
-</style>
-</head>
-<body>
-<!-- Global Excel Filter Popup -->
-<div id="excel-filter-popup" class="excel-filter-popup" style="display:none;"></div>
-
-<div class="toast" id="toast"></div>
-
-<!-- LOGIN SCREEN -->
-<div id="scr-login" style="display:flex; width:100%;">
-  <div class="login-wrap">
-    <div class="login-card">
-      <div class="login-logo" style="width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
-        <img src="logo.jpg" alt="Adonis Logo" style="max-height: 90px; max-width: 100%; object-fit: contain;">
-      </div>
-      <div class="login-title">Sankalp</div>
-      <div class="login-sub">Field Force Reporting System</div>
-      <div class="fw"><label class="lbl">Employee ID</label><input type="text" id="login-id" placeholder="e.g. EMP001" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
-      <div class="fw">
-        <label class="lbl">Password</label>
-        <div class="password-container">
-          <input type="password" id="login-pwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" style="padding-right: 60px;">
-          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility()" tabindex="-1">Show</button>
-        </div>
-      </div>
-      <button class="btn primary" onclick="doLogin()" style="margin-top:4px">Login</button>
-      <div style="font-size:11px;color:#64748B;text-align:center;margin-top:15px;" id="db-status-indicator"></div>
-    </div>
-  </div>
-</div>
-
-<!-- EMPLOYEE / MR APP -->
-<div id="scr-emp" class="screen">
-  <div class="hdr">
-    <div class="hdr-row">
-      <div class="logo">
-        <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
-      </div>
-      <div class="hdr-brand"><div class="hdr-title">Sankalp MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
-      <button id="emp-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 4px 10px; font-size: 12px; width: auto; height: auto; line-height: 1.2; margin-right: 8px;">🔄 Sync</button>
-      <button class="hdr-badge" onclick="doLogout()">Logout</button>
-    </div>
-  </div>
-  
-  <!-- NAVIGATION -->
-  <div class="nav">
-    <button class="nav-btn on" id="nb-home" onclick="goTab('home')"><span class="ni material-symbols-outlined">home</span>Home</button>
-    <button class="nav-btn" id="nb-report" onclick="goTab('report')"><span class="ni material-symbols-outlined">description</span>Report</button>
-    <button class="nav-btn" id="nb-tour" onclick="goTab('tour')"><span class="ni material-symbols-outlined">map</span>Tour Plan</button>
-    <button class="nav-btn" id="nb-expense" onclick="goTab('expense')"><span class="ni material-symbols-outlined">payments</span>Expense</button>
-    <button class="nav-btn" id="nb-leave" onclick="goTab('leave')"><span class="ni material-symbols-outlined">calendar_today</span>Leaves</button>
-    <button class="nav-btn" id="nb-doctors" onclick="goTab('doctors')"><span class="ni material-symbols-outlined">group</span>Master</button>
-  </div>
-
-  <!-- MR HOME TAB -->
-  <div class="body" id="tab-home">
-    <div class="stats">
-      <div class="stat"><div class="stat-l">Calls Today</div><div class="stat-v green" id="stat-today">0</div></div>
-      <div class="stat"><div class="stat-l">Total Coverage</div><div class="stat-v" id="stat-coverage">0%</div></div>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="stat-l">Tour Plan Status</div><div class="stat-v orange" id="stat-tp">â€”</div></div>
-      <div class="stat"><div class="stat-l">Leave Balance</div><div class="stat-v" id="stat-leave-bal">CL:0 SL:0</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">&#128197; Today's Schedule &amp; Activity</div>
-      <div id="today-reports"><div class="empty">No calls reported today</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">&#128203; My Recent Calls</div>
-      <div id="recent-reports"><div class="empty">No reports submitted yet</div></div>
-    </div>
-  </div>
-
-  <!-- MR REPORT / VISIT TAB -->
-  <div class="body" id="tab-report" style="display:none">
-    <div class="card">
-      <div class="card-title">&#128203; Submit Daily Call Report</div>
-      <div class="row2">
-        <div><label class="lbl">Date</label><input type="date" id="r-date" onchange="checkMTPForSelectedDate()"></div>
-        <div><label class="lbl">Call Classification</label><select id="r-classification"><option>Planned Call</option><option>Unplanned Call</option></select></div>
-      </div>
-      <div class="row2">
-        <div><label class="lbl">Time</label><input type="time" id="r-time"></div>
-        <div><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option></select></div>
-      </div>
-      
-      <!-- Doctor Selection -->
-      <div class="fw" id="r-doctor-wrap">
-        <label class="lbl">Doctor</label>
-        <input type="text" id="r-doc-search" placeholder="🔍 Type doctor name or area to filter..." oninput="filterReportingDoctorsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
-        <select id="r-doctor" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Doctor --</option></select>
-      </div>
-      
-      <!-- Chemist Selection -->
-      <div class="fw" id="r-chemist-wrap" style="display:none">
-        <label class="lbl">Chemist</label>
-        <input type="text" id="r-chem-search-inp" placeholder="🔍 Type chemist name or area to filter..." oninput="filterReportingChemistsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
-        <select id="r-chemist" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Chemist --</option></select>
-      </div>
-      <div class="fw" id="r-planned-targets-wrap" style="display:none"></div>
-      
-      <div class="fw"><label class="lbl">Call Type / Objective</label>
-        <select id="r-calltype">
-          <option>Regular Visit</option><option>Introductory Visit</option><option>Follow-up</option><option>CME / Event</option>
-        </select>
-      </div>
-
-      <!-- Joint Field Work (Moved to top) -->
-      <div class="fw" style="margin-top: 15px;"><label class="lbl">Worked With (Hierarchy)</label>
-        <select id="r-jfw-manager"><option value="">-- Working Alone --</option></select>
-      </div>
-    </div>
-    
-    <!-- Planned activities card -->
-    <div class="card" id="r-planned-activities-card" style="display:none">
-      <div class="card-title">&#128197; Planned Activities for Selected Date</div>
-      <div id="r-planned-docs-list" style="margin-bottom:8px"></div>
-      <div id="r-planned-chems-list"></div>
-    </div>
-
-    <!-- Doctor Specific Form Fields -->
-    <div id="r-doctor-details-wrap">
-      <div class="card">
-        <div class="card-title">&#128188; Product Promotion &amp; Discussion</div>
-        <div class="fw"><label class="lbl">Products Detailed (Promoted)</label>
-          <div id="r-promo-products" class="checklist-grid"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#127873; Samples Issued</div>
-        <div id="samples-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#127381; Gift Distribution</div>
-        <div id="gifts-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#128196; Input/Literature Given</div>
-        <div id="inputs-list"></div>
-      </div>
-    </div>
-
-    <!-- Chemist Specific Form Fields -->
-    <div id="r-chemist-details-wrap" style="display:none">
-      <div class="card">
-        <div class="card-title">&#128221; Order &amp; Stock Info</div>
-        <div class="row2">
-          <div><label class="lbl">Orders Discussed (&#x20B9;)</label><input type="number" id="r-chem-order" placeholder="0"></div>
-          <div><label class="lbl">Stock Availability</label><select id="r-chem-stock"><option>Adequate Stock</option><option>Low Stock</option><option>Out of Stock</option></select></div>
-        </div>
-      </div>
-    </div>
-
-
-
-    <div class="card">
-      <div class="card-title">&#128205; Remarks &amp; Location</div>
-      <div class="gps-bar" id="gps-bar">
-        <span style="font-size:18px">&#128205;</span>
-        <span id="gps-text">Tap to capture GPS location</span>
-        <button class="btn sm" style="width:auto;padding:0 12px;margin-left:auto" onclick="getGPS()">Get GPS</button>
-      </div>
-      <input type="hidden" id="r-lat"><input type="hidden" id="r-lng">
-      <div class="fw"><label class="lbl">Call Notes / Feedback</label><textarea id="r-remarks" placeholder="Enter visit summary details..."></textarea></div>
-      <div class="fw"><label class="lbl">Follow-up Required (Next Visit)</label><input type="date" id="r-next-visit"></div>
-    </div>
-    <div class="btn-row"><button class="btn success" onclick="submitReport()">&#10003; Submit Call Report</button></div>
-    <div style="height:20px"></div>
-  </div>
-
-  <!-- MR TOUR PLAN TAB -->
-  <div class="body" id="tab-tour" style="display:none">
-    <div class="card">
-      <div class="card-title">&#128506; Monthly Tour Plan (MTP)</div>
-      <div class="row2">
-        <div><label class="lbl">Month</label><input type="month" id="tp-month" onchange="renderTPDaysForMonth()"></div>
-        <div><label class="lbl">Reporting Manager</label><select id="tp-manager" disabled></select></div>
-      </div>
-      <div class="info-box">Enter only the Area/Territory for working days. Empty dates will not be included when the MTP is saved or submitted.</div>
-    </div>
-    <!-- MTP ANALYTICS CARD -->
-    <div class="card" id="mtp-analytics-card" style="display:none">
-      <div class="card-title">&#128202; MTP Analytics (Approved Plan)</div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Planned Doctor Calls</div><div class="stat-v" id="mtp-stat-planned-docs">0</div></div>
-        <div class="stat"><div class="stat-l">Planned Chemist Calls</div><div class="stat-v" id="mtp-stat-planned-chems">0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">MTP Doctor Coverage</div><div class="stat-v green" id="mtp-stat-coverage">0%</div></div>
-        <div class="stat"><div class="stat-l">Missed Doctor Calls</div><div class="stat-v red" id="mtp-stat-missed-docs">0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Missed Chemist Calls</div><div class="stat-v red" id="mtp-stat-missed-chems">0</div></div>
-        <div class="stat"><div class="stat-l">Doctor Actual vs Planned</div><div class="stat-v" id="mtp-stat-doc-ratio">0 / 0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat" style="grid-column: span 2"><div class="stat-l">Chemist Actual vs Planned</div><div class="stat-v" id="mtp-stat-chem-ratio">0 / 0</div></div>
-      </div>
-    </div>
-
-    <!-- Toggle View option -->
-    <div class="admin-tabs" style="margin-top:10px;margin-bottom:10px">
-      <div class="admin-tab on" id="mtp-view-grid-btn" onclick="toggleMTPViewMode('grid')">Tabular View</div>
-      <div class="admin-tab" id="mtp-view-cal-btn" onclick="toggleMTPViewMode('calendar')">Calendar View</div>
-    </div>
-    
-    <div id="mtp-grid-wrapper">
-      <div id="tp-days-container"></div>
-    </div>
-    
-    <div id="mtp-calendar-wrapper" style="display:none">
-      <div class="card" style="padding:16px">
-        <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:4px;text-align:center;font-weight:700;font-size:11px;margin-bottom:8px">
-          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-        </div>
-        <div id="mtp-calendar-grid" style="display:grid;grid-template-columns:repeat(7, 1fr);gap:6px"></div>
-      </div>
-    </div>
-
-    <div class="btn-row" id="tp-action-buttons" style="display:none">
-      <button class="btn primary" onclick="saveOrSubmitTourPlan('Draft')">Save as Draft</button>
-      <button class="btn success" onclick="saveOrSubmitTourPlan('Submitted')">Submit Tour Plan</button>
-    </div>
-    <div style="height:10px"></div>
-    <div class="sec-hdr">My MTP History</div>
-    <div id="my-tp-list"></div>
-    <div style="height:20px"></div>
-  </div>
-
-  <!-- MR EXPENSE TAB -->
-  <div class="body" id="tab-expense" style="display:none">
-    <div class="card">
-      <div class="card-title">&#128176; Submit Expense Claim</div>
-      <div class="info-box green">Expenses are auto-calculated from your approved daily visit reports using the standard fare charts.</div>
-      <div class="fw"><label class="lbl">Select Month</label><input type="month" id="exp-month" onchange="generateExpenseFromReports()"></div>
-    </div>
-    <div id="expense-detail" style="display:none">
-      <div class="card">
-        <div class="card-title">&#128196; Expense Statement</div>
-        <div id="exp-breakdown"></div>
-        <div class="exp-total">
-          <div class="exp-total-label">Total Claim Amount</div>
-          <div class="exp-total-amt" id="exp-grand-total">&#x20B9;0</div>
-        </div>
-        <div class="fw" style="margin-top:14px">
-          <label class="lbl">Upload Bill/Receipt (Supports images/PDF)</label>
-          <input type="file" id="exp-receipt-file" accept="image/*,application/pdf">
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn success" onclick="submitExpense()">&#128228; Submit Claim for Approval</button>
-      </div>
-    </div>
-    <div class="sec-hdr">My Submitted Claims</div>
-    <div id="my-expenses-list"></div>
-    <div style="height:20px"></div>
-  </div>
-
-  <!-- MR LEAVE TAB -->
-  <div class="body" id="tab-leave" style="display:none">
-    <div class="card">
-      <div class="card-title">&#127915; Apply for Leave</div>
-      <div class="row2">
-        <div><label class="lbl">Start Date</label><input type="date" id="lv-start"></div>
-        <div><label class="lbl">End Date</label><input type="date" id="lv-end"></div>
-      </div>
-      <div class="row2">
-        <div><label class="lbl">Leave Type</label><select id="lv-type"><option>Casual Leave</option><option>Sick Leave</option><option>Earned Leave</option><option>LWP</option></select></div>
-        <div><label class="lbl">Reporting Manager</label><select id="lv-manager" disabled></select></div>
-      </div>
-      <div class="fw"><label class="lbl">Reason for Leave</label><textarea id="lv-reason" placeholder="State reason..."></textarea></div>
-      <button class="btn primary" onclick="submitLeave()">Submit Leave Request</button>
-    </div>
-    <div class="card">
-      <div class="card-title">&#128202; Leave Balance Details</div>
-      <div class="row2" style="text-align:center">
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Casual (CL)</div><div class="stat-v" id="lv-bal-cl">0 / 12</div></div>
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Sick (SL)</div><div class="stat-v" id="lv-bal-sl">0 / 10</div></div>
-      </div>
-      <div class="row2" style="text-align:center;margin-top:10px">
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Earned (EL)</div><div class="stat-v" id="lv-bal-el">0 / 15</div></div>
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">LWP</div><div class="stat-v" id="lv-bal-lwp">0</div></div>
-      </div>
-      <div class="info-box" style="margin-top:12px">Tap any leave bucket to open the full leave balance ledger.</div>
-    </div>
-    <div class="sec-hdr">My Leave Requests</div>
-    <div id="my-leaves-list"></div>
-    <div style="height:20px"></div>
-  </div>
-
-  <!-- MR DOCTORS & CHEMISTS TAB -->
-  <div class="body" id="tab-doctors" style="display:none">
-    <div class="admin-tabs" style="margin-bottom:10px">
-      <div class="admin-tab on" id="doc-subtab-btn" onclick="toggleDocChemistSubtab('doc')">Doctors</div>
-      <div class="admin-tab" id="chem-subtab-btn" onclick="toggleDocChemistSubtab('chem')">Chemists</div>
-    </div>
-    <div id="doc-subtab-content">
-      <div class="card" style="padding:10px 14px;margin-bottom:10px">
-        <input type="text" id="doc-search" placeholder="&#128269; Search doctor, speciality, area..." oninput="renderDocList()" style="background:#F1F5F9">
-      </div>
-      <div class="card"><div id="doc-list"><div class="empty">No doctors assigned</div></div></div>
-    </div>
-    <div id="chem-subtab-content" style="display:none">
-      <div class="card" style="padding:10px 14px;margin-bottom:10px">
-        <input type="text" id="chem-search" placeholder="&#128269; Search chemists by name or area..." oninput="renderChemistList()" style="background:#F1F5F9">
-      </div>
-      <div class="card"><div id="chemist-list"><div class="empty">No chemists assigned</div></div></div>
-    </div>
-  </div>
-
-</div>
-
-<!-- MANAGER & ADMIN PORTAL -->
-<div id="scr-admin" class="screen">
-  <div class="hdr">
-    <div class="hdr-row">
-      <div class="logo">
-        <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
-      </div>
-      <div class="hdr-brand">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="hdr-title" id="adm-panel-title">Sankalp Admin Console</div>
-          <span class="badge orange" id="adm-badge" style="padding:2px 8px;font-size:9px;text-transform:uppercase">ADM</span>
-          <button id="admin-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 2px 8px; font-size: 10px; width: auto; height: auto; line-height: 1.2; margin-left: 8px;">🔄 Sync</button>
-        </div>
-        <div class="hdr-sub">Adonis Laboratories</div>
-      </div>
-      <button class="hdr-badge" onclick="doLogout()">Logout</button>
-    </div>
-  </div>
-  <div class="body">
-    <!-- ADMIN TABS -->
-    <div class="admin-tabs">
-      <div class="admin-tab on" id="tab-adm-dash" onclick="goAdminTab('dash')">Dashboard</div>
-      <div class="admin-tab" id="tab-adm-appr" onclick="goAdminTab('appr')">Approvals</div>
-      <div class="admin-tab" id="tab-adm-master" onclick="goAdminTab('master')">Master Data</div>
-      <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
-      <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
-      <div class="admin-tab manager-only" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
-    </div>
-
-    <!-- ADMIN SECTIONS -->
-    <div id="sec-adm-visit" style="display:none"></div>
-    <!-- ADMIN DASHBOARD PANEL -->
-    <div id="sec-adm-dash">
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Total Active Team</div><div class="stat-v" id="adm-emp-count">0</div></div>
-        <div class="stat"><div class="stat-l">Assigned Doctors</div><div class="stat-v" id="adm-doc-count">0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Total Daily Call Reports</div><div class="stat-v green" id="adm-rep-count">0</div></div>
-        <div class="stat"><div class="stat-l">Pending Approvals</div><div class="stat-v orange" id="adm-pending-count">0</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#128101; Active Team Performance &amp; Coverage Summary</div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead>
-              <tr><th>Employee ID</th><th>Name</th><th>Territory</th><th>Reports Submitted</th><th>Doctor Coverage %</th><th>JFW Days Accompanied</th></tr>
-            </thead>
-            <tbody id="adm-dash-team-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ADMIN APPROVALS PANEL -->
-    <div id="sec-adm-appr" style="display:none">
-      <div class="sec-hdr">&#9989; Tour Plan (MTP) Submissions</div>
-      <div id="adm-tp-approvals"><div class="empty">No tour plans pending your approval</div></div>
-
-      <div class="sec-hdr">&#128176; Expense Claims Submissions</div>
-      <div id="adm-exp-approvals"><div class="empty">No expense claims pending your approval</div></div>
-
-      <div class="sec-hdr">&#127915; Leave Application Submissions</div>
-      <div id="adm-leave-approvals"><div class="empty">No leave requests pending your approval</div></div>
-    </div>
-
-    <!-- ADMIN MASTER DATA PANEL -->
-    <div id="sec-adm-master" style="display:none">
-      <div class="admin-tabs" style="margin-bottom:14px">
-        <div class="admin-tab on" id="subtab-adm-sfc" onclick="goMasterSubTab('sfc')">SFC Master</div>
-        <div class="admin-tab" id="subtab-adm-emp" onclick="goMasterSubTab('emp')">Employee Master</div>
-        <div class="admin-tab" id="subtab-adm-doc" onclick="goMasterSubTab('doc')">Doctor Master</div>
-        <div class="admin-tab" id="subtab-adm-chem" onclick="goMasterSubTab('chem')">Chemist Master</div>
-        <div class="admin-tab" id="subtab-adm-stockist" onclick="goMasterSubTab('stockist')">Stockist Master</div>
-        <div class="admin-tab" id="subtab-adm-leave" onclick="goMasterSubTab('leave')">Leave Balance Master</div>
-        <div class="admin-tab" id="subtab-adm-holiday" onclick="goMasterSubTab('holiday')">Holiday Master</div>
-      </div>
-
-      <!-- SFC Master -->
-      <div id="adm-sfc-section" class="master-sub-sec">
-        <div class="sec-hdr">&#128506; Fare &amp; Distance Master (SFC)</div>
-        <div class="card">
-          <div class="info-box">Upload SFC CSV with columns: <strong>WorkingDays, EmpName, HQ, State, From, To, Category, Distance, Mode, Fare, DA, Total, Doctors, Business</strong></div>
-          <div class="btn-row" style="margin-bottom:10px">
-            <button class="btn sm success admin-only" onclick="downloadSFCTemplate()">&#8595; SFC Template</button>
-            <button class="btn sm primary admin-only" onclick="document.getElementById('sfc-upload').click()">&#8593; Upload SFC CSV</button>
-            <input type="file" id="sfc-upload" accept=".csv" onchange="uploadSFC(this)" style="display:none">
-            <button class="btn sm danger admin-only" onclick="bulkDeleteAllSFC()">&#128465; Delete All</button>
-            <button class="btn sm danger" id="btn-bulk-delete-selected-sfc" class="btn sm danger admin-only" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
-          </div>
-          <input type="text" id="adm-sfc-search" placeholder="&#128269; Search SFC by from, to, mode, or fare..." oninput="renderSFCTable()" style="margin-bottom:10px;background:#F1F5F9">
-        </div>
-        <div class="card">
-          <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
-          <div class="tbl-wrap">
-            <table class="tbl">
-              <thead>
-                <tr>
-                  <th rowspan="3"><input type="checkbox" id="check-all-sfc" class="admin-only" onclick="toggleSelectAllSFC(this)"></th>
-                  <th rowspan="3">Working<br>Days</th>
-                  <th rowspan="3">Name of BE</th>
-                  <th rowspan="3">HQ</th>
-                  <th rowspan="3">State</th>
-                  <th colspan="2" style="text-align:center">TOWN</th>
-                  <th rowspan="3">HQ/<br>EX /OS</th>
-                  <th rowspan="3">DIST<br>(One<br>Way)</th>
-                  <th rowspan="3">MODE</th>
-                  <th rowspan="3">Up<br>&amp; Down<br>FARE</th>
-                  <th rowspan="3">DA</th>
-                  <th rowspan="3">TOTAL</th>
-                  <th rowspan="3">No. of<br>Doctors</th>
-                  <th rowspan="3">Expected<br>Business<br>/Month</th>
-                  <th rowspan="3">Actions</th>
-                </tr>
-                <tr>
-                  <th colspan="2" style="text-align:center; font-weight:normal">( Locality / Street / Town )</th>
-                </tr>
-                <tr>
-                  <th>FROM</th>
-                  <th>TO</th>
-                </tr>
-              </thead>
-              <tbody id="sfc-table-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Employee Master -->
-      <div id="adm-emp-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128101; Hierarchy &amp; Employee Management</div>
-      <div class="card admin-only">
-        <div class="card-title">Add New Employee Record</div>
-        <div class="row2">
-          <div><label class="lbl">Employee ID</label><input type="text" id="adm-emp-id" placeholder="e.g. EMP004"></div>
-          <div><label class="lbl">Name</label><input type="text" id="adm-emp-name" placeholder="Full Name"></div>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">Password</label><input type="text" id="adm-emp-pwd" placeholder="Password"></div>
-          <div><label class="lbl">Territory / HQ</label><input type="text" id="adm-emp-area" placeholder="HQ city"></div>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">Designation</label><input type="text" id="adm-emp-designation" placeholder="e.g. Medical Representative"></div>
-          <div><label class="lbl">Reporting Manager</label><select id="adm-emp-mgr"><option value="">-- None / Root --</option></select></div>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">Role / Level</label>
-            <select id="adm-emp-role">
-              <option value="emp">Medical Representative (MR)</option>
-              <option value="manager">First Line Manager (FLM)</option>
-              <option value="am">Area Manager (AM)</option>
-              <option value="rm">Regional Manager (RM)</option>
-              <option value="zm">Zonal Manager (ZM)</option>
-              <option value="nsm">National Sales Manager (NSM)</option>
-              <option value="admin">System Administrator</option>
-            </select>
-          </div>
-          <div><label class="lbl">Status</label><select id="adm-emp-status"><option>Active</option><option>Hold</option><option>Replace</option><option>Resign</option></select></div>
-        </div>
-        <div class="row3">
-          <div><label class="lbl">DOJ</label><input type="date" id="adm-emp-doj"></div>
-          <div><label class="lbl">State</label><input type="text" id="adm-emp-state" placeholder="State"></div>
-          <div></div>
-        </div>
-        <button class="btn primary sm admin-only" onclick="addEmployee()">+ Save Employee Record</button>
-      </div>
-      <div class="card admin-only">
-        <div class="card-title">Bulk Import Employees</div>
-        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Designation, Role, ManagerID, DOJ, State, Status</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
-          <input type="file" id="emp-upload" accept=".csv" onchange="uploadEmployees(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="bulkDeleteAllEmployees()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-emps" class="btn sm danger admin-only" onclick="bulkDeleteSelectedEmployees()" style="display:none">&#128465; Delete Selected (0)</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Employee Registry (<span id="emp-count">0</span> records)</div>
-        <input type="text" id="adm-emp-search" placeholder="&#128269; Search employee master by name, ID, designation, role, HQ, or state..." oninput="renderEmpTable()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="emp-table-head"></thead>
-            <tbody id="emp-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-      </div>
-
-      <!-- Doctor Master -->
-      <div id="adm-doc-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128203; Doctor Master Management</div>
-      <div class="card">
-        <div class="info-box">Upload Doctor CSV. Columns: <strong>DoctorCode, Emp Id, Name of BE, HQ, Reporting Manager, Name of Doctor, Speciality, Qualification, Address, City, Patch, State, Territory Type (HQ/Ex/OS), Mobile</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadDocTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('doc-upload').click()">&#8593; Upload Doctor CSV</button>
-          <input type="file" id="doc-upload" accept=".csv" onchange="uploadDoctors(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="bulkDeleteAllDoctors()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-docs" class="btn sm danger admin-only" onclick="bulkDeleteSelectedDoctors()" style="display:none">&#128465; Delete Selected (0)</button>
-        </div>
-        <button class="btn sm admin-only" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Doctor Registry (<span id="doc-count">0</span> records)</div>
-        <input type="text" id="adm-doc-search" placeholder="&#128269; Search doctor master registry..." oninput="renderAdminDocList()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="doc-table-head"></thead>
-            <tbody id="doc-table-body"></tbody>
-          </table><div id="doc-pagination" style="margin-top:10px;text-align:right;"></div></div></div></div>
-
-      <!-- Chemist Master -->
-      <div id="adm-chem-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128221; Chemist Master Management</div>
-      <div class="card">
-        <div class="info-box">Upload Chemist CSV. Columns: <strong>ChemistID, Name, Area, AssignToEmpID</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadChemTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('chem-upload').click()">&#8593; Upload Chemist CSV</button>
-          <input type="file" id="chem-upload" accept=".csv" onchange="uploadChemists(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="bulkDeleteAllChemists()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-chems" class="btn sm danger admin-only" onclick="bulkDeleteSelectedChemists()" style="display:none">&#128465; Delete Selected (0)</button>
-        </div>
-        <button class="btn sm admin-only" onclick="addChemistManual()">+ Add Single Chemist Manual</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Chemist Registry (<span id="chem-count">0</span> records)</div>
-        <input type="text" id="adm-chem-search" placeholder="&#128269; Search chemist master registry..." oninput="renderAdminChemistList()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="chem-table-head"></thead>
-            <tbody id="chem-table-body"></tbody>
-          </table>
-          <div id="chem-pagination" style="margin-top:10px;text-align:right;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stockist Master -->
-    <div id="adm-stockist-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128221; Stockist Master Management</div>
-      <div class="card">
-        <div class="info-box">Upload Stockist CSV. Columns: <strong>StockistID, Name, Area, AssignToEmpID</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadStockistTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('stockist-upload').click()">&#8593; Upload Stockist CSV</button>
-          <input type="file" id="stockist-upload" accept=".csv" onchange="uploadStockists(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="bulkDeleteAllStockists()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-stockists" onclick="bulkDeleteSelectedStockists()" style="display:none">&#128465; Delete Selected (0)</button>
-        </div>
-        <button class="btn sm admin-only" onclick="addStockistManual()">+ Add Single Stockist Manual</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Stockist Registry (<span id="stockist-count">0</span> records)</div>
-        <input type="text" id="adm-stockist-search" placeholder="&#128269; Search stockist master registry..." oninput="renderAdminStockistList()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="stockist-table-head"></thead>
-            <tbody id="stockist-table-body"></tbody>
-          </table>
-          <div id="stockist-pagination" style="margin-top:10px;text-align:right;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Leave Balance Master -->
-    <div id="adm-leave-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#127973; Leave Balance Management (CL/SL/PL)</div>
-      <div class="card">
-        <div class="info-box">Upload Leave Balance CSV. Ensure format matches the downloaded template exactly.</div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadLeaveBalanceData()">&#8595; Download Leave Balance</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload Leave Balance CSV</button>
-          <input type="file" id="leave-bal-upload" accept=".csv" onchange="uploadLeaveBalances(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="deleteSelectedLeaves()">&#128465; Delete Selected</button>
-          <button class="btn sm danger admin-only" onclick="deleteAllLeaves()">&#128465; Delete All</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Employee Leave Balances (<span id="leave-bal-count">0</span> records)</div>
-        <input type="text" id="adm-leave-search" placeholder="&#128269; Search leave balances by employee, HQ, or designation..." oninput="renderLeaveBalanceTable()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl" id="leave-bal-table">
-            <thead id="leave-bal-table-head"></thead>
-            <tbody id="leave-bal-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Holiday Master -->
-    <div id="adm-holiday-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128197; Holiday List Management</div>
-      <div class="card">
-        <div class="info-box">Upload Holiday List CSV. Columns: <strong>Date (YYYY-MM-DD), HolidayName, State</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadHolidayList()">&#8595; Download Holiday List</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('holiday-upload').click()">&#8593; Upload Holiday CSV</button>
-          <input type="file" id="holiday-upload" accept=".csv" onchange="uploadHolidays(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="clearAllHolidays()">&#128465; Delete All</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Holiday Calendar (<span id="holiday-count">0</span> records)</div>
-        <input type="text" id="adm-holiday-search" placeholder="&#128269; Search holiday master by date, name, or state..." oninput="renderHolidayTable()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Date</th><th>Holiday Name</th><th>State</th><th>Action</th></tr></thead>
-            <tbody id="holiday-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ADMIN INVENTORY PANEL -->
-    <div id="sec-adm-inventory" style="display:none">
-      <div class="card admin-only">
-        <div class="card-title">&#128230; Issue Stock to Representative</div>
-        <div class="row2">
-          <div><label class="lbl">Select Employee (MR)</label><select id="inv-issue-emp"></select></div>
-          <div><label class="lbl">Item Type</label><select id="inv-issue-type" onchange="populateInventoryItemSelect()"><option>Sample Product</option><option>Gift Promotional</option><option>Promotional Input</option></select></div>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">Item Name</label><select id="inv-issue-item"></select></div>
-          <div><label class="lbl">Quantity to Issue</label><input type="number" id="inv-issue-qty" min="1" placeholder="Qty"></div>
-        </div>
-        <button class="btn success sm admin-only" onclick="issueStockToMR()">Issue / Allocate Stock</button>
-      </div>
-
-      <div class="sec-hdr">&#128196; Employee Inventory Registers</div>
-      <div class="card">
-        <div class="row3">
-          <div><label class="lbl">Filter MR</label><select id="inv-filter-emp" onchange="renderAdminInventoryTables()"><option value="">All Employees</option></select></div>
-        </div>
-        <div class="card-title" style="margin-top:10px">Sample Inventory balances</div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Employee</th><th>Product Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
-            <tbody id="tbl-inv-samples"></tbody>
-          </table>
-        </div>
-        <div class="card-title" style="margin-top:20px">Promotional Gift balances</div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Employee</th><th>Gift Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
-            <tbody id="tbl-inv-gifts"></tbody>
-          </table>
-        </div>
-        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs)</div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Employee</th><th>Input Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
-            <tbody id="tbl-inv-inputs"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ADMIN REPORTS PANEL -->
-    <div id="sec-adm-reports" style="display:none">
-      <div class="card">
-        <div class="card-title">&#128269; Master Report Filter &amp; Selection</div>
-        <div class="fw"><label class="lbl">Select Report Category</label>
-          <select id="rep-selector" onchange="updateReportHeadersAndFilters()">
-            <option value="doc_calls">1. Total Doctor Calls Report</option>
-            <option value="chem_calls">2. Total Chemist Calls Report</option>
-            <option value="call_avg">3. Doctor Call Average Report</option>
-            <option value="missed_calls">4. Missed Doctor Calls Report</option>
-            <option value="visit_freq">5. Doctor Visit Frequency Report</option>
-            <option value="plan_vs_act">6. Planned vs Actual Calls Report</option>
-            <option value="jfw_days">7. Joint Field Work (JFW) Summary</option>
-            <option value="mgr_accomp">8. Manager Accompaniment Report</option>
-            <option value="samples_util">9. Sample Utilization Report</option>
-            <option value="gifts_util">10. Gift Utilization Report</option>
-            <option value="expenses_rep">11. Expense Summary Report</option>
-            <option value="leaves_rep">12. Leave Utilisation Report</option>
-            <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
-          </select>
-        </div>
-        <div class="row3">
-          <div><label class="lbl">Employee Filter</label><select id="rep-filter-emp"><option value="">All employees</option></select></div>
-          <div><label class="lbl">From Date</label><input type="date" id="rep-from"></div>
-          <div><label class="lbl">To Date</label><input type="date" id="rep-to"></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn primary sm" onclick="runMISReport()">Run Query / Filter</button>
-          <button class="btn success sm" onclick="exportReportToCSV()">&#8595; Export Excel / CSV</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title" id="rep-table-title">Query Results</div>
-        <div class="tbl-wrap">
-          <table class="tbl" id="mis-report-table">
-            <thead id="mis-report-thead"></thead>
-            <tbody id="mis-report-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- SINGLE DOCTOR MODAL -->
-<div class="modal-bg" id="modal-add-doc">
-  <div class="modal">
-    <div class="modal-title"><span id="doc-modal-title-text">Add Doctor</span> <button class="modal-close" onclick="closeModal('modal-add-doc')">&#215;</button></div>
-    <input type="hidden" id="md-id">
-    <div class="row2">
-      <div><label class="lbl">Doctor Code</label><input type="text" id="md-code" placeholder="DOC001"></div>
-      <div><label class="lbl">Name of Doctor</label><input type="text" id="md-name" placeholder="Dr. Name"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Name of BE</label><input type="text" id="md-bename" placeholder="BE Name"></div>
-      <div><label class="lbl">HQ</label><input type="text" id="md-hq" placeholder="HQ"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Reporting Manager</label><input type="text" id="md-managername" placeholder="Reporting Manager"></div>
-      <div><label class="lbl">State</label><input type="text" id="md-state" placeholder="State"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Territory Type (HQ/Ex/OS)</label><select id="md-territorytype"><option value="">-- Select --</option><option>HQ</option><option>Ex</option><option>OS</option></select></div>
-      <div><label class="lbl">Speciality</label><input type="text" id="md-spec" placeholder="Cardiology..."></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Qualification</label><input type="text" id="md-qual" placeholder="MBBS, MD..."></div>
-      <div><label class="lbl">City</label><input type="text" id="md-city" placeholder="City"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Patch (Area)</label><input type="text" id="md-area" placeholder="Local Area"></div>
-      <div><label class="lbl">Mobile</label><input type="text" id="md-phone" placeholder="Mobile"></div>
-    </div>
-    <div class="fw"><label class="lbl">Address</label><input type="text" id="md-address" placeholder="Hospital address"></div>
-    <div class="row2">
-      <div><label class="lbl">Assign To MR</label><select id="md-assign"><option value="">-- Assign MR --</option></select></div>
-      <div>
-        <label class="lbl">Status</label>
-        <select id="md-status"><option>Active</option><option>Inactive</option></select>
-      </div>
-    </div>
-    <div class="btn-row"><button class="btn primary" onclick="saveDoctor()">Save Doctor Record</button></div>
-  </div>
-</div>
-
-<!-- SINGLE CHEMIST MODAL -->
-<div class="modal-bg" id="modal-add-chem">
-  <div class="modal">
-    <div class="modal-title"><span id="chem-modal-title-text">Add Chemist</span> <button class="modal-close" onclick="closeModal('modal-add-chem')">&#215;</button></div>
-    <input type="hidden" id="mc-id">
-    <div class="fw"><label class="lbl">Chemist Code / ID</label><input type="text" id="mc-code" placeholder="CHM001"></div>
-    <div class="fw"><label class="lbl">Chemist Name</label><input type="text" id="mc-name" placeholder="Chemist shop name"></div>
-    <div class="row2">
-      <div><label class="lbl">Area</label><input type="text" id="mc-area" placeholder="Area"></div>
-      <div><label class="lbl">Assign To MR</label><select id="mc-assign"><option value="">-- Assign MR --</option></select></div>
-    </div>
-    <div class="btn-row"><button class="btn primary" onclick="saveChemist()">Save Chemist Record</button></div>
-  </div>
-</div>
-
-<!-- SINGLE STOCKIST MODAL -->
-<div class="modal-bg" id="modal-add-stockist">
-  <div class="modal">
-    <div class="modal-title"><span id="stockist-modal-title-text">Add Stockist</span> <button class="modal-close" onclick="closeModal('modal-add-stockist')">&#215;</button></div>
-    <input type="hidden" id="ms-id">
-    <div class="fw"><label class="lbl">Stockist Code / ID</label><input type="text" id="ms-code" placeholder="STK001"></div>
-    <div class="fw"><label class="lbl">Stockist Name</label><input type="text" id="ms-name" placeholder="Stockist name"></div>
-    <div class="row2">
-      <div><label class="lbl">Area</label><input type="text" id="ms-area" placeholder="Area"></div>
-      <div><label class="lbl">Assign To MR</label><select id="ms-assign"><option value="">-- Assign MR --</option></select></div>
-    </div>
-    <div class="btn-row"><button class="btn primary" onclick="saveStockist()">Save Stockist Record</button></div>
-  </div>
-</div>
-
-<!-- TOUR PLAN DETAIL MODAL -->
-<div class="modal-bg" id="modal-tp-detail">
-  <div class="modal" style="max-width: 700px;">
-    <div class="modal-title">Monthly Tour Plan Detail <button class="modal-close" onclick="closeModal('modal-tp-detail')">&#215;</button></div>
-    <div id="tp-detail-content"></div>
-    <div class="btn-row" id="tp-approval-btns" style="display:none">
-      <button class="btn danger" onclick="rejectTP()">&#10008; Reject Plan</button>
-      <button class="btn success" onclick="approveTP()">&#10003; Approve Plan</button>
-    </div>
-  </div>
-</div>
-
-<!-- EXPENSE DETAIL MODAL -->
-<div class="modal-bg" id="modal-exp-detail">
-  <div class="modal" style="max-width: 650px;">
-    <div class="modal-title">Expense Claim Review <button class="modal-close" onclick="closeModal('modal-exp-detail')">&#215;</button></div>
-    <div id="exp-detail-content"></div>
-    <div class="btn-row" id="exp-approval-btns" style="display:none">
-      <button class="btn danger" onclick="rejectExp()">&#10008; Reject Claim</button>
-      <button class="btn success" onclick="approveExp()">&#10003; Approve Claim</button>
-    </div>
-  </div>
-</div>
-
-<!-- LEAVE DETAIL MODAL -->
-<div class="modal-bg" id="modal-leave-detail">
-  <div class="modal">
-    <div class="modal-title">Leave Request Review <button class="modal-close" onclick="closeModal('modal-leave-detail')">&#215;</button></div>
-    <div id="leave-detail-content"></div>
-    <div class="btn-row" id="leave-approval-btns" style="display:none">
-      <button class="btn danger" onclick="rejectLeave()">&#10008; Reject Leave</button>
-      <button class="btn success" onclick="approveLeave()">&#10003; Approve Leave</button>
-    </div>
-  </div>
-</div>
-
-<!-- LEAVE BALANCE DETAIL MODAL -->
-<div class="modal-bg" id="modal-leave-balance-detail">
-  <div class="modal" style="max-width: 1180px;">
-    <div class="modal-title">Leave Balance Detail <button class="modal-close" onclick="closeModal('modal-leave-balance-detail')">&#215;</button></div>
-    <div id="leave-balance-detail-content"></div>
-  </div>
-</div>
-
-<!-- EMPLOYEE STATUS ACTION MODAL -->
-<div class="modal-bg" id="modal-emp-status">
-  <div class="modal" style="max-width: 520px;">
-    <div class="modal-title">Employee Status <button class="modal-close" onclick="closeModal('modal-emp-status')">&#215;</button></div>
-    <div id="emp-status-modal-content"></div>
-  </div>
-</div>
-
-<script>
 window.addEventListener('error', function(e) {
   var div = document.createElement('div');
   div.style.position = 'fixed';
@@ -1104,23 +18,110 @@ window.addEventListener('error', function(e) {
 // Master Data Store
 var DEFAULT_DB={
   employees:[
-    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}}
+    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'NSM001',name:'Sanjay Kapoor',designation:'National Sales Manager',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',doj:'2025-01-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'ZM001',name:'Amitav Banerjee',designation:'Zonal Manager',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',doj:'2025-02-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'RM001',name:'Vikram Malhotra',designation:'Regional Manager',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',doj:'2025-02-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'AM001',name:'Deepa Iyer',designation:'Area Manager',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',doj:'2025-03-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'FLM001',name:'Rajesh Verma',designation:'First Line Manager',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',doj:'2025-03-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP001',name:'Rahul Sharma',designation:'Medical Representative',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',doj:'2025-04-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
+    {id:'EMP002',name:'Priya Mehta',designation:'Medical Representative',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',doj:'2025-04-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP003',name:'Karan Patel',designation:'Medical Representative',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',doj:'2025-05-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
   ],
-  doctors:[],
-  chemists:[],
-  stockists:[],
+  doctors:[
+    {id:'D001',code:'DOC001',name:'Dr. Anil Kumar',spec:'Cardiologist',qual:'MBBS, MD',address:'Bandra Medical Center',city:'Mumbai',area:'Bandra',phone:'9820000001',assignTo:'EMP001',status:'Active'},
+    {id:'D002',code:'DOC002',name:'Dr. Sunita Rao',spec:'Gynaecologist',qual:'MD, DGO',address:'Holy Spirit Compound',city:'Mumbai',area:'Andheri',phone:'9820000002',assignTo:'EMP002',status:'Active'},
+    {id:'D003',code:'DOC003',name:'Dr. Pradeep Joshi',spec:'Paediatrician',qual:'MBBS, DCH',address:'Hinduja Clinic Road',city:'Mumbai',area:'Bandra',phone:'9820000003',assignTo:'EMP001',status:'Active'},
+    {id:'D004',code:'DOC004',name:'Dr. Meera Nair',spec:'General Physician',qual:'MBBS',address:'KEM OPD Block',city:'Mumbai',area:'Dadar',phone:'9820000004',assignTo:'EMP001',status:'Active'},
+    {id:'D005',code:'DOC005',name:'Dr. Vikram Singh',spec:'ENT Specialist',qual:'MS (ENT)',address:'Kokilaben Hospital Wing C',city:'Mumbai',area:'Vile Parle',phone:'9820000005',assignTo:'EMP002',status:'Active'},
+    {id:'D006',code:'DOC006',name:'Dr. Kavita Shah',spec:'Dermatologist',qual:'MD (Skin)',address:'Sai Skin Clinic',city:'Mumbai',area:'Malad',phone:'9820000006',assignTo:'EMP002',status:'Active'},
+    {id:'D007',code:'DOC007',name:'Dr. Rohit Desai',spec:'Orthopaedic',qual:'MS (Ortho)',address:'Deenanath Hospital',city:'Pune',area:'Kothrud',phone:'9820000007',assignTo:'EMP003',status:'Active'},
+    {id:'D008',code:'DOC008',name:'Dr. Smita Kulkarni',spec:'Neurologist',qual:'DM (Neuro)',address:'Ruby Hall OPD',city:'Pune',area:'Wakad',phone:'9820000008',assignTo:'EMP003',status:'Active'}
+  ],
+  chemists:[
+    {id:'C001',name:'Noble Chemist',area:'Bandra',assignTo:'EMP001'},
+    {id:'C002',name:'Wellness Forever',area:'Andheri',assignTo:'EMP002'},
+    {id:'C003',name:'Apollo Pharmacy',area:'Dadar',assignTo:'EMP001'},
+    {id:'C004',name:'Kothrud Medicals',area:'Kothrud',assignTo:'EMP003'}
+  ],
   products:['Aminoglobin-XT Susp','Arden 250','Arden 500','Arden 650','Arden A','Arden Junior','Arden MF Susp','Arden Spas','Coldaid+','Coldaid Susp','Coniderm-F','Hepaheal Syrup','Loramyl','ORT+','Servil Herbal','Servil Junior','Servil LS-Baby','Servil-D','Servil-LS Junior','Servil-LS Syrup','MV 30 Syrup','MV 30 Tab'],
   gifts:['Pen Set','Notepad','Visiting Card Holder','Anatomy Chart','Drug Compendium','Umbrella','Calendar','Desk Clock'],
   inputs:['Visual Aid Folder','Product Literature','Leave Behind Cards','Table Calendar','Brand Samples Box'],
-  reports:[],
+  reports:[
+    {
+      id: 'REP_MOCK_1',
+      empId: 'EMP001',
+      empName: 'Rahul Sharma',
+      date: '2026-06-01',
+      time: '10:30',
+      targetType: 'Doctor',
+      classification: 'Planned Call',
+      callType: 'Regular Visit',
+      docId: 'D001',
+      docName: 'Dr. Anil Kumar',
+      docSpec: 'Cardiologist',
+      docArea: 'Bandra',
+      promotedProducts: ['Arden 650', 'Coldaid+'],
+      samples: {'Arden 650': 2, 'Coldaid+': 1},
+      gifts: {'Pen Set': 1},
+      inputs: {'Product Literature': 1},
+      jfwMgrId: '',
+      lat: '19.0543',
+      lng: '72.8402',
+      remarks: 'Detailed visual aid. Doctor was positive about Arden 650.',
+      nextVisit: '2026-06-15'
+    },
+    {
+      id: 'REP_MOCK_2',
+      empId: 'EMP001',
+      empName: 'Rahul Sharma',
+      date: '2026-06-02',
+      time: '14:15',
+      targetType: 'Chemist',
+      classification: 'Planned Call',
+      callType: 'Regular Visit',
+      chemId: 'C001',
+      chemName: 'Noble Chemist',
+      chemArea: 'Bandra',
+      orderAmount: 12500,
+      stockStatus: 'Adequate Stock',
+      jfwMgrId: 'FLM001',
+      jfwMgrName: 'Rajesh Verma',
+      lat: '19.0545',
+      lng: '72.8410',
+      remarks: 'Joint field work with manager. Collected order of Rs 12,500.',
+      nextVisit: ''
+    }
+  ],
   tourPlans:[],
   expenses:[],
   leaves:[],
   cityRates:{daA:700,daB:500,daC:300,lodgeA:1500,lodgeB:1000,lodgeC:0,localConv:120},
-  sfc:[],
-  samplesInventory:[],
-  giftsInventory:[],
-  inputsInventory:[],
+  sfc:[
+    {from:'Mumbai',to:'Pune',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
+    {from:'Pune',to:'Mumbai',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
+    {from:'Mumbai',to:'Nashik',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
+    {from:'Nashik',to:'Mumbai',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
+    {from:'Mumbai',to:'Aurangabad',distance:330,mode:'Bus',fare:600,da:450,lodge:800,other:150},
+    {from:'Pune',to:'Nashik',distance:210,mode:'Bus',fare:400,da:450,lodge:800,other:100},
+    {from:'Pune',to:'Aurangabad',distance:230,mode:'Bus',fare:450,da:450,lodge:800,other:100}
+  ],
+  samplesInventory:[
+    {prodName:'Arden 650',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Coldaid+',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Servil-D',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
+    {prodName:'Arden 650',empId:'EMP002',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Coldaid+',empId:'EMP002',opening:100,received:100,distributed:0,balance:100}
+  ],
+  giftsInventory:[
+    {giftName:'Pen Set',empId:'EMP001',opening:30,received:30,distributed:0,balance:30},
+    {giftName:'Notepad',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
+    {giftName:'Pen Set',empId:'EMP002',opening:30,received:30,distributed:0,balance:30}
+  ],
+  inputsInventory:[
+    {inputName:'Visual Aid Folder',empId:'EMP001',opening:10,received:10,distributed:0,balance:10},
+    {inputName:'Product Literature',empId:'EMP001',opening:100,received:100,distributed:0,balance:100}
+  ],
   holidays:[
     {date: '2026-01-01', name: 'New Year Day'},
     {date: '2026-01-26', name: 'Republic Day'},
@@ -1132,10 +133,9 @@ var DEFAULT_DB={
 
 var DB = DEFAULT_DB;
 var supabaseUrl = 'https://ajifnoazcvxvpyzlusuy.supabase.co';
-var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDgyMDk5OSwiZXhwIjoyMDk2Mzk2OTk5fQ.ZWKocTrU_DzgXkOpi1M4oOl7oF4WobCIQmM99rzCW2U';
+var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MjA5OTksImV4cCI6MjA5NjM5Njk5OX0.OULR1ym0Bl3Bu_xyFt-IaX8pDqu7qQZ5VKNUWp1igLE';
 var supabase = null;
 var useSupabase = false;
-var isLoadingData = false;
 
 function formatDateForPostgres(dateStr) {
   if (!dateStr) return null;
@@ -1277,35 +277,19 @@ function ensureSupabaseLoaded(callback) {
     return;
   }
   
-  console.log("Supabase not loaded. Trying local file...");
+  console.log("Supabase not loaded. Trying UNPKG...");
   var s = document.createElement('script');
-  s.src = "supabase.js";
+  s.src = "https://unpkg.com/@supabase/supabase-js@2";
   s.onload = function() {
     if (initSupabaseClient()) {
-      console.log("Supabase loaded from local file.");
+      console.log("Supabase loaded from UNPKG.");
       if (callback) callback();
     } else {
-      tryUnpkg();
+      tryCDNJS();
     }
   };
-  s.onerror = tryUnpkg;
+  s.onerror = tryCDNJS;
   document.head.appendChild(s);
-
-  function tryUnpkg() {
-    console.log("Local file failed. Trying UNPKG...");
-    var sU = document.createElement('script');
-    sU.src = "https://unpkg.com/@supabase/supabase-js@2";
-    sU.onload = function() {
-      if (initSupabaseClient()) {
-        console.log("Supabase loaded from UNPKG.");
-        if (callback) callback();
-      } else {
-        tryCDNJS();
-      }
-    };
-    sU.onerror = tryCDNJS;
-    document.head.appendChild(sU);
-  }
 
   function tryCDNJS() {
     console.log("UNPKG failed. Trying CDNJS...");
@@ -1379,17 +363,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
 }
 
 async function initSupabaseData(isSilent) {
-  if (isLoadingData) {
-    console.log("initSupabaseData ignored because load is already in progress.");
-    return;
-  }
   if (!supabase) {
-    if (window._hasAttemptedSupabaseLoad) {
-      console.warn("Supabase load already attempted. Using local database.");
-      loadLocalDB();
-      return;
-    }
-    window._hasAttemptedSupabaseLoad = true;
     ensureSupabaseLoaded(function() {
       if (supabase) {
         initSupabaseData(isSilent);
@@ -1401,11 +375,15 @@ async function initSupabaseData(isSilent) {
     return;
   }
   
-  isLoadingData = true;
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
     const emps = await fetchAllFromSupabase('employees');
+    
+    useSupabase = true;
+    console.log("Connected to Supabase successfully.");
+    var indicator = document.getElementById('db-status-indicator');
+    if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
     
     const [
       doctors,
@@ -1417,8 +395,7 @@ async function initSupabaseData(isSilent) {
       sfc,
       samplesInv,
       giftsInv,
-      inputsInv,
-      stockists
+      inputsInv
     ] = await Promise.all([
       fetchAllFromSupabase('doctors'),
       fetchAllFromSupabase('chemists'),
@@ -1429,17 +406,10 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('sfc'),
       fetchAllFromSupabase('samples_inventory'),
       fetchAllFromSupabase('gifts_inventory'),
-      fetchAllFromSupabase('inputs_inventory'),
-      fetchAllFromSupabase('stockists')
+      fetchAllFromSupabase('inputs_inventory')
     ]);
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
-    
-    useSupabase = true;
-    console.log("Connected to Supabase successfully.");
-    var indicator = document.getElementById('db-status-indicator');
-    if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
-
     let holidays = [];
     if (holData && holData.length > 0) {
       setHolidayDeletionFlag(false);
@@ -1450,94 +420,67 @@ async function initSupabaseData(isSilent) {
     }
     
     if (!emps || emps.length === 0) {
-      if (window._hasSeededSupabase) {
-        console.warn("Seeding already attempted. Bailing out of init recursion.");
-        loadLocalDB();
-        isLoadingData = false;
-        return;
-      }
-      window._hasSeededSupabase = true;
       if (isSilent !== true) showToast("Seeding database with default records...");
       await seedSupabaseDatabase();
-      isLoadingData = false;
       await initSupabaseData(isSilent);
       return;
     }
     
     // Preserve local sort order if possible
-    try {
-      if (typeof DB !== 'undefined' && DB) {
-        var empOrderRaw = [];
-        try { empOrderRaw = JSON.parse(localStorage.getItem('adonis_order_emps') || '[]'); } catch(e){}
-        if (DB.employees && DB.employees.length > 0) empOrderRaw = DB.employees.map(em => em.id);
-        if (empOrderRaw && empOrderRaw.length > 0) {
-          const empMap = {};
-          empOrderRaw.forEach((id, idx) => { empMap[String(id || '').trim().toUpperCase()] = idx; });
-          emps.sort(function(a, b) {
-            var idA = String(a.id || '').trim().toUpperCase();
-            var idB = String(b.id || '').trim().toUpperCase();
-            var idxA = empMap[idA] !== undefined ? empMap[idA] : 999999;
-            var idxB = empMap[idB] !== undefined ? empMap[idB] : 999999;
-            return idxA - idxB;
-          });
-        }
-        
-        var docOrderRaw = [];
-        try { docOrderRaw = JSON.parse(localStorage.getItem('adonis_order_docs') || '[]'); } catch(e){}
-        if (DB.doctors && DB.doctors.length > 0) docOrderRaw = DB.doctors.map(d => d.id);
-        if (docOrderRaw && docOrderRaw.length > 0) {
-          const docMap = {};
-          docOrderRaw.forEach((id, idx) => { docMap[String(id || '').trim().toUpperCase()] = idx; });
-          doctors.sort(function(a, b) {
-            var idA = String(a.id || '').trim().toUpperCase();
-            var idB = String(b.id || '').trim().toUpperCase();
-            var idxA = docMap[idA] !== undefined ? docMap[idA] : 999999;
-            var idxB = docMap[idB] !== undefined ? docMap[idB] : 999999;
-            return idxA - idxB;
-          });
-        }
-        
-        var chemOrderRaw = [];
-        try { chemOrderRaw = JSON.parse(localStorage.getItem('adonis_order_chems') || '[]'); } catch(e){}
-        if (DB.chemists && DB.chemists.length > 0) chemOrderRaw = DB.chemists.map(c => c.id);
-        if (chemOrderRaw && chemOrderRaw.length > 0) {
-          const chemMap = {};
-          chemOrderRaw.forEach((id, idx) => { chemMap[String(id || '').trim().toUpperCase()] = idx; });
-          chemists.sort(function(a, b) {
-            var idA = String(a.id || '').trim().toUpperCase();
-            var idB = String(b.id || '').trim().toUpperCase();
-            var idxA = chemMap[idA] !== undefined ? chemMap[idA] : 999999;
-            var idxB = chemMap[idB] !== undefined ? chemMap[idB] : 999999;
-            return idxA - idxB;
-          });
-        }
-
-        var stockistOrderRaw = [];
-        try { stockistOrderRaw = JSON.parse(localStorage.getItem('adonis_order_stockists') || '[]'); } catch(e){}
-        if (DB.stockists && DB.stockists.length > 0) stockistOrderRaw = DB.stockists.map(s => s.id);
-        if (stockistOrderRaw && stockistOrderRaw.length > 0) {
-          const stockistMap = {};
-          stockistOrderRaw.forEach((id, idx) => { stockistMap[String(id || '').trim().toUpperCase()] = idx; });
-          if (stockists) {
-            stockists.sort(function(a, b) {
-              var idA = String(a.id || '').trim().toUpperCase();
-              var idB = String(b.id || '').trim().toUpperCase();
-              var idxA = stockistMap[idA] !== undefined ? stockistMap[idA] : 999999;
-              var idxB = stockistMap[idB] !== undefined ? stockistMap[idB] : 999999;
-              return idxA - idxB;
-            });
-          }
-        }
+    if (typeof DB !== 'undefined' && DB) {
+      var empOrderRaw = [];
+      try { empOrderRaw = JSON.parse(localStorage.getItem('adonis_order_emps') || '[]'); } catch(e){}
+      if (DB.employees && DB.employees.length > 0) empOrderRaw = DB.employees.map(em => em.id);
+      if (empOrderRaw && empOrderRaw.length > 0) {
+        const localIds = empOrderRaw.map(id => String(id || '').trim().toUpperCase());
+        emps.sort(function(a, b) {
+          var idA = String(a.id || '').trim().toUpperCase();
+          var idB = String(b.id || '').trim().toUpperCase();
+          var idxA = localIds.indexOf(idA);
+          var idxB = localIds.indexOf(idB);
+          if (idxA === -1) idxA = 999999;
+          if (idxB === -1) idxB = 999999;
+          return idxA - idxB;
+        });
       }
-    } catch(e) {
-      console.warn("Sorting failed:", e);
+      
+      var docOrderRaw = [];
+      try { docOrderRaw = JSON.parse(localStorage.getItem('adonis_order_docs') || '[]'); } catch(e){}
+      if (DB.doctors && DB.doctors.length > 0) docOrderRaw = DB.doctors.map(d => d.id);
+      if (docOrderRaw && docOrderRaw.length > 0) {
+        const localIds = docOrderRaw.map(id => String(id || '').trim().toUpperCase());
+        doctors.sort(function(a, b) {
+          var idA = String(a.id || '').trim().toUpperCase();
+          var idB = String(b.id || '').trim().toUpperCase();
+          var idxA = localIds.indexOf(idA);
+          var idxB = localIds.indexOf(idB);
+          if (idxA === -1) idxA = 999999;
+          if (idxB === -1) idxB = 999999;
+          return idxA - idxB;
+        });
+      }
+      
+      var chemOrderRaw = [];
+      try { chemOrderRaw = JSON.parse(localStorage.getItem('adonis_order_chems') || '[]'); } catch(e){}
+      if (DB.chemists && DB.chemists.length > 0) chemOrderRaw = DB.chemists.map(c => c.id);
+      if (chemOrderRaw && chemOrderRaw.length > 0) {
+        const localIds = chemOrderRaw.map(id => String(id || '').trim().toUpperCase());
+        chemists.sort(function(a, b) {
+          var idA = String(a.id || '').trim().toUpperCase();
+          var idB = String(b.id || '').trim().toUpperCase();
+          var idxA = localIds.indexOf(idA);
+          var idxB = localIds.indexOf(idB);
+          if (idxA === -1) idxA = 999999;
+          if (idxB === -1) idxB = 999999;
+          return idxA - idxB;
+        });
+      }
     }
     
     // ABORT OVERWRITE IF A SYNC IS CURRENTLY RUNNING OR PENDING
     // Otherwise we will wipe out local changes that haven't been pushed to the cloud yet
     if (isSyncing || syncPending) {
       console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending.");
-      isLoadingData = false;
       return;
     }
     
@@ -1566,75 +509,25 @@ async function initSupabaseData(isSilent) {
           leaves: e.leaves
         };
       }),
-      doctors: (function() {
-        var cloudDocs = (doctors || []).map(d => ({
-          id: d.id,
-          code: d.code,
-          name: d.name,
-          beName: d.be_name,
-          hq: d.hq,
-          managerName: d.manager_name,
-          spec: d.spec,
-          qual: d.qual,
-          address: d.address,
-          city: d.city,
-          area: d.area,
-          state: d.state,
-          territoryType: d.territory_type,
-          phone: d.phone,
-          assignTo: d.assign_to,
-          status: d.status
-        }));
-        var localDocs = (typeof DB !== 'undefined' && DB && DB.doctors) ? DB.doctors : [];
-        if (cloudDocs.length === 0 && localDocs.length > 0) {
-          console.warn('Supabase returned 0 doctors but local DB has ' + localDocs.length + '. Keeping local data to prevent data loss.');
-          return localDocs;
-        }
-        if (cloudDocs.length < localDocs.length) {
-          console.warn('Supabase returned fewer doctors (' + cloudDocs.length + ') than local (' + localDocs.length + '). Keeping local data to prevent data loss. Triggering re-sync.');
-          setTimeout(function() { if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase(); }, 2000);
-          return localDocs;
-        }
-        return cloudDocs;
-      })(),
-      chemists: (function() {
-        var cloudChems = (chemists || []).map(c => ({
-          id: c.id,
-          name: c.name,
-          area: c.area,
-          assignTo: c.assign_to
-        }));
-        var localChems = (typeof DB !== 'undefined' && DB && DB.chemists) ? DB.chemists : [];
-        if (cloudChems.length === 0 && localChems.length > 0) {
-          console.warn('Supabase returned 0 chemists but local DB has ' + localChems.length + '. Keeping local data.');
-          return localChems;
-        }
-        if (cloudChems.length < localChems.length) {
-          console.warn('Supabase returned fewer chemists (' + cloudChems.length + ') than local (' + localChems.length + '). Keeping local data. Triggering re-sync.');
-          setTimeout(function() { if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase(); }, 2000);
-          return localChems;
-        }
-        return cloudChems;
-      })(),
-      stockists: (function() {
-        var cloudStockists = (stockists || []).map(s => ({
-          id: s.id,
-          name: s.name,
-          area: s.area,
-          assignTo: s.assign_to
-        }));
-        var localStockists = (typeof DB !== 'undefined' && DB && DB.stockists) ? DB.stockists : [];
-        if (cloudStockists.length === 0 && localStockists.length > 0) {
-          console.warn('Supabase returned 0 stockists but local DB has ' + localStockists.length + '. Keeping local data.');
-          return localStockists;
-        }
-        if (cloudStockists.length < localStockists.length) {
-          console.warn('Supabase returned fewer stockists (' + cloudStockists.length + ') than local (' + localStockists.length + '). Keeping local data. Triggering re-sync.');
-          setTimeout(function() { if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase(); }, 2000);
-          return localStockists;
-        }
-        return cloudStockists;
-      })(),
+      doctors: (doctors || []).map(d => ({
+        id: d.id,
+        code: d.code,
+        name: d.name,
+        spec: d.spec,
+        qual: d.qual,
+        address: d.address,
+        city: d.city,
+        area: d.area,
+        phone: d.phone,
+        assignTo: d.assign_to,
+        status: d.status
+      })),
+      chemists: (chemists || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        area: c.area,
+        assignTo: c.assign_to
+      })),
       products: DEFAULT_DB.products,
       gifts: DEFAULT_DB.gifts,
       inputs: DEFAULT_DB.inputs,
@@ -1764,25 +657,7 @@ async function initSupabaseData(isSilent) {
     hasInitializedData = true;
 
     // Save synchronized DB to local storage cache
-    try {
-      localStorage.setItem('adonis_db', JSON.stringify(DB));
-    } catch (e) {
-      console.warn("Failed to cache synchronized DB to localStorage (quota exceeded):", e);
-      try {
-        var dbCopy = Object.assign({}, DB);
-        dbCopy.doctors = [];
-        dbCopy.chemists = [];
-        dbCopy.stockists = [];
-        dbCopy.reports = [];
-        dbCopy.tourPlans = [];
-        dbCopy.expenses = [];
-        dbCopy.leaves = [];
-        dbCopy.sfc = [];
-        localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
-      } catch (e2) {
-        console.warn("Failed to save even truncated DB cache to localStorage:", e2);
-      }
-    }
+    localStorage.setItem('adonis_db', JSON.stringify(DB));
     
     // Refresh the UI with the fresh data
     if (SESSION.user) {
@@ -1818,52 +693,22 @@ async function initSupabaseData(isSilent) {
     }
     
     if (isSilent !== true) showToast("Supabase data synchronized!");
-    isLoadingData = false;
     
   } catch (err) {
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
-    if (isSilent !== true) {
-      showToast("Using local database cache.");
-      loadLocalDB();
-    }
-    isLoadingData = false;
+    if (isSilent !== true) showToast("Using local database cache.");
+    loadLocalDB();
   }
 }
 
 function loadLocalDB() {
-  try {
-    var raw = localStorage.getItem('adonis_db');
-    DB = raw ? JSON.parse(raw) : DEFAULT_DB;
-  } catch(e) {
-    DB = DEFAULT_DB;
+  DB = JSON.parse(localStorage.getItem('adonis_db')) || DEFAULT_DB;
+  if (!DB.reports || DB.reports.length === 0) {
+    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
   }
-  if (!DB || typeof DB !== 'object') {
-    DB = DEFAULT_DB;
-  }
-  if (!Array.isArray(DB.employees)) DB.employees = DEFAULT_DB.employees || [];
-  if (!Array.isArray(DB.doctors)) DB.doctors = DEFAULT_DB.doctors || [];
-  if (!Array.isArray(DB.chemists)) DB.chemists = DEFAULT_DB.chemists || [];
-  if (!Array.isArray(DB.stockists)) DB.stockists = DEFAULT_DB.stockists || [];
-  if (!Array.isArray(DB.products)) DB.products = DEFAULT_DB.products || [];
-  if (!Array.isArray(DB.gifts)) DB.gifts = DEFAULT_DB.gifts || [];
-  if (!Array.isArray(DB.inputs)) DB.inputs = DEFAULT_DB.inputs || [];
-  if (!Array.isArray(DB.reports)) DB.reports = DEFAULT_DB.reports || [];
-  if (!Array.isArray(DB.tourPlans)) DB.tourPlans = DEFAULT_DB.tourPlans || [];
-  if (!Array.isArray(DB.expenses)) DB.expenses = DEFAULT_DB.expenses || [];
-  if (!Array.isArray(DB.leaves)) DB.leaves = DEFAULT_DB.leaves || [];
-  if (!Array.isArray(DB.holidays)) DB.holidays = DEFAULT_DB.holidays || [];
-  if (!Array.isArray(DB.samplesInventory)) DB.samplesInventory = DEFAULT_DB.samplesInventory || [];
-  if (!Array.isArray(DB.giftsInventory)) DB.giftsInventory = DEFAULT_DB.giftsInventory || [];
-  if (!Array.isArray(DB.inputsInventory)) DB.inputsInventory = DEFAULT_DB.inputsInventory || [];
-  if (!Array.isArray(DB.sfc)) DB.sfc = DEFAULT_DB.sfc || [];
-
-  if (DB.reports.length === 0) {
-    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports || []));
-  }
-  
+  // Enforce doj, state, status, pwd and role defaults / normalization for all local employees
   var updated = false;
   DB.employees.forEach(function(e) {
-    if (!e || !e.id) return;
     var def = DEFAULT_DB.employees.find(function(d){return d.id === e.id;});
     if (!e.doj) { e.doj = def ? def.doj : '2026-01-01'; updated = true; }
     if (!e.state) { e.state = def ? def.state : 'Maharashtra'; updated = true; }
@@ -1882,20 +727,16 @@ function loadLocalDB() {
       updated = true;
     }
   });
-
   if (getHolidayDeletionFlag()) {
+    DB.holidays = Array.isArray(DB.holidays) ? DB.holidays : [];
     DB.holidays = [];
     updated = true;
-  } else if (DB.holidays.length === 0) {
+  } else if (!DB.holidays) {
     DB.holidays = JSON.parse(JSON.stringify(DEFAULT_DB.holidays || []));
     updated = true;
   }
   if (updated || !localStorage.getItem('adonis_db')) {
-    try {
-      localStorage.setItem('adonis_db', JSON.stringify(DB));
-    } catch(e) {
-      console.warn("Failed to save DB in loadLocalDB (quota exceeded):", e);
-    }
+    localStorage.setItem('adonis_db', JSON.stringify(DB));
   }
 }
 async function seedSupabaseDatabase() {
@@ -2044,27 +885,19 @@ function saveDB() {
   try {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
   } catch (e) {
-    console.warn("localStorage quota exceeded. Attempting to save without reports.");
+    console.warn("localStorage quota exceeded. Attempting to save without large datasets.");
     try {
       var dbCopy = Object.assign({}, DB);
+      dbCopy.doctors = [];
+      dbCopy.chemists = [];
       dbCopy.reports = [];
+      dbCopy.tourPlans = [];
+      dbCopy.expenses = [];
+      dbCopy.leaves = [];
+      dbCopy.sfc = [];
       localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
-    } catch (e2) {
-      console.warn("Still exceeded quota. Attempting to save without large datasets.");
-      try {
-        var dbCopy2 = Object.assign({}, DB);
-        dbCopy2.doctors = [];
-        dbCopy2.chemists = [];
-        dbCopy2.stockists = [];
-        dbCopy2.reports = [];
-        dbCopy2.tourPlans = [];
-        dbCopy2.expenses = [];
-        dbCopy2.leaves = [];
-        dbCopy2.sfc = [];
-        localStorage.setItem('adonis_db', JSON.stringify(dbCopy2));
-      } catch(e3) {
-        console.warn("Still exceeded quota even without large datasets.");
-      }
+    } catch(e2) {
+      console.warn("Still exceeded quota even without large datasets.");
     }
   }
   if (typeof syncSupabaseDatabase === 'function') {
@@ -2093,322 +926,225 @@ window.addEventListener('beforeunload', function (e) {
     var dbStatus = document.getElementById('db-status-indicator');
     if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
     try {
-    // Sync Employees
-    try {
-      const dbEmps = DB.employees.map(function(e) {
-        var managerId = e.managerId || null;
-        if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
-          managerId = null;
-        }
-        return {
-          id: e.id,
-          name: e.name,
-          pwd: e.pwd,
-          area: e.area,
-          role: e.role,
-          manager_id: managerId,
-          doj: formatDateForPostgres(e.doj),
-          state: e.state || null,
-          status: normalizeEmployeeStatus(e.status),
-          designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-          leaves: e.leaves ? Object.assign({}, e.leaves, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) }) : {}
-        };
-      });
-      await upsertEmployeeRowsToSupabase(dbEmps);
-      await reconcileSupabaseRows('employees', DB.employees, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('employees').delete().eq('id', row.id);
-      });
-    } catch (e) {
-      console.error("Error syncing employees:", e);
-    }
+    const dbEmps = DB.employees.map(function(e) {
+      var managerId = e.managerId || null;
+      if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
+        managerId = null;
+      }
+      return {
+        id: e.id,
+        name: e.name,
+        pwd: e.pwd,
+        area: e.area,
+        role: e.role,
+        manager_id: managerId,
+        doj: formatDateForPostgres(e.doj),
+        state: e.state || null,
+        status: normalizeEmployeeStatus(e.status),
+        designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
+        leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
+      };
+    });
+    await upsertEmployeeRowsToSupabase(dbEmps);
+    await reconcileSupabaseRows('employees', DB.employees, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('employees').delete().eq('id', row.id);
+    });
 
-    // Sync Doctors
-    try {
-      const dbDocs = DB.doctors.map(d => {
-        var assignTo = d.assignTo || null;
-        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
-          assignTo = null;
-        }
-        return {
-          id: d.id,
-          code: d.code,
-          name: d.name,
-          be_name: d.beName || '',
-          hq: d.hq || '',
-          manager_name: d.managerName || '',
-          spec: d.spec || '',
-          qual: d.qual || '',
-          address: d.address || '',
-          city: d.city || '',
-          area: d.area || '',
-          state: d.state || '',
-          territory_type: d.territoryType || '',
-          phone: d.phone || '',
-          assign_to: assignTo,
-          status: d.status
-        };
-      });
-      await upsertInBatches('doctors', dbDocs);
-      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
-      /*
-      await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('doctors').delete().eq('id', row.id);
-      });
-      */
-    } catch (e) {
-      console.error("Error syncing doctors:", e);
-      showToast('⚠️ Doctor sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
-    }
+    const dbDocs = DB.doctors.map(d => {
+      var assignTo = d.assignTo || null;
+      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
+        assignTo = null;
+      }
+      return {
+        id: d.id,
+        code: d.code,
+        name: d.name,
+        spec: d.spec,
+        qual: d.qual,
+        address: d.address,
+        city: d.city,
+        area: d.area,
+        phone: d.phone,
+        assign_to: assignTo,
+        status: d.status
+      };
+    });
+    await upsertInBatches('doctors', dbDocs);
+    await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('doctors').delete().eq('id', row.id);
+    });
 
-    // Sync Chemists
-    try {
-      const dbChems = DB.chemists.map(c => {
-        var assignTo = c.assignTo || null;
-        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
-          assignTo = null;
-        }
-        return {
-          id: c.id,
-          name: c.name,
-          area: c.area,
-          assign_to: assignTo
-        };
-      });
-      await upsertInBatches('chemists', dbChems);
-      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
-      /*
-      await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('chemists').delete().eq('id', row.id);
-      });
-      */
-    } catch (e) {
-      console.error("Error syncing chemists:", e);
-      showToast('⚠️ Chemist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
-    }
+    const dbChems = DB.chemists.map(c => {
+      var assignTo = c.assignTo || null;
+      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
+        assignTo = null;
+      }
+      return {
+        id: c.id,
+        name: c.name,
+        area: c.area,
+        assign_to: assignTo
+      };
+    });
+    await upsertInBatches('chemists', dbChems);
+    await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('chemists').delete().eq('id', row.id);
+    });
 
-    // Sync Stockists
-    try {
-      const dbStockists = DB.stockists.map(s => {
-        var assignTo = s.assignTo || null;
-        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
-          assignTo = null;
-        }
-        return {
-          id: s.id,
-          name: s.name,
-          area: s.area,
-          assign_to: assignTo
-        };
-      });
-      await upsertInBatches('stockists', dbStockists);
-      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
-      /*
-      await reconcileSupabaseRows('stockists', DB.stockists, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('stockists').delete().eq('id', row.id);
-      });
-      */
-    } catch (e) {
-      console.error("Error syncing stockists:", e);
-      showToast('⚠️ Stockist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
-    }
+    const dbReports = DB.reports.map(r => ({
+      id: r.id,
+      emp_id: r.empId,
+      emp_name: r.empName,
+      date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
+      time: r.time,
+      target_type: r.targetType,
+      classification: r.classification,
+      call_type: r.callType,
+      doc_id: r.docId || null,
+      doc_name: r.docName || null,
+      doc_spec: r.docSpec || null,
+      doc_area: r.docArea || null,
+      promoted_products: r.promotedProducts || [],
+      samples: r.samples || {},
+      gifts: r.gifts || {},
+      inputs: r.inputs || {},
+      chem_id: r.chemId || null,
+      chem_name: r.chemName || null,
+      chem_area: r.chemArea || null,
+      order_amount: r.orderAmount || 0,
+      stock_status: r.stockStatus || null,
+      jfw_mgr_id: r.jfwMgrId || null,
+      jfw_mgr_name: r.jfwMgrName || null,
+      lat: r.lat || null,
+      lng: r.lng || null,
+      remarks: r.remarks || null,
+      next_visit: formatDateForPostgres(r.nextVisit)
+    }));
+    await upsertInBatches('reports', dbReports);
+    await reconcileSupabaseRows('reports', DB.reports, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('reports').delete().eq('id', row.id);
+    });
 
-    // Sync Reports
-    try {
-      const dbReports = DB.reports.map(r => ({
-        id: r.id,
-        emp_id: r.empId,
-        emp_name: r.empName,
-        date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
-        time: r.time,
-        target_type: r.targetType,
-        classification: r.classification,
-        call_type: r.callType,
-        doc_id: r.docId || null,
-        doc_name: r.docName || null,
-        doc_spec: r.docSpec || null,
-        doc_area: r.docArea || null,
-        promoted_products: r.promotedProducts || [],
-        samples: r.samples || {},
-        gifts: r.gifts || {},
-        inputs: r.inputs || {},
-        chem_id: r.chemId || null,
-        chem_name: r.chemName || null,
-        chem_area: r.chemArea || null,
-        order_amount: r.orderAmount || 0,
-        stock_status: r.stockStatus || null,
-        jfw_mgr_id: r.jfwMgrId || null,
-        jfw_mgr_name: r.jfwMgrName || null,
-        lat: r.lat || null,
-        lng: r.lng || null,
-        remarks: r.remarks || null,
-        next_visit: formatDateForPostgres(r.nextVisit)
-      }));
-      await upsertInBatches('reports', dbReports);
-      await reconcileSupabaseRows('reports', DB.reports, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('reports').delete().eq('id', row.id);
-      });
-    } catch (e) {
-      console.error("Error syncing reports:", e);
-    }
+    const dbTourPlans = DB.tourPlans.map(tp => ({
+      id: tp.id,
+      emp_id: tp.empId,
+      emp_name: tp.empName,
+      month: tp.month,
+      manager_id: resolveManagerId(tp.managerId),
+      manager_name: tp.managerName || null,
+      days: tp.days,
+      status: tp.status,
+      remarks: tp.remarks || null,
+      submitted_at: tp.submittedAt || null,
+      approved_date: formatDateForPostgres(tp.approvedDate),
+      approved_by: tp.approvedBy || null,
+      revision_history: tp.revisionHistory || []
+    }));
+    await upsertInBatches('tour_plans', dbTourPlans);
+    await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('tour_plans').delete().eq('id', row.id);
+    });
 
-    // Sync Tour Plans
-    try {
-      const dbTourPlans = DB.tourPlans.map(tp => ({
-        id: tp.id,
-        emp_id: tp.empId,
-        emp_name: tp.empName,
-        month: tp.month,
-        manager_id: resolveManagerId(tp.managerId),
-        manager_name: tp.managerName || null,
-        days: tp.days,
-        status: tp.status,
-        remarks: tp.remarks || null,
-        submitted_at: tp.submittedAt || null,
-        approved_date: formatDateForPostgres(tp.approvedDate),
-        approved_by: tp.approvedBy || null,
-        revision_history: tp.revisionHistory || []
-      }));
-      await upsertInBatches('tour_plans', dbTourPlans);
-      await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('tour_plans').delete().eq('id', row.id);
-      });
-    } catch (e) {
-      console.error("Error syncing tour plans:", e);
-    }
+    const dbExpenses = DB.expenses.map(ex => ({
+      id: ex.id,
+      emp_id: ex.empId,
+      emp_name: ex.empName,
+      month: ex.month,
+      manager_id: resolveManagerId(ex.managerId),
+      lines: ex.lines,
+      total: ex.total,
+      receipt_file: ex.receiptFile || null,
+      status: ex.status,
+      submitted_at: ex.submittedAt || null,
+      remarks: ex.remarks || null
+    }));
+    await upsertInBatches('expenses', dbExpenses);
+    await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('expenses').delete().eq('id', row.id);
+    });
 
-    // Sync Expenses
-    try {
-      const dbExpenses = DB.expenses.map(ex => ({
-        id: ex.id,
-        emp_id: ex.empId,
-        emp_name: ex.empName,
-        month: ex.month,
-        manager_id: resolveManagerId(ex.managerId),
-        lines: ex.lines,
-        total: ex.total,
-        receipt_file: ex.receiptFile || null,
-        status: ex.status,
-        submitted_at: ex.submittedAt || null,
-        remarks: ex.remarks || null
-      }));
-      await upsertInBatches('expenses', dbExpenses);
-      await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('expenses').delete().eq('id', row.id);
-      });
-    } catch (e) {
-      console.error("Error syncing expenses:", e);
-    }
+    const dbLeaves = DB.leaves.map(lv => ({
+      id: lv.id,
+      emp_id: lv.empId,
+      emp_name: lv.empName,
+      type: lv.type,
+      start: formatDateForPostgres(lv.start),
+      "end": formatDateForPostgres(lv.end),
+      days: lv.days,
+      reason: lv.reason || null,
+      manager_id: lv.managerId || null,
+      status: lv.status,
+      submitted_at: lv.submittedAt || null,
+      remarks: lv.remarks || null
+    }));
+    await upsertInBatches('leaves', dbLeaves);
+    await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('leaves').delete().eq('id', row.id);
+    });
 
-    // Sync Leaves
-    try {
-      const dbLeaves = DB.leaves.map(lv => ({
-        id: lv.id,
-        emp_id: lv.empId,
-        emp_name: lv.empName,
-        type: lv.type,
-        start: formatDateForPostgres(lv.start),
-        "end": formatDateForPostgres(lv.end),
-        days: lv.days,
-        reason: lv.reason || null,
-        manager_id: lv.managerId || null,
-        status: lv.status,
-        submitted_at: lv.submittedAt || null,
-        remarks: lv.remarks || null
-      }));
-      await upsertInBatches('leaves', dbLeaves);
-      await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('leaves').delete().eq('id', row.id);
-      });
-    } catch (e) {
-      console.error("Error syncing leaves:", e);
-    }
+    const dbSamples = DB.samplesInventory.map(s => ({
+      id: s.id || undefined,
+      prod_name: s.prodName,
+      emp_id: s.empId,
+      opening: s.opening,
+      received: s.received,
+      distributed: s.distributed,
+      balance: s.balance
+    }));
+    await upsertInBatches('samples_inventory', dbSamples);
 
-    // Sync Samples Inventory
-    try {
-      const dbSamples = DB.samplesInventory.map(s => ({
-        id: s.id || undefined,
-        prod_name: s.prodName,
-        emp_id: s.empId,
-        opening: s.opening,
-        received: s.received,
-        distributed: s.distributed,
-        balance: s.balance
-      }));
-      await upsertInBatches('samples_inventory', dbSamples);
-    } catch (e) {
-      console.error("Error syncing samples inventory:", e);
-    }
+    const dbGifts = DB.giftsInventory.map(g => ({
+      id: g.id || undefined,
+      gift_name: g.giftName,
+      emp_id: g.empId,
+      opening: g.opening,
+      received: g.received,
+      distributed: g.distributed,
+      balance: g.balance
+    }));
+    await upsertInBatches('gifts_inventory', dbGifts);
 
-    // Sync Gifts Inventory
-    try {
-      const dbGifts = DB.giftsInventory.map(g => ({
-        id: g.id || undefined,
-        gift_name: g.giftName,
-        emp_id: g.empId,
-        opening: g.opening,
-        received: g.received,
-        distributed: g.distributed,
-        balance: g.balance
-      }));
-      await upsertInBatches('gifts_inventory', dbGifts);
-    } catch (e) {
-      console.error("Error syncing gifts inventory:", e);
-    }
+    const dbInputs = DB.inputsInventory.map(i => ({
+      id: i.id || undefined,
+      input_name: i.inputName,
+      emp_id: i.empId,
+      opening: i.opening,
+      received: i.received,
+      distributed: i.distributed,
+      balance: i.balance
+    }));
+    await upsertInBatches('inputs_inventory', dbInputs);
 
-    // Sync Inputs Inventory
-    try {
-      const dbInputs = DB.inputsInventory.map(i => ({
-        id: i.id || undefined,
-        input_name: i.inputName,
-        emp_id: i.empId,
-        opening: i.opening,
-        received: i.received,
-        distributed: i.distributed,
-        balance: i.balance
-      }));
-      await upsertInBatches('inputs_inventory', dbInputs);
-    } catch (e) {
-      console.error("Error syncing inputs inventory:", e);
-    }
+    const dbSfc = DB.sfc.map(s => ({
+      id: s.id || undefined,
+      from_loc: s.from,
+      to_loc: s.to,
+      distance: s.distance || 0,
+      mode: JSON.stringify({ mode: s.mode, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
+      fare: s.fare || 0,
+      da: s.da || 0,
+      lodge: 0,
+      other: 0
+    }));
+    await upsertInBatches('sfc', dbSfc);
+    await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
+      return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
+    });
 
-    // Sync SFC
-    try {
-      const dbSfc = DB.sfc.map(s => ({
-        id: s.id || undefined,
-        from_loc: s.from,
-        to_loc: s.to,
-        distance: s.distance || 0,
-        mode: JSON.stringify({ mode: s.mode, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
-        fare: s.fare || 0,
-        da: s.da || 0,
-        lodge: 0,
-        other: 0
-      }));
-      await upsertInBatches('sfc', dbSfc);
-      await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
-        return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
-      });
-    } catch (e) {
-      console.error("Error syncing SFC:", e);
-    }
-
-    // Sync Holidays
     try {
       if (getHolidayTableMissingFlag()) {
         // Keep using the local holiday cache when the cloud table doesn't exist.
@@ -2576,190 +1312,20 @@ function initEmpApp(){
   goTab('home');
 }
 
-var _allReportingDocs = [];
-var _allReportingChems = [];
-
-function updateMRInitialStock(type, itemName, newVal) {
-  var val = parseInt(newVal) || 0;
-  var empId = SESSION.user.id;
-  var table = '';
-  var invArray = [];
-  
-  if (type === 'sample') {
-    table = 'samples_inventory';
-    invArray = DB.samplesInventory;
-  } else if (type === 'gift') {
-    table = 'gifts_inventory';
-    invArray = DB.giftsInventory;
-  } else if (type === 'input') {
-    table = 'inputs_inventory';
-    invArray = DB.inputsInventory;
-  }
-  
-  if (!invArray) {
-    invArray = [];
-    if (type === 'sample') DB.samplesInventory = invArray;
-    else if (type === 'gift') DB.giftsInventory = invArray;
-    else DB.inputsInventory = invArray;
-  }
-  
-  var record = invArray.find(function(s){
-    if (type === 'sample') return s.empId === empId && s.prodName === itemName;
-    if (type === 'gift') return s.empId === empId && s.giftName === itemName;
-    return s.empId === empId && s.inputName === itemName;
-  });
-  
-  if (!record) {
-    record = {
-      id: type.toUpperCase() + 'INV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
-      empId: empId,
-      opening: 0,
-      received: val,
-      distributed: 0,
-      balance: val
-    };
-    if (type === 'sample') record.prodName = itemName;
-    else if (type === 'gift') record.giftName = itemName;
-    else record.inputName = itemName;
-    invArray.push(record);
-  } else {
-    record.received = val - (record.opening || 0);
-    record.balance = val - (record.distributed || 0);
-  }
-  
-  saveDB();
-  populateReportingDropdowns();
-}
-
-function calculateReportingBalance(type, idx, availableBal) {
-  var distInp = document.getElementById(type === 'sample' ? 'smp-' + idx : (type === 'gift' ? 'gft-' + idx : 'inp-' + idx));
-  var balSpan = document.getElementById(type === 'sample' ? 'smp-bal-' + idx : (type === 'gift' ? 'gft-bal-' + idx : 'inp-bal-' + idx));
-  if (!distInp || !balSpan) return;
-  var distVal = parseInt(distInp.value) || 0;
-  
-  distInp.max = availableBal;
-  if (distVal > availableBal) {
-    distInp.value = availableBal;
-    distVal = availableBal;
-  }
-  
-  balSpan.textContent = Math.max(0, availableBal - distVal);
-}
-
-function renderDoctorOptions(list) {
-  var docSel = document.getElementById('r-doctor');
-  var currentVal = docSel.value;
-  docSel.innerHTML = '<option value="">-- Select Doctor --</option>';
-  list.forEach(function(d){
-    var o = document.createElement('option');
-    o.value = d.id;
-    o.textContent = (d.name || '') + ' (' + (d.spec || '') + ' - ' + (d.area || 'No Patch') + ')';
-    docSel.appendChild(o);
-  });
-  if (list.some(function(d) { return d.id === currentVal; })) {
-    docSel.value = currentVal;
-  }
-}
-
-function renderChemistOptions(list) {
-  var chemSel = document.getElementById('r-chemist');
-  var currentVal = chemSel.value;
-  chemSel.innerHTML = '<option value="">-- Select Chemist --</option>';
-  list.forEach(function(c){
-    var o = document.createElement('option');
-    o.value = c.id;
-    o.textContent = (c.name || '') + ' (' + (c.area || 'No Area') + ')';
-    chemSel.appendChild(o);
-  });
-  if (list.some(function(c) { return c.id === currentVal; })) {
-    chemSel.value = currentVal;
-  }
-}
-
-function filterReportingDoctorsDropdown() {
-  var q = (document.getElementById('r-doc-search').value || '').toLowerCase().trim();
-  var filtered = window._allReportingDocs || [];
-  if (q) {
-    filtered = filtered.filter(function(d) {
-      return (d.name || '').toLowerCase().includes(q) || (d.area || '').toLowerCase().includes(q) || (d.spec || '').toLowerCase().includes(q);
-    });
-  }
-  renderDoctorOptions(filtered.slice(0, 200));
-}
-
-function filterReportingChemistsDropdown() {
-  var q = (document.getElementById('r-chem-search-inp').value || '').toLowerCase().trim();
-  var filtered = window._allReportingChems || [];
-  if (q) {
-    filtered = filtered.filter(function(c) {
-      return (c.name || '').toLowerCase().includes(q) || (c.area || '').toLowerCase().includes(q);
-    });
-  }
-  renderChemistOptions(filtered.slice(0, 200));
-}
-
 function populateReportingDropdowns(){
-  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
-  if (teamIds) {
-    teamIds.push(SESSION.user.id);
-  }
-
   var docSel=document.getElementById('r-doctor');
-  
-  var finalDocs = DB.doctors.filter(function(d){
-    if (teamIds) {
-      var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      return assignedList.some(function(a){ return teamIds.includes(a); }) && d.status === 'Active';
-    }
-    return d.status === 'Active'; // Admin sees all active
+  docSel.innerHTML='<option value="">-- Select Doctor --</option>';
+  DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active';}).forEach(function(d){
+    var o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.spec+' - '+d.area+')';docSel.appendChild(o);
   });
-
-  if (finalDocs.length === 0) {
-    finalDocs = DB.doctors.filter(function(d){ return d.status === 'Active'; });
-  }
-
-  finalDocs.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
-  window._allReportingDocs = finalDocs;
-  renderDoctorOptions(finalDocs.slice(0, 200));
 
   var chemSel=document.getElementById('r-chemist');
-  
-  // Find all areas where this MR (or their team) has active doctors assigned
-  var activeDocAreas = new Set();
-  DB.doctors.forEach(function(d){
-    var docAssignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-    var isAssignedToTeam = teamIds ? docAssignedList.some(function(a){ return teamIds.includes(a); }) : true;
-    if (isAssignedToTeam && d.status === 'Active' && d.area) {
-      activeDocAreas.add(d.area.toLowerCase().trim());
-    }
+  chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
+  DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).forEach(function(c){
+    var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.area+')';chemSel.appendChild(o);
   });
-
-  var finalChems = DB.chemists.filter(function(c){
-    if (teamIds) {
-      var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      var hasAssign = assignedList.some(function(a){ return teamIds.includes(a); });
-      var unassigned = !c.assignTo || c.assignTo.trim() === '';
-      var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
-      return hasAssign || inMyAreas;
-    }
-    return true; // Admin sees all
-  });
-
-  if (finalChems.length === 0) {
-    finalChems = DB.chemists;
-  }
-
-  finalChems.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
-  window._allReportingChems = finalChems;
-  renderChemistOptions(finalChems.slice(0, 200));
-
   docSel.onchange=updateReportClassificationFromTarget;
   chemSel.onchange=updateReportClassificationFromTarget;
-
-  var docSearchInp = document.getElementById('r-doc-search');
-  if (docSearchInp) docSearchInp.value = '';
-  var chemSearchInp = document.getElementById('r-chem-search-inp');
-  if (chemSearchInp) chemSearchInp.value = '';
   
   // Product checklist grid
   var promoProductsGrid=document.getElementById('r-promo-products');
@@ -2769,74 +1335,23 @@ function populateReportingDropdowns(){
   
   // Samples
   document.getElementById('samples-list').innerHTML=DB.products.map(function(p,i){
-    var myStock=(DB.samplesInventory || []).find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
-    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
+    var myStock=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
-      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
-      '<div style="display: flex; gap: 12px; align-items: center;">'+
-        '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
-        '</div>'+
-        '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
-        '</div>'+
-        '<div style="text-align: center; min-width: 50px;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="smp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
+    return '<div class="sample-row"><div class="sample-name">'+p+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" class="sample-inp"></div></div>';
   }).join('');
 
   // Gifts
   document.getElementById('gifts-list').innerHTML=DB.gifts.map(function(g,i){
-    var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
-    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
+    var myStock=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
-      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
-      '<div style="display: flex; gap: 12px; align-items: center;">'+
-        '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
-        '</div>'+
-        '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
-        '</div>'+
-        '<div style="text-align: center; min-width: 50px;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="gft-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
+    return '<div class="sample-row"><div class="sample-name">'+g+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" class="gift-inp"></div></div>';
   }).join('');
 
   // Inputs
   document.getElementById('inputs-list').innerHTML=DB.inputs.map(function(ip,i){
-    var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
-    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
+    var myStock=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
-      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
-      '<div style="display: flex; gap: 12px; align-items: center;">'+
-        '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
-        '</div>'+
-        '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
-        '</div>'+
-        '<div style="text-align: center; min-width: 50px;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="inp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
+    return '<div class="sample-row"><div class="sample-name">'+ip+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" class="input-inp"></div></div>';
   }).join('');
 }
 
@@ -2844,80 +1359,22 @@ function populateJFWManagers(){
   var jfwSel=document.getElementById('r-jfw-manager');
   jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
   
-  var levels = { 'emp': 1, 'manager': 2, 'am': 3, 'rm': 4, 'zm': 5, 'nsm': 6, 'avp': 7, 'vp': 8, 'director': 9, 'ceo': 10, 'admin': 99 };
-  
-  function getLevel(role, d) {
-    if (role && role.toLowerCase() === 'admin') return 99;
-    var r = (role || '').toLowerCase();
-    d = d ? d.trim().toUpperCase() : '';
-    
-    if (d === 'CEO') return 11;
-    if (d === 'VP') return 10;
-    if (d === 'AVP') return 9;
-    if (d === 'DGM') return 8;
-    if (d === 'ZSM') return 7;
-    if (d === 'SR RSM') return 6;
-    if (d === 'RSM') return 5;
-    if (d === 'DY RSM') return 4;
-    if (d === 'SR ASM') return 3;
-    if (d === 'ASM') return 2;
-    if (d === 'BE') return 1;
-    
-    if (d.indexOf('CEO') !== -1) return 11;
-    if (d.indexOf('VP') !== -1 && d.indexOf('AVP') === -1) return 10;
-    if (d.indexOf('AVP') !== -1) return 9;
-    if (d.indexOf('DGM') !== -1) return 8;
-    if (d.indexOf('ZSM') !== -1) return 7;
-    if (d.indexOf('SR RSM') !== -1) return 6;
-    if (d.indexOf('DY RSM') !== -1) return 4;
-    if (d.indexOf('RSM') !== -1) return 5;
-    if (d.indexOf('SR ASM') !== -1) return 3;
-    if (d.indexOf('ASM') !== -1) return 2;
-    if (d.indexOf('BE') !== -1) return 1;
-    
-    // Fallback if designation is blank or non-standard
-    if (r === 'ceo') return 11;
-    if (r === 'vp') return 10;
-    if (r === 'avp') return 9;
-    if (r === 'nsm') return 6;
-    if (r === 'zm') return 5;
-    if (r === 'rm') return 4;
-    if (r === 'am') return 3;
-    if (r === 'manager') return 2;
-    if (r === 'emp') return 1;
-    
-    return 0;
-  }
-  
-  var myLevel = getLevel(SESSION.user.role, SESSION.user.designation);
-  
-  function isSubordinate(mgrId, empId) {
-    if (!mgrId) return false;
-    var targetMgr = String(mgrId).trim().toUpperCase();
-    var current = DB.employees.find(function(x) { return x && x.id && String(x.id).trim().toUpperCase() === String(empId).trim().toUpperCase(); });
-    var maxDepth = 10;
-    while (current && current.managerId && maxDepth > 0) {
-      var mId = String(current.managerId).trim().toUpperCase();
-      if (mId === targetMgr) return true;
-      current = DB.employees.find(function(x) { return x && x.id && String(x.id).trim().toUpperCase() === mId; });
-      maxDepth--;
-    }
-    return false;
-  }
+  var levels = { 'emp': 1, 'manager': 2, 'am': 3, 'rm': 4, 'zm': 5, 'nsm': 6, 'avp': 7, 'admin': 8 };
+  var myLevel = levels[(SESSION.user.role || '').toLowerCase()] || 0;
   
   var chain = DB.employees.filter(function(e) {
-    if (!e) return false;
     if (e.id === SESSION.user.id) return false;
     if (e.status !== 'Active') return false;
     if ((e.role || '').toLowerCase() === 'admin') return false; // Explicitly hide admin
     
-    var eLevel = getLevel(e.role, e.designation);
+    var roleStr = (e.role || '').toLowerCase();
+    var eLevel = levels[roleStr] || 0;
+    
     var isHigher = eLevel > myLevel;
+    var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
+    var isAVP = roleStr === 'avp' || (e.designation || '').toLowerCase().indexOf('avp') !== -1;
     
-    // If the user is an Admin (testing the system), let them see everyone.
-    if (myLevel === 99) return true; 
-    
-    return isHigher;
+    return isHigher || isJayashree || isAVP;
   });
 
   var uniqueChain = [];
@@ -2995,16 +1452,13 @@ function renderPlannedTargetsForReport(plannedDay){
 
 function getAllSubordinateIds(managerId) {
   let subIds = new Set();
-  let toCheck = [String(managerId || '').trim().toUpperCase()];
+  let toCheck = [managerId];
   while (toCheck.length > 0) {
     let currentId = toCheck.pop();
     subIds.add(currentId);
     DB.employees.forEach(emp => {
-      if (!emp || !emp.id) return;
-      var empIdUpper = String(emp.id).trim().toUpperCase();
-      var mId = String(emp.managerId || '').trim().toUpperCase();
-      if (mId === currentId && !subIds.has(empIdUpper)) {
-        toCheck.push(empIdUpper);
+      if (emp.managerId === currentId && !subIds.has(emp.id)) {
+        toCheck.push(emp.id);
       }
     });
   }
@@ -3501,30 +1955,18 @@ function renderTPDaysForMonth(){
     var dayStr = i < 10 ? '0'+i : i;
     var fullDateStr = month+'-'+dayStr;
     var existingDay = existing ? existing.days.find(function(d){return d.date===fullDateStr;}) : null;
-    var dayObj = {
+    currentMTPDays.push(existingDay ? JSON.parse(JSON.stringify(existingDay)) : {
       date: fullDateStr,
       dayNum: i,
-      category: 'HQ',
-      workType: 'FIELD WORK',
-      territory: 'HQ',
-      fromLocation: SESSION.user.area,
-      toLocation: '',
-      areaTerritory: '',
-      stayCity: '',
-      objective: '',
-      plannedDocs: [],
-      plannedChems: []
-    };
-    if (existingDay) {
-      dayObj.workType = existingDay.workType || (['Weekly Off', 'Leave', 'Transit', 'Holiday', 'Meeting'].includes(existingDay.areaTerritory) ? existingDay.areaTerritory.toUpperCase() : 'FIELD WORK');
-      dayObj.territory = existingDay.territory || 'HQ';
-      dayObj.stayCity = existingDay.stayCity || '';
-      dayObj.areaTerritory = existingDay.areaTerritory || '';
-      dayObj.toLocation = existingDay.toLocation || '';
-      dayObj.plannedDocs = existingDay.plannedDocs || [];
-      dayObj.plannedChems = existingDay.plannedChems || [];
-    }
-    currentMTPDays.push(dayObj);
+      category:'HQ',
+      areaTerritory:'',
+      fromLocation:SESSION.user.area,
+      toLocation:'',
+      stayCity:'',
+      objective:'',
+      plannedDocs:[],
+      plannedChems:[]
+    });
     
     i++;
     date.setDate(date.getDate() + 1);
@@ -3542,20 +1984,13 @@ function renderTPDaysForMonth(){
 function getAssignedDoctorsForArea(area){
   var clean=(area||'').trim().toLowerCase();
   if(!clean)return [];
-  return DB.doctors.filter(function(d){
-    var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-    return assigned && d.status==='Active' && (d.area || '').toLowerCase()===clean;
-  });
+  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active' && d.area.toLowerCase()===clean;});
 }
 
 function getAssignedChemistsForArea(area){
   var clean=(area||'').trim().toLowerCase();
   if(!clean)return [];
-  return DB.chemists.filter(function(c){
-    var assigned = String(c.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-    var unassigned = !c.assignTo || c.assignTo.trim() === '';
-    return (assigned || unassigned) && (c.area || '').toLowerCase()===clean;
-  });
+  return DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id && c.area.toLowerCase()===clean;});
 }
 
 function getHolidayForDateAndState(dateStr, state) {
@@ -3570,7 +2005,7 @@ function getHolidayForDateAndState(dateStr, state) {
 
 function renderMTPDaysUI(isReadOnly, existing){
   var c=document.getElementById('tp-days-container');
-  var readOnlyAttr = isReadOnly ? 'disabled' : '';
+  var readOnlyAttr = '';
   var html = '';
   isReadOnly = false;
   
@@ -3589,9 +2024,9 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 
   html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
-    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Type of Working</th><th>Territory</th><th>Town / City</th><th>Patch</th></tr></thead><tbody>';
+    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Town / City</th></tr></thead><tbody>';
 
-  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return day.workType === 'FIELD WORK' && !!(day.areaTerritory||'').trim();}) : currentMTPDays;
+  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return !!(day.areaTerritory||day.toLocation||'').trim();}) : currentMTPDays;
 
   var mrAreas = [];
   if (SESSION.user) {
@@ -3611,11 +2046,12 @@ function renderMTPDaysUI(isReadOnly, existing){
 
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);
-    var area=d.areaTerritory||'';
+    var area=d.areaTerritory||d.toLocation||'';
     var city=d.stayCity||'';
-    var workType=d.workType||'FIELD WORK';
-    var territory=d.territory||'HQ';
-    
+    var docs=getAssignedDoctorsForArea(area);
+    var chems=getAssignedChemistsForArea(area);
+    d.plannedDocs=docs.map(function(doc){return doc.id;});
+    d.plannedChems=chems.map(function(chem){return chem.id;});
     var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
     
     var holiday = getHolidayForDateAndState(d.date, SESSION.user ? SESSION.user.state : '');
@@ -3626,55 +2062,34 @@ function renderMTPDaysUI(isReadOnly, existing){
       holidayRowStyle = ' style="background-color: #FFF5F5"';
     }
     
-    var workTypeSelect = '';
-    var territorySelect = '';
-    var patchSelect = '';
-    var isFieldWork = (workType === 'FIELD WORK');
-    
+    var areaSelect = '';
     if (isReadOnly) {
-      workTypeSelect = '<span>' + workType + '</span>';
-      territorySelect = '<span>' + (isFieldWork ? territory : '--') + '</span>';
-      patchSelect = '<span>' + (isFieldWork ? (area || '--') : '--') + '</span>';
+      areaSelect = '<span>' + (area || '--') + '</span>';
     } else {
-      // Work Type Dropdown
-      workTypeSelect = '<select style="width:100%" onchange="updateMTPWorkType('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
-        '<option value="FIELD WORK"' + (workType === 'FIELD WORK' ? ' selected' : '') + '>FIELD WORK</option>' +
-        '<option value="WEEKLY OFF"' + (workType === 'WEEKLY OFF' ? ' selected' : '') + '>WEEKLY OFF</option>' +
-        '<option value="LEAVE"' + (workType === 'LEAVE' ? ' selected' : '') + '>LEAVE</option>' +
-        '<option value="HOLIDAY"' + (workType === 'HOLIDAY' ? ' selected' : '') + '>HOLIDAY</option>' +
-        '<option value="MEETING"' + (workType === 'MEETING' ? ' selected' : '') + '>MEETING</option>' +
-        '<option value="TRANSIT"' + (workType === 'TRANSIT' ? ' selected' : '') + '>TRANSIT</option>' +
-        '</select>';
-        
-      // Territory Dropdown
-      territorySelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPTerritory('+originalIdx+', this.value)">' +
-        '<option value="HQ"' + (territory === 'HQ' ? ' selected' : '') + '>HQ</option>' +
-        '<option value="Ex"' + (territory === 'Ex' ? ' selected' : '') + '>Ex</option>' +
-        '<option value="OS"' + (territory === 'OS' ? ' selected' : '') + '>OS</option>' +
-        '</select>';
-        
-      // Patch Dropdown
       var currentAreas = mrAreas.slice();
-      if (area && !currentAreas.includes(area)) {
+      if (area && !currentAreas.includes(area) && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
         currentAreas.push(area);
       }
-      patchSelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPPatch('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
-        '<option value="">-- Select Patch --</option>' +
+      areaSelect = '<select style="width:100%" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="">-- Select Area --</option>' +
+        '<option value="Weekly Off"' + (area === 'Weekly Off' ? ' selected' : '') + '>Weekly Off</option>' +
+        '<option value="Leave"' + (area === 'Leave' ? ' selected' : '') + '>Leave</option>' +
+        '<option value="Transit"' + (area === 'Transit' ? ' selected' : '') + '>Transit</option>' +
+        '<option value="HQ"' + (area === 'HQ' ? ' selected' : '') + '>HQ</option>' +
+        '<option value="Holiday"' + (area === 'Holiday' ? ' selected' : '') + '>Holiday</option>' +
         currentAreas.map(function(a) {
           return '<option value="' + a + '"' + (area === a ? ' selected' : '') + '>' + a + '</option>';
         }).join('') +
         '</select>';
     }
 
-    var cityInput = '<input type="text" '+(isFieldWork?'':'disabled')+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)">';
-
     return '<tr class="mtp-area-row"'+holidayRowStyle+'>'+
       '<td class="tbl-name">'+d.date+holidayText+'</td>'+
       '<td>'+dow+'</td>'+
-      '<td>'+workTypeSelect+'</td>'+
-      '<td>'+territorySelect+'</td>'+
-      '<td>'+cityInput+'</td>'+
-      '<td>'+patchSelect+'</td>'+
+      '<td>'+areaSelect+'</td>'+
+      '<td><input type="text" '+readOnlyAttr+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)"></td>'+
+      
+      
       '</tr>';
   }).join('');
 
@@ -3687,41 +2102,23 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 }
 
-function updateMTPWorkType(idx, value){
-  var wt = value.trim().toUpperCase();
-  currentMTPDays[idx].workType = wt;
-  if (wt !== 'FIELD WORK') {
-    currentMTPDays[idx].areaTerritory = '';
-    currentMTPDays[idx].toLocation = '';
-    currentMTPDays[idx].stayCity = '';
-    currentMTPDays[idx].plannedDocs = [];
-    currentMTPDays[idx].plannedChems = [];
-  } else {
-    currentMTPDays[idx].territory = 'HQ';
-  }
-  updateMTPAnalytics(document.getElementById('tp-month').value);
-}
-
-function updateMTPTerritory(idx, value){
-  currentMTPDays[idx].territory = value.trim();
-  updateMTPAnalytics(document.getElementById('tp-month').value);
-}
-
-function updateMTPPatch(idx, value){
-  var patch = value.trim();
-  currentMTPDays[idx].areaTerritory = patch;
-  currentMTPDays[idx].toLocation = patch;
-  currentMTPDays[idx].plannedDocs = getAssignedDoctorsForArea(patch).map(function(doc){return doc.id;});
-  currentMTPDays[idx].plannedChems = getAssignedChemistsForArea(patch).map(function(chem){return chem.id;});
+function updateMTPArea(idx, value){
+  var area=value.trim();
+  currentMTPDays[idx].areaTerritory=area;
+  currentMTPDays[idx].toLocation=area;
+  currentMTPDays[idx].fromLocation=SESSION.user.area;
+  currentMTPDays[idx].category=area ? 'HQ' : 'HQ';
+  currentMTPDays[idx].plannedDocs=getAssignedDoctorsForArea(area).map(function(doc){return doc.id;});
+  currentMTPDays[idx].plannedChems=getAssignedChemistsForArea(area).map(function(chem){return chem.id;});
   
-  if (patch) {
-    var matchedDoc = DB.doctors.find(function(d){
-      var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-      return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
-    });
+  // Set stayCity automatically based on the area!
+  if (area && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
+    var matchedDoc = DB.doctors.find(function(d){return d.area.toLowerCase() === area.toLowerCase() && d.assignTo === SESSION.user.id;});
     if (matchedDoc && matchedDoc.city) {
       currentMTPDays[idx].stayCity = matchedDoc.city;
     }
+  } else if (area === 'Weekly Off' || area === 'Leave' || area === 'Transit' || area === 'HQ' || area === 'Holiday') {
+    currentMTPDays[idx].stayCity = 'HQ';
   }
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
@@ -4195,48 +2592,29 @@ function renderMyLeaves(){
 
 // ===== LISTING SUB-MODULE FUNCTIONS =====
 function getMyDoctors(){
-  return DB.doctors.filter(function(d){
-    return String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-  });
+  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id;});
 }
 
 function renderDocList(){
   var q=(document.getElementById('doc-search').value||'').toLowerCase();
-  var docs=getMyDoctors().filter(function(d){return !q||(d.name||'').toLowerCase().includes(q)||(d.spec||'').toLowerCase().includes(q)||(d.area||'').toLowerCase().includes(q);});
+  var docs=getMyDoctors().filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q);});
   var el=document.getElementById('doc-list');
   if(!docs.length){el.innerHTML='<div class="empty">No doctors found</div>';return;}
   el.innerHTML=docs.map(function(d){
-    var nameVal = d.name || '';
-    var ini=nameVal.replace('Dr. ','').split(' ').filter(Boolean).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    var ini=d.name.replace('Dr. ','').split(' ').map(function(w){return w[0];}).join('').slice(0,2);
     var actBadge=d.status==='Active'?'<span class="badge green">Active</span>':'<span class="badge red">Inactive</span>';
-    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+nameVal+' '+actBadge+'</div><div class="doc-spec">'+(d.spec||'')+' ('+(d.qual||'')+')</div><div class="doc-area">&#128205; '+(d.area||'No Patch')+' | '+(d.address||'')+' | Phone: '+(d.phone||'')+'</div></div></div>';
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+d.name+' '+actBadge+'</div><div class="doc-spec">'+d.spec+' ('+d.qual+')</div><div class="doc-area">&#128205; '+d.area+' | '+d.address+' | Phone: '+d.phone+'</div></div></div>';
   }).join('');
 }
 
 function renderChemistList(){
   var q=(document.getElementById('chem-search').value||'').toLowerCase();
-  
-  // Find all areas where this MR has active doctors assigned
-  var activeDocAreas = new Set();
-  getMyDoctors().forEach(function(d){
-    if (d.status === 'Active' && d.area) {
-      activeDocAreas.add(d.area.toLowerCase().trim());
-    }
-  });
-
-  var chemists=DB.chemists.filter(function(c){
-    var assigned = String(c.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-    var unassigned = !c.assignTo || c.assignTo.trim() === '';
-    var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
-    return assigned || inMyAreas;
-  }).filter(function(c){return !q||(c.name||'').toLowerCase().includes(q)||(c.area||'').toLowerCase().includes(q);});
-  
+  var chemists=DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q);});
   var el=document.getElementById('chemist-list');
   if(!chemists.length){el.innerHTML='<div class="empty">No chemists found</div>';return;}
   el.innerHTML=chemists.map(function(c){
-    var nameVal = c.name || '';
-    var ini=nameVal.split(' ').filter(Boolean).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
-    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+nameVal+'</div><div class="doc-area">&#128205; '+(c.area || '')+'</div></div></div>';
+    var ini=c.name.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+c.name+'</div><div class="doc-area">&#128205; '+c.area+'</div></div></div>';
   }).join('');
 }
 
@@ -4293,31 +2671,9 @@ function selectPlannedReportTarget(type, id){
   document.getElementById('r-target-type').value = type;
   toggleReportTargetFields();
   if(type==='Doctor') {
-    var docSel = document.getElementById('r-doctor');
-    var exists = Array.from(docSel.options).some(function(opt) { return opt.value === id; });
-    if (!exists) {
-      var docObj = (window._allReportingDocs || []).find(function(d) { return d.id === id; });
-      if (docObj) {
-        var o = document.createElement('option');
-        o.value = docObj.id;
-        o.textContent = (docObj.name || '') + ' (' + (docObj.spec || '') + ' - ' + (docObj.area || 'No Patch') + ')';
-        docSel.appendChild(o);
-      }
-    }
-    docSel.value = id;
+    document.getElementById('r-doctor').value = id;
   } else {
-    var chemSel = document.getElementById('r-chemist');
-    var exists = Array.from(chemSel.options).some(function(opt) { return opt.value === id; });
-    if (!exists) {
-      var chemObj = (window._allReportingChems || []).find(function(c) { return c.id === id; });
-      if (chemObj) {
-        var o = document.createElement('option');
-        o.value = chemObj.id;
-        o.textContent = (chemObj.name || '') + ' (' + (chemObj.area || 'No Area') + ')';
-        chemSel.appendChild(o);
-      }
-    }
-    chemSel.value = id;
+    document.getElementById('r-chemist').value = id;
   }
   document.getElementById('r-classification').value = 'Planned Call';
   showToast('Auto-selected planned target: ' + (type==='Doctor' ? 'Doctor' : 'Chemist'));
@@ -4336,7 +2692,6 @@ function goMasterSubTab(id) {
   else if (id === 'emp') renderEmpTable();
   else if (id === 'doc') renderAdminDocList();
   else if (id === 'chem') renderAdminChemistList();
-  else if (id === 'stockist') renderAdminStockistList();
   else if (id === 'leave') renderLeaveBalanceTable();
   else if (id === 'holiday') renderHolidayTable();
 }
@@ -4351,7 +2706,6 @@ function initAdminApp(){
   renderEmpTable();
   renderAdminDocList();
   renderAdminChemistList();
-  renderAdminStockistList();
   renderLeaveBalanceTable();
   renderHolidayTable();
   renderSFCTable();
@@ -4377,9 +2731,6 @@ function goAdminTab(name){
     if(tr) {
       document.getElementById('sec-adm-visit').appendChild(tr);
       tr.style.display = 'block';
-      populateReportingDropdowns();
-      populateJFWManagers();
-      checkMTPForSelectedDate();
     }
   }
   
@@ -4944,72 +3295,51 @@ function uploadEmployees(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var count=0;
-    
-    var headerLineIndex = -1;
-    var headers = [];
-    for (var j = 0; j < Math.min(3, lines.length); j++) {
-      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
-      if (candidate.some(function(c){return c === 'id' || c.indexOf('employee') !== -1 || c.indexOf('name') !== -1;})) {
-        headerLineIndex = j;
-        headers = candidate;
-        break;
-      }
-    }
-    
-    var idCol=0, nameCol=1, pwdCol=2, terrCol=3, desigCol=4, roleCol=5, mgrCol=6, dojCol=7, stateCol=8, statusCol=9;
-    if (headers.length > 0) {
-      headers.forEach(function(h, idx) {
-        if (h === 'id' || h === 'employee id' || h === 'employeeid' || h === 'code') idCol = idx;
-        else if (h.indexOf('name') !== -1) nameCol = idx;
-        else if (h.indexOf('password') !== -1 || h === 'pwd') pwdCol = idx;
-        else if (h.indexOf('territory') !== -1 || h === 'area') terrCol = idx;
-        else if (h.indexOf('designation') !== -1) desigCol = idx;
-        else if (h.indexOf('role') !== -1) roleCol = idx;
-        else if (h.indexOf('manager') !== -1) mgrCol = idx;
-        else if (h.indexOf('doj') !== -1 || h.indexOf('joining') !== -1) dojCol = idx;
-        else if (h.indexOf('state') !== -1) stateCol = idx;
-        else if (h.indexOf('status') !== -1) statusCol = idx;
-      });
-    }
-    
-    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
     var newEmps = [];
     var touchedIds = [];
     dataLines.forEach(function(line){
       var cols=parseCSVLine(line);
-      if(!cols[idCol]||!cols[nameCol])return;
-      var pwd = cols[pwdCol] || 'pass123';
-      var designation = cols[desigCol] || '';
-      var rawRole = (cols[roleCol] || '').trim().toLowerCase();
+      if(!cols[0]||!cols[1])return;
+      var pwd = cols[2] || 'pass123';
+      
+      // Fixed 10-column mapping from template
+      // 0:ID, 1:Name, 2:Pwd, 3:Territory, 4:Designation, 5:Role, 6:Manager, 7:DOJ, 8:State, 9:Status
+      var designation = cols[4] || '';
+      var rawRole = (cols[5] || '').trim().toLowerCase();
+      var mgrIndex = 6;
+      var dojIndex = 7;
+      var stateIndex = 8;
+      var statusIndex = 9;
+      
       var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
-      
-      var eId = cols[idCol].toUpperCase();
-      var existing=DB.employees.find(function(em){return em && em.id===eId;});
+      var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
       var newEmp;
       if(existing){
-        existing.name=cols[nameCol];
+        existing.name=cols[1];
         existing.pwd=pwd;
-        existing.area=cols[terrCol]||'';
-        existing.designation = typeof cols[desigCol] !== 'undefined' ? cols[desigCol].trim() : existing.designation;
+        existing.area=cols[3]||'';
+        existing.designation = typeof cols[4] !== 'undefined' ? cols[4].trim() : existing.designation;
         existing.role=role;
-        existing.managerId=cols[mgrCol]||'';
-        existing.doj=cols[dojCol]||'';
-        existing.state=cols[stateCol]||'';
-        existing.status=normalizeEmployeeStatus(cols[statusCol]||'Active');
+        existing.managerId=cols[mgrIndex]||'';
+        existing.doj=cols[dojIndex]||'';
+        existing.state=cols[stateIndex]||'';
+        existing.status=normalizeEmployeeStatus(cols[statusIndex]||'Active');
         newEmp = existing;
       } else {
         newEmp = {
-          id:eId,
-          name:cols[nameCol],
+          id:cols[0].toUpperCase(),
+          name:cols[1],
           pwd:pwd,
-          area:cols[terrCol]||'',
+          area:cols[3]||'',
           designation:designation,
           role:role,
-          managerId:cols[mgrCol]||'',
-          doj:cols[dojCol]||'',
-          state:cols[stateCol]||'',
-          status:normalizeEmployeeStatus(cols[statusCol]||'Active'),
+          managerId:cols[mgrIndex]||'',
+          doj:cols[dojIndex]||'',
+          state:cols[stateIndex]||'',
+          status:normalizeEmployeeStatus(cols[statusIndex]||'Active'),
           leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
         };
       }
@@ -5294,11 +3624,6 @@ function editDoctor(id){
   document.getElementById('md-id').value=doc.id;
   document.getElementById('md-code').value=doc.code;
   document.getElementById('md-name').value=doc.name;
-  document.getElementById('md-bename').value=doc.beName||'';
-  document.getElementById('md-hq').value=doc.hq||'';
-  document.getElementById('md-managername').value=doc.managerName||'';
-  document.getElementById('md-state').value=doc.state||'';
-  document.getElementById('md-territorytype').value=doc.territoryType||'';
   document.getElementById('md-spec').value=doc.spec;
   document.getElementById('md-qual').value=doc.qual||'';
   document.getElementById('md-city').value=doc.city||'';
@@ -5329,11 +3654,6 @@ function saveDoctor(){
       id: docId,
       code: code,
       name: name,
-      beName: document.getElementById('md-bename').value.trim(),
-      hq: document.getElementById('md-hq').value.trim(),
-      managerName: document.getElementById('md-managername').value.trim(),
-      state: document.getElementById('md-state').value.trim(),
-      territoryType: document.getElementById('md-territorytype').value,
       spec: document.getElementById('md-spec').value.trim(),
       qual: document.getElementById('md-qual').value.trim(),
       city: document.getElementById('md-city').value.trim(),
@@ -5349,11 +3669,6 @@ function saveDoctor(){
     if(doc){
       doc.code=code;
       doc.name=name;
-      doc.beName=document.getElementById('md-bename').value.trim();
-      doc.hq=document.getElementById('md-hq').value.trim();
-      doc.managerName=document.getElementById('md-managername').value.trim();
-      doc.state=document.getElementById('md-state').value.trim();
-      doc.territoryType=document.getElementById('md-territorytype').value;
       doc.spec=document.getElementById('md-spec').value.trim();
       doc.qual=document.getElementById('md-qual').value.trim();
       doc.city=document.getElementById('md-city').value.trim();
@@ -5378,80 +3693,39 @@ function uploadDoctors(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var added=0;
-    
-    var headerLineIndex = -1;
-    var headers = [];
-    for (var j = 0; j < Math.min(3, lines.length); j++) {
-      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
-      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('doctor') !== -1 || c.indexOf('name') !== -1;})) {
-        headerLineIndex = j;
-        headers = candidate;
-        break;
-      }
-    }
-    
-    var idCol=0, empIdCol=1, beNameCol=2, hqCol=3, mgrNameCol=4, nameCol=5, specCol=6, qualCol=7, addCol=8, cityCol=9, areaCol=10, stateCol=11, typeCol=12, phoneCol=13;
-    if (headers.length > 0) {
-      headers.forEach(function(h, idx) {
-        if (h.indexOf('doctorcode') !== -1 || h === 'code' || h === 'id') idCol = idx;
-        else if (h.indexOf('emp id') !== -1 || h === 'emp id' || h.indexOf('assign') !== -1) empIdCol = idx;
-        else if (h.indexOf('name of be') !== -1 || h.indexOf('be name') !== -1) beNameCol = idx;
-        else if (h === 'hq' || h.indexOf('hq') !== -1) hqCol = idx;
-        else if (h.indexOf('reporting manager') !== -1 || h.indexOf('manager') !== -1) mgrNameCol = idx;
-        else if (h.indexOf('name of doctor') !== -1 || h === 'name' || h.indexOf('doctor') !== -1) nameCol = idx;
-        else if (h.indexOf('speciality') !== -1 || h === 'spec') specCol = idx;
-        else if (h.indexOf('qualification') !== -1 || h === 'qual') qualCol = idx;
-        else if (h.indexOf('address') !== -1) addCol = idx;
-        else if (h === 'city') cityCol = idx;
-        else if (h.indexOf('patch') !== -1 || h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
-        else if (h === 'state') stateCol = idx;
-        else if (h.indexOf('territory type') !== -1 || h.indexOf('type') !== -1) typeCol = idx;
-        else if (h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) phoneCol = idx;
-      });
-    }
-    
-    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('code') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
     var newDocs = [];
     var touchedCodes = [];
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(!p[idCol]||!p[nameCol])return;
-      var existing = DB.doctors.find(function(d){ return d.code === p[idCol]; });
+      if(!p[0]||!p[1])return;
+      var existing = DB.doctors.find(function(d){ return d.code === p[0]; });
       var newDoc;
       if(existing){
-        existing.name = p[nameCol];
-        existing.assignTo = (p[empIdCol]||'').toUpperCase();
-        existing.beName = p[beNameCol]||'';
-        existing.hq = p[hqCol]||'';
-        existing.managerName = p[mgrNameCol]||'';
-        existing.spec = p[specCol]||'';
-        existing.qual = p[qualCol]||'';
-        existing.address = p[addCol]||'';
-        existing.city = p[cityCol]||'';
-        existing.area = p[areaCol]||'';
-        existing.state = p[stateCol]||'';
-        existing.territoryType = p[typeCol]||'';
-        existing.phone = p[phoneCol]||'';
-        existing.status = 'Active';
+        existing.name = p[1];
+        existing.spec = p[2]||'';
+        existing.qual = p[3]||'';
+        existing.address = p[4]||'';
+        existing.city = p[5]||'';
+        existing.area = p[6]||'';
+        existing.phone = p[7]||'';
+        existing.assignTo = (p[8]||'').toUpperCase();
+        existing.status = p[9]||'Active';
         newDoc = existing;
       } else {
         newDoc = {
           id: 'D'+Date.now()+Math.random(),
-          code: p[idCol],
-          assignTo: (p[empIdCol]||'').toUpperCase(),
-          beName: p[beNameCol]||'',
-          hq: p[hqCol]||'',
-          managerName: p[mgrNameCol]||'',
-          name: p[nameCol],
-          spec: p[specCol]||'',
-          qual: p[qualCol]||'',
-          address: p[addCol]||'',
-          city: p[cityCol]||'',
-          area: p[areaCol]||'',
-          state: p[stateCol]||'',
-          territoryType: p[typeCol]||'',
-          phone: p[phoneCol]||'',
-          status: 'Active'
+          code: p[0],
+          name: p[1],
+          spec: p[2]||'',
+          qual: p[3]||'',
+          address: p[4]||'',
+          city: p[5]||'',
+          area: p[6]||'',
+          phone: p[7]||'',
+          assignTo: (p[8]||'').toUpperCase(),
+          status: p[9]||'Active'
         };
       }
       
@@ -5469,7 +3743,7 @@ function uploadDoctors(inp){
 }
 
 function downloadDocTemplate(){
-  var csv='DoctorCode,Emp Id,Name of BE,HQ,Reporting Manager,Name of Doctor,Speciality,Qualification,Address,City,Patch,State,Territory Type (HQ/Ex/OS),Mobile\n';
+  var csv='DoctorCode,Name,Speciality,Qualification,Address,City,Area,Mobile,AssignToEmpID,Status\n';
   var checked = document.querySelectorAll('.doc-row-check:checked');
   var docsToExport = [];
   if (checked.length > 0) {
@@ -5483,24 +3757,20 @@ function downloadDocTemplate(){
     docsToExport.forEach(function(d){
       csv += [
         d.code || '',
-        d.assignTo || '',
-        d.beName || '',
-        d.hq || '',
-        d.managerName || '',
         d.name || '',
         d.spec || '',
         d.qual || '',
         d.address || '',
         d.city || '',
         d.area || '',
-        d.state || '',
-        d.territoryType || '',
-        d.phone || ''
+        d.phone || '',
+        d.assignTo || '',
+        d.status || 'Active'
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'doctor_master.csv');
   } else {
-    csv += 'DOC009,EMP002,BE Name,Mumbai HQ,Reporting Mgr,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,Maharashtra,HQ,9830000001\n';
+    csv += 'DOC009,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,9830000001,EMP002,Active\n';
     downloadData(csv,'doctor_master_template.csv');
   }
 }
@@ -5508,7 +3778,6 @@ function downloadDocTemplate(){
 var adminTableState = {
   doctors: { sortCol: null, sortAsc: true, filters: {} },
   chemists: { sortCol: null, sortAsc: true, filters: {} },
-  stockists: { sortCol: null, sortAsc: true, filters: {} },
   employees: { sortCol: null, sortAsc: true, filters: {} }
 };
 
@@ -5524,13 +3793,12 @@ function handleTableSort(table, col) {
     adminTableState[table].sortCol = col;
     adminTableState[table].sortAsc = true;
   }
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : 'emp-table-head'));
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : 'emp-table-head');
   var thead = document.getElementById(theadId);
   if (thead) thead.innerHTML = ''; // Force header re-render to update sort arrows
   
   if (table === 'doctors') renderAdminDocList(1);
   else if (table === 'chemists') renderAdminChemistList(1);
-  else if (table === 'stockists') renderAdminStockistList(1);
   else if (table === 'employees') renderEmpTable();
 }
 
@@ -5552,7 +3820,7 @@ function getCellValue(table, col, item) {
       return ROLE_MAPPING[item.role] || item.role || '';
     }
   }
-  if (table === 'doctors' || table === 'chemists' || table === 'stockists') {
+  if (table === 'doctors' || table === 'chemists') {
     if (col === 'assignTo') {
       var emp = DB.employees.find(function(e){return e.id===item.assignTo;});
       return emp ? emp.name + ' (' + item.assignTo + ')' : 'Unassigned';
@@ -5666,7 +3934,7 @@ function applyExcelFilter() {
   
   closeExcelFilter();
   
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : 'emp-table-head'));
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : 'emp-table-head');
   var thead = document.getElementById(theadId);
   if (thead) {
     thead.innerHTML = ''; // Force header re-render to update filter icon colors
@@ -5674,7 +3942,6 @@ function applyExcelFilter() {
   
   if (table === 'doctors') renderAdminDocList(1);
   else if (table === 'chemists') renderAdminChemistList(1);
-  else if (table === 'stockists') renderAdminStockistList(1);
   else if (table === 'employees') renderEmpTable();
 }
 
@@ -5718,20 +3985,12 @@ function renderAdminDocList(page = 1) {
   var thead = document.getElementById('doc-table-head');
   if (thead && !thead.innerHTML.includes('<th')) {
     thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-docs" class="admin-only" onclick="toggleSelectAllDocs(this)"></th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'code', 'DoctorCode') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'assignTo', 'Emp Id') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'beName', 'Name of BE') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'hq', 'HQ') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'managerName', 'Reporting Manager') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'name', 'Name of Doctor') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'code', 'Code') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'name', 'Name') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'spec', 'Speciality') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'qual', 'Qualification') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'address', 'Address') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'city', 'City') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'area', 'Patch') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'state', 'State') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'territoryType', 'Territory Type') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'area', 'Area') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'phone', 'Mobile') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'assignTo', 'Assigned MR') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'status', 'Status') + '</th>' +
       '<th style="vertical-align:top">Actions</th></tr>';
   }
@@ -5796,24 +4055,7 @@ function renderAdminDocList(page = 1) {
   
   tbody.innerHTML=pagedDocs.map(function(d){
     var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
-    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td>' +
-      '<td>'+(d.code||'')+'</td>' +
-      '<td>'+(d.assignTo||'Unassigned')+'</td>' +
-      '<td>'+(d.beName||'')+'</td>' +
-      '<td>'+(d.hq||'')+'</td>' +
-      '<td>'+(d.managerName||'')+'</td>' +
-      '<td class="tbl-name">'+(d.name||'')+'</td>' +
-      '<td>'+(d.spec||'')+'</td>' +
-      '<td>'+(d.qual||'')+'</td>' +
-      '<td>'+(d.address||'')+'</td>' +
-      '<td>'+(d.city||'')+'</td>' +
-      '<td>'+(d.area||'')+'</td>' +
-      '<td>'+(d.state||'')+'</td>' +
-      '<td>'+(d.territoryType||'')+'</td>' +
-      '<td>'+(d.phone||'')+'</td>' +
-      '<td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+(d.status||'Active')+'</span></td>' +
-      '<td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button>' +
-      '<button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-docs');
@@ -5966,47 +4208,26 @@ function uploadChemists(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var added=0;
-    
-    var headerLineIndex = -1;
-    var headers = [];
-    for (var j = 0; j < Math.min(3, lines.length); j++) {
-      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
-      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('chemist') !== -1 || c.indexOf('name') !== -1;})) {
-        headerLineIndex = j;
-        headers = candidate;
-        break;
-      }
-    }
-    
-    var idCol=0, nameCol=1, areaCol=2, assignCol=3;
-    if (headers.length > 0) {
-      headers.forEach(function(h, idx) {
-        if (h === 'code' || h === 'id' || h === 'chemist code') idCol = idx;
-        else if (h.indexOf('name') !== -1) nameCol = idx;
-        else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
-        else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
-      });
-    }
-    
-    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
     var newChems = [];
     var touchedIds = [];
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(!p[idCol]||!p[nameCol])return;
-      var existing = DB.chemists.find(function(c){ return c.id === p[idCol]; });
+      if(!p[0]||!p[1])return;
+      var existing = DB.chemists.find(function(c){ return c.id === p[0]; });
       var newChem;
       if(existing){
-        existing.name = p[nameCol];
-        existing.area = p[areaCol]||'';
-        existing.assignTo = (p[assignCol]||'').toUpperCase();
+        existing.name = p[1];
+        existing.area = p[2]||'';
+        existing.assignTo = (p[3]||'').toUpperCase();
         newChem = existing;
       } else {
         newChem = {
-          id: p[idCol],
-          name: p[nameCol],
-          area: p[areaCol]||'',
-          assignTo: (p[assignCol]||'').toUpperCase()
+          id: p[0],
+          name: p[1],
+          area: p[2]||'',
+          assignTo: (p[3]||'').toUpperCase()
         };
       }
       
@@ -6208,326 +4429,6 @@ function bulkDeleteAllChemists() {
   updateSelectedChemsCount();
 }
 
-// ===== STOCKIST MASTER FUNCTIONS =====
-function addStockistManual() {
-  document.getElementById('stockist-modal-title-text').textContent = 'Add Stockist';
-  document.getElementById('ms-id').value = '';
-  document.getElementById('ms-code').value = '';
-  document.getElementById('ms-code').disabled = false;
-  document.getElementById('ms-name').value = '';
-  document.getElementById('ms-area').value = '';
-  
-  var sel = document.getElementById('ms-assign');
-  sel.innerHTML = '<option value="">-- Assign MR --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
-    return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
-  }).join('');
-  
-  document.getElementById('modal-add-stockist').classList.add('on');
-}
-
-function editStockist(id) {
-  var stockist = DB.stockists.find(function(s){return s.id===id;});
-  if(!stockist) return;
-  
-  document.getElementById('stockist-modal-title-text').textContent = 'Edit Stockist';
-  document.getElementById('ms-id').value = stockist.id;
-  document.getElementById('ms-code').value = stockist.id;
-  document.getElementById('ms-code').disabled = true;
-  document.getElementById('ms-name').value = stockist.name;
-  document.getElementById('ms-area').value = stockist.area;
-  
-  var sel = document.getElementById('ms-assign');
-  sel.innerHTML = '<option value="">-- Unassigned --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
-    return '<option value="'+e.id+'" '+(e.id===stockist.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
-  }).join('');
-  
-  document.getElementById('modal-add-stockist').classList.add('on');
-}
-
-function saveStockist() {
-  var id = document.getElementById('ms-id').value;
-  var code = document.getElementById('ms-code').value.trim();
-  var name = document.getElementById('ms-name').value.trim();
-  var area = document.getElementById('ms-area').value.trim();
-  
-  if(!code || !name){showToast('Stockist ID and Name required!');return;}
-  
-  if(!id){
-    if(DB.stockists.some(function(s){return s.id===code;})){
-      showToast('Stockist ID already exists!');
-      return;
-    }
-    DB.stockists.push({
-      id: code,
-      name: name,
-      area: area,
-      assignTo: document.getElementById('ms-assign').value
-    });
-  } else {
-    var stockist = DB.stockists.find(function(s){return s.id===id;});
-    if(stockist){
-      stockist.name = name;
-      stockist.area = area;
-      stockist.assignTo = document.getElementById('ms-assign').value;
-    }
-  }
-  
-  saveDB();
-  closeModal('modal-add-stockist');
-  showToast('Stockist record saved successfully.');
-  renderAdminStockistList();
-}
-
-function uploadStockists(inp) {
-  var file = inp.files[0];if(!file)return;
-  var reader = new FileReader();
-  reader.onload = function(e){
-    var lines = e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
-    if(!lines.length)return;
-    var added = 0;
-    
-    var headerLineIndex = -1;
-    var headers = [];
-    for (var j = 0; j < Math.min(3, lines.length); j++) {
-      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
-      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('stockist') !== -1 || c.indexOf('name') !== -1;})) {
-        headerLineIndex = j;
-        headers = candidate;
-        break;
-      }
-    }
-    
-    var idCol = 0, nameCol = 1, areaCol = 2, assignCol = 3;
-    if (headers.length > 0) {
-      headers.forEach(function(h, idx) {
-        if (h === 'code' || h === 'id' || h === 'stockist code' || h === 'stockistid') idCol = idx;
-        else if (h.indexOf('name') !== -1) nameCol = idx;
-        else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
-        else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
-      });
-    }
-    
-    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
-    var newStockists = [];
-    var touchedIds = [];
-    dataLines.forEach(function(line){
-      var p = parseCSVLine(line);
-      if(!p[idCol] || !p[nameCol])return;
-      var existing = DB.stockists.find(function(s){ return s.id === p[idCol]; });
-      var newStk;
-      if(existing){
-        existing.name = p[nameCol];
-        existing.area = p[areaCol]||'';
-        existing.assignTo = (p[assignCol]||'').toUpperCase();
-        newStk = existing;
-      } else {
-        newStk = {
-          id: p[idCol],
-          name: p[nameCol],
-          area: p[areaCol]||'',
-          assignTo: (p[assignCol]||'').toUpperCase()
-        };
-      }
-      
-      newStockists.push(newStk);
-      touchedIds.push(newStk.id);
-      added++;
-    });
-    var untouched = DB.stockists.filter(function(s){ return !touchedIds.includes(s.id); });
-    DB.stockists = newStockists.concat(untouched);
-    saveDB();
-    showToast(added+' Stockists processed successfully!');
-    renderAdminStockistList();
-  };
-  reader.readAsText(file);inp.value='';
-}
-
-function downloadStockistTemplate() {
-  var csv = 'StockistID,Name,Area,AssignToEmpID\n';
-  var checked = document.querySelectorAll('.stockist-row-check:checked');
-  var stkToExport = [];
-  if (checked.length > 0) {
-    var ids = Array.from(checked).map(c => c.value);
-    stkToExport = DB.stockists.filter(s => ids.includes(s.id));
-  } else {
-    stkToExport = DB.stockists || [];
-  }
-
-  if(stkToExport.length > 0) {
-    stkToExport.forEach(function(s){
-      csv += [
-        s.id || '',
-        s.name || '',
-        s.area || '',
-        s.assignTo || ''
-      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
-    });
-    downloadData(csv,'stockist_master.csv');
-  } else {
-    csv += 'STK009,Vikas Stockist,Dadar,EMP001\n';
-    downloadData(csv,'stockist_master_template.csv');
-  }
-}
-
-var currentStockistPage = 1; var stockistsPerPage = 50;
-function renderAdminStockistList(page = 1) {
-  currentStockistPage = page;
-  var q = (document.getElementById('adm-stockist-search').value||'').toLowerCase();
-  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
-  
-  var thead = document.getElementById('stockist-table-head');
-  if (thead && !thead.innerHTML.includes('<th')) {
-    thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-stockists" class="admin-only" onclick="toggleSelectAllStockists(this)"></th>' +
-      '<th style="vertical-align:top">' + renderSortHead('stockists', 'id', 'Stockist ID') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('stockists', 'name', 'Name') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('stockists', 'area', 'Area') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('stockists', 'assignTo', 'Assigned MR') + '</th>' +
-      '<th style="vertical-align:top">Actions</th></tr>';
-  }
-
-  var filters = adminTableState.stockists.filters;
-  var stockists = DB.stockists.filter(function(s){
-    if (teamIds && !teamIds.includes(s.assignTo)) return false;
-    
-    // Global search
-    if (q) {
-      var mr = DB.employees.find(function(e){return e.id===s.assignTo;});
-      var mrName = mr && mr.name ? mr.name : '';
-      var haystack = [
-        s.id, s.name, s.area, s.assignTo, mrName
-      ].join(' ').toLowerCase();
-      if (haystack.indexOf(q) === -1) return false;
-    }
-    
-    // Column filters
-    var cols = ['id', 'name', 'area', 'assignTo'];
-    for (var i = 0; i < cols.length; i++) {
-      var colName = cols[i];
-      if (filters[colName]) {
-        var v = getCellValue('stockists', colName, s);
-        if (v === null || v === undefined || v === '') v = '(Blanks)';
-        else v = String(v).trim();
-        if (!filters[colName].includes(v)) return false;
-      }
-    }
-    
-    return true;
-  });
-
-  // Apply visual sort
-  var sortCol = adminTableState.stockists.sortCol;
-  if (sortCol) {
-    var sortAsc = adminTableState.stockists.sortAsc ? 1 : -1;
-    stockists = stockists.slice().sort(function(a, b) {
-      var valA = String(getCellValue('stockists', sortCol, a) || '');
-      var valB = String(getCellValue('stockists', sortCol, b) || '');
-      return sortAsc * valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
-    });
-  }
-
-  // Apply relevance sort if searching
-  if (q) {
-    stockists.sort(function(a, b) {
-      var aMatch = (a.name||"").toLowerCase().includes(q) ? 1 : 0;
-      var bMatch = (b.name||"").toLowerCase().includes(q) ? 1 : 0;
-      return bMatch - aMatch;
-    });
-  }
-
-  var countEl = document.getElementById('stockist-count');
-  if (countEl) countEl.textContent = stockists.length;
-  var totalPages = Math.ceil(stockists.length / stockistsPerPage);
-  if (currentStockistPage > totalPages) currentStockistPage = totalPages || 1;
-  var startIdx = (currentStockistPage - 1) * stockistsPerPage;
-  var endIdx = startIdx + stockistsPerPage;
-  var pagedStockists = stockists.slice(startIdx, endIdx);
-  var tbody = document.getElementById('stockist-table-body');
-  if(!tbody) return;
-  
-  tbody.innerHTML = pagedStockists.map(function(s){
-    var emp = DB.employees.find(function(e){return e.id===s.assignTo;});
-    return '<tr><td><input type="checkbox" class="stockist-row-check admin-only" value="'+s.id+'" onchange="updateSelectedStockistsCount()"></td><td>'+s.id+'</td><td class="tbl-name">'+s.name+'</td><td>'+s.area+'</td><td>'+(emp?emp.name+' ('+s.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editStockist(\''+s.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeStockist(\''+s.id+'\')">Del</button></td></tr>';
-  }).join('');
-  
-  var masterCheck = document.getElementById('check-all-stockists');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedStockistsCount();
-  var pagEl = document.getElementById('stockist-pagination');
-  if (pagEl) {
-    var phtml = '';
-    if (currentStockistPage > 1) phtml += '<button class="btn sm" onclick="renderAdminStockistList('+(currentStockistPage-1)+')">Prev</button> ';
-    phtml += '<span style="font-size:12px;margin:0 10px;">Page ' + currentStockistPage + ' of ' + (totalPages || 1) + '</span>';
-    if (currentStockistPage < totalPages) phtml += ' <button class="btn sm" onclick="renderAdminStockistList('+(currentStockistPage+1)+')">Next</button>';
-    pagEl.innerHTML = phtml;
-  }
-}
-
-function removeStockist(id) {
-  if(!confirm('Delete stockist record?'))return;
-  DB.stockists = DB.stockists.filter(function(s){return s.id!==id;});
-  saveDB();
-  renderAdminStockistList();
-  runSupabaseDelete('stockists', function(q) {
-    return q.eq('id', id);
-  });
-}
-
-function toggleSelectAllStockists(masterCheck) {
-  var checks = document.querySelectorAll('.stockist-row-check');
-  checks.forEach(function(c) {
-    c.checked = masterCheck.checked;
-  });
-  updateSelectedStockistsCount();
-}
-
-function updateSelectedStockistsCount() {
-  var selected = document.querySelectorAll('.stockist-row-check:checked').length;
-  var btn = document.getElementById('btn-bulk-delete-selected-stockists');
-  if (btn) {
-    if (selected > 0) {
-      btn.style.display = 'inline-block';
-      btn.textContent = '🗑 Delete Selected (' + selected + ')';
-    } else {
-      btn.style.display = 'none';
-    }
-  }
-}
-
-function bulkDeleteSelectedStockists() {
-  var checked = document.querySelectorAll('.stockist-row-check:checked');
-  if (!checked.length) return;
-  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected stockist records?')) return;
-  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
-  DB.stockists = DB.stockists.filter(function(s) { return !idsToDelete.includes(s.id); });
-  saveDB();
-  renderAdminStockistList();
-  runSupabaseDelete('stockists', function(q) {
-    return q.in('id', idsToDelete);
-  });
-  showToast(checked.length + ' stockists deleted successfully!');
-  var masterCheck = document.getElementById('check-all-stockists');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedStockistsCount();
-}
-
-function bulkDeleteAllStockists() {
-  if (DB.stockists.length === 0) {
-    showToast('Stockist list is already empty.');
-    return;
-  }
-  if (!confirm('WARNING: Are you sure you want to delete ALL stockist records (' + DB.stockists.length + ') from the system? This cannot be undone.')) return;
-  DB.stockists = [];
-  saveDB();
-  renderAdminStockistList();
-  runSupabaseDelete('stockists', function(q) {
-    return q.neq('id', 'dummy_value_to_delete_all');
-  });
-  showToast('All stockist records deleted successfully!');
-  var masterCheck = document.getElementById('check-all-stockists');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedStockistsCount();
-}
-
 // ===== LEAVE BALANCE MASTER FUNCTIONS =====
 function renderLeaveBalanceTable(){
   var thead = document.getElementById('leave-bal-table-head');
@@ -6544,9 +4445,7 @@ function renderLeaveBalanceTable(){
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var emps=DB.employees.filter(function(e){
     if (!e || e.id==='ADMIN') return false;
-    if (!e.leaves) return false;
-    var keys = Object.keys(e.leaves).filter(function(k) { return k !== '_designation'; });
-    if (keys.length === 0) return false;
+    if (!e.leaves || Object.keys(e.leaves).length === 0) return false;
     if (teamIds && !teamIds.includes(e.id)) return false;
     if (!q) return true;
     var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
@@ -6671,7 +4570,7 @@ function deleteLeaveBalance(id) {
   if(!confirm('Clear leave data for '+id+'?')) return;
   var emp = DB.employees.find(function(e) { return e.id === id; });
   if (emp) {
-    emp.leaves = {};
+    emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
     saveDB();
     renderLeaveBalanceTable();
     showToast('Leave data cleared for ' + id);
@@ -6721,97 +4620,33 @@ function uploadLeaveBalances(inp){
   var reader=new FileReader();
   reader.onload=function(e){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
-    if(lines.length < 2) { showToast("CSV file is empty or missing data."); return; }
-    
-    // Combine the first 5 rows to catch headers spread across multiple lines (like Leave Eligibility -> CL)
-    var headerLineIndex = 0;
-    var headers = [];
-    var combinedHeaders = [];
-    
-    for (var j = 0; j < Math.min(5, lines.length); j++) {
-      var candidate = parseCSVLine(lines[j]);
-      var flatCandidate = candidate.map(function(h) { return String(h).toLowerCase().replace(/[^a-z0-9]/g, ''); });
-      
-      // Update combined headers
-      for (var c = 0; c < flatCandidate.length; c++) {
-        if (!combinedHeaders[c]) combinedHeaders[c] = '';
-        if (flatCandidate[c]) combinedHeaders[c] += flatCandidate[c];
-      }
-      
-      if (flatCandidate.some(function(h) { return h.indexOf('employee') !== -1 || h === 'id' || h === 'empid'; })) {
-        headerLineIndex = j;
-      }
-    }
-    
-    headers = combinedHeaders;
-    
-    // Find column indices
-    var idCol = -1, clCol = -1, plCol = -1, slCol = -1, lopCol = -1;
-    var clUsedCol = -1, plUsedCol = -1, slUsedCol = -1, lopUsedCol = -1;
-    
-    headers.forEach(function(h, i) {
-      if (h.indexOf('employeeid') !== -1 || h.indexOf('empid') !== -1 || h === 'id' || h === 'employee') idCol = i;
-      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('cl') !== -1 || h.indexOf('casualleave') !== -1)) clCol = i;
-      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('pl') !== -1 || h.indexOf('el') !== -1 || h.indexOf('privilege') !== -1)) plCol = i;
-      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('sl') !== -1 || h.indexOf('sick') !== -1)) slCol = i;
-      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('lop') !== -1 || h.indexOf('lwp') !== -1)) lopCol = i;
-      else if (h.indexOf('leavetakencl') !== -1 || h === 'clused') clUsedCol = i;
-      else if (h.indexOf('leavetakenpl') !== -1 || h.indexOf('leavetakenel') !== -1 || h === 'plused' || h === 'elused') plUsedCol = i;
-      else if (h.indexOf('leavetakensl') !== -1 || h === 'slused') slUsedCol = i;
-      else if (h.indexOf('leavetakenlop') !== -1 || h.indexOf('leavetakenlwp') !== -1 || h === 'lopused') lopUsedCol = i;
-    });
-    
-    // If dynamic detection failed completely OR if it perfectly matches the known template structure
-    // (where Leave Eligibility is at col 6 and Taken is at col 10), we force the default known positions.
-    if (idCol === -1 || clCol === -1 || clUsedCol === -1 || idCol <= 1) {
-      if (idCol === -1) idCol = 1; 
-      clCol = idCol + 5; 
-      plCol = idCol + 6; 
-      slCol = idCol + 7; 
-      lopCol = idCol + 8;
-      clUsedCol = idCol + 9; 
-      plUsedCol = idCol + 10; 
-      slUsedCol = idCol + 11; 
-      lopUsedCol = idCol + 12;
-    }
-    
+    if(!lines.length)return;
     var updated=0;
-    var notFoundIds = [];
-    
-    for (var i = headerLineIndex + 1; i < lines.length; i++) {
-      var p = parseCSVLine(lines[i]);
-      if (!p[idCol]) continue;
+    lines.forEach(function(line){
+      var p=parseCSVLine(line);
+      if(p.length < 18) return; // Need at least 18 columns for the new format
       
-      var empId = String(p[idCol]).trim().toUpperCase();
+      // employee ID is in p[1]
+      var empId = p[1].toUpperCase();
       var emp = DB.employees.find(function(x){return x.id === empId;});
       if(emp){
         if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
         
-        if (clCol !== -1 && p[clCol]) emp.leaves.CL = parseInt(p[clCol]) || 0;
-        if (plCol !== -1 && p[plCol]) emp.leaves.EL = parseInt(p[plCol]) || 0; // PL mapped to EL
-        if (slCol !== -1 && p[slCol]) emp.leaves.SL = parseInt(p[slCol]) || 0;
-        if (lopCol !== -1 && p[lopCol]) emp.leaves.LWP = parseInt(p[lopCol]) || 0;
+        emp.leaves.CL = parseInt(p[6]) || 0;
+        emp.leaves.EL = parseInt(p[7]) || 0; // PL mapped to EL
+        emp.leaves.SL = parseInt(p[8]) || 0;
+        emp.leaves.LWP = parseInt(p[9]) || 0;
         
-        if (clUsedCol !== -1 && p[clUsedCol]) emp.leaves.CL_used = parseInt(p[clUsedCol]) || 0;
-        if (plUsedCol !== -1 && p[plUsedCol]) emp.leaves.EL_used = parseInt(p[plUsedCol]) || 0;
-        if (slUsedCol !== -1 && p[slUsedCol]) emp.leaves.SL_used = parseInt(p[slUsedCol]) || 0;
-        if (lopUsedCol !== -1 && p[lopUsedCol]) emp.leaves.LWP_used = parseInt(p[lopUsedCol]) || 0;
+        emp.leaves.CL_used = parseInt(p[10]) || 0;
+        emp.leaves.EL_used = parseInt(p[11]) || 0;
+        emp.leaves.SL_used = parseInt(p[12]) || 0;
+        emp.leaves.LWP_used = parseInt(p[13]) || 0;
         
         updated++;
-      } else {
-        if (empId) notFoundIds.push(empId);
       }
-    }
-    
+    });
     saveDB();
-    
-    var totalRows = lines.length - headerLineIndex - 1;
-    if (updated < totalRows) {
-      alert("WARNING: Only " + updated + " out of " + totalRows + " rows were successfully updated!\n\nThe following Employee IDs were found in your CSV but DO NOT EXIST in the Employee Master:\n" + notFoundIds.slice(0, 10).join(", ") + (notFoundIds.length > 10 ? " ...and " + (notFoundIds.length - 10) + " more" : "") + "\n\nYou must add these employees to the Employee Master first before you can attach leave balances to them.");
-    } else {
-      showToast(updated+' employee leave balances updated successfully!');
-    }
-    
+    showToast(updated+' employee leave balances updated successfully!');
     renderLeaveBalanceTable();
   };
   reader.readAsText(file);inp.value='';
@@ -7307,104 +5142,3 @@ function showToast(msg, duration){
   clearTimeout(window._toastTimer);
   window._toastTimer=setTimeout(function(){t.style.display='none';}, duration || 2800);
 }
-
-function beautifyEmojis() {
-  const emojiMap = {
-    '🏠': 'home',
-    '📋': 'description',
-    '🗺️': 'map',
-    '🗺': 'map',
-    '💰': 'payments',
-    '🏥': 'medical_services',
-    '👨': 'person',
-    '📅': 'calendar_month',
-    '💼': 'work',
-    '🎁': 'card_giftcard',
-    '🆕': 'new_releases',
-    '📄': 'article',
-    '📝': 'edit_note',
-    '📍': 'location_on',
-    '🎫': 'local_activity',
-    '🔍': 'search',
-    '👥': 'group',
-    '✅': 'check_circle',
-    '📦': 'inventory_2',
-    '🔄': 'sync',
-    '↓': 'download',
-    '↑': 'upload',
-    '🗑️': 'delete',
-    '🗑': 'delete',
-    '🔧': 'build'
-  };
-
-  function replaceInNode(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      let text = node.nodeValue;
-      for (const [emoji, symbol] of Object.entries(emojiMap)) {
-        if (text.includes(emoji)) {
-          const parent = node.parentNode;
-          if (parent && !parent.classList.contains('ni') && !parent.classList.contains('header-icon')) {
-            const parts = text.split(emoji);
-            const fragment = document.createDocumentFragment();
-            
-            parts.forEach((part, index) => {
-              if (part) {
-                fragment.appendChild(document.createTextNode(part));
-              }
-              if (index < parts.length - 1) {
-                const span = document.createElement('span');
-                span.className = 'material-symbols-outlined header-icon';
-                span.textContent = symbol;
-                fragment.appendChild(span);
-              }
-            });
-            
-            parent.replaceChild(fragment, node);
-            break;
-          }
-        }
-      }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      // Don't traverse script or style tags
-      if (node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
-        Array.from(node.childNodes).forEach(replaceInNode);
-      }
-    }
-  }
-
-  replaceInNode(document.body);
-}
-
-// Observe dynamic additions
-const emojiObserver = new MutationObserver((mutations) => {
-  let shouldRun = false;
-  for (let mutation of mutations) {
-    for (let node of mutation.addedNodes) {
-      if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
-        shouldRun = true;
-        break;
-      }
-    }
-    if (shouldRun) break;
-  }
-  if (shouldRun) {
-    emojiObserver.disconnect();
-    beautifyEmojis();
-    emojiObserver.observe(document.body, { childList: true, subtree: true });
-  }
-});
-
-emojiObserver.observe(document.body, { childList: true, subtree: true });
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', beautifyEmojis);
-} else {
-  beautifyEmojis();
-}
-</script>
-</body>
-</html>
-
-
-
-

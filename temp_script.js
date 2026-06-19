@@ -1,0 +1,4523 @@
+
+window.addEventListener('error', function(e) {
+  var div = document.createElement('div');
+  div.style.position = 'fixed';
+  div.style.top = '10px';
+  div.style.left = '10px';
+  div.style.right = '10px';
+  div.style.background = '#F87171';
+  div.style.color = '#fff';
+  div.style.padding = '12px';
+  div.style.borderRadius = '8px';
+  div.style.zIndex = '99999';
+  div.style.fontSize = '14px';
+  div.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+  div.textContent = 'JS Error: ' + e.message + ' at ' + e.filename + ':' + e.lineno;
+  document.body.appendChild(div);
+});
+// Master Data Store
+var DEFAULT_DB={
+  employees:[
+    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'NSM001',name:'Sanjay Kapoor',designation:'National Sales Manager',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',doj:'2025-01-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'ZM001',name:'Amitav Banerjee',designation:'Zonal Manager',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',doj:'2025-02-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'RM001',name:'Vikram Malhotra',designation:'Regional Manager',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',doj:'2025-02-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'AM001',name:'Deepa Iyer',designation:'Area Manager',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',doj:'2025-03-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'FLM001',name:'Rajesh Verma',designation:'First Line Manager',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',doj:'2025-03-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP001',name:'Rahul Sharma',designation:'Medical Representative',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',doj:'2025-04-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
+    {id:'EMP002',name:'Priya Mehta',designation:'Medical Representative',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',doj:'2025-04-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
+    {id:'EMP003',name:'Karan Patel',designation:'Medical Representative',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',doj:'2025-05-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
+  ],
+  doctors:[
+    {id:'D001',code:'DOC001',name:'Dr. Anil Kumar',spec:'Cardiologist',qual:'MBBS, MD',address:'Bandra Medical Center',city:'Mumbai',area:'Bandra',phone:'9820000001',assignTo:'EMP001',status:'Active'},
+    {id:'D002',code:'DOC002',name:'Dr. Sunita Rao',spec:'Gynaecologist',qual:'MD, DGO',address:'Holy Spirit Compound',city:'Mumbai',area:'Andheri',phone:'9820000002',assignTo:'EMP002',status:'Active'},
+    {id:'D003',code:'DOC003',name:'Dr. Pradeep Joshi',spec:'Paediatrician',qual:'MBBS, DCH',address:'Hinduja Clinic Road',city:'Mumbai',area:'Bandra',phone:'9820000003',assignTo:'EMP001',status:'Active'},
+    {id:'D004',code:'DOC004',name:'Dr. Meera Nair',spec:'General Physician',qual:'MBBS',address:'KEM OPD Block',city:'Mumbai',area:'Dadar',phone:'9820000004',assignTo:'EMP001',status:'Active'},
+    {id:'D005',code:'DOC005',name:'Dr. Vikram Singh',spec:'ENT Specialist',qual:'MS (ENT)',address:'Kokilaben Hospital Wing C',city:'Mumbai',area:'Vile Parle',phone:'9820000005',assignTo:'EMP002',status:'Active'},
+    {id:'D006',code:'DOC006',name:'Dr. Kavita Shah',spec:'Dermatologist',qual:'MD (Skin)',address:'Sai Skin Clinic',city:'Mumbai',area:'Malad',phone:'9820000006',assignTo:'EMP002',status:'Active'},
+    {id:'D007',code:'DOC007',name:'Dr. Rohit Desai',spec:'Orthopaedic',qual:'MS (Ortho)',address:'Deenanath Hospital',city:'Pune',area:'Kothrud',phone:'9820000007',assignTo:'EMP003',status:'Active'},
+    {id:'D008',code:'DOC008',name:'Dr. Smita Kulkarni',spec:'Neurologist',qual:'DM (Neuro)',address:'Ruby Hall OPD',city:'Pune',area:'Wakad',phone:'9820000008',assignTo:'EMP003',status:'Active'}
+  ],
+  chemists:[
+    {id:'C001',name:'Noble Chemist',area:'Bandra',assignTo:'EMP001'},
+    {id:'C002',name:'Wellness Forever',area:'Andheri',assignTo:'EMP002'},
+    {id:'C003',name:'Apollo Pharmacy',area:'Dadar',assignTo:'EMP001'},
+    {id:'C004',name:'Kothrud Medicals',area:'Kothrud',assignTo:'EMP003'}
+  ],
+  products:['Aminoglobin-XT Susp','Arden 250','Arden 500','Arden 650','Arden A','Arden Junior','Arden MF Susp','Arden Spas','Coldaid+','Coldaid Susp','Coniderm-F','Hepaheal Syrup','Loramyl','ORT+','Servil Herbal','Servil Junior','Servil LS-Baby','Servil-D','Servil-LS Junior','Servil-LS Syrup','MV 30 Syrup','MV 30 Tab'],
+  gifts:['Pen Set','Notepad','Visiting Card Holder','Anatomy Chart','Drug Compendium','Umbrella','Calendar','Desk Clock'],
+  inputs:['Visual Aid Folder','Product Literature','Leave Behind Cards','Table Calendar','Brand Samples Box'],
+  reports:[
+    {
+      id: 'REP_MOCK_1',
+      empId: 'EMP001',
+      empName: 'Rahul Sharma',
+      date: '2026-06-01',
+      time: '10:30',
+      targetType: 'Doctor',
+      classification: 'Planned Call',
+      callType: 'Regular Visit',
+      docId: 'D001',
+      docName: 'Dr. Anil Kumar',
+      docSpec: 'Cardiologist',
+      docArea: 'Bandra',
+      promotedProducts: ['Arden 650', 'Coldaid+'],
+      samples: {'Arden 650': 2, 'Coldaid+': 1},
+      gifts: {'Pen Set': 1},
+      inputs: {'Product Literature': 1},
+      jfwMgrId: '',
+      lat: '19.0543',
+      lng: '72.8402',
+      remarks: 'Detailed visual aid. Doctor was positive about Arden 650.',
+      nextVisit: '2026-06-15'
+    },
+    {
+      id: 'REP_MOCK_2',
+      empId: 'EMP001',
+      empName: 'Rahul Sharma',
+      date: '2026-06-02',
+      time: '14:15',
+      targetType: 'Chemist',
+      classification: 'Planned Call',
+      callType: 'Regular Visit',
+      chemId: 'C001',
+      chemName: 'Noble Chemist',
+      chemArea: 'Bandra',
+      orderAmount: 12500,
+      stockStatus: 'Adequate Stock',
+      jfwMgrId: 'FLM001',
+      jfwMgrName: 'Rajesh Verma',
+      lat: '19.0545',
+      lng: '72.8410',
+      remarks: 'Joint field work with manager. Collected order of Rs 12,500.',
+      nextVisit: ''
+    }
+  ],
+  tourPlans:[],
+  expenses:[],
+  leaves:[],
+  cityRates:{daA:700,daB:500,daC:300,lodgeA:1500,lodgeB:1000,lodgeC:0,localConv:120},
+  sfc:[
+    {from:'Mumbai',to:'Pune',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
+    {from:'Pune',to:'Mumbai',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
+    {from:'Mumbai',to:'Nashik',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
+    {from:'Nashik',to:'Mumbai',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
+    {from:'Mumbai',to:'Aurangabad',distance:330,mode:'Bus',fare:600,da:450,lodge:800,other:150},
+    {from:'Pune',to:'Nashik',distance:210,mode:'Bus',fare:400,da:450,lodge:800,other:100},
+    {from:'Pune',to:'Aurangabad',distance:230,mode:'Bus',fare:450,da:450,lodge:800,other:100}
+  ],
+  samplesInventory:[
+    {prodName:'Arden 650',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Coldaid+',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Servil-D',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
+    {prodName:'Arden 650',empId:'EMP002',opening:100,received:100,distributed:0,balance:100},
+    {prodName:'Coldaid+',empId:'EMP002',opening:100,received:100,distributed:0,balance:100}
+  ],
+  giftsInventory:[
+    {giftName:'Pen Set',empId:'EMP001',opening:30,received:30,distributed:0,balance:30},
+    {giftName:'Notepad',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
+    {giftName:'Pen Set',empId:'EMP002',opening:30,received:30,distributed:0,balance:30}
+  ],
+  inputsInventory:[
+    {inputName:'Visual Aid Folder',empId:'EMP001',opening:10,received:10,distributed:0,balance:10},
+    {inputName:'Product Literature',empId:'EMP001',opening:100,received:100,distributed:0,balance:100}
+  ],
+  holidays:[
+    {date: '2026-01-01', name: 'New Year Day'},
+    {date: '2026-01-26', name: 'Republic Day'},
+    {date: '2026-08-15', name: 'Independence Day'},
+    {date: '2026-10-02', name: 'Gandhi Jayanti'},
+    {date: '2026-12-25', name: 'Christmas Day'}
+  ]
+};
+
+var DB = DEFAULT_DB;
+var supabaseUrl = 'https://ajifnoazcvxvpyzlusuy.supabase.co';
+var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MjA5OTksImV4cCI6MjA5NjM5Njk5OX0.OULR1ym0Bl3Bu_xyFt-IaX8pDqu7qQZ5VKNUWp1igLE';
+var supabase = null;
+var useSupabase = false;
+
+function formatDateForPostgres(dateStr) {
+  if (!dateStr) return null;
+  // If it's already YYYY-MM-DD, return it
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  // Try to parse different formats
+  // Format: DD-MM-YY or DD-MM-YYYY or DD/MM/YY or DD/MM/YYYY
+  var parts = dateStr.split(/[-/]/);
+  if (parts.length === 3) {
+    var day = parts[0];
+    var month = parts[1];
+    var year = parts[2];
+    
+    // If year is 2 digits, convert to 4 digits (e.g., 21 -> 2021)
+    if (year.length === 2) {
+      year = "20" + year;
+    }
+    
+    // Check if parts are numbers
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      // Ensure month and day are 2 digits
+      if (day.length === 1) day = "0" + day;
+      if (month.length === 1) month = "0" + month;
+      
+      // Let's assume standard order is YYYY-MM-DD or DD-MM-YYYY.
+      // If the first part is 4 digits, it's YYYY-MM-DD
+      if (day.length === 4) {
+        return day + "-" + month + "-" + year;
+      }
+      
+      // Otherwise assume it is DD-MM-YYYY
+      return year + "-" + month + "-" + day;
+    }
+  }
+  
+  // Fallback to trying new Date()
+  try {
+    var d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0];
+    }
+  } catch (e) {}
+  
+  return null;
+}
+
+function getDefaultEmployeeDesignation(role) {
+  var map = {
+    admin: 'System Administrator',
+    nsm: 'National Sales Manager',
+    zm: 'Zonal Manager',
+    rm: 'Regional Manager',
+    am: 'Area Manager',
+    manager: 'First Line Manager',
+    emp: 'Medical Representative'
+  };
+  return map[(role || '').trim().toLowerCase()] || 'Employee';
+}
+
+function normalizeEmployeeStatus(status) {
+  var allowed = ['Active', 'Hold', 'Replace', 'Resign'];
+  var value = (status || 'Active').toString().trim();
+  if (!value) return 'Active';
+  var match = allowed.find(function(item) { return item.toLowerCase() === value.toLowerCase(); });
+  return match || 'Active';
+}
+
+function normalizeEmployeeRecord(emp) {
+  if (!emp) return emp;
+  emp.role = (emp.role || 'emp').trim().toLowerCase();
+  emp.designation = (emp.designation || '').trim() || getDefaultEmployeeDesignation(emp.role);
+  emp.status = normalizeEmployeeStatus(emp.status);
+  return emp;
+}
+
+function buildEmployeeSupabaseRow(emp, includeDesignation) {
+  var row = {
+    id: emp.id,
+    name: emp.name,
+    pwd: emp.pwd,
+    area: emp.area,
+    role: emp.role,
+    manager_id: emp.managerId || null,
+    doj: formatDateForPostgres(emp.doj),
+    state: emp.state || null,
+    status: normalizeEmployeeStatus(emp.status),
+    leaves: emp.leaves
+  };
+  if (includeDesignation !== false) {
+    row.designation = (emp.designation || '').trim() || getDefaultEmployeeDesignation(emp.role);
+  }
+  return row;
+}
+
+function stripDesignationFromRows(rows) {
+  return (rows || []).map(function(row) {
+    var copy = {};
+    Object.keys(row || {}).forEach(function(key) {
+      if (key !== 'designation') copy[key] = row[key];
+    });
+    return copy;
+  });
+}
+
+async function upsertEmployeeRowsToSupabase(rows) {
+  if (!rows || !rows.length) return;
+  try {
+    await upsertInBatches('employees', rows);
+  } catch (err) {
+    if (String((err && err.message) || '').toLowerCase().indexOf('designation') !== -1) {
+      console.warn('Supabase employees table is missing designation, retrying without that column.');
+      await upsertInBatches('employees', stripDesignationFromRows(rows));
+      return;
+    }
+    throw err;
+  }
+}
+
+async function insertEmployeeRowsToSupabase(rows) {
+  if (!rows || !rows.length) return;
+  try {
+    const res = await supabase.from('employees').insert(rows);
+    if (res && res.error) throw res.error;
+  } catch (err) {
+    if (String((err && err.message) || '').toLowerCase().indexOf('designation') !== -1) {
+      console.warn('Supabase employees table is missing designation, retrying without that column.');
+      const res2 = await supabase.from('employees').insert(stripDesignationFromRows(rows));
+      if (res2 && res2.error) throw res2.error;
+      return;
+    }
+    throw err;
+  }
+}
+
+function initSupabaseClient() {
+  if (window.supabase) {
+    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    return true;
+  }
+  return false;
+}
+
+function ensureSupabaseLoaded(callback) {
+  if (window.supabase) {
+    initSupabaseClient();
+    if (callback) callback();
+    return;
+  }
+  
+  console.log("Supabase not loaded. Trying UNPKG...");
+  var s = document.createElement('script');
+  s.src = "https://unpkg.com/@supabase/supabase-js@2";
+  s.onload = function() {
+    if (initSupabaseClient()) {
+      console.log("Supabase loaded from UNPKG.");
+      if (callback) callback();
+    } else {
+      tryCDNJS();
+    }
+  };
+  s.onerror = tryCDNJS;
+  document.head.appendChild(s);
+
+  function tryCDNJS() {
+    console.log("UNPKG failed. Trying CDNJS...");
+    var s2 = document.createElement('script');
+    s2.src = "https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.0/supabase.js";
+    s2.onload = function() {
+      if (initSupabaseClient()) {
+        console.log("Supabase loaded from CDNJS.");
+        if (callback) callback();
+      } else {
+        if (callback) callback();
+      }
+    };
+    s2.onerror = function() {
+      if (callback) callback();
+    };
+    document.head.appendChild(s2);
+  }
+}
+
+ensureSupabaseLoaded();
+
+async function fetchAllFromSupabase(table, options) {
+  if (table === 'holidays' && getHolidayTableMissingFlag()) {
+    return [];
+  }
+  let allData = [];
+  let page = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+    if (error) {
+      var missingTable = error && (error.code === 'PGRST205' || /could not find the table/i.test(error.message || ''));
+      if (table === 'holidays' && missingTable) {
+        setHolidayTableMissingFlag(true);
+      }
+      if (!(options && options.allowMissing && missingTable)) {
+        console.error("Error fetching page " + page + " from table " + table + ":", error);
+      }
+      if (options && options.allowMissing) return [];
+      throw error;
+    }
+    if (!data || data.length === 0) break;
+    allData = allData.concat(data);
+    if (data.length < pageSize) break;
+    page++;
+  }
+  if (table === 'holidays') {
+    setHolidayTableMissingFlag(false);
+  }
+  return allData;
+}
+
+async function upsertInBatches(table, dataArray, chunkSize = 1000) {
+  if (!dataArray || dataArray.length === 0) return;
+  for (let i = 0; i < dataArray.length; i += chunkSize) {
+    const chunk = dataArray.slice(i, i + chunkSize);
+    const { error } = await supabase.from(table).upsert(chunk);
+    if (error) {
+        console.error("Batch upsert failed on table " + table + ":", error);
+        throw error;
+      }
+  }
+}
+
+async function initSupabaseData(isSilent) {
+  if (!supabase) {
+    ensureSupabaseLoaded(function() {
+      if (supabase) {
+        initSupabaseData(isSilent);
+      } else {
+        console.warn("Supabase library not loaded. Using LocalStorage.");
+        loadLocalDB();
+      }
+    });
+    return;
+  }
+  
+  if (isSilent !== true) showToast("Connecting to Supabase...");
+  
+  try {
+    const emps = await fetchAllFromSupabase('employees');
+    
+    useSupabase = true;
+    console.log("Connected to Supabase successfully.");
+    var indicator = document.getElementById('db-status-indicator');
+    if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
+    
+    const [
+      doctors,
+      chemists,
+      reports,
+      tourPlans,
+      expenses,
+      leaves,
+      sfc,
+      samplesInv,
+      giftsInv,
+      inputsInv
+    ] = await Promise.all([
+      fetchAllFromSupabase('doctors'),
+      fetchAllFromSupabase('chemists'),
+      fetchAllFromSupabase('reports'),
+      fetchAllFromSupabase('tour_plans'),
+      fetchAllFromSupabase('expenses'),
+      fetchAllFromSupabase('leaves'),
+      fetchAllFromSupabase('sfc'),
+      fetchAllFromSupabase('samples_inventory'),
+      fetchAllFromSupabase('gifts_inventory'),
+      fetchAllFromSupabase('inputs_inventory')
+    ]);
+
+    const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
+    let holidays = [];
+    if (holData && holData.length > 0) {
+      setHolidayDeletionFlag(false);
+      setHolidayTableMissingFlag(false);
+      holidays = holData.map(h => ({ date: h.date, name: h.name, state: h.state || 'All' }));
+    } else {
+      holidays = getHolidayDeletionFlag() ? [] : (DB.holidays || DEFAULT_DB.holidays || []);
+    }
+    
+    if (!emps || emps.length === 0) {
+      if (isSilent !== true) showToast("Seeding database with default records...");
+      await seedSupabaseDatabase();
+      await initSupabaseData(isSilent);
+      return;
+    }
+    
+    // ABORT OVERWRITE IF A SYNC IS CURRENTLY RUNNING OR PENDING
+    // Otherwise we will wipe out local changes that haven't been pushed to the cloud yet
+    if (isSyncing || syncPending) {
+      console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending.");
+      return;
+    }
+    
+    DB = {
+      employees: emps.map(e => ({
+        id: e.id,
+        name: e.name,
+        pwd: e.pwd,
+        area: e.area,
+        role: (e.role || 'emp').trim().toLowerCase(),
+        managerId: e.manager_id,
+        doj: e.doj || '',
+        state: e.state || '',
+        status: e.status || 'Active',
+        designation: e.designation || getDefaultEmployeeDesignation(e.role),
+        leaves: e.leaves
+      })),
+      doctors: (doctors || []).map(d => ({
+        id: d.id,
+        code: d.code,
+        name: d.name,
+        spec: d.spec,
+        qual: d.qual,
+        address: d.address,
+        city: d.city,
+        area: d.area,
+        phone: d.phone,
+        assignTo: d.assign_to,
+        status: d.status
+      })),
+      chemists: (chemists || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        area: c.area,
+        assignTo: c.assign_to
+      })),
+      products: DEFAULT_DB.products,
+      gifts: DEFAULT_DB.gifts,
+      inputs: DEFAULT_DB.inputs,
+      reports: (reports || []).map(r => ({
+        id: r.id,
+        empId: r.emp_id,
+        empName: r.emp_name,
+        date: r.date,
+        time: r.time,
+        targetType: r.target_type,
+        classification: r.classification,
+        callType: r.call_type,
+        docId: r.doc_id,
+        docName: r.doc_name,
+        docSpec: r.doc_spec,
+        docArea: r.doc_area,
+        promotedProducts: r.promoted_products || [],
+        samples: r.samples || {},
+        gifts: r.gifts || {},
+        inputs: r.inputs || {},
+        chemId: r.chem_id,
+        chemName: r.chem_name,
+        chemArea: r.chem_area,
+        orderAmount: parseFloat(r.order_amount) || 0,
+        stockStatus: r.stock_status,
+        jfwMgrId: r.jfw_mgr_id,
+        jfwMgrName: r.jfw_mgr_name,
+        lat: r.lat,
+        lng: r.lng,
+        remarks: r.remarks,
+        nextVisit: r.next_visit
+      })),
+      tourPlans: (tourPlans || []).map(tp => ({
+        id: tp.id,
+        empId: tp.emp_id,
+        empName: tp.emp_name,
+        month: tp.month,
+        managerId: tp.manager_id,
+        managerName: tp.manager_name,
+        days: tp.days,
+        status: tp.status,
+        remarks: tp.remarks,
+        submittedAt: tp.submitted_at,
+        approvedDate: tp.approved_date,
+        approvedBy: tp.approved_by,
+        revisionHistory: tp.revision_history || []
+      })),
+      expenses: (expenses || []).map(ex => ({
+        id: ex.id,
+        empId: ex.emp_id,
+        empName: ex.emp_name,
+        month: ex.month,
+        managerId: ex.manager_id,
+        lines: ex.lines,
+        total: parseFloat(ex.total) || 0,
+        receiptFile: ex.receipt_file,
+        status: ex.status,
+        submittedAt: ex.submitted_at,
+        remarks: ex.remarks
+      })),
+      leaves: (leaves || []).map(lv => ({
+        id: lv.id,
+        empId: lv.emp_id,
+        empName: lv.emp_name,
+        type: lv.type,
+        start: lv.start,
+        end: lv.end,
+        days: lv.days,
+        reason: lv.reason,
+        managerId: lv.manager_id,
+        status: lv.status,
+        submittedAt: lv.submitted_at,
+        remarks: lv.remarks
+      })),
+      cityRates: DEFAULT_DB.cityRates,
+      sfc: (sfc || []).map(s => ({
+        from: s.from_loc,
+        to: s.to_loc,
+        distance: s.distance,
+        mode: s.mode,
+        fare: s.fare,
+        da: s.da,
+        lodge: s.lodge,
+        other: s.other
+      })),
+      samplesInventory: (samplesInv || []).map(s => ({
+        id: s.id,
+        prodName: s.prod_name,
+        empId: s.emp_id,
+        opening: s.opening,
+        received: s.received,
+        distributed: s.distributed,
+        balance: s.balance
+      })),
+      giftsInventory: (giftsInv || []).map(g => ({
+        id: g.id,
+        giftName: g.gift_name,
+        empId: g.emp_id,
+        opening: g.opening,
+        received: g.received,
+        distributed: g.distributed,
+        balance: g.balance
+      })),
+      inputsInventory: (inputsInv || []).map(i => ({
+        id: i.id,
+        inputName: i.input_name,
+        empId: i.emp_id,
+        opening: i.opening,
+        received: i.received,
+        distributed: i.distributed,
+        balance: i.balance
+      })),
+      holidays: holidays
+    };
+    
+    // Save synchronized DB to local storage cache
+    localStorage.setItem('adonis_db', JSON.stringify(DB));
+    
+    // Refresh the UI with the fresh data
+    if (SESSION.user) {
+      if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
+        renderAdminStats();
+        renderAdminDashTeamList();
+        renderAdminTPApprovals();
+        renderAdminExpApprovals();
+        renderAdminLeaveApprovals();
+        renderEmpTable();
+        renderAdminDocList();
+        renderAdminChemistList();
+        renderSFCTable();
+        loadCityRates();
+        populateAdminEmpMgr();
+        populateAdminEmpFilters();
+        populateInventoryItemSelect();
+        renderAdminInventoryTables();
+      } else {
+        populateReportingDropdowns();
+        renderDocList();
+        renderChemistList();
+        populateJFWManagers();
+        checkMTPForSelectedDate();
+        renderLeaveBalances();
+        renderMyLeaves();
+        renderHomeStats();
+      }
+    }
+    
+    if (isSilent !== true) showToast("Supabase data synchronized!");
+    
+  } catch (err) {
+    console.error("Supabase load failed. Falling back to LocalStorage:", err);
+    if (isSilent !== true) showToast("Using local database cache.");
+    loadLocalDB();
+  }
+}
+
+function loadLocalDB() {
+  DB = JSON.parse(localStorage.getItem('adonis_db')) || DEFAULT_DB;
+  if (!DB.reports || DB.reports.length === 0) {
+    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
+  }
+  // Enforce doj, state, status, pwd and role defaults / normalization for all local employees
+  var updated = false;
+  DB.employees.forEach(function(e) {
+    var def = DEFAULT_DB.employees.find(function(d){return d.id === e.id;});
+    if (!e.doj) { e.doj = def ? def.doj : '2026-01-01'; updated = true; }
+    if (!e.state) { e.state = def ? def.state : 'Maharashtra'; updated = true; }
+    if (!e.status) { e.status = def ? def.status : 'Active'; updated = true; }
+    if (!e.pwd) { e.pwd = def ? def.pwd : 'pass123'; updated = true; }
+    var normalizedRole = (e.role || 'emp').trim().toLowerCase();
+    if (e.role !== normalizedRole) {
+      e.role = normalizedRole;
+      updated = true;
+    }
+    var defaultDesignation = def ? def.designation : getDefaultEmployeeDesignation(e.role);
+    if (!e.designation) { e.designation = defaultDesignation; updated = true; }
+    var normalizedStatus = normalizeEmployeeStatus(e.status);
+    if (e.status !== normalizedStatus) {
+      e.status = normalizedStatus;
+      updated = true;
+    }
+  });
+  if (getHolidayDeletionFlag()) {
+    DB.holidays = Array.isArray(DB.holidays) ? DB.holidays : [];
+    DB.holidays = [];
+    updated = true;
+  } else if (!DB.holidays) {
+    DB.holidays = JSON.parse(JSON.stringify(DEFAULT_DB.holidays || []));
+    updated = true;
+  }
+  if (updated || !localStorage.getItem('adonis_db')) {
+    localStorage.setItem('adonis_db', JSON.stringify(DB));
+  }
+}
+async function seedSupabaseDatabase() {
+  try {
+    const dbEmps = DEFAULT_DB.employees.map(function(e) {
+      var managerId = e.managerId || null;
+      if (managerId && !DEFAULT_DB.employees.find(function(x) { return x.id === managerId; })) {
+        managerId = null;
+      }
+      return {
+        id: e.id,
+        name: e.name,
+        pwd: e.pwd,
+        area: e.area,
+        role: e.role,
+        manager_id: managerId,
+        doj: formatDateForPostgres(e.doj),
+        state: e.state || null,
+        status: normalizeEmployeeStatus(e.status),
+        // designation omitted because table doesn't have it
+        leaves: e.leaves
+      };
+    });
+    await insertEmployeeRowsToSupabase(dbEmps);
+  } catch (e) { console.error("Error seeding employees:", e); }
+  
+  try {
+    const dbDocs = DEFAULT_DB.doctors.map(d => ({
+      id: d.id,
+      code: d.code,
+      name: d.name,
+      spec: d.spec,
+      qual: d.qual,
+      address: d.address,
+      city: d.city,
+      area: d.area,
+      phone: d.phone,
+      assign_to: d.assignTo || null,
+      status: d.status
+    }));
+    await supabase.from('doctors').insert(dbDocs);
+  } catch (e) { console.error("Error seeding doctors:", e); }
+  
+  try {
+    const dbChems = DEFAULT_DB.chemists.map(c => ({
+      id: c.id,
+      name: c.name,
+      area: c.area,
+      assign_to: c.assignTo || null
+    }));
+    await supabase.from('chemists').insert(dbChems);
+  } catch (e) { console.error("Error seeding chemists:", e); }
+
+  try {
+    const dbSfc = DEFAULT_DB.sfc.map(s => ({
+      from_loc: s.from,
+      to_loc: s.to,
+      distance: s.distance,
+      mode: s.mode,
+      fare: s.fare,
+      da: s.da,
+      lodge: s.lodge,
+      other: s.other
+    }));
+    await supabase.from('sfc').insert(dbSfc);
+  } catch (e) { console.error("Error seeding SFC:", e); }
+
+  try {
+    const dbSamples = DEFAULT_DB.samplesInventory.map(s => ({
+      prod_name: s.prodName,
+      emp_id: s.empId,
+      opening: s.opening,
+      received: s.received,
+      distributed: s.distributed,
+      balance: s.balance
+    }));
+    await supabase.from('samples_inventory').insert(dbSamples);
+  } catch (e) { console.error("Error seeding samples:", e); }
+
+  try {
+    const dbGifts = DEFAULT_DB.giftsInventory.map(g => ({
+      gift_name: g.giftName,
+      emp_id: g.empId,
+      opening: g.opening,
+      received: g.received,
+      distributed: g.distributed,
+      balance: g.balance
+    }));
+    await supabase.from('gifts_inventory').insert(dbGifts);
+  } catch (e) { console.error("Error seeding gifts:", e); }
+
+  try {
+    const dbInputs = DEFAULT_DB.inputsInventory.map(i => ({
+      input_name: i.inputName,
+      emp_id: i.empId,
+      opening: i.opening,
+      received: i.received,
+      distributed: i.distributed,
+      balance: i.balance
+    }));
+    await supabase.from('inputs_inventory').insert(dbInputs);
+  } catch (e) { console.error("Error seeding inputs:", e); }
+
+  try {
+    const dbReports = DEFAULT_DB.reports.map(r => ({
+      id: r.id,
+      emp_id: r.empId,
+      emp_name: r.empName,
+      date: r.date,
+      time: r.time,
+      target_type: r.targetType,
+      classification: r.classification,
+      call_type: r.callType,
+      doc_id: r.docId || null,
+      doc_name: r.docName || null,
+      doc_spec: r.docSpec || null,
+      doc_area: r.docArea || null,
+      promoted_products: r.promotedProducts || [],
+      samples: r.samples || {},
+      gifts: r.gifts || {},
+      inputs: r.inputs || {},
+      chem_id: r.chemId || null,
+      chem_name: r.chemName || null,
+      chem_area: r.chemArea || null,
+      order_amount: r.orderAmount || 0,
+      stock_status: r.stockStatus || null,
+      jfw_mgr_id: r.jfwMgrId || null,
+      jfw_mgr_name: r.jfwMgrName || null,
+      lat: r.lat || null,
+      lng: r.lng || null,
+      remarks: r.remarks || null,
+      next_visit: r.nextVisit || null
+    }));
+    await supabase.from('reports').insert(dbReports);
+  } catch (e) { console.error("Error seeding reports:", e); }
+}
+
+function saveDB() {
+    try {
+      localStorage.setItem('adonis_db', JSON.stringify(DB));
+    } catch (e) {
+      console.warn("localStorage quota exceeded. Skipping local save to ensure Supabase sync runs.");
+    }
+    if (useSupabase) {
+      syncSupabaseDatabase();
+    }
+  }
+
+var isSyncing = false;
+var syncPending = false;
+  async function syncSupabaseDatabase() {
+    if (isSyncing) {
+      syncPending = true;
+      return;
+    }
+    isSyncing = true;
+    syncPending = false;
+    var dbStatus = document.getElementById('db-status-indicator');
+    if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
+    try {
+    const dbEmps = DB.employees.map(function(e) {
+      var managerId = e.managerId || null;
+      if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
+        managerId = null;
+      }
+      return {
+        id: e.id,
+        name: e.name,
+        pwd: e.pwd,
+        area: e.area,
+        role: e.role,
+        manager_id: managerId,
+        doj: formatDateForPostgres(e.doj),
+        state: e.state || null,
+        status: normalizeEmployeeStatus(e.status),
+        // designation omitted because table doesn't have it
+        leaves: e.leaves
+      };
+    });
+    await upsertEmployeeRowsToSupabase(dbEmps);
+    await reconcileSupabaseRows('employees', DB.employees, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('employees').delete().eq('id', row.id);
+    });
+
+    const dbDocs = DB.doctors.map(d => {
+      var assignTo = d.assignTo || null;
+      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
+        assignTo = null;
+      }
+      return {
+        id: d.id,
+        code: d.code,
+        name: d.name,
+        spec: d.spec,
+        qual: d.qual,
+        address: d.address,
+        city: d.city,
+        area: d.area,
+        phone: d.phone,
+        assign_to: assignTo,
+        status: d.status
+      };
+    });
+    await upsertInBatches('doctors', dbDocs);
+    await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('doctors').delete().eq('id', row.id);
+    });
+
+    const dbChems = DB.chemists.map(c => {
+      var assignTo = c.assignTo || null;
+      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
+        assignTo = null;
+      }
+      return {
+        id: c.id,
+        name: c.name,
+        area: c.area,
+        assign_to: assignTo
+      };
+    });
+    await upsertInBatches('chemists', dbChems);
+    await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
+      return String(row.id || '').toUpperCase();
+    }, function(row) {
+      return supabase.from('chemists').delete().eq('id', row.id);
+    });
+
+    const dbReports = DB.reports.map(r => ({
+      id: r.id,
+      emp_id: r.empId,
+      emp_name: r.empName,
+      date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
+      time: r.time,
+      target_type: r.targetType,
+      classification: r.classification,
+      call_type: r.callType,
+      doc_id: r.docId || null,
+      doc_name: r.docName || null,
+      doc_spec: r.docSpec || null,
+      doc_area: r.docArea || null,
+      promoted_products: r.promotedProducts || [],
+      samples: r.samples || {},
+      gifts: r.gifts || {},
+      inputs: r.inputs || {},
+      chem_id: r.chemId || null,
+      chem_name: r.chemName || null,
+      chem_area: r.chemArea || null,
+      order_amount: r.orderAmount || 0,
+      stock_status: r.stockStatus || null,
+      jfw_mgr_id: r.jfwMgrId || null,
+      jfw_mgr_name: r.jfwMgrName || null,
+      lat: r.lat || null,
+      lng: r.lng || null,
+      remarks: r.remarks || null,
+      next_visit: formatDateForPostgres(r.nextVisit)
+    }));
+    await upsertInBatches('reports', dbReports);
+
+    const dbTourPlans = DB.tourPlans.map(tp => ({
+      id: tp.id,
+      emp_id: tp.empId,
+      emp_name: tp.empName,
+      month: tp.month,
+      manager_id: resolveManagerId(tp.managerId),
+      manager_name: tp.managerName || null,
+      days: tp.days,
+      status: tp.status,
+      remarks: tp.remarks || null,
+      submitted_at: tp.submittedAt || null,
+      approved_date: formatDateForPostgres(tp.approvedDate),
+      approved_by: tp.approvedBy || null,
+      revision_history: tp.revisionHistory || []
+    }));
+    await upsertInBatches('tour_plans', dbTourPlans);
+
+    const dbExpenses = DB.expenses.map(ex => ({
+      id: ex.id,
+      emp_id: ex.empId,
+      emp_name: ex.empName,
+      month: ex.month,
+      manager_id: resolveManagerId(ex.managerId),
+      lines: ex.lines,
+      total: ex.total,
+      receipt_file: ex.receiptFile || null,
+      status: ex.status,
+      submitted_at: ex.submittedAt || null,
+      remarks: ex.remarks || null
+    }));
+    await upsertInBatches('expenses', dbExpenses);
+
+    const dbLeaves = DB.leaves.map(lv => ({
+      id: lv.id,
+      emp_id: lv.empId,
+      emp_name: lv.empName,
+      type: lv.type,
+      start: formatDateForPostgres(lv.start),
+      "end": formatDateForPostgres(lv.end),
+      days: lv.days,
+      reason: lv.reason || null,
+      manager_id: lv.managerId || null,
+      status: lv.status,
+      submitted_at: lv.submittedAt || null,
+      remarks: lv.remarks || null
+    }));
+    await upsertInBatches('leaves', dbLeaves);
+
+    const dbSamples = DB.samplesInventory.map(s => ({
+      id: s.id || undefined,
+      prod_name: s.prodName,
+      emp_id: s.empId,
+      opening: s.opening,
+      received: s.received,
+      distributed: s.distributed,
+      balance: s.balance
+    }));
+    await upsertInBatches('samples_inventory', dbSamples);
+
+    const dbGifts = DB.giftsInventory.map(g => ({
+      id: g.id || undefined,
+      gift_name: g.giftName,
+      emp_id: g.empId,
+      opening: g.opening,
+      received: g.received,
+      distributed: g.distributed,
+      balance: g.balance
+    }));
+    await upsertInBatches('gifts_inventory', dbGifts);
+
+    const dbInputs = DB.inputsInventory.map(i => ({
+      id: i.id || undefined,
+      input_name: i.inputName,
+      emp_id: i.empId,
+      opening: i.opening,
+      received: i.received,
+      distributed: i.distributed,
+      balance: i.balance
+    }));
+    await upsertInBatches('inputs_inventory', dbInputs);
+
+    const dbSfc = DB.sfc.map(s => ({
+      id: s.id || undefined,
+      from_loc: s.from,
+      to_loc: s.to,
+      distance: s.distance,
+      mode: s.mode,
+      fare: s.fare,
+      da: s.da,
+      lodge: s.lodge,
+      other: s.other || 0
+    }));
+    await upsertInBatches('sfc', dbSfc);
+    await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
+      return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
+    });
+
+    try {
+      if (getHolidayTableMissingFlag()) {
+        // Keep using the local holiday cache when the cloud table doesn't exist.
+      } else if (DB.holidays && DB.holidays.length > 0) {
+        const dbHols = DB.holidays.map(h => ({
+          date: formatDateForPostgres(h.date) || h.date,
+          name: h.name,
+          state: h.state || 'All'
+        }));
+        await upsertInBatches('holidays', dbHols);
+      }
+      if (!getHolidayTableMissingFlag()) {
+        await reconcileSupabaseRows('holidays', DB.holidays || [], normalizeHolidayKey, function(row) {
+          return supabase.from('holidays').delete()
+            .eq('date', formatDateForPostgres(row.date) || row.date)
+            .eq('state', normalizeHolidayState(row.state));
+        });
+      }
+    } catch (holErr) {
+      if (holErr && (holErr.code === 'PGRST205' || /could not find the table/i.test(holErr.message || ''))) {
+        setHolidayTableMissingFlag(true);
+        return;
+      }
+      console.warn("Could not sync holidays to Supabase (table may not exist):", holErr);
+    }
+
+  } catch (err) {
+      console.error("Supabase sync failed:", err);
+    } finally {
+      var dbStatus = document.getElementById('db-status-indicator');
+      if (dbStatus) dbStatus.textContent = 'Database Connection: Supabase Cloud';
+      showToast("Cloud Sync Complete!", 3000);
+
+      isSyncing = false;
+      if (syncPending) {
+        setTimeout(syncSupabaseDatabase, 1000);
+      }
+    }
+  }
+
+  initSupabaseData();
+
+// Poll Supabase database for updates every 15 seconds if Supabase is connected
+setInterval(async function() {
+  if (useSupabase && !isSyncing) {
+      console.log("Auto-polling Supabase data...");
+      await initSupabaseData(true);
+    }
+}, 15000);
+
+var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};
+setTimeout(function() {
+  if (SESSION.user) {
+    document.getElementById('scr-login').style.display = 'none';
+    if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
+      document.getElementById('scr-admin').classList.add('on');
+      document.getElementById('adm-panel-title').textContent = (SESSION.user.role === 'admin' ? 'Admin Panel' : 'Manager Panel') + ' - ' + SESSION.user.name;
+      document.getElementById('adm-badge').textContent = SESSION.user.role.toUpperCase();
+      if(SESSION.user.role !== 'admin'){
+        document.getElementById('adm-sfc-section').style.display = 'none';
+      }
+      initAdminApp();
+    } else {
+      document.getElementById('scr-emp').classList.add('on');
+      initEmpApp();
+    }
+  }
+}, 50);
+var currentTPId=null;
+var currentExpId=null;
+var currentLeaveId=null;
+var currentAdminTab='dash';
+var filteredReports=[];
+
+// ===== AUTH =====
+function togglePasswordVisibility() {
+  var pwdInput = document.getElementById('login-pwd');
+  var btn = document.querySelector('.password-toggle-btn');
+  if (pwdInput.type === 'password') {
+    pwdInput.type = 'text';
+    btn.textContent = 'Hide';
+  } else {
+    pwdInput.type = 'password';
+    btn.textContent = 'Show';
+  }
+}
+
+function doLogin(){
+  var id=document.getElementById('login-id').value.trim().toUpperCase();
+  var pwd=document.getElementById('login-pwd').value.trim();
+  console.log("=== Sankalp Login Attempt ===");
+  console.log("Input Employee ID/Name:", id);
+  console.log("Input Password:", pwd);
+  console.log("All Employees in DB:", DB.employees);
+  var emp=DB.employees.find(function(e){
+    var matchId = (e.id || '').trim().toUpperCase() === id;
+    var matchName = e.name && (e.name.trim().toUpperCase() === id);
+    var matchPwd = e.pwd && (e.pwd.trim() === pwd);
+    return (matchId || matchName) && matchPwd;
+  });
+  if(!emp){
+    showToast('Invalid Employee ID/Name or Password');
+    return;
+  }
+  SESSION.user=emp;
+  localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+  document.getElementById('scr-login').style.display='none';
+  
+  if (emp.role === 'emp') {
+    document.getElementById('scr-emp').classList.add('on');
+    initEmpApp();
+  } else {
+    document.getElementById('scr-admin').classList.add('on');
+    document.getElementById('adm-panel-title').textContent=(emp.role==='admin'?'Admin Panel':'Manager Panel') + ' - ' + emp.name;
+    document.getElementById('adm-badge').textContent=emp.role.toUpperCase();
+    if(emp.role!=='admin'){
+      document.getElementById('adm-sfc-section').style.display='none';
+    } else {
+      document.getElementById('adm-sfc-section').style.display='';
+    }
+    initAdminApp();
+  }
+}
+
+function doLogout(){
+  SESSION.user=null;
+  localStorage.removeItem('adonis_session');
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
+  document.getElementById('scr-login').style.display='flex';
+  document.getElementById('login-id').value='';document.getElementById('login-pwd').value='';
+}
+
+// ===== EMPLOYEE / MR PORTAL FUNCTIONS =====
+function initEmpApp(){
+  var u=SESSION.user;
+  document.getElementById('emp-greeting').textContent='Welcome, '+u.name+' ('+u.id+')';
+  
+  var now=new Date();
+  document.getElementById('r-date').value=now.toISOString().split('T')[0];
+  document.getElementById('r-time').value=now.toTimeString().slice(0,5);
+  
+  // Set default values for inputs
+  var defMonth=now.toISOString().slice(0,7);
+  document.getElementById('tp-month').value=defMonth;
+  document.getElementById('exp-month').value=defMonth;
+  
+  var mgr=DB.employees.find(function(e){return e.id===u.managerId;});
+  var mgrName=mgr ? mgr.name+' ('+mgr.role.toUpperCase()+')' : 'No Direct Manager';
+  
+  // Populate read-only manager displays
+  var tpm=document.getElementById('tp-manager');
+  tpm.innerHTML='<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
+  var lvm=document.getElementById('lv-manager');
+  lvm.innerHTML='<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
+  
+  populateReportingDropdowns();
+  renderDocList();
+  renderChemistList();
+  populateJFWManagers();
+  checkMTPForSelectedDate();
+  renderLeaveBalances();
+  renderMyLeaves();
+  renderHomeStats();
+  
+  goTab('home');
+}
+
+function populateReportingDropdowns(){
+  var docSel=document.getElementById('r-doctor');
+  docSel.innerHTML='<option value="">-- Select Doctor --</option>';
+  DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active';}).forEach(function(d){
+    var o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.spec+' - '+d.area+')';docSel.appendChild(o);
+  });
+
+  var chemSel=document.getElementById('r-chemist');
+  chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
+  DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).forEach(function(c){
+    var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.area+')';chemSel.appendChild(o);
+  });
+  docSel.onchange=updateReportClassificationFromTarget;
+  chemSel.onchange=updateReportClassificationFromTarget;
+  
+  // Product checklist grid
+  var promoProductsGrid=document.getElementById('r-promo-products');
+  promoProductsGrid.innerHTML=DB.products.map(function(p, i){
+    return '<label class="checklist-item"><input type="checkbox" class="promo-prod-check" value="'+p+'"> '+p+'</label>';
+  }).join('');
+  
+  // Samples
+  document.getElementById('samples-list').innerHTML=DB.products.map(function(p,i){
+    var myStock=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+    var bal=myStock ? myStock.balance : 0;
+    return '<div class="sample-row"><div class="sample-name">'+p+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" class="sample-inp"></div></div>';
+  }).join('');
+
+  // Gifts
+  document.getElementById('gifts-list').innerHTML=DB.gifts.map(function(g,i){
+    var myStock=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+    var bal=myStock ? myStock.balance : 0;
+    return '<div class="sample-row"><div class="sample-name">'+g+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" class="gift-inp"></div></div>';
+  }).join('');
+
+  // Inputs
+  document.getElementById('inputs-list').innerHTML=DB.inputs.map(function(ip,i){
+    var myStock=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+    var bal=myStock ? myStock.balance : 0;
+    return '<div class="sample-row"><div class="sample-name">'+ip+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" class="input-inp"></div></div>';
+  }).join('');
+}
+
+function populateJFWManagers(){
+  var jfwSel=document.getElementById('r-jfw-manager');
+  jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
+  
+  // Pull hierarchy automatically
+  var chain=[];
+  var currentId=SESSION.user.managerId;
+  while(currentId){
+    var mgr=DB.employees.find(function(e){return e.id===currentId;});
+    if(mgr){
+      chain.push(mgr);
+      currentId=mgr.managerId;
+    } else {
+      break;
+    }
+  }
+  
+  chain.forEach(function(m){
+    var o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.role.toUpperCase()+')';jfwSel.appendChild(o);
+  });
+}
+
+function toggleReportTargetFields(){
+  var type=document.getElementById('r-target-type').value;
+  if(type==='Doctor'){
+    document.getElementById('r-doctor-wrap').style.display='block';
+    document.getElementById('r-chemist-wrap').style.display='none';
+    document.getElementById('r-doctor-details-wrap').style.display='block';
+    document.getElementById('r-chemist-details-wrap').style.display='none';
+  } else {
+    document.getElementById('r-doctor-wrap').style.display='none';
+    document.getElementById('r-chemist-wrap').style.display='block';
+    document.getElementById('r-doctor-details-wrap').style.display='none';
+    document.getElementById('r-chemist-details-wrap').style.display='block';
+  }
+  updateReportClassificationFromTarget();
+}
+
+function getApprovedMTPDay(dateStr){
+  if(!dateStr || !SESSION.user)return null;
+  var monthStr=dateStr.slice(0, 7);
+  var mtp=DB.tourPlans.find(function(tp){
+    return tp.empId===SESSION.user.id && tp.month===monthStr && (tp.status==='Approved' || tp.status==='Submitted' || tp.status==='Approved by Manager' || tp.status==='Approved by Admin');
+  });
+  return mtp ? mtp.days.find(function(d){return d.date===dateStr;}) : null;
+}
+
+function renderPlannedTargetsForReport(plannedDay){
+  var wrap=document.getElementById('r-planned-targets-wrap');
+  if(!wrap)return;
+  var plannedDocIds = plannedDay ? ((plannedDay.plannedDocs&&plannedDay.plannedDocs.length) ? plannedDay.plannedDocs : getAssignedDoctorsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(doc){return doc.id;})) : [];
+  var plannedChemIds = plannedDay ? ((plannedDay.plannedChems&&plannedDay.plannedChems.length) ? plannedDay.plannedChems : getAssignedChemistsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(chem){return chem.id;})) : [];
+  if(!plannedDay || (!plannedDocIds.length && !plannedChemIds.length)){
+    wrap.style.display='none';
+    wrap.innerHTML='';
+    return;
+  }
+  var docBtns=plannedDocIds.map(function(docId){
+    var doc=DB.doctors.find(function(d){return d.id===docId && d.assignTo===SESSION.user.id && d.status==='Active';});
+    return doc ? '<button type="button" class="btn sm" style="width:auto;margin:3px;display:inline-flex" onclick="selectPlannedReportTarget(\'Doctor\', \''+doc.id+'\')">'+doc.name+'</button>' : '';
+  }).join('');
+  var chemBtns=plannedChemIds.map(function(chemId){
+    var chem=DB.chemists.find(function(c){return c.id===chemId && c.assignTo===SESSION.user.id;});
+    return chem ? '<button type="button" class="btn sm" style="width:auto;margin:3px;display:inline-flex" onclick="selectPlannedReportTarget(\'Chemist\', \''+chem.id+'\')">'+chem.name+'</button>' : '';
+  }).join('');
+  wrap.style.display='block';
+  wrap.innerHTML='<label class="lbl">Approved MTP Targets for this Date</label><div class="info-box green" style="margin-bottom:0">'+
+    (docBtns ? '<div style="margin-bottom:6px"><strong>Doctors:</strong><br>'+docBtns+'</div>' : '')+
+    (chemBtns ? '<div><strong>Chemists:</strong><br>'+chemBtns+'</div>' : '')+
+    '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor or chemist as an unplanned call.</div></div>';
+}
+
+
+function getAllSubordinateIds(managerId) {
+  let subIds = new Set();
+  let toCheck = [managerId];
+  while (toCheck.length > 0) {
+    let currentId = toCheck.pop();
+    subIds.add(currentId);
+    DB.employees.forEach(emp => {
+      if (emp.managerId === currentId && !subIds.has(emp.id)) {
+        toCheck.push(emp.id);
+      }
+    });
+  }
+  return Array.from(subIds);
+}
+
+function resolveManagerId(rawMgr) {
+  if (!rawMgr) return null;
+  var str = rawMgr.trim().toLowerCase();
+  var e = DB.employees.find(function(x) { return (x.id||'').trim().toLowerCase() === str || (x.name||'').trim().toLowerCase() === str; });
+  return e ? e.id : null;
+}
+
+function isPendingForUser(status, managerId, u) {
+  var mgrId = resolveManagerId(managerId);
+  if (mgrId === u.id) {
+    if (status === 'Submitted' || status === 'Approved by Admin') return true;
+  }
+  if (u.role === 'admin') {
+    if (status === 'Submitted' || status === 'Approved by Manager') return true;
+  }
+  return false;
+}
+
+function processApproval(currentStatus, managerId, u) {
+  var mgrId = resolveManagerId(managerId);
+  if (currentStatus === 'Submitted') {
+    if (mgrId === u.id && u.role === 'admin') {
+      return 'Approved';
+    } else if (mgrId === u.id) {
+      return 'Approved by Manager';
+    } else if (u.role === 'admin') {
+      return mgrId ? 'Approved by Admin' : 'Approved';
+    }
+  } else if (currentStatus === 'Approved by Manager') {
+    if (u.role === 'admin') return 'Approved';
+  } else if (currentStatus === 'Approved by Admin') {
+    if (mgrId === u.id) return 'Approved';
+  }
+  return currentStatus;
+}
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getSearchQuery(inputId) {
+  var el = document.getElementById(inputId);
+  return (el && el.value ? el.value : '').trim().toLowerCase();
+}
+
+function normalizeHolidayState(state) {
+  return (state || 'All').trim() || 'All';
+}
+
+function getHolidayDeletionFlag() {
+  return localStorage.getItem('adonis_holidays_cleared') === '1';
+}
+
+function setHolidayDeletionFlag(isCleared) {
+  if (isCleared) {
+    localStorage.setItem('adonis_holidays_cleared', '1');
+  } else {
+    localStorage.removeItem('adonis_holidays_cleared');
+  }
+}
+
+var HOLIDAY_TABLE_MISSING_RETRY_MS = 60000;
+
+function getHolidayTableMissingFlag() {
+  var ts = parseInt(localStorage.getItem('adonis_holidays_missing_at') || '0', 10);
+  return !!ts && (Date.now() - ts) < HOLIDAY_TABLE_MISSING_RETRY_MS;
+}
+
+function setHolidayTableMissingFlag(isMissing) {
+  if (isMissing) {
+    localStorage.setItem('adonis_holidays_missing_at', String(Date.now()));
+  } else {
+    localStorage.removeItem('adonis_holidays_missing_at');
+  }
+}
+
+function runSupabaseDelete(table, queryFactory) {
+  if (!useSupabase || !supabase) {
+    return Promise.resolve();
+  }
+  try {
+    var query = queryFactory(supabase.from(table).delete());
+    return query.then(function(res) {
+      if (res && res.error) {
+        console.error('Error deleting from ' + table + ' Supabase:', res.error);
+      }
+      return res;
+    }).catch(function(err) {
+      console.error('Error deleting from ' + table + ' Supabase:', err);
+      return { error: err };
+    });
+  } catch (err) {
+    console.error('Error preparing delete for ' + table + ' Supabase:', err);
+    return Promise.resolve({ error: err });
+  }
+}
+
+function normalizeSfcKey(row) {
+  return [
+    row.from || row.from_loc || '',
+    row.to || row.to_loc || '',
+    row.distance || 0,
+    row.mode || '',
+    row.fare || 0,
+    row.da || 0,
+    row.lodge || 0,
+    row.other || 0
+  ].join('|').toLowerCase();
+}
+
+function normalizeHolidayKey(row) {
+  return [
+    formatDateForPostgres(row.date) || row.date || '',
+    normalizeHolidayState(row.state)
+  ].join('|').toLowerCase();
+}
+
+async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn) {
+  try {
+    const remoteRows = await fetchAllFromSupabase(table);
+    const localKeys = new Set((localRows || []).map(localKeyFn));
+    const staleRows = remoteRows.filter(function(row) {
+      return !localKeys.has(localKeyFn(row));
+    });
+
+    for (const row of staleRows) {
+      const res = await deleteRowFn(row);
+      if (res && res.error) {
+        console.error('Error pruning stale ' + table + ' row from Supabase:', res.error);
+      }
+    }
+  } catch (err) {
+    console.warn('Could not reconcile ' + table + ' rows in Supabase:', err);
+  }
+}
+
+function getDesignationLabel(role) {
+  var labels = {
+    admin: 'Administrator',
+    nsm: 'National Sales Manager',
+    zm: 'Zonal Manager',
+    rm: 'Regional Manager',
+    am: 'Area Manager',
+    manager: 'Field Manager',
+    emp: 'FieldForce'
+  };
+  return labels[(role || '').toLowerCase()] || (role ? role.toUpperCase() : '-');
+}
+
+function getLeaveLedger(emp) {
+  var leaves = emp && emp.leaves ? emp.leaves : {};
+  var clLimit = parseInt(leaves.CL, 10) || 0;
+  var clUsed = parseInt(leaves.CL_used, 10) || 0;
+  var plLimit = parseInt(leaves.EL, 10) || 0;
+  var plUsed = parseInt(leaves.EL_used, 10) || 0;
+  var slLimit = parseInt(leaves.SL, 10) || 0;
+  var slUsed = parseInt(leaves.SL_used, 10) || 0;
+  var lopLimit = parseInt(leaves.LWP, 10) || 0;
+  var lopUsed = parseInt(leaves.LWP_used, 10) || 0;
+  return {
+    cl: { limit: clLimit, used: clUsed, balance: Math.max(0, clLimit - clUsed) },
+    pl: { limit: plLimit, used: plUsed, balance: Math.max(0, plLimit - plUsed) },
+    sl: { limit: slLimit, used: slUsed, balance: Math.max(0, slLimit - slUsed) },
+    lop: { limit: lopLimit, used: lopUsed, balance: Math.max(0, lopLimit - lopUsed) }
+  };
+}
+
+function buildLeaveBalanceTableHtml(records, includeRowNumbers) {
+  var header = '<tr>'+
+    (includeRowNumbers ? '<th rowspan="2">S.No</th>' : '')+
+    '<th rowspan="2">Employee ID</th>'+
+    '<th rowspan="2">FieldForce Name</th>'+
+    '<th rowspan="2">Designation</th>'+
+    '<th rowspan="2">HQ</th>'+
+    '<th rowspan="2">Joining Date</th>'+
+    '<th colspan="4">Leave Eligibility</th>'+
+    '<th colspan="4">Leave Taken</th>'+
+    '<th colspan="4">Leave Balance</th>'+
+  '</tr><tr>'+
+    '<th>CL</th><th>PL</th><th>SL</th><th>LOP</th>'+
+    '<th>CL</th><th>PL</th><th>SL</th><th>LOP</th>'+
+    '<th>CL</th><th>PL</th><th>SL</th><th>LOP</th>'+
+  '</tr>';
+  var body = records.map(function(record, index) {
+    var ledger = getLeaveLedger(record);
+    return '<tr>'+
+      (includeRowNumbers ? '<td>'+(index + 1)+'</td>' : '')+
+      '<td>'+escapeHtml(record.id)+'</td>'+
+      '<td class="tbl-name">'+escapeHtml(record.name)+'</td>'+
+      '<td>'+escapeHtml(getDesignationLabel(record.role))+'</td>'+
+      '<td>'+escapeHtml(record.area || record.areaTerritory || '-').trim()+'</td>'+
+      '<td>'+escapeHtml(record.doj || '-').trim()+'</td>'+
+      '<td>'+ledger.cl.limit+'</td><td>'+ledger.pl.limit+'</td><td>'+ledger.sl.limit+'</td><td>'+ledger.lop.limit+'</td>'+
+      '<td>'+ledger.cl.used+'</td><td>'+ledger.pl.used+'</td><td>'+ledger.sl.used+'</td><td>'+ledger.lop.used+'</td>'+
+      '<td>'+ledger.cl.balance+'</td><td>'+ledger.pl.balance+'</td><td>'+ledger.sl.balance+'</td><td>'+ledger.lop.balance+'</td>'+
+    '</tr>';
+  }).join('');
+  return '<thead>'+header+'</thead><tbody>'+body+'</tbody>';
+}
+
+function buildLeaveBalanceExportCsv(records) {
+  var csv = [
+    'S.No,Employee ID,FieldForce Name,Designation,HQ,Joining Date,CL Limit,CL Used,CL Balance,PL Limit,PL Used,PL Balance,SL Limit,SL Used,SL Balance,LOP Limit,LOP Used,LOP Balance'
+  ];
+  records.forEach(function(record, index) {
+    var ledger = getLeaveLedger(record);
+    csv.push([
+      index + 1,
+      record.id || '',
+      record.name || '',
+      getDesignationLabel(record.role),
+      record.area || record.areaTerritory || '',
+      record.doj || '',
+      ledger.cl.limit,
+      ledger.cl.used,
+      ledger.cl.balance,
+      ledger.pl.limit,
+      ledger.pl.used,
+      ledger.pl.balance,
+      ledger.sl.limit,
+      ledger.sl.used,
+      ledger.sl.balance,
+      ledger.lop.limit,
+      ledger.lop.used,
+      ledger.lop.balance
+    ].map(function(val) {
+      return '"' + String(val).replace(/"/g, '""') + '"';
+    }).join(','));
+  });
+  return csv.join('\n') + '\n';
+}
+
+function showLeaveBalanceDetailsFor(emp, title) {
+  var ledger = getLeaveLedger(emp);
+  var html = '<div style="margin-bottom:12px">'+
+    '<div style="font-size:15px;font-weight:700">'+escapeHtml(title || (emp.name + ' Leave Balance'))+'</div>'+
+    '<div style="margin-top:4px;font-size:12px;color:var(--text-muted)">'+
+      'Employee ID: <strong>'+escapeHtml(emp.id)+'</strong> | Designation: <strong>'+escapeHtml(getDesignationLabel(emp.role))+'</strong> | HQ: <strong>'+escapeHtml(emp.area || '-')+'</strong> | Joining Date: <strong>'+escapeHtml(emp.doj || '-')+'</strong>'+
+    '</div>'+
+  '</div>';
+  html += '<div class="tbl-wrap"><table class="tbl" style="min-width:1200px">'+buildLeaveBalanceTableHtml([emp], false).replace('<thead>', '<thead style="display:table-header-group">')+'</table></div>';
+  return html;
+}
+
+function updateReportClassificationFromTarget(){
+  var dateStr=document.getElementById('r-date').value;
+  var plannedDay=getApprovedMTPDay(dateStr);
+  var targetType=document.getElementById('r-target-type').value;
+  var targetId=targetType==='Doctor' ? document.getElementById('r-doctor').value : document.getElementById('r-chemist').value;
+  var planned=false;
+  if(plannedDay){
+    var plannedDocIds=(plannedDay.plannedDocs&&plannedDay.plannedDocs.length) ? plannedDay.plannedDocs : getAssignedDoctorsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(doc){return doc.id;});
+    var plannedChemIds=(plannedDay.plannedChems&&plannedDay.plannedChems.length) ? plannedDay.plannedChems : getAssignedChemistsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(chem){return chem.id;});
+    planned = targetType==='Doctor' ? plannedDocIds.includes(targetId) : plannedChemIds.includes(targetId);
+    if(!targetId) planned=true;
+  }
+  document.getElementById('r-classification').value=planned ? 'Planned Call' : 'Unplanned Call';
+}
+
+function checkMTPForSelectedDate(){
+  var dateStr=document.getElementById('r-date').value;
+  if(!dateStr)return;
+  var plannedDay = getApprovedMTPDay(dateStr);
+  renderPlannedTargetsForReport(plannedDay);
+  
+  if(plannedDay){
+    updateReportClassificationFromTarget();
+    showToast('Planned date found in Tour Plan!');
+  } else {
+    updateReportClassificationFromTarget();
+    showToast('Notice: Reporting an unplanned call date.');
+  }
+}
+
+function submitReport(){
+  var date=document.getElementById('r-date').value;
+  var time=document.getElementById('r-time').value;
+  var targetType=document.getElementById('r-target-type').value;
+  var classification=document.getElementById('r-classification').value;
+  
+  if(!date){showToast('Please set report date');return;}
+  
+  var repObj={
+    id:'REP'+Date.now(),
+    empId:SESSION.user.id,
+    empName:SESSION.user.name,
+    date:date,
+    time:time,
+    targetType:targetType,
+    classification:classification,
+    callType:document.getElementById('r-calltype').value,
+    jfwMgrId:document.getElementById('r-jfw-manager').value,
+    lat:document.getElementById('r-lat').value||'',
+    lng:document.getElementById('r-lng').value||'',
+    remarks:document.getElementById('r-remarks').value.trim(),
+    nextVisit:document.getElementById('r-next-visit').value
+  };
+  
+  if(repObj.jfwMgrId){
+    var mgrObj=DB.employees.find(function(e){return e.id===repObj.jfwMgrId;});
+    repObj.jfwMgrName=mgrObj ? mgrObj.name : '';
+  }
+
+  if(targetType==='Doctor'){
+    var docId=document.getElementById('r-doctor').value;
+    if(!docId){showToast('Please select doctor');return;}
+    var doc=DB.doctors.find(function(d){return d.id===docId;});
+    repObj.docId=docId;
+    repObj.docName=doc?doc.name:'';
+    repObj.docSpec=doc?doc.spec:'';
+    repObj.docArea=doc?doc.area:'';
+    
+    // Products promoted
+    var promoted=[];
+    document.querySelectorAll('.promo-prod-check:checked').forEach(function(cb){
+      promoted.push(cb.value);
+    });
+    repObj.promotedProducts=promoted;
+    
+    // Samples issued deduction
+    var samples={};
+    DB.products.forEach(function(p, i){
+      var v=parseInt(document.getElementById('smp-'+i).value)||0;
+      if(v>0){
+        samples[p]=v;
+        // Deduct inventory
+        var inv=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+        if(inv){
+          inv.distributed+=v;
+          inv.balance = Math.max(0, inv.balance - v);
+        }
+      }
+    });
+    repObj.samples = samples;
+
+    // Gifts deduction
+    var gifts={};
+    DB.gifts.forEach(function(g, i){
+      var v=parseInt(document.getElementById('gft-'+i).value)||0;
+      if(v>0){
+        gifts[g]=v;
+        var inv=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+        if(inv){
+          inv.distributed+=v;
+          inv.balance = Math.max(0, inv.balance - v);
+        }
+      }
+    });
+    repObj.gifts = gifts;
+
+    // Inputs deduction
+    var inputs={};
+    DB.inputs.forEach(function(ip, i){
+      var v=parseInt(document.getElementById('inp-'+i).value)||0;
+      if(v>0){
+        inputs[ip]=v;
+        var inv=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+        if(inv){
+          inv.distributed+=v;
+          inv.balance = Math.max(0, inv.balance - v);
+        }
+      }
+    });
+    repObj.inputs = inputs;
+    
+  } else {
+    var chemId=document.getElementById('r-chemist').value;
+    if(!chemId){showToast('Please select chemist');return;}
+    var chem=DB.chemists.find(function(c){return c.id===chemId;});
+    repObj.chemId=chemId;
+    repObj.chemName=chem?chem.name:'';
+    repObj.chemArea=chem?chem.area:'';
+    repObj.orderAmount=parseFloat(document.getElementById('r-chem-order').value)||0;
+    repObj.stockStatus=document.getElementById('r-chem-stock').value;
+  }
+  
+  DB.reports.unshift(repObj);
+  saveDB();
+  showToast('Daily Call Report Submitted successfully!');
+  
+  // Clear inputs
+  document.getElementById('r-remarks').value='';
+  document.getElementById('r-next-visit').value='';
+  document.getElementById('r-doctor').value='';
+  document.getElementById('r-chemist').value='';
+  document.getElementById('r-chem-order').value='';
+  document.querySelectorAll('.promo-prod-check').forEach(function(cb){cb.checked=false;});
+  document.querySelectorAll('.sample-inp, .gift-inp, .input-inp').forEach(function(ip){ip.value='';});
+  
+  // Reset GPS Status
+  document.getElementById('gps-bar').className='gps-bar';
+  document.getElementById('gps-text').textContent='Tap to capture GPS location';
+  document.getElementById('r-lat').value='';
+  document.getElementById('r-lng').value='';
+  
+  populateReportingDropdowns();
+  renderHomeStats();
+  goTab('home');
+}
+
+// GPS Simulation
+function getGPS(){
+  var bar=document.getElementById('gps-bar'),txt=document.getElementById('gps-text');
+  txt.textContent='Locating...';
+  if(!navigator.geolocation){
+    // Mock for demo
+    var lat=(19.076 + Math.random()*0.02).toFixed(5);
+    var lng=(72.877 + Math.random()*0.02).toFixed(5);
+    document.getElementById('r-lat').value=lat;
+    document.getElementById('r-lng').value=lng;
+    bar.className='gps-bar got';
+    txt.textContent='Captured: '+lat+', '+lng+' (Simulated)';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude.toFixed(5);
+    var lng=pos.coords.longitude.toFixed(5);
+    document.getElementById('r-lat').value=lat;
+    document.getElementById('r-lng').value=lng;
+    bar.className='gps-bar got';
+    txt.textContent='Verified GPS: '+lat+', '+lng;
+  },function(){
+    var lat=(19.076 + Math.random()*0.02).toFixed(5);
+    var lng=(72.877 + Math.random()*0.02).toFixed(5);
+    document.getElementById('r-lat').value=lat;
+    document.getElementById('r-lng').value=lng;
+    bar.className='gps-bar got';
+    txt.textContent='Captured: '+lat+', '+lng+' (Default)';
+  });
+}
+
+function renderHomeStats(){
+  var u=SESSION.user;
+  var myR=DB.reports.filter(function(r){return r.empId===u.id;});
+  var today=new Date().toISOString().split('T')[0];
+  var todayR=myR.filter(function(r){return r.date===today;});
+  
+  document.getElementById('stat-today').textContent=todayR.length;
+  
+  var totalDocsAssigned=DB.doctors.filter(function(d){return d.assignTo===u.id && d.status==='Active';}).length;
+  var visitedDocIds=[];
+  myR.forEach(function(r){
+    if(r.targetType==='Doctor' && !visitedDocIds.includes(r.docId)){
+      visitedDocIds.push(r.docId);
+    }
+  });
+  
+  var cov=totalDocsAssigned ? Math.round((visitedDocIds.length / totalDocsAssigned)*100) : 0;
+  document.getElementById('stat-coverage').textContent=cov+'%';
+  
+  var activeMTP=DB.tourPlans.filter(function(t){return t.empId===u.id && t.month===today.slice(0,7);});
+  document.getElementById('stat-tp').textContent=activeMTP.length ? activeMTP[activeMTP.length-1].status : 'No MTP';
+  
+  document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+  
+  document.getElementById('today-reports').innerHTML=todayR.length ? todayR.map(repRow).join('') : '<div class="empty">No calls reported today</div>';
+  document.getElementById('recent-reports').innerHTML=myR.length ? myR.slice(0,5).map(repRow).join('') : '<div class="empty">No reports submitted yet</div>';
+}
+
+function repRow(r){
+  var title = r.targetType==='Doctor' ? r.docName : r.chemName;
+  var sub = r.targetType==='Doctor' ? r.docSpec+' | '+r.docArea : 'Chemist | '+r.chemArea;
+  var val = r.targetType==='Doctor' ? Object.keys(r.samples).length+' sample(s) distributed' : 'Order Claim: \u20B9'+r.orderAmount;
+  var badgeClass=r.classification==='Planned Call' ? 'green' : 'orange';
+  return '<div class="report-row"><div class="report-doc">'+title+' <span class="badge '+badgeClass+'">'+r.classification+'</span></div><div class="report-meta">'+r.date+' '+r.time+' | '+sub+'</div><div class="report-value">'+val+'</div></div>';
+}
+
+// ===== TOUR PLAN MTP FUNCTIONS =====
+var currentMTPDays=[];
+function renderTPDaysForMonth(){
+  var month=document.getElementById('tp-month').value;
+  var tpDaysContainer=document.getElementById('tp-days-container');
+  var actionBtnContainer=document.getElementById('tp-action-buttons');
+  if(!month){
+    tpDaysContainer.innerHTML='';
+    if(actionBtnContainer) actionBtnContainer.style.display='none';
+    return;
+  }
+  
+  var existing=DB.tourPlans.find(function(t){
+    return t.empId===SESSION.user.id && t.month===month;
+  });
+  
+  var isReadOnly = false; // Always editable for MR resubmissions
+  var year=parseInt(month.split('-')[0]);
+  var mIndex=parseInt(month.split('-')[1])-1;
+  var date = new Date(year, mIndex, 1);
+  currentMTPDays=[];
+  
+  var i=1;
+  while (date.getMonth() === mIndex) {
+    var dayStr = i < 10 ? '0'+i : i;
+    var fullDateStr = month+'-'+dayStr;
+    var existingDay = existing ? existing.days.find(function(d){return d.date===fullDateStr;}) : null;
+    currentMTPDays.push(existingDay ? JSON.parse(JSON.stringify(existingDay)) : {
+      date: fullDateStr,
+      dayNum: i,
+      category:'HQ',
+      areaTerritory:'',
+      fromLocation:SESSION.user.area,
+      toLocation:'',
+      stayCity:'',
+      objective:'',
+      plannedDocs:[],
+      plannedChems:[]
+    });
+    
+    i++;
+    date.setDate(date.getDate() + 1);
+  }
+  
+  renderMTPDaysUI(isReadOnly, existing);
+  updateMTPAnalytics(month);
+  
+  // Also render calendar if currently in calendar view
+  if(document.getElementById('mtp-view-cal-btn').classList.contains('on')){
+    renderCalendarView();
+  }
+}
+
+function getAssignedDoctorsForArea(area){
+  var clean=(area||'').trim().toLowerCase();
+  if(!clean)return [];
+  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active' && d.area.toLowerCase()===clean;});
+}
+
+function getAssignedChemistsForArea(area){
+  var clean=(area||'').trim().toLowerCase();
+  if(!clean)return [];
+  return DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id && c.area.toLowerCase()===clean;});
+}
+
+function getHolidayForDateAndState(dateStr, state) {
+  if (!DB.holidays) return null;
+  var userState = (state || '').toLowerCase().trim();
+  return DB.holidays.find(function(h) {
+    if (h.date !== dateStr) return false;
+    var holState = (h.state || 'All').toLowerCase().trim();
+    return holState === 'all' || holState === 'national' || holState === userState;
+  });
+}
+
+function renderMTPDaysUI(isReadOnly, existing){
+  var c=document.getElementById('tp-days-container');
+  var readOnlyAttr = '';
+  var html = '';
+  isReadOnly = false;
+  
+  if (!existing) {
+    var month = document.getElementById('tp-month').value;
+    if (month && SESSION.user) {
+      existing = DB.tourPlans.find(function(t){
+        return t.empId===SESSION.user.id && t.month===month;
+      });
+    }
+  }
+
+  if (existing) {
+    html += '<div class="info-box '+(existing.status==='Approved'?'green':'orange')+'">Current Status: <strong style="text-transform:uppercase">'+existing.status+'</strong>'+
+            (existing.remarks ? '<br><strong>Manager Comments:</strong> ' + existing.remarks : '') + '</div>';
+  }
+
+  html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
+    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Town / City</th></tr></thead><tbody>';
+
+  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return !!(day.areaTerritory||day.toLocation||'').trim();}) : currentMTPDays;
+
+  var mrAreas = [];
+  if (SESSION.user) {
+    var areaSet = new Set();
+    DB.doctors.forEach(function(d) {
+      if (d.assignTo === SESSION.user.id && d.status === 'Active' && d.area) {
+        areaSet.add(d.area.trim());
+      }
+    });
+    DB.chemists.forEach(function(c) {
+      if (c.assignTo === SESSION.user.id && c.area) {
+        areaSet.add(c.area.trim());
+      }
+    });
+    mrAreas = Array.from(areaSet).sort();
+  }
+
+  html += daysToRender.map(function(d){
+    var originalIdx = currentMTPDays.indexOf(d);
+    var area=d.areaTerritory||d.toLocation||'';
+    var city=d.stayCity||'';
+    var docs=getAssignedDoctorsForArea(area);
+    var chems=getAssignedChemistsForArea(area);
+    d.plannedDocs=docs.map(function(doc){return doc.id;});
+    d.plannedChems=chems.map(function(chem){return chem.id;});
+    var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
+    
+    var holiday = getHolidayForDateAndState(d.date, SESSION.user ? SESSION.user.state : '');
+    var holidayText = '';
+    var holidayRowStyle = '';
+    if (holiday) {
+      holidayText = '<div style="font-size:10px;color:var(--danger);font-weight:bold;margin-top:2px">🎉 Holiday: ' + holiday.name + '</div>';
+      holidayRowStyle = ' style="background-color: #FFF5F5"';
+    }
+    
+    var areaSelect = '';
+    if (isReadOnly) {
+      areaSelect = '<span>' + (area || '--') + '</span>';
+    } else {
+      var currentAreas = mrAreas.slice();
+      if (area && !currentAreas.includes(area) && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
+        currentAreas.push(area);
+      }
+      areaSelect = '<select style="width:100%" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="">-- Select Area --</option>' +
+        '<option value="Weekly Off"' + (area === 'Weekly Off' ? ' selected' : '') + '>Weekly Off</option>' +
+        '<option value="Leave"' + (area === 'Leave' ? ' selected' : '') + '>Leave</option>' +
+        '<option value="Transit"' + (area === 'Transit' ? ' selected' : '') + '>Transit</option>' +
+        '<option value="HQ"' + (area === 'HQ' ? ' selected' : '') + '>HQ</option>' +
+        '<option value="Holiday"' + (area === 'Holiday' ? ' selected' : '') + '>Holiday</option>' +
+        currentAreas.map(function(a) {
+          return '<option value="' + a + '"' + (area === a ? ' selected' : '') + '>' + a + '</option>';
+        }).join('') +
+        '</select>';
+    }
+
+    return '<tr class="mtp-area-row"'+holidayRowStyle+'>'+
+      '<td class="tbl-name">'+d.date+holidayText+'</td>'+
+      '<td>'+dow+'</td>'+
+      '<td>'+areaSelect+'</td>'+
+      '<td><input type="text" '+readOnlyAttr+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)"></td>'+
+      
+      
+      '</tr>';
+  }).join('');
+
+  html += '</tbody></table></div></div>';
+  c.innerHTML = html;
+  
+  var actionsEl = document.getElementById('tp-action-buttons');
+  if (actionsEl) {
+    actionsEl.style.display = isReadOnly ? 'none' : 'flex';
+  }
+}
+
+function updateMTPArea(idx, value){
+  var area=value.trim();
+  currentMTPDays[idx].areaTerritory=area;
+  currentMTPDays[idx].toLocation=area;
+  currentMTPDays[idx].fromLocation=SESSION.user.area;
+  currentMTPDays[idx].category=area ? 'HQ' : 'HQ';
+  currentMTPDays[idx].plannedDocs=getAssignedDoctorsForArea(area).map(function(doc){return doc.id;});
+  currentMTPDays[idx].plannedChems=getAssignedChemistsForArea(area).map(function(chem){return chem.id;});
+  
+  // Set stayCity automatically based on the area!
+  if (area && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
+    var matchedDoc = DB.doctors.find(function(d){return d.area.toLowerCase() === area.toLowerCase() && d.assignTo === SESSION.user.id;});
+    if (matchedDoc && matchedDoc.city) {
+      currentMTPDays[idx].stayCity = matchedDoc.city;
+    }
+  } else if (area === 'Weekly Off' || area === 'Leave' || area === 'Transit' || area === 'HQ' || area === 'Holiday') {
+    currentMTPDays[idx].stayCity = 'HQ';
+  }
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function updateMTPCity(idx, value){
+  currentMTPDays[idx].stayCity=value.trim();
+}
+
+
+function updateMTPRoute(idx, routeVal){
+  return;
+}
+function toggleMTPDoc(dayIdx, docId){
+  var arr=currentMTPDays[dayIdx].plannedDocs;
+  var existIdx=arr.indexOf(docId);
+  if(existIdx >= 0) arr.splice(existIdx,1);
+  else arr.push(docId);
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function toggleMTPChem(dayIdx, chemId){
+  var arr=currentMTPDays[dayIdx].plannedChems;
+  var existIdx=arr.indexOf(chemId);
+  if(existIdx >= 0) arr.splice(existIdx,1);
+  else arr.push(chemId);
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function sanitizeMTPDaysForAssignedMasters(){
+  currentMTPDays.forEach(function(day){
+    day.areaTerritory=(day.areaTerritory||day.toLocation||'').trim();
+    day.toLocation=day.areaTerritory;
+    day.fromLocation=SESSION.user.area;
+    day.plannedDocs=getAssignedDoctorsForArea(day.areaTerritory).map(function(doc){return doc.id;});
+    day.plannedChems=getAssignedChemistsForArea(day.areaTerritory).map(function(chem){return chem.id;});
+  });
+  return currentMTPDays.filter(function(day){return !!day.areaTerritory;});
+}
+
+function saveOrSubmitTourPlan(status){
+  var month=document.getElementById('tp-month').value;
+  var mgr=SESSION.user.managerId;
+  if(!month){showToast('Please select Month');return;}
+  if(!currentMTPDays.length){showToast('No days generated for this month');return;}
+  var plannedDays=sanitizeMTPDaysForAssignedMasters();
+  if(!plannedDays.length){showToast('Please enter Area/Territory for at least one working day');return;}
+  
+  var mgrObj=DB.employees.find(function(e){return e.id===mgr;});
+  
+  var existingIndex = DB.tourPlans.findIndex(function(t){
+    return t.empId===SESSION.user.id && t.month===month;
+  });
+  
+  var tpObj;
+  if(existingIndex >= 0) {
+    tpObj = DB.tourPlans[existingIndex];
+    tpObj.days = JSON.parse(JSON.stringify(plannedDays));
+    tpObj.status = status;
+    tpObj.managerId = mgr;
+    tpObj.managerName = mgrObj ? mgrObj.name : '';
+    if(status === 'Submitted') {
+      tpObj.remarks = '';
+      tpObj.submittedAt = new Date().toISOString();
+    }
+  } else {
+    tpObj = {
+      id:'TP'+Date.now(),
+      empId:SESSION.user.id,
+      empName:SESSION.user.name,
+      month:month,
+      managerId:mgr,
+      managerName:mgrObj?mgrObj.name:'',
+      days:JSON.parse(JSON.stringify(plannedDays)),
+      status:status,
+      submittedAt:status === 'Submitted' ? new Date().toISOString() : '',
+      remarks:'',
+      revisionHistory:[]
+    };
+    DB.tourPlans.push(tpObj);
+  }
+  
+  saveDB();
+  showToast(status === 'Draft' ? 'Tour Plan saved as Draft!' : 'Tour Plan submitted successfully for approval!');
+  
+  renderMyTourPlans();
+  renderHomeStats();
+  renderTPDaysForMonth();
+}
+
+function toggleMTPViewMode(mode){
+  if(mode==='grid'){
+    document.getElementById('mtp-view-grid-btn').classList.add('on');
+    document.getElementById('mtp-view-cal-btn').classList.remove('on');
+    document.getElementById('mtp-grid-wrapper').style.display='block';
+    document.getElementById('mtp-calendar-wrapper').style.display='none';
+  } else {
+    document.getElementById('mtp-view-grid-btn').classList.remove('on');
+    document.getElementById('mtp-view-cal-btn').classList.add('on');
+    document.getElementById('mtp-grid-wrapper').style.display='none';
+    document.getElementById('mtp-calendar-wrapper').style.display='block';
+    renderCalendarView();
+  }
+}
+
+function renderCalendarView(){
+  var month=document.getElementById('tp-month').value;
+  var calGrid=document.getElementById('mtp-calendar-grid');
+  if(!month || !currentMTPDays.length){
+    calGrid.innerHTML='<div class="empty" style="grid-column: span 7">Select a month first</div>';
+    return;
+  }
+  
+  var year=parseInt(month.split('-')[0]);
+  var mIndex=parseInt(month.split('-')[1])-1;
+  var firstDay=new Date(year, mIndex, 1).getDay();
+  var html='';
+  
+  for(var o=0; o<firstDay; o++){
+    html += '<div style="background:#F1F5F9;border-radius:6px;min-height:70px;padding:4px"></div>';
+  }
+  
+  currentMTPDays.forEach(function(day){
+    var area=day.areaTerritory||day.toLocation||'';
+    var docCount=getAssignedDoctorsForArea(area).length;
+    var chemCount=getAssignedChemistsForArea(area).length;
+    var color = area ? '#E3F9F1' : '#F1F5F9';
+    var txtColor = area ? '#005c3a' : '#6B7A99';
+    
+    html += '<div style="background:'+color+';color:'+txtColor+';border:1px solid rgba(0,0,0,0.05);border-radius:6px;min-height:70px;padding:4px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer" onclick="scrollToMTPDay('+day.dayNum+')">'+
+      '<div style="font-weight:700;font-size:11px">'+day.dayNum+'</div>'+
+      '<div style="font-size:9px;font-weight:700;margin-top:2px">'+(area||'No Plan')+'</div>'+
+      '<div style="font-size:9px;margin-top:2px;font-weight:600">'+
+        (docCount ? '&#128101;'+docCount+' ' : '')+
+        (chemCount ? '&#128221;'+chemCount : '')+
+      '</div>'+
+    '</div>';
+  });
+  
+  calGrid.innerHTML=html;
+}
+
+function scrollToMTPDay(dayNum){
+  toggleMTPViewMode('grid');
+  var days = document.querySelectorAll('.mtp-area-row');
+  var targetRow = null;
+  var month = document.getElementById('tp-month').value;
+  var dayStr = dayNum < 10 ? '0' + dayNum : dayNum;
+  var targetDate = month + '-' + dayStr;
+  
+  for (var i = 0; i < days.length; i++) {
+    var dateCell = days[i].querySelector('.tbl-name');
+    if (dateCell && dateCell.textContent.trim() === targetDate) {
+      targetRow = days[i];
+      break;
+    }
+  }
+  
+  if(targetRow){
+    targetRow.scrollIntoView({behavior:'smooth'});
+    targetRow.style.border = '2px solid var(--primary)';
+    setTimeout(function(){
+      targetRow.style.border = '';
+    }, 2000);
+  }
+}
+
+function updateMTPAnalytics(month){
+  var card=document.getElementById('mtp-analytics-card');
+  if(!month){card.style.display='none';return;}
+  
+  var tp=DB.tourPlans.find(function(t){
+    return t.empId===SESSION.user.id && t.month===month && t.status==='Approved';
+  });
+  
+  if(!tp){
+    card.style.display='none';
+    return;
+  }
+  
+  card.style.display='block';
+  
+  var plannedDocsCount=0;
+  var plannedChemsCount=0;
+  var missedDocCalls=0;
+  var missedChemCalls=0;
+  var actualDocVisited=0;
+  var actualChemVisited=0;
+  
+  var allMyReports = DB.reports.filter(function(r){
+    return r.empId===SESSION.user.id && r.date.slice(0,7)===month;
+  });
+  
+  tp.days.forEach(function(d){
+    var area=d.areaTerritory||d.toLocation||'';
+    if(!area)return;
+    var dayDocs=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : getAssignedDoctorsForArea(d.areaTerritory||d.toLocation).map(function(doc){return doc.id;});
+    var dayChems=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : getAssignedChemistsForArea(d.areaTerritory||d.toLocation).map(function(chem){return chem.id;});
+    plannedDocsCount += dayDocs.length;
+    plannedChemsCount += dayChems.length;
+    
+    dayDocs.forEach(function(docId){
+      var visited = allMyReports.find(function(r){
+        return r.date===d.date && r.docId===docId && r.targetType==='Doctor';
+      });
+      if(visited) actualDocVisited++;
+      else missedDocCalls++;
+    });
+    
+    dayChems.forEach(function(chemId){
+      var visited = allMyReports.find(function(r){
+        return r.date===d.date && r.chemId===chemId && r.targetType==='Chemist';
+      });
+      if(visited) actualChemVisited++;
+      else missedChemCalls++;
+    });
+  });
+  
+  var myDocs=DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active';});
+  var visitedUniqueDocIds = [];
+  allMyReports.filter(function(r){return r.targetType==='Doctor';}).forEach(function(r){
+    if(!visitedUniqueDocIds.includes(r.docId)) visitedUniqueDocIds.push(r.docId);
+  });
+  var cov = myDocs.length ? Math.round((visitedUniqueDocIds.length / myDocs.length)*100) : 0;
+  
+  document.getElementById('mtp-stat-planned-docs').textContent=plannedDocsCount;
+  document.getElementById('mtp-stat-planned-chems').textContent=plannedChemsCount;
+  document.getElementById('mtp-stat-coverage').textContent=cov+'%';
+  document.getElementById('mtp-stat-missed-docs').textContent=missedDocCalls;
+  document.getElementById('mtp-stat-missed-chems').textContent=missedChemCalls;
+  document.getElementById('mtp-stat-doc-ratio').textContent=actualDocVisited+' / '+plannedDocsCount;
+  document.getElementById('mtp-stat-chem-ratio').textContent=actualChemVisited+' / '+plannedChemsCount;
+}
+function renderMyTourPlans(){
+  var el=document.getElementById('my-tp-list');
+  var myTPs=DB.tourPlans.filter(function(t){return t.empId===SESSION.user.id;}).slice().reverse();
+  if(!myTPs.length){el.innerHTML='<div class="empty">No Tour Plans submitted yet.</div>';return;}
+  el.innerHTML=myTPs.map(function(tp){
+    var sc=tp.status==='Approved'?'approved':tp.status==='Rejected'?'rejected':'pending';
+    var bc=tp.status==='Approved'?'green':tp.status==='Rejected'?'red':'orange';
+    var plannedDays=tp.days.filter(function(d){return !!(d.areaTerritory||d.toLocation||'').trim();}).length;
+    return '<div class="appr-card '+sc+'" onclick="loadMTPFromHistory(\''+tp.month+'\')"><div class="appr-hdr"><div class="appr-name">'+tp.month+' Tour Plan</div><span class="badge '+bc+'">'+tp.status+'</span></div><div class="appr-meta">Submitted to: '+tp.managerName+' | '+plannedDays+' planned working days</div>'+(tp.remarks?'<div class="appr-meta" style="color:var(--danger);margin-top:4px"><strong>Rejection Remarks:</strong> '+tp.remarks+'</div>':'')+'</div>';
+  }).join('');
+}
+
+function loadMTPFromHistory(month){
+  document.getElementById('tp-month').value=month;
+  renderTPDaysForMonth();
+  showToast('Loaded MTP details for ' + month);
+}
+
+// ===== EXPENSE CLAIM FUNCTIONS =====
+function generateExpenseFromReports(){
+  var month=document.getElementById('exp-month').value;
+  var detail=document.getElementById('expense-detail');
+  if(!month){detail.style.display='none';return;}
+  
+  // Fetch approved visits reports in this month
+  var myReports=DB.reports.filter(function(r){
+    return r.empId===SESSION.user.id && r.date.slice(0,7)===month;
+  });
+  
+  if(!myReports.length){
+    showToast('No daily call reports found for this month.');
+    detail.style.display='none';
+    return;
+  }
+  
+  // Calculate expenses day-wise
+  var uniqueDates=[];
+  myReports.forEach(function(r){
+    if(!uniqueDates.includes(r.date)) uniqueDates.push(r.date);
+  });
+  
+  var lines=[];
+  var grandTotal=0;
+  
+  uniqueDates.sort().forEach(function(dt){
+    // Find travel routes reported this day
+    var dayReps=myReports.filter(function(r){return r.date===dt;});
+    
+    // Auto-calculate fare and allowances from SFC
+    var travelFare=0;
+    var distKM=0;
+    var da=0;
+    var lodging=0;
+    var other=0;
+    var routeMode='N/A';
+    
+    // We assume travel happened if they reported a doctor/chemist in a distinct area
+    var distinctAreas=[];
+    dayReps.forEach(function(r){
+      var area=r.targetType==='Doctor'?r.docArea:r.chemArea;
+      if(area && !distinctAreas.includes(area)) distinctAreas.push(area);
+    });
+    
+    // Simple SFC Matcher
+    var startLocation=SESSION.user.area;
+    var endLocation = distinctAreas.length ? distinctAreas[0] : SESSION.user.area;
+    
+    var sfcEntry=DB.sfc.find(function(s){
+      return (s.from.toLowerCase()===startLocation.toLowerCase() && s.to.toLowerCase()===endLocation.toLowerCase()) ||
+             (s.from.toLowerCase()===endLocation.toLowerCase() && s.to.toLowerCase()===startLocation.toLowerCase());
+    });
+    
+    if(sfcEntry){
+      travelFare=sfcEntry.fare;
+      distKM=sfcEntry.distance;
+      da=sfcEntry.da;
+      lodging=sfcEntry.lodge;
+      other=sfcEntry.other;
+      routeMode=sfcEntry.mode;
+    } else {
+      // Default local work allowances
+      da = DB.cityRates.daC;
+      other = DB.cityRates.localConv;
+    }
+    
+    var dayTotal = travelFare + da + lodging + other;
+    grandTotal += dayTotal;
+    
+    lines.push({
+      date: dt,
+      route: startLocation+' &rarr; '+endLocation,
+      mode: routeMode,
+      distance: distKM,
+      fare: travelFare,
+      da: da,
+      lodge: lodging,
+      other: other,
+      total: dayTotal
+    });
+  });
+  
+  var html=lines.map(function(l){
+    return '<div class="exp-row">'+
+      '<div><div class="exp-label">'+l.date+' | '+l.route+' ('+l.mode+' - '+l.distance+' KM)</div>'+
+      '<div class="exp-sub">Travel: &#x20B9;'+l.fare+' | DA: &#x20B9;'+l.da+' | Lodge: &#x20B9;'+l.lodging+' | Local/Other: &#x20B9;'+l.other+'</div></div>'+
+      '<div class="exp-amt">&#x20B9;'+l.total+'</div></div>';
+  }).join('');
+  
+  document.getElementById('exp-breakdown').innerHTML=html;
+  document.getElementById('exp-grand-total').textContent='&#x20B9;'+grandTotal;
+  detail.style.display='block';
+  
+  detail.dataset.month=month;
+  detail.dataset.grand=grandTotal;
+  detail.dataset.lines=JSON.stringify(lines);
+}
+
+function submitExpense(){
+  var detail=document.getElementById('expense-detail');
+  var month=detail.dataset.month;
+  var grand=parseFloat(detail.dataset.grand)||0;
+  var lines=JSON.parse(detail.dataset.lines||'[]');
+  
+  var alreadyClaimed=DB.expenses.find(function(e){return e.empId===SESSION.user.id && e.month===month;});
+  if(alreadyClaimed){
+    showToast('Expense claim already submitted for this month.');
+    return;
+  }
+  
+  var fileInput=document.getElementById('exp-receipt-file');
+  var filename = fileInput.files.length ? fileInput.files[0].name : 'No file uploaded';
+  
+  DB.expenses.push({
+    id:'EXP'+Date.now(),
+    empId:SESSION.user.id,
+    empName:SESSION.user.name,
+    month:month,
+    managerId:SESSION.user.managerId,
+    lines:lines,
+    total:grand,
+    receiptFile:filename,
+    status:'Submitted',
+    submittedAt:new Date().toISOString(),
+    remarks:''
+  });
+  
+  saveDB();
+  showToast('Expense claim submitted successfully for approval!');
+  document.getElementById('exp-month').value='';
+  detail.style.display='none';
+  renderMyExpenses();
+  renderHomeStats();
+}
+
+function renderMyExpenses(){
+  var el=document.getElementById('my-expenses-list');
+  var myClaims=DB.expenses.filter(function(e){return e.empId===SESSION.user.id;}).slice().reverse();
+  if(!myClaims.length){el.innerHTML='<div class="empty">No expense claims submitted yet.</div>';return;}
+  el.innerHTML=myClaims.map(function(ex){
+    var sc=ex.status==='Approved'?'approved':ex.status==='Rejected'?'rejected':'pending';
+    var bc=ex.status==='Approved'?'green':ex.status==='Rejected'?'red':'orange';
+    return '<div class="appr-card '+sc+'"><div class="appr-hdr"><div class="appr-name">'+ex.month+' Expense Claim</div><span class="badge '+bc+'">'+ex.status+'</span></div><div class="appr-meta">Total Amount: &#x20B9;'+ex.total.toLocaleString('en-IN')+' | '+ex.lines.length+' working days</div>'+(ex.remarks?'<div class="appr-meta" style="color:var(--danger);margin-top:4px"><strong>Rejection Reason:</strong> '+ex.remarks+'</div>':'')+'</div>';
+  }).join('');
+}
+
+// ===== LEAVE MANAGEMENT FUNCTIONS =====
+function renderLeaveBalances(){
+  var u=SESSION.user;
+  var ledger = getLeaveLedger(u);
+  document.getElementById('lv-bal-cl').textContent=ledger.cl.balance+' / '+ledger.cl.limit;
+  document.getElementById('lv-bal-sl').textContent=ledger.sl.balance+' / '+ledger.sl.limit;
+  document.getElementById('lv-bal-el').textContent=ledger.pl.balance+' / '+ledger.pl.limit;
+  document.getElementById('lv-bal-lwp').textContent=ledger.lop.used+' / '+ledger.lop.limit;
+}
+
+function viewMyLeaveBalanceDetails(){
+  var u = SESSION.user;
+  if(!u) return;
+  document.getElementById('leave-balance-detail-content').innerHTML = showLeaveBalanceDetailsFor(u, u.name + ' Leave Balance');
+  document.getElementById('modal-leave-balance-detail').classList.add('on');
+}
+
+function submitLeave(){
+  var start=document.getElementById('lv-start').value;
+  var end=document.getElementById('lv-end').value;
+  var type=document.getElementById('lv-type').value;
+  var reason=document.getElementById('lv-reason').value.trim();
+  
+  if(!start||!end){showToast('Please set both start & end dates');return;}
+  
+  // Calculate total days
+  var dStart = new Date(start);
+  var dEnd = new Date(end);
+  var diffTime = Math.abs(dEnd - dStart);
+  var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  
+  // Check leave balance availability
+  var key = type==='Casual Leave'?'CL':type==='Sick Leave'?'SL':type==='Earned Leave'?'EL':'LWP';
+  var bal = SESSION.user.leaves[key] - SESSION.user.leaves[key+'_used'];
+  
+  if(key!=='LWP' && diffDays > bal){
+    showToast('Insufficient '+type+' balance! Available: '+bal+' days');
+    return;
+  }
+  
+  DB.leaves.push({
+    id:'LV'+Date.now(),
+    empId:SESSION.user.id,
+    empName:SESSION.user.name,
+    type:type,
+    start:start,
+    end:end,
+    days:diffDays,
+    reason:reason,
+    managerId:SESSION.user.managerId,
+    status:'Submitted',
+    submittedAt:new Date().toISOString(),
+    remarks:''
+  });
+  
+  saveDB();
+  showToast('Leave request submitted successfully!');
+  document.getElementById('lv-start').value='';
+  document.getElementById('lv-end').value='';
+  document.getElementById('lv-reason').value='';
+  renderMyLeaves();
+}
+
+function renderMyLeaves(){
+  var el=document.getElementById('my-leaves-list');
+  var myLeaves=DB.leaves.filter(function(l){return l.empId===SESSION.user.id;}).slice().reverse();
+  if(!myLeaves.length){el.innerHTML='<div class="empty">No leave requests submitted yet.</div>';return;}
+  el.innerHTML=myLeaves.map(function(lv){
+    var sc=lv.status==='Approved'?'approved':lv.status==='Rejected'?'rejected':'pending';
+    var bc=lv.status==='Approved'?'green':lv.status==='Rejected'?'red':'orange';
+    return '<div class="appr-card '+sc+'"><div class="appr-hdr"><div class="appr-name">'+lv.type+' ('+lv.days+' Day/s)</div><span class="badge '+bc+'">'+lv.status+'</span></div><div class="appr-meta">Dates: '+lv.start+' &rarr; '+lv.end+'</div>'+(lv.remarks?'<div class="appr-meta" style="color:var(--danger);margin-top:4px">Remarks: '+lv.remarks+'</div>':'')+'</div>';
+  }).join('');
+}
+
+// ===== LISTING SUB-MODULE FUNCTIONS =====
+function getMyDoctors(){
+  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id;});
+}
+
+function renderDocList(){
+  var q=(document.getElementById('doc-search').value||'').toLowerCase();
+  var docs=getMyDoctors().filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q);});
+  var el=document.getElementById('doc-list');
+  if(!docs.length){el.innerHTML='<div class="empty">No doctors found</div>';return;}
+  el.innerHTML=docs.map(function(d){
+    var ini=d.name.replace('Dr. ','').split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    var actBadge=d.status==='Active'?'<span class="badge green">Active</span>':'<span class="badge red">Inactive</span>';
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+d.name+' '+actBadge+'</div><div class="doc-spec">'+d.spec+' ('+d.qual+')</div><div class="doc-area">&#128205; '+d.area+' | '+d.address+' | Phone: '+d.phone+'</div></div></div>';
+  }).join('');
+}
+
+function renderChemistList(){
+  var q=(document.getElementById('chem-search').value||'').toLowerCase();
+  var chemists=DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q);});
+  var el=document.getElementById('chemist-list');
+  if(!chemists.length){el.innerHTML='<div class="empty">No chemists found</div>';return;}
+  el.innerHTML=chemists.map(function(c){
+    var ini=c.name.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+c.name+'</div><div class="doc-area">&#128205; '+c.area+'</div></div></div>';
+  }).join('');
+}
+
+function toggleDocChemistSubtab(type){
+  if(type==='doc'){
+    document.getElementById('doc-subtab-btn').classList.add('on');
+    document.getElementById('chem-subtab-btn').classList.remove('on');
+    document.getElementById('doc-subtab-content').style.display='block';
+    document.getElementById('chem-subtab-content').style.display='none';
+  } else {
+    document.getElementById('doc-subtab-btn').classList.remove('on');
+    document.getElementById('chem-subtab-btn').classList.add('on');
+    document.getElementById('doc-subtab-content').style.display='none';
+    document.getElementById('chem-subtab-content').style.display='block';
+  }
+}
+
+var currentTab = 'home';
+function goTab(name){
+  currentTab = name;
+  ['home','report','tour','expense','leave','doctors'].forEach(function(t){
+    var el=document.getElementById('tab-'+t);if(el)el.style.display=t===name?'block':'none';
+    var nb=document.getElementById('nb-'+t);if(nb)nb.className='nav-btn'+(t===name?' on':'');
+  });
+  if(name==='report') {
+    populateReportingDropdowns();
+    populateJFWManagers();
+    checkMTPForSelectedDate();
+  }
+  if(name==='home') renderHomeStats();
+  if(name==='leave') {
+    renderLeaveBalances();
+    renderMyLeaves();
+  }
+  if(name==='tour') {
+    renderMyTourPlans();
+    renderTPDaysForMonth();
+  }
+  if(name==='expense') {
+    renderMyExpenses();
+  }
+}
+
+function selectPlannedReportTarget(type, id){
+  document.getElementById('r-target-type').value = type;
+  toggleReportTargetFields();
+  if(type==='Doctor') {
+    document.getElementById('r-doctor').value = id;
+  } else {
+    document.getElementById('r-chemist').value = id;
+  }
+  document.getElementById('r-classification').value = 'Planned Call';
+  showToast('Auto-selected planned target: ' + (type==='Doctor' ? 'Doctor' : 'Chemist'));
+}
+
+// ===== ADMIN / MANAGER PANEL FUNCTIONS =====
+
+function goMasterSubTab(id) {
+  document.querySelectorAll('#sec-adm-master .admin-tab').forEach(function(el){ el.classList.remove('on'); });
+  document.getElementById('subtab-adm-'+id).classList.add('on');
+  
+  document.querySelectorAll('.master-sub-sec').forEach(function(el){ el.style.display='none'; });
+  document.getElementById('adm-'+id+'-section').style.display='block';
+  
+  if (id === 'sfc') renderSFCTable();
+  else if (id === 'emp') renderEmpTable();
+  else if (id === 'doc') renderAdminDocList();
+  else if (id === 'chem') renderAdminChemistList();
+  else if (id === 'leave') renderLeaveBalanceTable();
+  else if (id === 'holiday') renderHolidayTable();
+}
+
+function initAdminApp(){
+  document.body.classList.toggle('is-admin', SESSION.user.role === 'admin');
+  renderAdminStats();
+  renderAdminDashTeamList();
+  renderAdminTPApprovals();
+  renderAdminExpApprovals();
+  renderAdminLeaveApprovals();
+  renderEmpTable();
+  renderAdminDocList();
+  renderAdminChemistList();
+  renderLeaveBalanceTable();
+  renderHolidayTable();
+  renderSFCTable();
+  loadCityRates();
+  populateAdminEmpMgr();
+  populateAdminEmpFilters();
+  populateInventoryItemSelect();
+  renderAdminInventoryTables();
+  goAdminTab('dash');
+}
+
+function goAdminTab(name){
+  currentAdminTab=name;
+  ['dash','appr','master','inventory','reports'].forEach(function(t){
+    var el=document.getElementById('sec-adm-'+t);
+    if(el) el.style.display=t===name?'block':'none';
+    var btn=document.getElementById('tab-adm-'+t);
+    if(btn) btn.className='admin-tab'+(t===name?' on':'');
+  });
+  if(name==='dash') renderAdminDashTeamList();
+  if(name==='reports') updateReportHeadersAndFilters();
+  if(name==='inventory') renderAdminInventoryTables();
+  if(name==='master') {
+    var activeSub = document.querySelector('#sec-adm-master .admin-tab.on');
+    if (activeSub) {
+      if (activeSub.id === 'subtab-adm-sfc') renderSFCTable();
+      else if (activeSub.id === 'subtab-adm-emp') renderEmpTable();
+      else if (activeSub.id === 'subtab-adm-doc') renderAdminDocList();
+      else if (activeSub.id === 'subtab-adm-chem') renderAdminChemistList();
+      else if (activeSub.id === 'subtab-adm-leave') renderLeaveBalanceTable();
+      else if (activeSub.id === 'subtab-adm-holiday') renderHolidayTable();
+    } else {
+      goMasterSubTab('sfc');
+    }
+  }
+}
+
+function renderAdminStats(){
+  var u=SESSION.user;
+  // MR Subordinates mapping
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+  var emps=DB.employees.filter(function(e){return (!teamIds || teamIds.includes(e.id)) && e.id !== 'ADMIN';});
+  document.getElementById('adm-emp-count').textContent=emps.length;
+  var docs=DB.doctors.filter(function(d){return !teamIds || teamIds.includes(d.assignTo);});
+  document.getElementById('adm-doc-count').textContent=docs.length;
+  var reps=DB.reports.filter(function(r){return !teamIds || teamIds.includes(r.empId);});
+  document.getElementById('adm-rep-count').textContent=reps.length;
+  
+  var pendingTP=DB.tourPlans.filter(function(t){return isPendingForUser(t.status, t.managerId, u);}).length;
+  var pendingExp=DB.expenses.filter(function(e){return isPendingForUser(e.status, e.managerId, u);}).length;
+  var pendingLeave=DB.leaves.filter(function(l){return isPendingForUser(l.status, l.managerId, u);}).length;
+  
+  document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
+}
+
+function renderAdminDashTeamList(){
+  var tbody=document.getElementById('adm-dash-team-body');
+  var u=SESSION.user;
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+  var team=DB.employees.filter(function(e){return e.role==='emp' && (!teamIds || teamIds.includes(e.id));});
+  
+  tbody.innerHTML=team.map(function(e){
+    var reportsCount=DB.reports.filter(function(r){return r.empId===e.id;}).length;
+    var totalDocsAssigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
+    var visitedDocIds=[];
+    DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
+      if(r.targetType==='Doctor' && !visitedDocIds.includes(r.docId)){
+        visitedDocIds.push(r.docId);
+      }
+    });
+    
+    var cov = totalDocsAssigned ? Math.round((visitedDocIds.length / totalDocsAssigned)*100) : 0;
+    var jfwCount=DB.reports.filter(function(r){return r.empId===e.id && r.jfwMgrId!=='';}).length;
+    
+    return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+e.area+'</td><td>'+reportsCount+'</td><td>'+cov+'%</td><td>'+jfwCount+'</td></tr>';
+  }).join('');
+}
+
+// Approval listings
+function renderAdminTPApprovals(){
+  var u=SESSION.user;
+  var tps=DB.tourPlans.filter(function(t){
+    return isPendingForUser(t.status, t.managerId, u);
+  });
+  var el=document.getElementById('adm-tp-approvals');
+  if(!tps.length){el.innerHTML='<div class="empty">No tour plans pending your approval</div>';return;}
+  el.innerHTML=tps.map(function(tp){
+    var subDate = tp.submittedAt ? tp.submittedAt.slice(0,10) : 'N/A';
+    return '<div class="appr-card pending" onclick="viewTP(\''+tp.id+'\')">'+
+      '<div class="appr-hdr"><div class="appr-name">'+tp.empName+' ('+tp.empId+')</div><span class="badge orange">'+tp.status+'</span></div>'+
+      '<div class="appr-meta">'+tp.month+' Tour Plan | '+tp.days.length+' days | Submitted: '+subDate+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+function renderAdminExpApprovals(){
+  var u=SESSION.user;
+  var exps=DB.expenses.filter(function(e){
+    return isPendingForUser(e.status, e.managerId, u);
+  });
+  var el=document.getElementById('adm-exp-approvals');
+  if(!exps.length){el.innerHTML='<div class="empty">No expense claims pending your approval</div>';return;}
+  el.innerHTML=exps.map(function(ex){
+    return '<div class="appr-card pending" onclick="viewExp(\''+ex.id+'\')">'+
+      '<div class="appr-hdr"><div class="appr-name">'+ex.empName+' ('+ex.empId+')</div><span class="badge orange">'+ex.status+'</span></div>'+
+      '<div class="appr-meta">'+ex.month+' Claim | Amount: &#x20B9;'+ex.total+' | Receipts: '+ex.receiptFile+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+function renderAdminLeaveApprovals(){
+  var u=SESSION.user;
+  var lvs=DB.leaves.filter(function(l){
+    return isPendingForUser(l.status, l.managerId, u);
+  });
+  var el=document.getElementById('adm-leave-approvals');
+  if(!lvs.length){el.innerHTML='<div class="empty">No leave requests pending your approval</div>';return;}
+  el.innerHTML=lvs.map(function(lv){
+    return '<div class="appr-card pending" onclick="viewLeave(\''+lv.id+'\')">'+
+      '<div class="appr-hdr"><div class="appr-name">'+lv.empName+' ('+lv.empId+')</div><span class="badge orange">'+lv.status+'</span></div>'+
+      '<div class="appr-meta">'+lv.type+' | Duration: '+lv.start+' &rarr; '+lv.end+' ('+lv.days+' day/s)</div>'+
+      '</div>';
+  }).join('');
+}
+
+// Action Handlers for approvals
+function viewTP(id){
+  var tp=DB.tourPlans.find(function(t){return t.id===id;});
+  if(!tp)return;
+  currentTPId=id;
+  var u=SESSION.user;
+  
+  var plannedWorkingDays=tp.days.filter(function(d){return !!(d.areaTerritory||d.toLocation||'').trim();}).length;
+  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+tp.empName+' - '+tp.month+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Status: '+tp.status+' | Planned working days: '+plannedWorkingDays+'</div></div>';
+  html+='<div class="tbl-wrap"><table class="tbl" style="min-width:760px"><thead><tr><th>Date</th><th>Area / Territory</th></tr></thead><tbody>';
+  tp.days.forEach(function(d){
+    var area=d.areaTerritory||d.toLocation||'';
+    if(!area)return;
+    var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+    var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===tp.empId && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+    html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+area+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  
+  document.getElementById('tp-detail-content').innerHTML=html;
+  
+  var canApprove = isPendingForUser(tp.status, tp.managerId, u);
+  document.getElementById('tp-approval-btns').style.display=canApprove?'flex':'none';
+  document.getElementById('modal-tp-detail').classList.add('on');
+}
+function approveTP(){
+  var tp=DB.tourPlans.find(function(t){return t.id===currentTPId;});
+  if(tp){
+    var u = SESSION.user;
+    tp.status = processApproval(tp.status, tp.managerId, u);
+    tp.approvedBy=u.id;
+    tp.approvedDate=new Date().toISOString().slice(0,10);
+  }
+  saveDB();
+  closeModal('modal-tp-detail');
+  showToast('MTP Approved successfully!');
+  initAdminApp();
+}
+
+function rejectTP(){
+  var reason=prompt('Specify Rejection remarks:');
+  if(reason===null)return;
+  var tp=DB.tourPlans.find(function(t){return t.id===currentTPId;});
+  if(tp){
+    tp.status='Rejected';
+    tp.remarks=reason;
+    tp.revisionHistory=tp.revisionHistory||[];
+    tp.revisionHistory.push({
+      rejectedBy:SESSION.user.id,
+      date:new Date().toISOString().slice(0,10),
+      reason:reason
+    });
+  }
+  saveDB();
+  closeModal('modal-tp-detail');
+  showToast('MTP Rejected successfully.');
+  initAdminApp();
+}
+
+function viewExp(id){
+  var ex=DB.expenses.find(function(e){return e.id===id;});
+  if(!ex)return;
+  currentExpId=id;
+  var u=SESSION.user;
+  
+  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+ex.empName+' — '+ex.month+' Expense</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Supporting Bill: <strong>'+ex.receiptFile+'</strong></div></div>';
+  html+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Route/Work</th><th>Travel Mode</th><th>Travel</th><th>DA</th><th>Lodge</th><th>Local/Other</th><th>Day Total</th></tr></thead><tbody>';
+  ex.lines.forEach(function(l){
+    html+='<tr><td>'+l.date+'</td><td>'+l.route+'</td><td>'+l.mode+'</td><td>&#x20B9;'+l.fare+'</td><td>&#x20B9;'+l.da+'</td><td>&#x20B9;'+l.lodge+'</td><td>&#x20B9;'+l.other+'</td><td style="font-weight:700">&#x20B9;'+l.total+'</td></tr>';
+  });
+  html+='<tr style="background:#F8FAFC"><td colspan="7" style="font-weight:700">GRAND CLAIM TOTAL</td><td style="font-weight:700;color:var(--success)">&#x20B9;'+ex.total+'</td></tr>';
+  html+='</tbody></table></div>';
+  
+  document.getElementById('exp-detail-content').innerHTML=html;
+  
+  var canApprove = isPendingForUser(ex.status, ex.managerId, u);
+  document.getElementById('exp-approval-btns').style.display=canApprove?'flex':'none';
+  document.getElementById('modal-exp-detail').classList.add('on');
+}
+
+function approveExp(){
+  var ex=DB.expenses.find(function(e){return e.id===currentExpId;});
+  if(ex){
+    var u = SESSION.user;
+    ex.status = processApproval(ex.status, ex.managerId, u);
+  }
+  saveDB();
+  closeModal('modal-exp-detail');
+  showToast('Expense claim approved!');
+  initAdminApp();
+}
+
+function rejectExp(){
+  var reason=prompt('Rejection remarks:');
+  if(reason===null)return;
+  var ex=DB.expenses.find(function(e){return e.id===currentExpId;});
+  if(ex){
+    ex.status='Rejected';
+    ex.remarks=reason;
+  }
+  saveDB();
+  closeModal('modal-exp-detail');
+  showToast('Expense claim rejected.');
+  initAdminApp();
+}
+
+function viewLeave(id){
+  var lv=DB.leaves.find(function(l){return l.id===id;});
+  if(!lv)return;
+  currentLeaveId=id;
+  var u=SESSION.user;
+  
+  var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+lv.empName+' — '+lv.type+'</div>'+
+           '<div style="margin-top:6px;font-size:13px"><strong>Start:</strong> '+lv.start+' &nbsp;|&nbsp; <strong>End:</strong> '+lv.end+' &nbsp;|&nbsp; <strong>Days:</strong> '+lv.days+'</div>'+
+           '<div style="margin-top:8px;font-size:12px;background:#F1F5F9;padding:10px;border-radius:6px">Reason: '+lv.reason+'</div></div>';
+           
+  document.getElementById('leave-detail-content').innerHTML=html;
+  
+  var canApprove = isPendingForUser(lv.status, lv.managerId, u);
+  document.getElementById('leave-approval-btns').style.display=canApprove?'flex':'none';
+  document.getElementById('modal-leave-detail').classList.add('on');
+}
+
+function approveLeave(){
+  var lv=DB.leaves.find(function(l){return l.id===currentLeaveId;});
+  if(lv){
+    var u = SESSION.user;
+    var prevStatus = lv.status;
+    lv.status = processApproval(lv.status, lv.managerId, u);
+    
+    // Deduct leave balance of the employee ONLY when final status becomes Approved
+    if (lv.status === 'Approved' && prevStatus !== 'Approved') {
+      var emp=DB.employees.find(function(e){return e.id===lv.empId;});
+      if(emp){
+        var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':'LWP';
+        emp.leaves[key+'_used'] += lv.days;
+      }
+    }
+  }
+  saveDB();
+  closeModal('modal-leave-detail');
+  showToast('Leave request approved!');
+  initAdminApp();
+}
+
+function rejectLeave(){
+  var reason=prompt('Leave Rejection remarks:');
+  if(reason===null)return;
+  var lv=DB.leaves.find(function(l){return l.id===currentLeaveId;});
+  if(lv){
+    lv.status='Rejected';
+    lv.remarks=reason;
+  }
+  saveDB();
+  closeModal('modal-leave-detail');
+  showToast('Leave request rejected.');
+  initAdminApp();
+}
+
+// ===== MASTER DATA MANAGEMENT =====
+// SFC Upload/Render
+function renderSFCTable(){
+  var q = getSearchQuery('adm-sfc-search');
+  var filtered = DB.sfc.map(function(s, index) {
+    return { s: s, index: index };
+  }).filter(function(item){
+    if (!q) return true;
+    var s = item.s || {};
+    var haystack = [
+      s.from,
+      s.to,
+      s.mode,
+      s.distance,
+      s.fare,
+      s.da,
+      s.lodge,
+      s.other
+    ].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  });
+  document.getElementById('sfc-count').textContent=filtered.length;
+  var tbody=document.getElementById('sfc-table-body');
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="9" class="empty">'+(q ? 'No matching SFC records found' : 'No SFC records available')+'</td></tr>';
+    return;
+  }
+  tbody.innerHTML=filtered.map(function(item){
+    var s = item.s || {};
+    return '<tr><td><input type="checkbox" class="sfc-row-check admin-only" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td><td>'+s.from+'</td><td>'+s.to+'</td><td>'+s.distance+' KM</td><td>'+s.mode+'</td><td>&#x20B9;'+s.fare+'</td><td>&#x20B9;'+s.da+'</td><td>&#x20B9;'+s.lodge+'</td><td><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
+  }).join('');
+  
+  var masterCheck = document.getElementById('check-all-sfc');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedSFCCount();
+}
+
+function removeSFC(i){
+  if(!confirm('Delete SFC record?'))return;
+  var target = DB.sfc[i];
+  DB.sfc.splice(i,1);
+  saveDB();
+  renderSFCTable();
+  runSupabaseDelete('sfc', function(q) {
+    return q.eq('id', target && target.id ? target.id : -1);
+  });
+}
+
+function toggleSelectAllSFC(masterCheck) {
+  var checks = document.querySelectorAll('.sfc-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedSFCCount();
+}
+
+function updateSelectedSFCCount() {
+  var selected = document.querySelectorAll('.sfc-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-sfc');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedSFC() {
+  var checked = document.querySelectorAll('.sfc-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected SFC records?')) return;
+  
+  var indicesToDelete = Array.from(checked).map(function(cb) { return parseInt(cb.value); });
+  var idsToDelete = [];
+  indicesToDelete.forEach(function(idx) {
+    if (DB.sfc[idx] && DB.sfc[idx].id) {
+      idsToDelete.push(DB.sfc[idx].id);
+    }
+  });
+
+  DB.sfc = DB.sfc.filter(function(s, idx) { return !indicesToDelete.includes(idx); });
+  saveDB();
+  renderSFCTable();
+  runSupabaseDelete('sfc', function(q) {
+    return idsToDelete.length > 0 ? q.in('id', idsToDelete) : q;
+  });
+  showToast(checked.length + ' SFC records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-sfc');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedSFCCount();
+}
+
+function bulkDeleteAllSFC() {
+  if (DB.sfc.length === 0) {
+    showToast('SFC list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL SFC records (' + DB.sfc.length + ') from the system? This cannot be undone.')) return;
+  DB.sfc = [];
+  saveDB();
+  renderSFCTable();
+  runSupabaseDelete('sfc', function(q) {
+    return q.gt('id', 0);
+  });
+  showToast('All SFC records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-sfc');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedSFCCount();
+}
+
+function uploadSFC(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var added=0;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && lines[0].toLowerCase().indexOf('from') !== -1;
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var p=parseCSVLine(line);
+      if(p.length<8||!p[0]||!p[1])return;
+      var existing = DB.sfc.find(function(s){
+        return s.from.toLowerCase() === p[0].toLowerCase() && s.to.toLowerCase() === p[1].toLowerCase();
+      });
+      if(existing){
+        existing.distance = parseInt(p[2])||0;
+        existing.mode = p[3];
+        existing.fare = parseFloat(p[4])||0;
+        existing.da = parseFloat(p[5])||0;
+        existing.lodge = parseFloat(p[6])||0;
+        existing.other = parseFloat(p[7])||0;
+      } else {
+        DB.sfc.push({
+          from: p[0],
+          to: p[1],
+          distance: parseInt(p[2])||0,
+          mode: p[3],
+          fare: parseFloat(p[4])||0,
+          da: parseFloat(p[5])||0,
+          lodge: parseFloat(p[6])||0,
+          other: parseFloat(p[7])||0
+        });
+      }
+      added++;
+    });
+    saveDB();
+    showToast(added+' SFC entries processed successfully!');
+    renderSFCTable();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadSFCTemplate(){
+  var csv='FromLocation,ToLocation,DistanceKM,TravelMode,FareAmount,DAAllowance,LodgingAllowance,OtherAllowance\n';
+  var checked = document.querySelectorAll('.sfc-row-check:checked');
+  var list = [];
+  if (checked.length > 0) {
+    var indices = Array.from(checked).map(c => parseInt(c.value));
+    list = DB.sfc.filter((s, i) => indices.includes(i));
+  } else {
+    list = DB.sfc || [];
+  }
+
+  if (list.length > 0) {
+    list.forEach(function(s){
+      csv += [
+        s.from || '',
+        s.to || '',
+        s.distance || '',
+        s.mode || '',
+        s.fare || '',
+        s.da || '',
+        s.lodge || '',
+        s.other || '0'
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'sfc_distance_master.csv');
+  } else {
+    csv += 'Mumbai,Pune,150,Bus,350,600,1200,100\nMumbai,Nashik,180,Train,250,450,800,50\n';
+    downloadData(csv,'sfc_distance_template.csv');
+  }
+}
+
+function loadCityRates(){
+  // Kept for UI compatibility but SFC values are now derived from expanded SFC list directly
+  if(!document.getElementById('da-a'))return;
+  document.getElementById('da-a').value=DB.cityRates.daA;
+  document.getElementById('da-b').value=DB.cityRates.daB;
+  document.getElementById('da-c').value=DB.cityRates.daC;
+  document.getElementById('lodge-a').value=DB.cityRates.lodgeA;
+  document.getElementById('lodge-b').value=DB.cityRates.lodgeB;
+  document.getElementById('lodge-c').value=DB.cityRates.lodgeC;
+  document.getElementById('local-conv').value=DB.cityRates.localConv;
+}
+
+function saveCityRates(){
+  DB.cityRates.daA=parseInt(document.getElementById('da-a').value)||0;
+  DB.cityRates.daB=parseInt(document.getElementById('da-b').value)||0;
+  DB.cityRates.daC=parseInt(document.getElementById('da-c').value)||0;
+  DB.cityRates.lodgeA=parseInt(document.getElementById('lodge-a').value)||0;
+  DB.cityRates.lodgeB=parseInt(document.getElementById('lodge-b').value)||0;
+  DB.cityRates.lodgeC=parseInt(document.getElementById('lodge-c').value)||0;
+  DB.cityRates.localConv=parseInt(document.getElementById('local-conv').value)||0;
+  saveDB();
+}
+
+// Employee
+function populateAdminEmpMgr(){
+  var sel=document.getElementById('adm-emp-mgr');
+  sel.innerHTML='<option value="">-- None / Root --</option>'+DB.employees.map(function(m){return '<option value="'+m.id+'">'+m.name+' ('+m.role.toUpperCase()+')</option>';}).join('');
+}
+
+function addEmployee(){
+  var id=document.getElementById('adm-emp-id').value.trim().toUpperCase();
+  var name=document.getElementById('adm-emp-name').value.trim();
+  var pwd=document.getElementById('adm-emp-pwd').value.trim();
+  var area=document.getElementById('adm-emp-area').value.trim();
+  var designation=document.getElementById('adm-emp-designation').value.trim();
+  var role=document.getElementById('adm-emp-role').value;
+  var mgr=document.getElementById('adm-emp-mgr').value;
+  var doj=document.getElementById('adm-emp-doj').value;
+  var state=document.getElementById('adm-emp-state').value.trim();
+  var status=document.getElementById('adm-emp-status').value;
+  
+  if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
+  if(DB.employees.find(function(e){return e.id===id;})){showToast('Employee ID already exists');return;}
+  
+  DB.employees.push({
+    id:id,
+    name:name,
+    pwd:pwd,
+    area:area,
+    designation:designation || getDefaultEmployeeDesignation(role),
+    role:role,
+    managerId:mgr,
+    doj:doj,
+    state:state,
+    status:normalizeEmployeeStatus(status),
+    leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+  });
+  saveDB();
+  
+  document.getElementById('adm-emp-id').value='';
+  document.getElementById('adm-emp-name').value='';
+  document.getElementById('adm-emp-pwd').value='';
+  document.getElementById('adm-emp-area').value='';
+  document.getElementById('adm-emp-designation').value='';
+  document.getElementById('adm-emp-doj').value='';
+  document.getElementById('adm-emp-state').value='';
+  document.getElementById('adm-emp-status').value='Active';
+  showToast('Employee record added!');
+  renderEmpTable();
+  populateAdminEmpMgr();
+}
+
+function uploadEmployees(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var count=0;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var cols=parseCSVLine(line);
+      if(!cols[0]||!cols[1])return;
+      var pwd = cols[2] || 'pass123';
+      var designation = '';
+      var rawRole = '';
+      var mgrIndex = 5;
+      var dojIndex = 6;
+      var stateIndex = 7;
+      var statusIndex = 8;
+      if (cols.length >= 10) {
+        designation = cols[4] || '';
+        rawRole = (cols[5] || '').trim().toLowerCase();
+        mgrIndex = 6;
+        dojIndex = 7;
+        stateIndex = 8;
+        statusIndex = 9;
+      } else {
+        rawRole = (cols[4] || '').trim().toLowerCase();
+      }
+      var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
+      var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
+      var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
+      if(existing){
+        existing.name=cols[1];
+        existing.pwd=pwd;
+        existing.area=cols[3]||'';
+        existing.designation=designation || existing.designation || getDefaultEmployeeDesignation(role);
+        existing.role=role;
+        existing.managerId=cols[mgrIndex]||'';
+        existing.doj=cols[dojIndex]||'';
+        existing.state=cols[stateIndex]||'';
+        existing.status=normalizeEmployeeStatus(cols[statusIndex]||'Active');
+        count++;
+      } else {
+        DB.employees.push({
+          id:cols[0].toUpperCase(),
+          name:cols[1],
+          pwd:pwd,
+          area:cols[3]||'',
+          designation:designation || getDefaultEmployeeDesignation(role),
+          role:role,
+          managerId:cols[mgrIndex]||'',
+          doj:cols[dojIndex]||'',
+          state:cols[stateIndex]||'',
+          status:normalizeEmployeeStatus(cols[statusIndex]||'Active'),
+          leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+        });
+        count++;
+      }
+    });
+    saveDB();
+    showToast(count+' employees processed successfully!');
+    renderEmpTable();
+    populateAdminEmpMgr();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadEmpTemplate(){
+  var csv='EmployeeID,Name,Password,Territory,Designation,Role,ManagerID,DOJ,State,Status\n';
+  var checked = document.querySelectorAll('.emp-row-check:checked');
+  var list = [];
+  if (checked.length > 0) {
+    var ids = Array.from(checked).map(c => c.value);
+    list = DB.employees.filter(e => e && e.id !== 'ADMIN' && ids.includes(e.id));
+  } else {
+    list = DB.employees.filter(function(e){ return e && e.id !== 'ADMIN'; });
+  }
+
+  if(list.length > 0) {
+    list.forEach(function(e){
+      csv += [
+        e.id || '',
+        e.name || '',
+        e.pwd || '',
+        e.area || '',
+        e.designation || getDefaultEmployeeDesignation(e.role),
+        e.role || '',
+        e.managerId || '',
+        e.doj || '',
+        e.state || '',
+        normalizeEmployeeStatus(e.status)
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'employees_master.csv');
+  } else {
+    csv += 'EMP004,Vikas Malhotra,pass123,Pune,Medical Representative,emp,FLM001,2026-01-01,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,First Line Manager,manager,RM001,2026-01-01,West Bengal,Active\n';
+    downloadData(csv,'employees_template.csv');
+  }
+}
+
+function renderEmpTable(){
+  var tbody=document.getElementById('emp-table-body');
+  if (!tbody) return;
+  var q = getSearchQuery('adm-emp-search');
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+    var emps=DB.employees.filter(function(e){
+      if (!e || e.id==='ADMIN') return false;
+      if (teamIds && !teamIds.includes(e.id)) return false;
+    if (!q) return true;
+    var mgr = e.managerId ? DB.employees.find(function(m){ return m && m.id===e.managerId; }) : null;
+    var haystack = [
+      e.id,
+      e.name,
+      e.pwd,
+      e.role,
+      e.designation,
+      e.area,
+      e.state,
+      normalizeEmployeeStatus(e.status),
+      mgr && mgr.name ? mgr.name : '',
+      mgr && mgr.id ? mgr.id : ''
+    ].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  });
+  var countEl = document.getElementById('emp-count');
+  if (countEl) countEl.textContent = emps.length;
+  if (!emps.length) {
+    tbody.innerHTML = '<tr><td colspan="12" class="empty">No matching employee records found</td></tr>';
+    var masterCheckEmpty = document.getElementById('check-all-emps');
+    if (masterCheckEmpty) masterCheckEmpty.checked = false;
+    updateSelectedEmpsCount();
+    return;
+  }
+  
+  try {
+    tbody.innerHTML=emps.map(function(e){
+      if (!e) return '';
+      var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
+      var roleName = (e.role || 'emp').toUpperCase();
+      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+roleName+'</td><td>'+(e.designation || getDefaultEmployeeDesignation(e.role))+'</td><td>'+(e.area || '')+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
+    }).join('');
+  } catch (err) {
+    console.error("Error rendering employee table:", err);
+  }
+  
+  var masterCheck = document.getElementById('check-all-emps');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedEmpsCount();
+}
+
+function openEmployeeStatusModal(empId) {
+  var emp = DB.employees.find(function(e) { return e && e.id === empId; });
+  if (!emp) return;
+  normalizeEmployeeRecord(emp);
+  var mgr = emp.managerId ? DB.employees.find(function(m) { return m && m.id === emp.managerId; }) : null;
+  var modalBody = document.getElementById('emp-status-modal-content');
+  if (!modalBody) return;
+  modalBody.innerHTML = [
+    '<div class="info-box">',
+      '<strong>' + (emp.name || emp.id) + '</strong><br>',
+      'ID: ' + (emp.id || '-') + '<br>',
+      'Designation: ' + (emp.designation || getDefaultEmployeeDesignation(emp.role)) + '<br>',
+      'Current Status: ' + normalizeEmployeeStatus(emp.status) + '<br>',
+      'Reporting Manager: ' + (mgr && mgr.name ? mgr.name : 'None'),
+    '</div>',
+    '<div class="btn-row" style="flex-wrap:wrap">',
+      '<button class="btn warn sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Hold')) + ')">Hold</button>',
+      '<button class="btn danger sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Resign')) + ')">Resign</button>',
+      '<button class="btn gold sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Replace')) + ')">Replace</button>',
+      '<button class="btn success sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Active')) + ')">Active</button>',
+    '</div>'
+  ].join('');
+  document.getElementById('modal-emp-status').classList.add('on');
+}
+
+function setEmployeeStatus(empId, status) {
+  var emp = DB.employees.find(function(e) { return e && e.id === empId; });
+  if (!emp) return;
+  emp.status = normalizeEmployeeStatus(status);
+  saveDB();
+  renderEmpTable();
+  closeModal('modal-emp-status');
+  showToast((emp.name || emp.id) + ' marked as ' + emp.status);
+}
+
+function removeEmp(id){
+  if(!confirm('Delete employee '+id+'?'))return;
+  DB.employees=DB.employees.filter(function(e){return e.id!==id;});
+  saveDB();
+  renderEmpTable();
+  runSupabaseDelete('employees', function(q) {
+    return q.eq('id', id);
+  });
+}
+
+function toggleSelectAllEmps(masterCheck) {
+  var checks = document.querySelectorAll('.emp-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedEmpsCount();
+}
+
+function updateSelectedEmpsCount() {
+  var selected = document.querySelectorAll('.emp-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-emps');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedEmployees() {
+  var checked = document.querySelectorAll('.emp-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected employee records?')) return;
+  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.employees = DB.employees.filter(function(e) { return !idsToDelete.includes(e.id); });
+  saveDB();
+  renderEmpTable();
+  runSupabaseDelete('employees', function(q) {
+    return q.in('id', idsToDelete);
+  });
+  showToast(checked.length + ' employees deleted successfully!');
+  var masterCheck = document.getElementById('check-all-emps');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedEmpsCount();
+}
+
+function bulkDeleteAllEmployees() {
+  var empsToDelete = DB.employees.filter(function(e){return e.id!=='ADMIN';});
+  if (empsToDelete.length === 0) {
+    showToast('Employee list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL employee records (' + empsToDelete.length + ') from the system? This cannot be undone.')) return;
+  DB.employees = DB.employees.filter(function(e){return e.id==='ADMIN';});
+  saveDB();
+  renderEmpTable();
+  runSupabaseDelete('employees', function(q) {
+    return q.neq('id', 'ADMIN');
+  });
+  showToast('All employee records (excluding ADMIN) deleted successfully!');
+  var masterCheck = document.getElementById('check-all-emps');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedEmpsCount();
+}
+
+// Doctor Master Management
+function addDoctorManual(){
+  document.getElementById('doc-modal-title-text').textContent='Add Doctor';
+  document.getElementById('md-id').value='';
+  document.getElementById('md-code').value='';
+  document.getElementById('md-name').value='';
+  document.getElementById('md-spec').value='';
+  document.getElementById('md-qual').value='';
+  document.getElementById('md-city').value='';
+  document.getElementById('md-area').value='';
+  document.getElementById('md-address').value='';
+  document.getElementById('md-phone').value='';
+  
+  var sel=document.getElementById('md-assign');
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-doc').classList.add('on');
+}
+
+function editDoctor(id){
+  var doc=DB.doctors.find(function(d){return d.id===id;});
+  if(!doc)return;
+  
+  document.getElementById('doc-modal-title-text').textContent='Edit / Reassign Doctor';
+  document.getElementById('md-id').value=doc.id;
+  document.getElementById('md-code').value=doc.code;
+  document.getElementById('md-name').value=doc.name;
+  document.getElementById('md-spec').value=doc.spec;
+  document.getElementById('md-qual').value=doc.qual||'';
+  document.getElementById('md-city').value=doc.city||'';
+  document.getElementById('md-area').value=doc.area;
+  document.getElementById('md-address').value=doc.address||'';
+  document.getElementById('md-phone').value=doc.phone;
+  document.getElementById('md-status').value=doc.status||'Active';
+  
+  var sel=document.getElementById('md-assign');
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'" '+(e.id===doc.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-doc').classList.add('on');
+}
+
+function saveDoctor(){
+  var id=document.getElementById('md-id').value;
+  var code=document.getElementById('md-code').value.trim();
+  var name=document.getElementById('md-name').value.trim();
+  
+  if(!code||!name){showToast('Doctor Code and Name required!');return;}
+  
+  if(!id){
+    // New
+    var docId = 'D'+Date.now();
+    DB.doctors.push({
+      id: docId,
+      code: code,
+      name: name,
+      spec: document.getElementById('md-spec').value.trim(),
+      qual: document.getElementById('md-qual').value.trim(),
+      city: document.getElementById('md-city').value.trim(),
+      area: document.getElementById('md-area').value.trim(),
+      address: document.getElementById('md-address').value.trim(),
+      phone: document.getElementById('md-phone').value.trim(),
+      assignTo: document.getElementById('md-assign').value,
+      status: document.getElementById('md-status').value
+    });
+  } else {
+    // Edit
+    var doc=DB.doctors.find(function(d){return d.id===id;});
+    if(doc){
+      doc.code=code;
+      doc.name=name;
+      doc.spec=document.getElementById('md-spec').value.trim();
+      doc.qual=document.getElementById('md-qual').value.trim();
+      doc.city=document.getElementById('md-city').value.trim();
+      doc.area=document.getElementById('md-area').value.trim();
+      doc.address=document.getElementById('md-address').value.trim();
+      doc.phone=document.getElementById('md-phone').value.trim();
+      doc.assignTo=document.getElementById('md-assign').value;
+      doc.status=document.getElementById('md-status').value;
+    }
+  }
+  
+  saveDB();
+  closeModal('modal-add-doc');
+  showToast('Doctor record saved successfully.');
+  renderAdminDocList();
+}
+
+function uploadDoctors(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var added=0;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('code') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var p=parseCSVLine(line);
+      if(!p[0]||!p[1])return;
+      var existing = DB.doctors.find(function(d){ return d.code === p[0]; });
+      if(existing){
+        existing.name = p[1];
+        existing.spec = p[2]||'';
+        existing.qual = p[3]||'';
+        existing.address = p[4]||'';
+        existing.city = p[5]||'';
+        existing.area = p[6]||'';
+        existing.phone = p[7]||'';
+        existing.assignTo = (p[8]||'').toUpperCase();
+        existing.status = p[9]||'Active';
+      } else {
+        DB.doctors.push({
+          id: 'D'+Date.now()+Math.random(),
+          code: p[0],
+          name: p[1],
+          spec: p[2]||'',
+          qual: p[3]||'',
+          address: p[4]||'',
+          city: p[5]||'',
+          area: p[6]||'',
+          phone: p[7]||'',
+          assignTo: (p[8]||'').toUpperCase(),
+          status: p[9]||'Active'
+        });
+      }
+      added++;
+    });
+    saveDB();
+    showToast(added+' Doctor records processed successfully!');
+    renderAdminDocList();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadDocTemplate(){
+  var csv='DoctorCode,Name,Speciality,Qualification,Address,City,Area,Mobile,AssignToEmpID,Status\n';
+  var checked = document.querySelectorAll('.doc-row-check:checked');
+  var docsToExport = [];
+  if (checked.length > 0) {
+    var ids = Array.from(checked).map(c => c.value);
+    docsToExport = DB.doctors.filter(d => ids.includes(d.id));
+  } else {
+    docsToExport = DB.doctors || [];
+  }
+  
+  if(docsToExport.length > 0) {
+    docsToExport.forEach(function(d){
+      csv += [
+        d.code || '',
+        d.name || '',
+        d.spec || '',
+        d.qual || '',
+        d.address || '',
+        d.city || '',
+        d.area || '',
+        d.phone || '',
+        d.assignTo || '',
+        d.status || 'Active'
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'doctor_master.csv');
+  } else {
+    csv += 'DOC009,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,9830000001,EMP002,Active\n';
+    downloadData(csv,'doctor_master_template.csv');
+  }
+}
+
+var currentDocPage = 1; var docsPerPage = 50;
+function renderAdminDocList(page = 1) {
+  currentDocPage = page;
+  var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  var docs=DB.doctors.filter(function(d){
+    if (teamIds && !teamIds.includes(d.assignTo)) return false;
+    return !q||(d.name||"").toLowerCase().includes(q)||(d.spec||"").toLowerCase().includes(q)||(d.area||"").toLowerCase().includes(q)||(d.assignTo||"").toLowerCase().includes(q);
+  });
+  var countEl = document.getElementById('doc-count');
+  if (countEl) countEl.textContent = docs.length;
+  var totalPages = Math.ceil(docs.length / docsPerPage);
+  if (currentDocPage > totalPages) currentDocPage = totalPages || 1;
+  var startIdx = (currentDocPage - 1) * docsPerPage;
+  var endIdx = startIdx + docsPerPage;
+  var pagedDocs = docs.slice(startIdx, endIdx);
+  var tbody=document.getElementById('doc-table-body');
+  
+  tbody.innerHTML=pagedDocs.map(function(d){
+    var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
+    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
+  }).join('');
+  
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedDocsCount();
+  var pagEl = document.getElementById('doc-pagination');
+  if (pagEl) {
+    var phtml = '';
+    if (currentDocPage > 1) phtml += '<button class="btn sm" onclick="renderAdminDocList('+(currentDocPage-1)+')">Prev</button> ';
+    phtml += '<span style="font-size:12px;margin:0 10px;">Page ' + currentDocPage + ' of ' + (totalPages || 1) + '</span>';
+    if (currentDocPage < totalPages) phtml += ' <button class="btn sm" onclick="renderAdminDocList('+(currentDocPage+1)+')">Next</button>';
+    pagEl.innerHTML = phtml;
+  }
+}
+
+function removeDoc(id){
+  if(!confirm('Delete doctor record?'))return;
+  DB.doctors=DB.doctors.filter(function(d){return d.id!==id;});
+  saveDB();
+  renderAdminDocList();
+  runSupabaseDelete('doctors', function(q) {
+    return q.eq('id', id);
+  });
+}
+
+function toggleSelectAllDocs(masterCheck) {
+  var checks = document.querySelectorAll('.doc-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedDocsCount();
+}
+
+function updateSelectedDocsCount() {
+  var selected = document.querySelectorAll('.doc-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-docs');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedDoctors() {
+  var checked = document.querySelectorAll('.doc-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected doctor records?')) return;
+  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.doctors = DB.doctors.filter(function(d) { return !idsToDelete.includes(d.id); });
+  saveDB();
+  renderAdminDocList();
+  runSupabaseDelete('doctors', function(q) {
+    return q.in('id', idsToDelete);
+  });
+  showToast(checked.length + ' doctors deleted successfully!');
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedDocsCount();
+}
+
+function bulkDeleteAllDoctors() {
+  if (DB.doctors.length === 0) {
+    showToast('Doctor list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL doctor records (' + DB.doctors.length + ') from the system? This cannot be undone.')) return;
+  DB.doctors = [];
+  saveDB();
+  renderAdminDocList();
+  runSupabaseDelete('doctors', function(q) {
+    return q.neq('id', 'dummy_value_to_delete_all');
+  });
+  showToast('All doctor records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedDocsCount();
+}
+
+// Chemist Master Management
+function addChemistManual(){
+  document.getElementById('chem-modal-title-text').textContent='Add Chemist';
+  document.getElementById('mc-id').value='';
+  document.getElementById('mc-code').value='';
+  document.getElementById('mc-name').value='';
+  document.getElementById('mc-area').value='';
+  
+  var sel=document.getElementById('mc-assign');
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-chem').classList.add('on');
+}
+
+function editChemist(id){
+  var chem=DB.chemists.find(function(c){return c.id===id;});
+  if(!chem)return;
+  
+  document.getElementById('chem-modal-title-text').textContent='Edit Chemist';
+  document.getElementById('mc-id').value=chem.id;
+  document.getElementById('mc-code').value=chem.id;
+  document.getElementById('mc-name').value=chem.name;
+  document.getElementById('mc-area').value=chem.area;
+  
+  var sel=document.getElementById('mc-assign');
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'" '+(e.id===chem.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-chem').classList.add('on');
+}
+
+function saveChemist(){
+  var id=document.getElementById('mc-id').value;
+  var code=document.getElementById('mc-code').value.trim();
+  var name=document.getElementById('mc-name').value.trim();
+  var area=document.getElementById('mc-area').value.trim();
+  
+  if(!code||!name){showToast('Chemist ID and Name required!');return;}
+  
+  if(!id){
+    DB.chemists.push({
+      id: code,
+      name: name,
+      area: area,
+      assignTo: document.getElementById('mc-assign').value
+    });
+  } else {
+    var chem=DB.chemists.find(function(c){return c.id===id;});
+    if(chem){
+      chem.name=name;
+      chem.area=area;
+      chem.assignTo=document.getElementById('mc-assign').value;
+    }
+  }
+  
+  saveDB();
+  closeModal('modal-add-chem');
+  showToast('Chemist record saved successfully.');
+  renderAdminChemistList();
+}
+
+function uploadChemists(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var added=0;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    dataLines.forEach(function(line){
+      var p=parseCSVLine(line);
+      if(!p[0]||!p[1])return;
+      var existing = DB.chemists.find(function(c){ return c.id === p[0]; });
+      if(existing){
+        existing.name = p[1];
+        existing.area = p[2]||'';
+        existing.assignTo = (p[3]||'').toUpperCase();
+      } else {
+        DB.chemists.push({
+          id: p[0],
+          name: p[1],
+          area: p[2]||'',
+          assignTo: (p[3]||'').toUpperCase()
+        });
+      }
+      added++;
+    });
+    saveDB();
+    showToast(added+' Chemists processed successfully!');
+    renderAdminChemistList();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadChemTemplate(){
+  var csv='ChemistID,Name,Area,AssignToEmpID\n';
+  var checked = document.querySelectorAll('.chem-row-check:checked');
+  var chemsToExport = [];
+  if (checked.length > 0) {
+    var ids = Array.from(checked).map(c => c.value);
+    chemsToExport = DB.chemists.filter(c => ids.includes(c.id));
+  } else {
+    chemsToExport = DB.chemists || [];
+  }
+
+  if(chemsToExport.length > 0) {
+    chemsToExport.forEach(function(c){
+      csv += [
+        c.id || '',
+        c.name || '',
+        c.area || '',
+        c.assignTo || ''
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'chemist_master.csv');
+  } else {
+    csv += 'CHM009,Vikas Pharma,Dadar,EMP001\n';
+    downloadData(csv,'chemist_master_template.csv');
+  }
+}
+
+var currentChemPage = 1; var chemsPerPage = 50;
+function renderAdminChemistList(page = 1) {
+  currentChemPage = page;
+  var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  var chems=DB.chemists.filter(function(c){
+    if (teamIds && !teamIds.includes(c.assignTo)) return false;
+    return !q||(c.name||"").toLowerCase().includes(q)||(c.area||"").toLowerCase().includes(q)||(c.assignTo||"").toLowerCase().includes(q);
+  });
+  var countEl = document.getElementById('chem-count');
+  if (countEl) countEl.textContent = chems.length;
+  var totalPages = Math.ceil(chems.length / chemsPerPage);
+  if (currentChemPage > totalPages) currentChemPage = totalPages || 1;
+  var startIdx = (currentChemPage - 1) * chemsPerPage;
+  var endIdx = startIdx + chemsPerPage;
+  var pagedChems = chems.slice(startIdx, endIdx);
+  var tbody=document.getElementById('chem-table-body');
+  
+  tbody.innerHTML=pagedChems.map(function(c){
+    var emp=DB.employees.find(function(e){return e.id===c.assignTo;});
+    return '<tr><td><input type="checkbox" class="chem-row-check admin-only" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
+  }).join('');
+  
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedChemsCount();
+  var pagEl = document.getElementById('chem-pagination');
+  if (pagEl) {
+    var phtml = '';
+    if (currentChemPage > 1) phtml += '<button class="btn sm" onclick="renderAdminChemistList('+(currentChemPage-1)+')">Prev</button> ';
+    phtml += '<span style="font-size:12px;margin:0 10px;">Page ' + currentChemPage + ' of ' + (totalPages || 1) + '</span>';
+    if (currentChemPage < totalPages) phtml += ' <button class="btn sm" onclick="renderAdminChemistList('+(currentChemPage+1)+')">Next</button>';
+    pagEl.innerHTML = phtml;
+  }
+}
+
+function removeChemist(id){
+  if(!confirm('Delete chemist record?'))return;
+  DB.chemists=DB.chemists.filter(function(c){return c.id!==id;});
+  saveDB();
+  renderAdminChemistList();
+  runSupabaseDelete('chemists', function(q) {
+    return q.eq('id', id);
+  });
+}
+
+function toggleSelectAllChems(masterCheck) {
+  var checks = document.querySelectorAll('.chem-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedChemsCount();
+}
+
+function updateSelectedChemsCount() {
+  var selected = document.querySelectorAll('.chem-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-chems');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function bulkDeleteSelectedChemists() {
+  var checked = document.querySelectorAll('.chem-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected chemist records?')) return;
+  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.chemists = DB.chemists.filter(function(c) { return !idsToDelete.includes(c.id); });
+  saveDB();
+  renderAdminChemistList();
+  runSupabaseDelete('chemists', function(q) {
+    return q.in('id', idsToDelete);
+  });
+  showToast(checked.length + ' chemists deleted successfully!');
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedChemsCount();
+}
+
+function bulkDeleteAllChemists() {
+  if (DB.chemists.length === 0) {
+    showToast('Chemist list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL chemist records (' + DB.chemists.length + ') from the system? This cannot be undone.')) return;
+  DB.chemists = [];
+  saveDB();
+  renderAdminChemistList();
+  runSupabaseDelete('chemists', function(q) {
+    return q.neq('id', 'dummy_value_to_delete_all');
+  });
+  showToast('All chemist records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedChemsCount();
+}
+
+// ===== LEAVE BALANCE MASTER FUNCTIONS =====
+function renderLeaveBalanceTable(){
+  var thead = document.getElementById('leave-bal-table-head');
+  if(thead) {
+    var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    thead.innerHTML = '<tr><th colspan="6" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th></tr>' +
+      '<tr><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2">Designation</th><th rowspan="2">HQ</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th></tr>' +
+      '<tr><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th></tr>';
+  }
+  var tbody=document.getElementById('leave-bal-table-body');
+  if(!tbody) return;
+  var q = getSearchQuery('adm-leave-search');
+  var u = SESSION.user;
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+  var emps=DB.employees.filter(function(e){
+    if (!e || e.id==='ADMIN') return false;
+    if (teamIds && !teamIds.includes(e.id)) return false;
+    if (!q) return true;
+    var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
+    var haystack = [
+      e.id,
+      e.name,
+      e.designation,
+      e.role,
+      e.area,
+      e.state,
+      e.doj,
+      mgr && mgr.name ? mgr.name : '',
+      mgr && mgr.id ? mgr.id : ''
+    ].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  });
+  var countEl = document.getElementById('leave-bal-count');
+  if (countEl) countEl.textContent = emps.length;
+  if (!emps.length) {
+    tbody.innerHTML = '<tr><td colspan="18" class="empty">No matching leave balance records found</td></tr>';
+    return;
+  }
+  tbody.innerHTML=emps.map(function(e, idx){
+    var cl = e.leaves ? (e.leaves.CL || 0) : 0;
+    var cl_used = e.leaves ? (e.leaves.CL_used || 0) : 0;
+    var sl = e.leaves ? (e.leaves.SL || 0) : 0;
+    var sl_used = e.leaves ? (e.leaves.SL_used || 0) : 0;
+    var pl = e.leaves ? (e.leaves.EL || 0) : 0;
+    var pl_used = e.leaves ? (e.leaves.EL_used || 0) : 0;
+    var lop = e.leaves ? (e.leaves.LWP || 0) : 0;
+    var lop_used = e.leaves ? (e.leaves.LWP_used || 0) : 0;
+    
+    var cl_bal = cl - cl_used;
+    var sl_bal = sl - sl_used;
+    var pl_bal = pl - pl_used;
+    var lop_bal = lop - lop_used;
+
+    var desig = e.role === 'admin' ? 'Admin' : (e.managerId ? 'Medical Representative' : 'Manager');
+    var hq = e.headquarter || 'HQ';
+    var joinDate = e.joiningDate || '01-Jan-2023';
+
+    return '<tr>'+
+      '<td>'+(idx+1)+'</td>'+
+      '<td>'+(e.id||'')+'</td>'+
+      '<td class="tbl-name">'+(e.name||'')+'</td>'+
+      '<td>'+desig+'</td>'+
+      '<td>'+hq+'</td>'+
+      '<td>'+joinDate+'</td>'+
+      '<td>'+cl+'</td><td>'+pl+'</td><td>'+sl+'</td><td>'+lop+'</td>'+
+      '<td>'+cl_used+'</td><td>'+pl_used+'</td><td>'+sl_used+'</td><td>'+lop_used+'</td>'+
+      '<td>'+cl_bal+'</td><td>'+pl_bal+'</td><td>'+sl_bal+'</td><td>'+lop_bal+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+
+function toggleSelectAllLeaves(chk) {
+  document.querySelectorAll('.leave-row-check').forEach(function(c){ c.checked = chk.checked; });
+  updateSelectedLeavesCount();
+}
+
+function updateSelectedLeavesCount() {
+  var count = document.querySelectorAll('.leave-row-check:checked').length;
+  var btn = document.getElementById('btn-del-sel-leave');
+  var span = document.getElementById('sel-leave-count');
+  if(btn && span) {
+    if(count > 0) { btn.style.display='inline-block'; span.textContent=count; }
+    else { btn.style.display='none'; }
+  }
+}
+
+function deleteLeaveBalance(id) {
+  if(!confirm('Clear leave data for '+id+'?')) return;
+  var emp = DB.employees.find(function(e) { return e.id === id; });
+  if (emp) {
+    emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+    saveDB();
+    renderLeaveBalanceTable();
+    showToast('Leave data cleared for ' + id);
+  }
+}
+
+function deleteSelectedLeaves() {
+  var checked = document.querySelectorAll('.leave-row-check:checked');
+  if(checked.length === 0) return;
+  if(!confirm('Clear leave data for ' + checked.length + ' employees?')) return;
+  checked.forEach(function(c){
+    var emp = DB.employees.find(function(e) { return e.id === c.value; });
+    if (emp) emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+  });
+  saveDB();
+  renderLeaveBalanceTable();
+  showToast(checked.length + ' leave records cleared');
+}
+
+function deleteAllLeaves() {
+  if(!confirm('Are you sure you want to clear ALL leave records? This cannot be undone.')) return;
+  DB.employees.forEach(function(emp) {
+    emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+  });
+  saveDB();
+  renderLeaveBalanceTable();
+  showToast('All leave records cleared');
+}
+
+function downloadLeaveBalanceData(){
+  var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  var csv = ',,,,,,' + monthYear + ',,,,,,,,,,,\n';
+  csv += 'S.No,Employee id,FieldForce Name,Designation,HQ,Joining Date,Leave Eligibilty,,,Leave Taken,,,Leave Balance,,\n';
+  csv += ',,,,,,CL,PL,SL,LOP,CL,PL,SL,LOP,CL,PL,SL,LOP\n';
+  
+  var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
+  if(emps.length > 0) {
+    emps.forEach(function(e, idx){
+      var cl = e.leaves ? (e.leaves.CL || 0) : 0;
+      var cl_used = e.leaves ? (e.leaves.CL_used || 0) : 0;
+      var sl = e.leaves ? (e.leaves.SL || 0) : 0;
+      var sl_used = e.leaves ? (e.leaves.SL_used || 0) : 0;
+      var pl = e.leaves ? (e.leaves.EL || 0) : 0;
+      var pl_used = e.leaves ? (e.leaves.EL_used || 0) : 0;
+      var lop = e.leaves ? (e.leaves.LWP || 0) : 0;
+      var lop_used = e.leaves ? (e.leaves.LWP_used || 0) : 0;
+
+      var desig = e.role === 'admin' ? 'Admin' : (e.managerId ? 'Medical Representative' : 'Manager');
+      var hq = e.headquarter || 'HQ';
+      var joinDate = e.joiningDate || '01-Jan-2023';
+
+      csv += [
+        idx + 1,
+        e.id || '',
+        e.name || '',
+        desig,
+        hq,
+        joinDate,
+        cl, pl, sl, lop,
+        cl_used, pl_used, sl_used, lop_used,
+        (cl - cl_used), (pl - pl_used), (sl - sl_used), (lop - lop_used)
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+  }
+  downloadData(csv,'leave_balance_master.csv');
+}
+
+function uploadLeaveBalances(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var updated=0;
+    lines.forEach(function(line){
+      var p=parseCSVLine(line);
+      if(p.length < 18) return; // Need at least 18 columns for the new format
+      
+      // employee ID is in p[1]
+      var empId = p[1].toUpperCase();
+      var emp = DB.employees.find(function(x){return x.id === empId;});
+      if(emp){
+        if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+        
+        emp.leaves.CL = parseInt(p[6]) || 0;
+        emp.leaves.EL = parseInt(p[7]) || 0; // PL mapped to EL
+        emp.leaves.SL = parseInt(p[8]) || 0;
+        emp.leaves.LWP = parseInt(p[9]) || 0;
+        
+        emp.leaves.CL_used = parseInt(p[10]) || 0;
+        emp.leaves.EL_used = parseInt(p[11]) || 0;
+        emp.leaves.SL_used = parseInt(p[12]) || 0;
+        emp.leaves.LWP_used = parseInt(p[13]) || 0;
+        
+        updated++;
+      }
+    });
+    saveDB();
+    showToast(updated+' employee leave balances updated successfully!');
+    renderLeaveBalanceTable();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+// ===== HOLIDAY MASTER FUNCTIONS =====
+function renderHolidayTable(){
+  var tbody=document.getElementById('holiday-table-body');
+  if(!tbody) return;
+  if(!DB.holidays) DB.holidays = [];
+  var q = getSearchQuery('adm-holiday-search');
+  var filtered = DB.holidays.map(function(h, index) {
+    return { h: h, index: index };
+  }).filter(function(item) {
+    if (!q) return true;
+    var h = item.h || {};
+    var haystack = [h.date, h.name, h.state || 'All'].join(' ').toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  });
+  var countEl = document.getElementById('holiday-count');
+  if (countEl) countEl.textContent = filtered.length;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">No matching holiday records found</td></tr>';
+    return;
+  }
+  tbody.innerHTML=filtered.map(function(item){
+    var h = item.h;
+    return '<tr><td>'+h.date+'</td><td class="tbl-name">'+h.name+'</td><td>'+(h.state || 'All')+'</td><td><button class="btn sm danger admin-only" onclick="removeHoliday('+item.index+')">Delete</button></td></tr>';
+  }).join('');
+}
+
+function removeHoliday(index){
+  var h = DB.holidays[index];
+  if (!h) return;
+  DB.holidays.splice(index, 1);
+  if (DB.holidays.length === 0) {
+    setHolidayDeletionFlag(true);
+  }
+  saveDB();
+  renderHolidayTable();
+  runSupabaseDelete('holidays', function(q) {
+    return q.eq('date', formatDateForPostgres(h.date) || h.date)
+      .eq('state', normalizeHolidayState(h.state));
+  });
+}
+
+async function clearAllHolidays(){
+  if(confirm("Are you sure you want to clear all holidays?")){
+    var holsToDelete = (DB.holidays || []).slice();
+    DB.holidays = [];
+    setHolidayDeletionFlag(true);
+    saveDB();
+    renderHolidayTable();
+    await Promise.all(holsToDelete.map(function(h) {
+      return runSupabaseDelete('holidays', function(q) {
+        return q.eq('date', formatDateForPostgres(h.date) || h.date)
+          .eq('state', normalizeHolidayState(h.state));
+      });
+    }));
+  }
+}
+
+function downloadHolidayList(){
+  var csv='Date,HolidayName,State\n';
+  if(DB.holidays && DB.holidays.length > 0) {
+    DB.holidays.forEach(function(h){
+      csv += [h.date || '', h.name || '', h.state || 'All'].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+  } else {
+    csv += '2026-01-01,New Year Day,All\n2026-01-26,Republic Day,All\n2026-08-15,Independence Day,All\n2026-11-01,Kannada Rajyotsava,Karnataka\n';
+  }
+  downloadData(csv,'holiday_list.csv');
+}
+
+function uploadHolidays(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var added=0;
+    var hasHeader = isNaN(parseInt(lines[0].charAt(0)));
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    if(!DB.holidays) DB.holidays = [];
+    dataLines.forEach(function(line){
+      var p=parseCSVLine(line);
+      if(!p[0]||!p[1])return;
+      var dateVal = formatDateForPostgres(p[0]) || p[0];
+      var nameVal = p[1];
+      var stateVal = p[2] || 'All';
+      var existing = DB.holidays.find(function(h){return h.date === dateVal && h.state.toLowerCase() === stateVal.toLowerCase();});
+      if(existing){
+        existing.name = nameVal;
+      } else {
+        DB.holidays.push({date: dateVal, name: nameVal, state: stateVal});
+      }
+      added++;
+    });
+    if (DB.holidays.length > 0) {
+      setHolidayDeletionFlag(false);
+    }
+    DB.holidays.sort(function(a,b){return a.date.localeCompare(b.date) || a.state.localeCompare(b.state);});
+    saveDB();
+    showToast(added+' holiday list records processed successfully!');
+    renderHolidayTable();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+// ===== INVENTORY ALLOCATION =====
+function populateInventoryItemSelect(){
+  var type=document.getElementById('inv-issue-type').value;
+  var sel=document.getElementById('inv-issue-item');
+  sel.innerHTML='';
+  
+  var list = type==='Sample Product' ? DB.products : (type==='Gift Promotional'?DB.gifts:DB.inputs);
+  list.forEach(function(item){
+    var o=document.createElement('option');o.value=item;o.textContent=item;sel.appendChild(o);
+  });
+}
+
+function issueStockToMR(){
+  var empId=document.getElementById('inv-issue-emp').value;
+  var type=document.getElementById('inv-issue-type').value;
+  var itemName=document.getElementById('inv-issue-item').value;
+  var qty=parseInt(document.getElementById('inv-issue-qty').value)||0;
+  
+  if(!empId||!itemName||qty<=0){
+    showToast('Please verify fields and quantity!');
+    return;
+  }
+  
+  if(type==='Sample Product'){
+    var stock=DB.samplesInventory.find(function(s){return s.empId===empId && s.prodName===itemName;});
+    if(stock){
+      stock.received+=qty;
+      stock.balance+=qty;
+    } else {
+      DB.samplesInventory.push({prodName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
+    }
+  } else if(type==='Gift Promotional'){
+    var stock=DB.giftsInventory.find(function(g){return g.empId===empId && g.giftName===itemName;});
+    if(stock){
+      stock.received+=qty;
+      stock.balance+=qty;
+    } else {
+      DB.giftsInventory.push({giftName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
+    }
+  } else {
+    var stock=DB.inputsInventory.find(function(i){return i.empId===empId && i.inputName===itemName;});
+    if(stock){
+      stock.received+=qty;
+      stock.balance+=qty;
+    } else {
+      DB.inputsInventory.push({inputName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
+    }
+  }
+  
+  saveDB();
+  showToast('Stock issued successfully to representative!');
+  document.getElementById('inv-issue-qty').value='';
+  renderAdminInventoryTables();
+}
+
+function renderAdminInventoryTables(){
+    var mrFilter=document.getElementById('inv-filter-emp').value;
+    var u=SESSION.user;
+    var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+    
+    // Render Samples
+    var samplesList = DB.samplesInventory.filter(function(s){return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId));});
+    document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
+      var emp=DB.employees.find(function(e){return e.id===s.empId;});
+      return '<tr><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+s.balance+'</td></tr>';
+    }).join(''):'<tr><td colspan="6" class="empty">No entries found</td></tr>';
+  
+    // Render Gifts
+    var giftsList = DB.giftsInventory.filter(function(g){return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId));});
+  document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
+    var emp=DB.employees.find(function(e){return e.id===g.empId;});
+    return '<tr><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+g.balance+'</td></tr>';
+  }).join(''):'<tr><td colspan="6" class="empty">No entries found</td></tr>';
+
+  // Render Inputs
+  var inputsList = DB.inputsInventory.filter(function(i){return !mrFilter||i.empId===mrFilter;});
+  document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
+    var emp=DB.employees.find(function(e){return e.id===i.empId;});
+    return '<tr><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+i.balance+'</td></tr>';
+  }).join(''):'<tr><td colspan="6" class="empty">No entries found</td></tr>';
+}
+
+// Global filter populator for reports/dropdowns
+function populateAdminEmpFilters(){
+    var selectList=['inv-issue-emp', 'inv-filter-emp', 'rep-filter-emp'];
+    var u=SESSION.user;
+    var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+  selectList.forEach(function(selId){
+    var sel=document.getElementById(selId);
+    if(sel){
+      sel.innerHTML = selId==='rep-filter-emp'?'<option value="">All Employees</option>':'';
+        DB.employees.filter(function(e){return e.role==='emp' && (!teamIds || teamIds.includes(e.id));}).forEach(function(e){
+        var o=document.createElement('option');o.value=e.id;o.textContent=e.name+' ('+e.id+')';sel.appendChild(o);
+      });
+    }
+  });
+}
+
+// ===== 13 COMPREHENSIVE MIS REPORTS ENGINE =====
+var currentMISData=[];
+var currentReportType='doc_calls';
+
+function updateReportHeadersAndFilters(){
+  currentReportType=document.getElementById('rep-selector').value;
+  var thead=document.getElementById('mis-report-thead');
+  var tbody=document.getElementById('mis-report-tbody');
+  thead.innerHTML='';
+  tbody.innerHTML='<tr><td class="empty">Click "Run Query" to fetch data</td></tr>';
+}
+
+function runMISReport(){
+    var empId=document.getElementById('rep-filter-emp').value;
+    var from=document.getElementById('rep-from').value;
+    var to=document.getElementById('rep-to').value;
+    
+    var thead=document.getElementById('mis-report-thead');
+    var tbody=document.getElementById('mis-report-tbody');
+    var u=SESSION.user;
+    var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+    
+    // Filter base calls reports
+    var baseReports=DB.reports.filter(function(r){
+      if(teamIds && !teamIds.includes(r.empId)) return false;
+    if(empId&&r.empId!==empId)return false;
+    if(from&&r.date<from)return false;
+    if(to&&r.date>to)return false;
+    return true;
+  });
+  
+  currentMISData=[];
+  var html='';
+  
+  if(currentReportType==='doc_calls'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th></tr>';
+    var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
+    currentMISData=docCalls.map(function(r){
+      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
+    });
+    
+  } else if(currentReportType==='chem_calls'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th></tr>';
+    var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
+    currentMISData=chemCalls.map(function(r){
+      return [r.date, r.empId, r.empName, r.chemName, r.classification, r.orderAmount, r.stockStatus, r.remarks];
+    });
+    
+  } else if(currentReportType==='call_avg'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>Total Doctor Calls</th><th>Working Days Checked</th><th>Call Average / Day</th></tr>';
+    var team=DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
+    team.forEach(function(e){
+      var empsReps = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
+      });
+      var workingDates=[];
+      DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
+        if(!workingDates.includes(r.date)) workingDates.push(r.date);
+      });
+      var days = workingDates.length || 1;
+      var avg = (empsReps.length / days).toFixed(2);
+      currentMISData.push([e.id, e.name, empsReps.length, days, avg]);
+    });
+    
+  } else if(currentReportType==='missed_calls'){
+    thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
+    var myTPs=DB.tourPlans.filter(function(tp){
+      return (tp.status==='Approved' || tp.status==='Submitted') && (!empId||tp.empId===empId);
+    });
+    myTPs.forEach(function(tp){
+      tp.days.forEach(function(d){
+        if(from && d.date < from) return;
+        if(to && d.date > to) return;
+        var area=d.areaTerritory||d.toLocation||'';
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+        plannedDocIds.forEach(function(docId){
+          // Check if MR reported visit on this date to this doc
+          var visited = DB.reports.find(function(r){
+            return r.empId===tp.empId && r.date===d.date && r.docId===docId;
+          });
+          if(!visited){
+            var doc=DB.doctors.find(function(dc){return dc.id===docId;});
+            currentMISData.push([tp.month, tp.empName, d.date, doc?doc.code:'', doc?doc.name:docId, 'Missed Call']);
+          }
+        });
+      });
+    });
+    
+  } else if(currentReportType==='visit_freq'){
+    thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
+    DB.doctors.filter(function(d){return !empId||d.assignTo===empId;}).forEach(function(d){
+      var visits = DB.reports.filter(function(r){
+        return r.targetType==='Doctor' && r.docId===d.id && (!from||r.date>=from) && (!to||r.date<=to);
+      });
+      var emp = DB.employees.find(function(e){return e.id===d.assignTo;});
+      currentMISData.push([d.code, d.name, emp?(emp.name+' ('+d.assignTo+')'):'Unassigned', d.spec, visits.length]);
+    });
+    
+  } else if(currentReportType==='plan_vs_act'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>Planned Doctor Calls</th><th>Actual Doctor Calls</th><th>Planned Chemist Calls</th><th>Actual Chemist Calls</th></tr>';
+    DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);}).forEach(function(e){
+      var plannedDocs = 0;
+      var plannedChems = 0;
+      DB.tourPlans.filter(function(tp){return tp.empId===e.id && (tp.status==='Approved' || tp.status==='Submitted');}).forEach(function(tp){
+        tp.days.forEach(function(d){
+          if(from && d.date < from) return;
+          if(to && d.date > to) return;
+          var area=d.areaTerritory||d.toLocation||'';
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===e.id && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===e.id && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+          plannedDocs += docIds.length;
+          plannedChems += chemIds.length;
+        });
+      });
+      var actualDocs = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
+      }).length;
+      var actualChems = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Chemist' && (!from||r.date>=from) && (!to||r.date<=to);
+      }).length;
+      currentMISData.push([e.id, e.name, plannedDocs, actualDocs, plannedChems, actualChems]);
+    });
+    
+  } else if(currentReportType==='jfw_days'){
+    thead.innerHTML='<tr><th>MR Employee</th><th>Accompanying Manager ID</th><th>Manager Name</th><th>JFW Date</th><th>Work Remarks</th></tr>';
+    baseReports.filter(function(r){return r.jfwMgrId !== '';}).forEach(function(r){
+      currentMISData.push([r.empName+' ('+r.empId+')', r.jfwMgrId, r.jfwMgrName, r.date, r.remarks]);
+    });
+    
+  } else if(currentReportType==='mgr_accomp'){
+    thead.innerHTML='<tr><th>Manager Name</th><th>MR Employee</th><th>Coaching &amp; Accompanist Days</th></tr>';
+    var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN';});
+    managers.forEach(function(m){
+      DB.employees.filter(function(e){return e.role==='emp' && resolveManagerId(e.managerId)===m.id && (!empId||e.id===empId);}).forEach(function(mr){
+        var accompDays=DB.reports.filter(function(r){
+          return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
+        }).length;
+        currentMISData.push([m.name+' ('+m.id+')', mr.name+' ('+mr.id+')', accompDays]);
+      });
+    });
+    
+  } else if(currentReportType==='samples_util'){
+    thead.innerHTML='<tr><th>MR Name</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed</th><th>Current Balance</th></tr>';
+    var filteredSamples = DB.samplesInventory.filter(function(s){return !empId||s.empId===empId;});
+    currentMISData=filteredSamples.map(function(s){
+      var emp=DB.employees.find(function(e){return e.id===s.empId;});
+      return [emp?emp.name:'', s.prodName, s.opening, s.received, s.distributed, s.balance];
+    });
+    
+  } else if(currentReportType==='gifts_util'){
+    thead.innerHTML='<tr><th>MR Name</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed</th><th>Current Balance</th></tr>';
+    var filteredGifts = DB.giftsInventory.filter(function(g){return !empId||g.empId===empId;});
+    currentMISData=filteredGifts.map(function(g){
+      var emp=DB.employees.find(function(e){return e.id===g.empId;});
+      return [emp?emp.name:'', g.giftName, g.opening, g.received, g.distributed, g.balance];
+    });
+    
+  } else if(currentReportType==='expenses_rep'){
+    thead.innerHTML='<tr><th>Employee</th><th>Month</th><th>Approved Claims (&#x20B9;)</th><th>Receipt Upload</th><th>Status</th></tr>';
+    var claims=DB.expenses.filter(function(ex){
+      if(empId&&ex.empId!==empId)return false;
+      return true;
+    });
+    currentMISData=claims.map(function(ex){
+      return [ex.empName+' ('+ex.empId+')', ex.month, ex.total, ex.receiptFile, ex.status];
+    });
+    
+  } else if(currentReportType==='leaves_rep'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>CL Balance</th><th>SL Balance</th><th>EL Balance</th><th>LWP Used</th></tr>';
+    var emps = DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
+    currentMISData=emps.map(function(e){
+      return [e.id, e.name, e.leaves.CL - e.leaves.CL_used, e.leaves.SL - e.leaves.SL_used, e.leaves.EL - e.leaves.EL_used, e.leaves.LWP_used];
+    });
+    
+  } else if(currentReportType==='doc_coverage'){
+    thead.innerHTML='<tr><th>MR ID</th><th>MR Name</th><th>Total Active Doctors</th><th>Visited Doctors</th><th>Doctors Not Visited</th><th>Coverage Rate %</th></tr>';
+    var mrs=DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
+    mrs.forEach(function(e){
+      var assigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
+      var visitedIds=[];
+      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor';}).forEach(function(r){
+        if(!visitedIds.includes(r.docId)) visitedIds.push(r.docId);
+      });
+      var missed = Math.max(0, assigned - visitedIds.length);
+      var pct = assigned ? Math.round((visitedIds.length / assigned)*100) : 0;
+      currentMISData.push([e.id, e.name, assigned, visitedIds.length, missed, pct+'%']);
+    });
+  }
+  
+  if(!currentMISData.length){
+    tbody.innerHTML='<tr><td colspan="10" class="empty">No matching records found for this query parameters</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML=currentMISData.map(function(row){
+    return '<tr>'+row.map(function(val){return '<td>'+val+'</td>';}).join('')+'</tr>';
+  }).join('');
+}
+
+function exportReportToCSV(){
+  if(!currentMISData.length){showToast('No data to export! Please run a query first.');return;}
+  var thead=document.getElementById('mis-report-thead');
+  var headers=[];
+  thead.querySelectorAll('th').forEach(function(th){headers.push(th.textContent);});
+  
+  var csv=[headers.join(',')];
+  currentMISData.forEach(function(row){
+    csv.push(row.map(function(val){
+      return '"'+(val||'').toString().replace(/"/g,'""')+'"';
+    }).join(','));
+  });
+  
+  downloadData(csv.join('\n'), 'adonis_mis_report_'+currentReportType+'.csv');
+}
+
+function parseCSVLine(text) {
+  var ret = [];
+  var inQuote = false;
+  var val = '';
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (inQuote) {
+      if (c === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          val += '"';
+          i++;
+        } else {
+          inQuote = false;
+        }
+      } else {
+        val += c;
+      }
+    } else {
+      if (c === '"') {
+        inQuote = true;
+      } else if (c === ',') {
+        ret.push(val.trim());
+        val = '';
+      } else {
+        val += c;
+      }
+    }
+  }
+  ret.push(val.trim());
+  return ret;
+}
+
+function downloadData(csv,fname){
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=fname;
+  a.click();
+}
+
+// Utility Helpers
+function escapeHTML(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+function showToast(msg, duration){
+  var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(function(){t.style.display='none';}, duration || 2800);
+}

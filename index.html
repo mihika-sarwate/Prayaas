@@ -3759,6 +3759,9 @@ function goAdminTab(name){
     if(tr) {
       document.getElementById('sec-adm-visit').appendChild(tr);
       tr.style.display = 'block';
+      populateReportingDropdowns();
+      populateJFWManagers();
+      checkMTPForSelectedDate();
     }
   }
   

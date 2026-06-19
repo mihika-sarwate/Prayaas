@@ -1088,6 +1088,7 @@ var supabaseUrl = 'https://ajifnoazcvxvpyzlusuy.supabase.co';
 var supabaseKey = 'sb_publishable_7oOvIeoxeOyamPmeNZpTmg_HOEo68ss';
 var supabase = null;
 var useSupabase = false;
+var isLoadingData = false;
 
 function formatDateForPostgres(dateStr) {
   if (!dateStr) return null;
@@ -1331,6 +1332,10 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
 }
 
 async function initSupabaseData(isSilent) {
+  if (isLoadingData) {
+    console.log("initSupabaseData ignored because load is already in progress.");
+    return;
+  }
   if (!supabase) {
     if (window._hasAttemptedSupabaseLoad) {
       console.warn("Supabase load already attempted. Using local database.");
@@ -1349,6 +1354,7 @@ async function initSupabaseData(isSilent) {
     return;
   }
   
+  isLoadingData = true;
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
@@ -1397,11 +1403,13 @@ async function initSupabaseData(isSilent) {
       if (window._hasSeededSupabase) {
         console.warn("Seeding already attempted. Bailing out of init recursion.");
         loadLocalDB();
+        isLoadingData = false;
         return;
       }
       window._hasSeededSupabase = true;
       if (isSilent !== true) showToast("Seeding database with default records...");
       await seedSupabaseDatabase();
+      isLoadingData = false;
       await initSupabaseData(isSilent);
       return;
     }
@@ -1465,6 +1473,7 @@ async function initSupabaseData(isSilent) {
     // Otherwise we will wipe out local changes that haven't been pushed to the cloud yet
     if (isSyncing || syncPending) {
       console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending.");
+      isLoadingData = false;
       return;
     }
     
@@ -1682,11 +1691,13 @@ async function initSupabaseData(isSilent) {
     }
     
     if (isSilent !== true) showToast("Supabase data synchronized!");
+    isLoadingData = false;
     
   } catch (err) {
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
     if (isSilent !== true) showToast("Using local database cache.");
     loadLocalDB();
+    isLoadingData = false;
   }
 }
 

@@ -1,0 +1,3 @@
+Error: connection to server at "db.ajifnoazcvxvpyzlusuy.supabase.co" (2406:da18:167b:f902:1eda:c86:7513:d44f), port 5432 failed: Network is unreachable
+	Is the server running on that host and accepting TCP/IP connections?
+

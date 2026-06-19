@@ -1703,6 +1703,10 @@ function loadLocalDB() {
   if (!Array.isArray(DB.expenses)) DB.expenses = DEFAULT_DB.expenses || [];
   if (!Array.isArray(DB.leaves)) DB.leaves = DEFAULT_DB.leaves || [];
   if (!Array.isArray(DB.holidays)) DB.holidays = DEFAULT_DB.holidays || [];
+  if (!Array.isArray(DB.samplesInventory)) DB.samplesInventory = DEFAULT_DB.samplesInventory || [];
+  if (!Array.isArray(DB.giftsInventory)) DB.giftsInventory = DEFAULT_DB.giftsInventory || [];
+  if (!Array.isArray(DB.inputsInventory)) DB.inputsInventory = DEFAULT_DB.inputsInventory || [];
+  if (!Array.isArray(DB.sfc)) DB.sfc = DEFAULT_DB.sfc || [];
 
   if (DB.reports.length === 0) {
     DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports || []));
@@ -2390,21 +2394,21 @@ function populateReportingDropdowns(){
   
   // Samples
   document.getElementById('samples-list').innerHTML=DB.products.map(function(p,i){
-    var myStock=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+    var myStock=(DB.samplesInventory || []).find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
     var bal=myStock ? myStock.balance : 0;
     return '<div class="sample-row"><div class="sample-name">'+p+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" class="sample-inp"></div></div>';
   }).join('');
 
   // Gifts
   document.getElementById('gifts-list').innerHTML=DB.gifts.map(function(g,i){
-    var myStock=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+    var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
     var bal=myStock ? myStock.balance : 0;
     return '<div class="sample-row"><div class="sample-name">'+g+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" class="gift-inp"></div></div>';
   }).join('');
 
   // Inputs
   document.getElementById('inputs-list').innerHTML=DB.inputs.map(function(ip,i){
-    var myStock=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+    var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
     var bal=myStock ? myStock.balance : 0;
     return '<div class="sample-row"><div class="sample-name">'+ip+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" class="input-inp"></div></div>';
   }).join('');

@@ -3621,13 +3621,13 @@ function renderMTPDaysUI(isReadOnly, existing){
   var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return day.workType === 'FIELD WORK' && !!(day.areaTerritory||'').trim();}) : currentMTPDays;
 
   var mrAreas = [];
-  var mrTownsByTerritory = { 'HQ': new Set(), 'Ex': new Set(), 'OS': new Set() };
+  var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   if (SESSION.user) {
     var areaSet = new Set();
     DB.doctors.forEach(function(d) {
       if (d.assignTo === SESSION.user.id && d.status === 'Active') {
         if (d.area) areaSet.add(d.area.trim());
-        var tType = d.territoryType || 'HQ';
+        var tType = (d.territoryType || 'HQ').trim().toUpperCase();
         if (d.city) {
           if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
           mrTownsByTerritory[tType].add(d.city.trim());
@@ -3699,7 +3699,8 @@ function renderMTPDaysUI(isReadOnly, existing){
         '</select>';
     }
 
-    var availableTowns = mrTownsByTerritory[territory] ? Array.from(mrTownsByTerritory[territory]).sort() : [];
+    var lookupTerritory = (territory || 'HQ').trim().toUpperCase();
+    var availableTowns = mrTownsByTerritory[lookupTerritory] ? Array.from(mrTownsByTerritory[lookupTerritory]).sort() : [];
     if (city && !availableTowns.includes(city)) {
       availableTowns.push(city);
     }

@@ -756,6 +756,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <input type="file" id="doc-upload" accept=".csv" onchange="uploadDoctors(this)" style="display:none">
           <button class="btn sm danger admin-only" onclick="bulkDeleteAllDoctors()">&#128465; Delete All</button>
           <button class="btn sm danger" id="btn-bulk-delete-selected-docs" class="btn sm danger admin-only" onclick="bulkDeleteSelectedDoctors()" style="display:none">&#128465; Delete Selected (0)</button>
+          <button class="btn sm primary admin-only" id="btn-bulk-reassign-selected-docs" onclick="bulkReassignSelectedDoctors()" style="display:none">&#10227; Reassign Selected (0)</button>
         </div>
         <button class="btn sm admin-only" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
       </div>
@@ -779,6 +780,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <input type="file" id="chem-upload" accept=".csv" onchange="uploadChemists(this)" style="display:none">
           <button class="btn sm danger admin-only" onclick="bulkDeleteAllChemists()">&#128465; Delete All</button>
           <button class="btn sm danger" id="btn-bulk-delete-selected-chems" class="btn sm danger admin-only" onclick="bulkDeleteSelectedChemists()" style="display:none">&#128465; Delete Selected (0)</button>
+          <button class="btn sm primary admin-only" id="btn-bulk-reassign-selected-chems" onclick="bulkReassignSelectedChemists()" style="display:none">&#10227; Reassign Selected (0)</button>
         </div>
         <button class="btn sm admin-only" onclick="addChemistManual()">+ Add Single Chemist Manual</button>
       </div>
@@ -806,6 +808,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <input type="file" id="stockist-upload" accept=".csv" onchange="uploadStockists(this)" style="display:none">
           <button class="btn sm danger admin-only" onclick="bulkDeleteAllStockists()">&#128465; Delete All</button>
           <button class="btn sm danger" id="btn-bulk-delete-selected-stockists" onclick="bulkDeleteSelectedStockists()" style="display:none">&#128465; Delete Selected (0)</button>
+          <button class="btn sm primary admin-only" id="btn-bulk-reassign-selected-stockists" onclick="bulkReassignSelectedStockists()" style="display:none">&#10227; Reassign Selected (0)</button>
         </div>
         <button class="btn sm admin-only" onclick="addStockistManual()">+ Add Single Stockist Manual</button>
       </div>
@@ -5878,14 +5881,35 @@ function toggleSelectAllDocs(masterCheck) {
 function updateSelectedDocsCount() {
   var selected = document.querySelectorAll('.doc-row-check:checked').length;
   var btn = document.getElementById('btn-bulk-delete-selected-docs');
+  var btnReassign = document.getElementById('btn-bulk-reassign-selected-docs');
   if (btn) {
     if (selected > 0) {
       btn.style.display = 'inline-block';
       btn.textContent = '🗑 Delete Selected (' + selected + ')';
+      if (btnReassign) {
+        btnReassign.style.display = 'inline-block';
+        btnReassign.textContent = '⟳ Reassign Selected (' + selected + ')';
+      }
     } else {
       btn.style.display = 'none';
+      if (btnReassign) btnReassign.style.display = 'none';
     }
   }
+}
+
+function bulkReassignSelectedDoctors() {
+  var checked = document.querySelectorAll('.doc-row-check:checked');
+  if (!checked.length) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected doctor records:');
+  if (newEmpId === null) return;
+  newEmpId = newEmpId.trim().toUpperCase();
+  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.doctors.forEach(function(d) {
+    if (idsToUpdate.includes(d.id)) d.assignTo = newEmpId;
+  });
+  saveDB();
+  renderAdminDocList();
+  showToast(checked.length + ' doctors reassigned successfully.');
 }
 
 function bulkDeleteSelectedDoctors() {
@@ -6195,14 +6219,35 @@ function toggleSelectAllChems(masterCheck) {
 function updateSelectedChemsCount() {
   var selected = document.querySelectorAll('.chem-row-check:checked').length;
   var btn = document.getElementById('btn-bulk-delete-selected-chems');
+  var btnReassign = document.getElementById('btn-bulk-reassign-selected-chems');
   if (btn) {
     if (selected > 0) {
       btn.style.display = 'inline-block';
       btn.textContent = '🗑 Delete Selected (' + selected + ')';
+      if (btnReassign) {
+        btnReassign.style.display = 'inline-block';
+        btnReassign.textContent = '⟳ Reassign Selected (' + selected + ')';
+      }
     } else {
       btn.style.display = 'none';
+      if (btnReassign) btnReassign.style.display = 'none';
     }
   }
+}
+
+function bulkReassignSelectedChemists() {
+  var checked = document.querySelectorAll('.chem-row-check:checked');
+  if (!checked.length) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected chemist records:');
+  if (newEmpId === null) return;
+  newEmpId = newEmpId.trim().toUpperCase();
+  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.chemists.forEach(function(c) {
+    if (idsToUpdate.includes(c.id)) c.assignTo = newEmpId;
+  });
+  saveDB();
+  renderAdminChemistList();
+  showToast(checked.length + ' chemists reassigned successfully.');
 }
 
 function bulkDeleteSelectedChemists() {
@@ -6519,14 +6564,35 @@ function toggleSelectAllStockists(masterCheck) {
 function updateSelectedStockistsCount() {
   var selected = document.querySelectorAll('.stockist-row-check:checked').length;
   var btn = document.getElementById('btn-bulk-delete-selected-stockists');
+  var btnReassign = document.getElementById('btn-bulk-reassign-selected-stockists');
   if (btn) {
     if (selected > 0) {
       btn.style.display = 'inline-block';
       btn.textContent = '🗑 Delete Selected (' + selected + ')';
+      if (btnReassign) {
+        btnReassign.style.display = 'inline-block';
+        btnReassign.textContent = '⟳ Reassign Selected (' + selected + ')';
+      }
     } else {
       btn.style.display = 'none';
+      if (btnReassign) btnReassign.style.display = 'none';
     }
   }
+}
+
+function bulkReassignSelectedStockists() {
+  var checked = document.querySelectorAll('.stockist-row-check:checked');
+  if (!checked.length) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected stockist records:');
+  if (newEmpId === null) return;
+  newEmpId = newEmpId.trim().toUpperCase();
+  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.stockists.forEach(function(s) {
+    if (idsToUpdate.includes(s.id)) s.assignTo = newEmpId;
+  });
+  saveDB();
+  renderAdminStockistList();
+  showToast(checked.length + ' stockists reassigned successfully.');
 }
 
 function bulkDeleteSelectedStockists() {

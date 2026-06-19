@@ -2517,10 +2517,11 @@ function getAllSubordinateIds(managerId) {
     let currentId = toCheck.pop();
     subIds.add(currentId);
     DB.employees.forEach(emp => {
-      if (!emp) return;
+      if (!emp || !emp.id) return;
+      var empIdUpper = String(emp.id).trim().toUpperCase();
       var mId = String(emp.managerId || '').trim().toUpperCase();
-      if (mId === currentId && !subIds.has(emp.id)) {
-        toCheck.push(String(emp.id).trim().toUpperCase());
+      if (mId === currentId && !subIds.has(empIdUpper)) {
+        toCheck.push(empIdUpper);
       }
     });
   }

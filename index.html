@@ -2387,22 +2387,37 @@ function populateJFWManagers(){
   var jfwSel=document.getElementById('r-jfw-manager');
   jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
   
-  var levels = { 'emp': 1, 'manager': 2, 'am': 3, 'rm': 4, 'zm': 5, 'nsm': 6, 'avp': 7, 'admin': 8 };
-  var myLevel = levels[(SESSION.user.role || '').toLowerCase()] || 0;
+  var levels = { 'emp': 1, 'manager': 2, 'am': 3, 'rm': 4, 'zm': 5, 'nsm': 6, 'avp': 7, 'vp': 8, 'director': 9, 'ceo': 10, 'admin': 99 };
+  
+  function getLevel(role, desig) {
+    var r = (role || '').toLowerCase();
+    var d = (desig || '').toLowerCase();
+    if (levels[r]) return levels[r];
+    if (d.indexOf('ceo') !== -1 || d.indexOf('chief') !== -1) return 10;
+    if (d.indexOf('director') !== -1) return 9;
+    if (d.indexOf('vp') !== -1 || d.indexOf('vice president') !== -1) return 8;
+    if (d.indexOf('avp') !== -1 || d.indexOf('asst vice') !== -1 || d.indexOf('assistant vice') !== -1) return 7;
+    if (d.indexOf('nsm') !== -1 || d.indexOf('national') !== -1) return 6;
+    if (d.indexOf('zm') !== -1 || d.indexOf('zonal') !== -1) return 5;
+    if (d.indexOf('rm') !== -1 || d.indexOf('regional') !== -1) return 4;
+    if (d.indexOf('am') !== -1 || d.indexOf('area') !== -1) return 3;
+    if (d.indexOf('manager') !== -1 || d.indexOf('flm') !== -1) return 2;
+    return 1;
+  }
+  
+  var myLevel = getLevel(SESSION.user.role, SESSION.user.designation);
   
   var chain = DB.employees.filter(function(e) {
     if (e.id === SESSION.user.id) return false;
     if (e.status !== 'Active') return false;
     if ((e.role || '').toLowerCase() === 'admin') return false; // Explicitly hide admin
     
-    var roleStr = (e.role || '').toLowerCase();
-    var eLevel = levels[roleStr] || 0;
-    
+    var eLevel = getLevel(e.role, e.designation);
     var isHigher = eLevel > myLevel;
-    var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
-    var isAVP = roleStr === 'avp' || (e.designation || '').toLowerCase().indexOf('avp') !== -1;
     
-    return isHigher || isJayashree || isAVP;
+    var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
+    
+    return isHigher || isJayashree;
   });
 
   var uniqueChain = [];

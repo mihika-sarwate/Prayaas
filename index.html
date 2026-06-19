@@ -2311,20 +2311,35 @@ function populateJFWManagers(){
   
   var levels = { 'emp': 1, 'manager': 2, 'am': 3, 'rm': 4, 'zm': 5, 'nsm': 6, 'avp': 7, 'vp': 8, 'director': 9, 'ceo': 10, 'admin': 99 };
   
-  function getLevel(role, desig) {
-    var r = (role || '').toLowerCase();
-    var d = (desig || '').toLowerCase();
-    if (levels[r]) return levels[r];
-    if (d.indexOf('ceo') !== -1 || d.indexOf('chief') !== -1) return 10;
-    if (d.indexOf('director') !== -1) return 9;
-    if (d.indexOf('vp') !== -1 || d.indexOf('vice president') !== -1) return 8;
-    if (d.indexOf('avp') !== -1 || d.indexOf('asst vice') !== -1 || d.indexOf('assistant vice') !== -1) return 7;
-    if (d.indexOf('nsm') !== -1 || d.indexOf('national') !== -1) return 6;
-    if (d.indexOf('zm') !== -1 || d.indexOf('zonal') !== -1) return 5;
-    if (d.indexOf('rm') !== -1 || d.indexOf('regional') !== -1) return 4;
-    if (d.indexOf('am') !== -1 || d.indexOf('area') !== -1) return 3;
-    if (d.indexOf('manager') !== -1 || d.indexOf('flm') !== -1) return 2;
-    return 1;
+  function getLevel(role, d) {
+    if (role && role.toLowerCase() === 'admin') return 99;
+    d = d ? d.trim().toUpperCase() : '';
+    
+    if (d === 'CEO') return 11;
+    if (d === 'VP') return 10;
+    if (d === 'AVP') return 9;
+    if (d === 'DGM') return 8;
+    if (d === 'ZSM') return 7;
+    if (d === 'SR RSM') return 6;
+    if (d === 'RSM') return 5;
+    if (d === 'DY RSM') return 4;
+    if (d === 'SR ASM') return 3;
+    if (d === 'ASM') return 2;
+    if (d === 'BE') return 1;
+    
+    if (d.indexOf('CEO') !== -1) return 11;
+    if (d.indexOf('VP') !== -1 && d.indexOf('AVP') === -1) return 10;
+    if (d.indexOf('AVP') !== -1) return 9;
+    if (d.indexOf('DGM') !== -1) return 8;
+    if (d.indexOf('ZSM') !== -1) return 7;
+    if (d.indexOf('SR RSM') !== -1) return 6;
+    if (d.indexOf('DY RSM') !== -1) return 4;
+    if (d.indexOf('RSM') !== -1) return 5;
+    if (d.indexOf('SR ASM') !== -1) return 3;
+    if (d.indexOf('ASM') !== -1) return 2;
+    if (d.indexOf('BE') !== -1) return 1;
+    
+    return 0;
   }
   
   var myLevel = getLevel(SESSION.user.role, SESSION.user.designation);
@@ -2351,14 +2366,11 @@ function populateJFWManagers(){
     
     var eLevel = getLevel(e.role, e.designation);
     var isHigher = eLevel > myLevel;
-    var isSub = isSubordinate(SESSION.user.id, e.id);
     
     // If the user is an Admin (testing the system), let them see everyone.
-    if (myLevel === 99) isHigher = true; 
+    if (myLevel === 99) return true; 
     
-    var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
-    
-    return isHigher || isJayashree || isSub;
+    return isHigher;
   });
 
   var uniqueChain = [];

@@ -3265,16 +3265,16 @@ function getLeaveLedger(emp) {
 
   var clUsed = 0, plUsed = 0, slUsed = 0, lopUsed = 0;
   
-  if (emp && emp.id && Array.isArray(window.DB ? DB.leaves : [])) {
+  if (emp && emp.id && typeof DB !== 'undefined' && DB && Array.isArray(DB.leaves)) {
     DB.leaves.forEach(function(l) {
-      // Consider it used if approved or pending (some systems deduct on submit, we'll deduct on Approved to match existing logic, but maybe we should include pending so users can't overdraft?)
-      // Let's include 'Submitted' and 'Approved by Manager' so pending leaves also deduct balance
-      if (l.empId === emp.id && (l.status === 'Approved' || l.status === 'Submitted' || l.status === 'Approved by Manager' || l.status === 'Approved by Admin')) {
+      if (String(l.empId).trim().toUpperCase() === String(emp.id).trim().toUpperCase() && 
+         (l.status === 'Approved' || l.status === 'Submitted' || l.status === 'Approved by Manager' || l.status === 'Approved by Admin')) {
         var days = parseFloat(l.days) || 0;
-        if (l.type === 'Casual Leave') clUsed += days;
-        else if (l.type === 'Sick Leave') slUsed += days;
-        else if (l.type === 'Earned Leave') plUsed += days;
-        else if (l.type === 'Leave Without Pay' || l.type === 'LWP') lopUsed += days;
+        var t = (l.type || '').trim().toLowerCase();
+        if (t === 'casual leave') clUsed += days;
+        else if (t === 'sick leave') slUsed += days;
+        else if (t === 'earned leave') plUsed += days;
+        else if (t === 'leave without pay' || t === 'lwp') lopUsed += days;
       }
     });
   }
@@ -4351,6 +4351,7 @@ function submitLeave(){
   document.getElementById('lv-start').value='';
   document.getElementById('lv-end').value='';
   document.getElementById('lv-reason').value='';
+  renderLeaveBalances();
   renderMyLeaves();
 }
 

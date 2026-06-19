@@ -562,9 +562,11 @@ body:not(.is-admin) .admin-only { display: none !important; }
       <div class="admin-tab" id="tab-adm-master" onclick="goAdminTab('master')">Master Data</div>
       <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
       <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
+      <div class="admin-tab" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
     </div>
 
     <!-- ADMIN SECTIONS -->
+    <div id="sec-adm-visit" style="display:none"></div>
     <!-- ADMIN DASHBOARD PANEL -->
     <div id="sec-adm-dash">
       <div class="stats">
@@ -2370,44 +2372,32 @@ function populateJFWManagers(){
   var jfwSel=document.getElementById('r-jfw-manager');
   jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
   
-  var chain=[];
+  var levels = { 'emp': 1, 'manager': 2, 'am': 3, 'rm': 4, 'zm': 5, 'nsm': 6, 'avp': 7, 'admin': 8 };
+  var myLevel = levels[(SESSION.user.role || '').toLowerCase()] || 0;
   
-  // Upward chain
-  var currentId=SESSION.user.managerId;
-  while(currentId){
-    var mgr=DB.employees.find(function(e){return e.id===currentId;});
-    if(mgr){
-      chain.push(mgr);
-      currentId=mgr.managerId;
-    } else {
-      break;
-    }
-  }
-
-  // Downward chain
-  function getSubordinates(mgrId) {
-    var subs = DB.employees.filter(function(e){return e.managerId===mgrId;});
-    var allSubs = [].concat(subs);
-    subs.forEach(function(s) {
-      allSubs = allSubs.concat(getSubordinates(s.id));
-    });
-    return allSubs;
-  }
-  
-  var downChain = getSubordinates(SESSION.user.id);
-  chain = chain.concat(downChain);
-
-  var uniqueChain = [];
-  var seenIds = {};
-  chain.forEach(function(c) {
-    if(!seenIds[c.id]) {
-      seenIds[c.id] = true;
-      uniqueChain.push(c);
-    }
+  var chain = DB.employees.filter(function(e) {
+    if (e.id === SESSION.user.id) return false;
+    if (e.status !== 'Active') return false;
+    
+    var roleStr = (e.role || '').toLowerCase();
+    var eLevel = levels[roleStr] || 0;
+    
+    var isHigher = eLevel > myLevel;
+    var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
+    var isAVP = roleStr === 'avp';
+    
+    return isHigher || isJayashree || isAVP;
   });
 
-  uniqueChain.forEach(function(m){
-    var o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.role.toUpperCase()+')';jfwSel.appendChild(o);
+  chain.sort(function(a,b) {
+    return a.name.localeCompare(b.name);
+  });
+
+  chain.forEach(function(m){
+    var o=document.createElement('option');
+    o.value=m.id;
+    o.textContent=m.name+' ('+m.role.toUpperCase()+')';
+    jfwSel.appendChild(o);
   });
 }
 
@@ -3731,12 +3721,20 @@ function initAdminApp(){
 
 function goAdminTab(name){
   currentAdminTab=name;
-  ['dash','appr','master','inventory','reports'].forEach(function(t){
+  ['dash','appr','master','inventory','reports','visit'].forEach(function(t){
     var el=document.getElementById('sec-adm-'+t);
     if(el) el.style.display=t===name?'block':'none';
     var btn=document.getElementById('tab-adm-'+t);
     if(btn) btn.className='admin-tab'+(t===name?' on':'');
   });
+  
+  if (name === 'visit') {
+    var tr = document.getElementById('tab-report');
+    if(tr) {
+      document.getElementById('sec-adm-visit').appendChild(tr);
+      tr.style.display = 'block';
+    }
+  }
   
   if(name==='dash') renderAdminDashTeamList();
   if(name==='reports') updateReportHeadersAndFilters();

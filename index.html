@@ -5779,7 +5779,7 @@ function renderAdminDocList(page = 1) {
     }
     
     // Column filters
-    var cols = ['code', 'name', 'spec', 'area', 'phone', 'assignTo', 'status'];
+    var cols = ['code', 'assignTo', 'beName', 'hq', 'managerName', 'name', 'spec', 'qual', 'address', 'city', 'area', 'state', 'territoryType', 'phone', 'status'];
     for (var i = 0; i < cols.length; i++) {
       var c = cols[i];
       if (filters[c]) {
@@ -6113,7 +6113,7 @@ function renderAdminChemistList(page = 1) {
     }
     
     // Column filters
-    var cols = ['id', 'name', 'area', 'assignTo'];
+    var cols = ['id', 'name', 'address', 'area', 'phone', 'assignTo', 'status'];
     for (var i = 0; i < cols.length; i++) {
       var colName = cols[i];
       if (filters[colName]) {

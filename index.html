@@ -327,10 +327,18 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       
       <!-- Doctor Selection -->
-      <div class="fw" id="r-doctor-wrap"><label class="lbl">Doctor</label><select id="r-doctor" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Doctor --</option></select></div>
+      <div class="fw" id="r-doctor-wrap">
+        <label class="lbl">Doctor</label>
+        <input type="text" id="r-doc-search" placeholder="🔍 Type doctor name or area to filter..." oninput="filterReportingDoctorsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
+        <select id="r-doctor" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Doctor --</option></select>
+      </div>
       
       <!-- Chemist Selection -->
-      <div class="fw" id="r-chemist-wrap" style="display:none"><label class="lbl">Chemist</label><select id="r-chemist" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Chemist --</option></select></div>
+      <div class="fw" id="r-chemist-wrap" style="display:none">
+        <label class="lbl">Chemist</label>
+        <input type="text" id="r-chem-search-inp" placeholder="🔍 Type chemist name or area to filter..." oninput="filterReportingChemistsDropdown()" style="margin-bottom: 5px; background: #F1F5F9; padding: 6px; font-size: 13px; border: 1px solid #CBD5E1; border-radius: 4px; width: 100%; box-sizing: border-box;">
+        <select id="r-chemist" onchange="updateReportClassificationFromTarget()"><option value="">-- Select Chemist --</option></select>
+      </div>
       <div class="fw" id="r-planned-targets-wrap" style="display:none"></div>
       
       <div class="fw"><label class="lbl">Call Type / Objective</label>
@@ -2323,6 +2331,61 @@ function initEmpApp(){
   goTab('home');
 }
 
+var _allReportingDocs = [];
+var _allReportingChems = [];
+
+function renderDoctorOptions(list) {
+  var docSel = document.getElementById('r-doctor');
+  var currentVal = docSel.value;
+  docSel.innerHTML = '<option value="">-- Select Doctor --</option>';
+  list.forEach(function(d){
+    var o = document.createElement('option');
+    o.value = d.id;
+    o.textContent = (d.name || '') + ' (' + (d.spec || '') + ' - ' + (d.area || 'No Patch') + ')';
+    docSel.appendChild(o);
+  });
+  if (list.some(function(d) { return d.id === currentVal; })) {
+    docSel.value = currentVal;
+  }
+}
+
+function renderChemistOptions(list) {
+  var chemSel = document.getElementById('r-chemist');
+  var currentVal = chemSel.value;
+  chemSel.innerHTML = '<option value="">-- Select Chemist --</option>';
+  list.forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = (c.name || '') + ' (' + (c.area || 'No Area') + ')';
+    chemSel.appendChild(o);
+  });
+  if (list.some(function(c) { return c.id === currentVal; })) {
+    chemSel.value = currentVal;
+  }
+}
+
+function filterReportingDoctorsDropdown() {
+  var q = (document.getElementById('r-doc-search').value || '').toLowerCase().trim();
+  var filtered = window._allReportingDocs || [];
+  if (q) {
+    filtered = filtered.filter(function(d) {
+      return (d.name || '').toLowerCase().includes(q) || (d.area || '').toLowerCase().includes(q) || (d.spec || '').toLowerCase().includes(q);
+    });
+  }
+  renderDoctorOptions(filtered.slice(0, 200));
+}
+
+function filterReportingChemistsDropdown() {
+  var q = (document.getElementById('r-chem-search-inp').value || '').toLowerCase().trim();
+  var filtered = window._allReportingChems || [];
+  if (q) {
+    filtered = filtered.filter(function(c) {
+      return (c.name || '').toLowerCase().includes(q) || (c.area || '').toLowerCase().includes(q);
+    });
+  }
+  renderChemistOptions(filtered.slice(0, 200));
+}
+
 function populateReportingDropdowns(){
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   if (teamIds) {
@@ -2330,7 +2393,6 @@ function populateReportingDropdowns(){
   }
 
   var docSel=document.getElementById('r-doctor');
-  docSel.innerHTML='<option value="">-- Select Doctor --</option>';
   
   var finalDocs = DB.doctors.filter(function(d){
     if (teamIds) {
@@ -2345,13 +2407,10 @@ function populateReportingDropdowns(){
   }
 
   finalDocs.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
-
-  finalDocs.forEach(function(d){
-    var o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.spec+' - '+(d.area || 'No Patch')+')';docSel.appendChild(o);
-  });
+  window._allReportingDocs = finalDocs;
+  renderDoctorOptions(finalDocs.slice(0, 200));
 
   var chemSel=document.getElementById('r-chemist');
-  chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
   
   // Find all areas where this MR (or their team) has active doctors assigned
   var activeDocAreas = new Set();
@@ -2379,12 +2438,16 @@ function populateReportingDropdowns(){
   }
 
   finalChems.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
+  window._allReportingChems = finalChems;
+  renderChemistOptions(finalChems.slice(0, 200));
 
-  finalChems.forEach(function(c){
-    var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+(c.area || 'No Area')+')';chemSel.appendChild(o);
-  });
   docSel.onchange=updateReportClassificationFromTarget;
   chemSel.onchange=updateReportClassificationFromTarget;
+
+  var docSearchInp = document.getElementById('r-doc-search');
+  if (docSearchInp) docSearchInp.value = '';
+  var chemSearchInp = document.getElementById('r-chem-search-inp');
+  if (chemSearchInp) chemSearchInp.value = '';
   
   // Product checklist grid
   var promoProductsGrid=document.getElementById('r-promo-products');
@@ -3867,9 +3930,31 @@ function selectPlannedReportTarget(type, id){
   document.getElementById('r-target-type').value = type;
   toggleReportTargetFields();
   if(type==='Doctor') {
-    document.getElementById('r-doctor').value = id;
+    var docSel = document.getElementById('r-doctor');
+    var exists = Array.from(docSel.options).some(function(opt) { return opt.value === id; });
+    if (!exists) {
+      var docObj = (window._allReportingDocs || []).find(function(d) { return d.id === id; });
+      if (docObj) {
+        var o = document.createElement('option');
+        o.value = docObj.id;
+        o.textContent = (docObj.name || '') + ' (' + (docObj.spec || '') + ' - ' + (docObj.area || 'No Patch') + ')';
+        docSel.appendChild(o);
+      }
+    }
+    docSel.value = id;
   } else {
-    document.getElementById('r-chemist').value = id;
+    var chemSel = document.getElementById('r-chemist');
+    var exists = Array.from(chemSel.options).some(function(opt) { return opt.value === id; });
+    if (!exists) {
+      var chemObj = (window._allReportingChems || []).find(function(c) { return c.id === id; });
+      if (chemObj) {
+        var o = document.createElement('option');
+        o.value = chemObj.id;
+        o.textContent = (chemObj.name || '') + ' (' + (chemObj.area || 'No Area') + ')';
+        chemSel.appendChild(o);
+      }
+    }
+    chemSel.value = id;
   }
   document.getElementById('r-classification').value = 'Planned Call';
   showToast('Auto-selected planned target: ' + (type==='Doctor' ? 'Doctor' : 'Chemist'));

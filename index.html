@@ -2313,6 +2313,7 @@ function populateJFWManagers(){
   
   function getLevel(role, d) {
     if (role && role.toLowerCase() === 'admin') return 99;
+    var r = (role || '').toLowerCase();
     d = d ? d.trim().toUpperCase() : '';
     
     if (d === 'CEO') return 11;
@@ -2338,6 +2339,17 @@ function populateJFWManagers(){
     if (d.indexOf('SR ASM') !== -1) return 3;
     if (d.indexOf('ASM') !== -1) return 2;
     if (d.indexOf('BE') !== -1) return 1;
+    
+    // Fallback if designation is blank or non-standard
+    if (r === 'ceo') return 11;
+    if (r === 'vp') return 10;
+    if (r === 'avp') return 9;
+    if (r === 'nsm') return 6;
+    if (r === 'zm') return 5;
+    if (r === 'rm') return 4;
+    if (r === 'am') return 3;
+    if (r === 'manager') return 2;
+    if (r === 'emp') return 1;
     
     return 0;
   }

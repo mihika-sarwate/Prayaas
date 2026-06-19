@@ -1903,7 +1903,7 @@ window.addEventListener('beforeunload', function (e) {
 
     const dbDocs = DB.doctors.map(d => {
       var assignTo = d.assignTo || null;
-      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
+      if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
         assignTo = null;
       }
       return {
@@ -1934,7 +1934,7 @@ window.addEventListener('beforeunload', function (e) {
 
     const dbChems = DB.chemists.map(c => {
       var assignTo = c.assignTo || null;
-      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
+      if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
         assignTo = null;
       }
       return {
@@ -2274,14 +2274,23 @@ function populateReportingDropdowns(){
 
   var docSel=document.getElementById('r-doctor');
   docSel.innerHTML='<option value="">-- Select Doctor --</option>';
-  DB.doctors.filter(function(d){
+  
+  var finalDocs = DB.doctors.filter(function(d){
     if (teamIds) {
       var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
       return assignedList.some(function(a){ return teamIds.includes(a); }) && d.status === 'Active';
     }
     return d.status === 'Active'; // Admin sees all active
-  }).forEach(function(d){
-    var o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.spec+' - '+d.area+')';docSel.appendChild(o);
+  });
+
+  if (finalDocs.length === 0) {
+    finalDocs = DB.doctors.filter(function(d){ return d.status === 'Active'; });
+  }
+
+  finalDocs.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
+
+  finalDocs.forEach(function(d){
+    var o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.spec+' - '+(d.area || 'No Patch')+')';docSel.appendChild(o);
   });
 
   var chemSel=document.getElementById('r-chemist');
@@ -2297,7 +2306,7 @@ function populateReportingDropdowns(){
     }
   });
 
-  DB.chemists.filter(function(c){
+  var finalChems = DB.chemists.filter(function(c){
     if (teamIds) {
       var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
       var hasAssign = assignedList.some(function(a){ return teamIds.includes(a); });
@@ -2306,8 +2315,16 @@ function populateReportingDropdowns(){
       return hasAssign || inMyAreas;
     }
     return true; // Admin sees all
-  }).forEach(function(c){
-    var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.area+')';chemSel.appendChild(o);
+  });
+
+  if (finalChems.length === 0) {
+    finalChems = DB.chemists;
+  }
+
+  finalChems.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
+
+  finalChems.forEach(function(c){
+    var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+(c.area || 'No Area')+')';chemSel.appendChild(o);
   });
   docSel.onchange=updateReportClassificationFromTarget;
   chemSel.onchange=updateReportClassificationFromTarget;
@@ -3041,7 +3058,10 @@ function renderTPDaysForMonth(){
 function getAssignedDoctorsForArea(area){
   var clean=(area||'').trim().toLowerCase();
   if(!clean)return [];
-  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active' && d.area.toLowerCase()===clean;});
+  return DB.doctors.filter(function(d){
+    var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    return assigned && d.status==='Active' && d.area.toLowerCase()===clean;
+  });
 }
 
 function getAssignedChemistsForArea(area){

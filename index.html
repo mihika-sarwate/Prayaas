@@ -2286,10 +2286,24 @@ function populateReportingDropdowns(){
 
   var chemSel=document.getElementById('r-chemist');
   chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
+  
+  // Find all areas where this MR (or their team) has active doctors assigned
+  var activeDocAreas = new Set();
+  DB.doctors.forEach(function(d){
+    var docAssignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+    var isAssignedToTeam = teamIds ? docAssignedList.some(function(a){ return teamIds.includes(a); }) : true;
+    if (isAssignedToTeam && d.status === 'Active' && d.area) {
+      activeDocAreas.add(d.area.toLowerCase().trim());
+    }
+  });
+
   DB.chemists.filter(function(c){
     if (teamIds) {
       var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      return assignedList.some(function(a){ return teamIds.includes(a); });
+      var hasAssign = assignedList.some(function(a){ return teamIds.includes(a); });
+      var unassigned = !c.assignTo || c.assignTo.trim() === '';
+      var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
+      return hasAssign || inMyAreas;
     }
     return true; // Admin sees all
   }).forEach(function(c){
@@ -3033,7 +3047,11 @@ function getAssignedDoctorsForArea(area){
 function getAssignedChemistsForArea(area){
   var clean=(area||'').trim().toLowerCase();
   if(!clean)return [];
-  return DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id && c.area.toLowerCase()===clean;});
+  return DB.chemists.filter(function(c){
+    var assigned = String(c.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    var unassigned = !c.assignTo || c.assignTo.trim() === '';
+    return (assigned || unassigned) && c.area.toLowerCase()===clean;
+  });
 }
 
 function getHolidayForDateAndState(dateStr, state) {
@@ -3687,7 +3705,22 @@ function renderDocList(){
 
 function renderChemistList(){
   var q=(document.getElementById('chem-search').value||'').toLowerCase();
-  var chemists=DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q);});
+  
+  // Find all areas where this MR has active doctors assigned
+  var activeDocAreas = new Set();
+  getMyDoctors().forEach(function(d){
+    if (d.status === 'Active' && d.area) {
+      activeDocAreas.add(d.area.toLowerCase().trim());
+    }
+  });
+
+  var chemists=DB.chemists.filter(function(c){
+    var assigned = String(c.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    var unassigned = !c.assignTo || c.assignTo.trim() === '';
+    var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
+    return assigned || inMyAreas;
+  }).filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q);});
+  
   var el=document.getElementById('chemist-list');
   if(!chemists.length){el.innerHTML='<div class="empty">No chemists found</div>';return;}
   el.innerHTML=chemists.map(function(c){

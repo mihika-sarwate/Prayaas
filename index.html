@@ -5918,7 +5918,9 @@ var adminTableState = {
   doctors: { sortCol: null, sortAsc: true, filters: {} },
   chemists: { sortCol: null, sortAsc: true, filters: {} },
   stockists: { sortCol: null, sortAsc: true, filters: {} },
-  employees: { sortCol: null, sortAsc: true, filters: {} }
+  employees: { sortCol: null, sortAsc: true, filters: {} },
+  holidays: { sortCol: null, sortAsc: true, filters: {} },
+  leaves: { sortCol: null, sortAsc: true, filters: {} }
 };
 
 function handleTableSort(table, col) {
@@ -5933,7 +5935,7 @@ function handleTableSort(table, col) {
     adminTableState[table].sortCol = col;
     adminTableState[table].sortAsc = true;
   }
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : 'emp-table-head'));
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : (table === 'employees' ? 'emp-table-head' : (table === 'holidays' ? 'holiday-table-head' : 'leave-bal-table-head'))));
   var thead = document.getElementById(theadId);
   if (thead) thead.innerHTML = ''; // Force header re-render to update sort arrows
   
@@ -5941,11 +5943,25 @@ function handleTableSort(table, col) {
   else if (table === 'chemists') renderAdminChemistList(1);
   else if (table === 'stockists') renderAdminStockistList(1);
   else if (table === 'employees') renderEmpTable();
+  else if (table === 'holidays') renderHolidayTable();
+  else if (table === 'leaves') renderLeaveBalanceTable();
 }
 
 var activeExcelFilter = null; // { table, col }
 
 function getCellValue(table, col, item) {
+  if (table === 'holidays') {
+    return item[col];
+  }
+  if (table === 'leaves') {
+    if (col === 'hq') return item.area || '';
+    if (col === 'designation') return item.designation || '';
+    if (col === 'manager') {
+      var mgr = item.managerId ? DB.employees.find(function(m){ return m && m.id===item.managerId; }) : null;
+      return mgr && mgr.name ? mgr.name : item.managerId;
+    }
+    return item[col];
+  }
   if (table === 'employees') {
     if (col === 'managerId') {
       var mgr = item.managerId ? DB.employees.find(function(m){ return m && m.id===item.managerId; }) : null;
@@ -5984,7 +6000,7 @@ function openExcelFilter(e, table, col) {
   popup.style.left = (rect.left + window.scrollX) + 'px';
   
   // Collect unique values
-  var data = DB[table] || [];
+  var data = table === 'leaves' ? (DB.employees || []) : (DB[table] || []);
   var uniqueVals = {};
   data.forEach(function(item) {
     var val = getCellValue(table, col, item);
@@ -6075,7 +6091,7 @@ function applyExcelFilter() {
   
   closeExcelFilter();
   
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : 'emp-table-head'));
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : (table === 'employees' ? 'emp-table-head' : (table === 'holidays' ? 'holiday-table-head' : 'leave-bal-table-head'))));
   var thead = document.getElementById(theadId);
   if (thead) {
     thead.innerHTML = ''; // Force header re-render to update filter icon colors
@@ -6085,6 +6101,8 @@ function applyExcelFilter() {
   else if (table === 'chemists') renderAdminChemistList(1);
   else if (table === 'stockists') renderAdminStockistList(1);
   else if (table === 'employees') renderEmpTable();
+  else if (table === 'holidays') renderHolidayTable();
+  else if (table === 'leaves') renderLeaveBalanceTable();
 }
 
 function closeExcelFilter() {
@@ -7014,7 +7032,7 @@ function renderLeaveBalanceTable(){
   if(thead) {
     var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
     thead.innerHTML = '<tr><th colspan="7" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th><th style="border:none"></th></tr>' +
-      '<tr><th rowspan="2"><input type="checkbox" id="check-all-leaves" class="admin-only" onclick="toggleSelectAllLeaves(this)"></th><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2">Designation</th><th rowspan="2">HQ</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th><th rowspan="2">Action</th></tr>' +
+      '<tr><th rowspan="2"><input type="checkbox" id="check-all-leaves" class="admin-only" onclick="toggleSelectAllLeaves(this)"></th><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2" style="vertical-align:top">' + renderSortHead('leaves', 'designation', 'Designation') + '</th><th rowspan="2" style="vertical-align:top">' + renderSortHead('leaves', 'hq', 'HQ') + '</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th><th rowspan="2">Action</th></tr>' +
       '<tr><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th></tr>';
   }
   var tbody=document.getElementById('leave-bal-table-body');
@@ -7022,6 +7040,7 @@ function renderLeaveBalanceTable(){
   var q = getSearchQuery('adm-leave-search');
   var u = SESSION.user;
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+  var filters = adminTableState.leaves.filters;
   var emps=DB.employees.filter(function(e){
     if (!e || e.id==='ADMIN') return false;
     if (!e.leaves) return false;
@@ -7043,6 +7062,36 @@ function renderLeaveBalanceTable(){
     ].join(' ').toLowerCase();
     return haystack.indexOf(q) !== -1;
   });
+
+  if (filters && Object.keys(filters).length > 0) {
+    emps = emps.filter(function(e) {
+      for (var col in filters) {
+        var vals = filters[col];
+        if (!vals || vals.length === 0) continue;
+        var val = getCellValue('leaves', col, e);
+        if (val === null || val === undefined || val === '') val = '(Blanks)';
+        else val = String(val).trim();
+        if (!vals.includes(val)) return false;
+      }
+      return true;
+    });
+  }
+
+  var sortCol = adminTableState.leaves.sortCol;
+  var sortAsc = adminTableState.leaves.sortAsc;
+  if (sortCol) {
+    emps.sort(function(a, b) {
+      var valA = getCellValue('leaves', sortCol, a);
+      var valB = getCellValue('leaves', sortCol, b);
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      valA = String(valA).toLowerCase();
+      valB = String(valB).toLowerCase();
+      if (valA < valB) return sortAsc ? -1 : 1;
+      if (valA > valB) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }
 
   // Apply relevance sort if searching
   if (q) {
@@ -7303,6 +7352,15 @@ function renderHolidayTable(){
   if(!tbody) return;
   if(!DB.holidays) DB.holidays = [];
   var q = getSearchQuery('adm-holiday-search');
+  var thead = document.getElementById('holiday-table-head');
+  if (thead && !thead.innerHTML.includes('<th')) {
+    thead.innerHTML = '<tr><th style="vertical-align:top">Date</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('holidays', 'name', 'Holiday Name') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('holidays', 'state', 'State') + '</th>' +
+      '<th style="vertical-align:top">Action</th></tr>';
+  }
+
+  var filters = adminTableState.holidays.filters;
   var filtered = DB.holidays.map(function(h, index) {
     return { h: h, index: index };
   }).filter(function(item) {
@@ -7311,6 +7369,36 @@ function renderHolidayTable(){
     var haystack = [h.date, h.name, h.state || 'All'].join(' ').toLowerCase();
     return haystack.indexOf(q) !== -1;
   });
+
+  if (filters && Object.keys(filters).length > 0) {
+    filtered = filtered.filter(function(item) {
+      for (var col in filters) {
+        var vals = filters[col];
+        if (!vals || vals.length === 0) continue;
+        var val = getCellValue('holidays', col, item.h);
+        if (val === null || val === undefined || val === '') val = '(Blanks)';
+        else val = String(val).trim();
+        if (!vals.includes(val)) return false;
+      }
+      return true;
+    });
+  }
+
+  var sortCol = adminTableState.holidays.sortCol;
+  var sortAsc = adminTableState.holidays.sortAsc;
+  if (sortCol) {
+    filtered.sort(function(a, b) {
+      var valA = getCellValue('holidays', sortCol, a.h);
+      var valB = getCellValue('holidays', sortCol, b.h);
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      valA = String(valA).toLowerCase();
+      valB = String(valB).toLowerCase();
+      if (valA < valB) return sortAsc ? -1 : 1;
+      if (valA > valB) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }
   var countEl = document.getElementById('holiday-count');
   if (countEl) countEl.textContent = filtered.length;
   if (!filtered.length) {

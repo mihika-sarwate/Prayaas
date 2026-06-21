@@ -3173,8 +3173,9 @@ function populateJFWManagers(){
     var eManagerUpper = String(e.managerId || '').trim().toUpperCase();
     var isPeer = (myManagerIdUpper !== '' && eManagerUpper === myManagerIdUpper);
     var isSameLevel = (getLevel(e.role, e.designation) === myLevel);
+    var isJayashree = String(e.name || '').trim().toLowerCase().includes('jayashree');
     
-    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isPeer || isSameLevel;
+    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isPeer || isSameLevel || isJayashree;
   });
 
   var uniqueChain = [];

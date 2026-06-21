@@ -369,6 +369,9 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="fw" style="margin-top: 15px;"><label class="lbl">Worked With (Hierarchy)</label>
         <select id="r-jfw-manager"><option value="">-- Working Alone --</option></select>
       </div>
+      <div class="fw" style="margin-top: 5px;"><label class="lbl">Worked With (Remarks)</label>
+        <input type="text" id="r-jfw-remarks" placeholder="Enter remarks if working with multiple people" />
+      </div>
     </div>
     
     <!-- Planned activities card -->
@@ -1722,6 +1725,7 @@ async function initSupabaseData(isSilent) {
         stockStatus: r.stock_status,
         jfwMgrId: r.jfw_mgr_id,
         jfwMgrName: r.jfw_mgr_name,
+        jfwRemarks: r.jfw_remarks,
         lat: r.lat,
         lng: r.lng,
         remarks: r.remarks,
@@ -2084,6 +2088,7 @@ async function seedSupabaseDatabase() {
       stock_status: r.stockStatus || null,
       jfw_mgr_id: r.jfwMgrId || null,
       jfw_mgr_name: r.jfwMgrName || null,
+      jfw_remarks: r.jfwRemarks || null,
       lat: r.lat || null,
       lng: r.lng || null,
       remarks: r.remarks || null,
@@ -2306,6 +2311,7 @@ window.addEventListener('beforeunload', function (e) {
         stock_status: r.stockStatus || null,
         jfw_mgr_id: r.jfwMgrId || null,
         jfw_mgr_name: r.jfwMgrName || null,
+        jfw_remarks: r.jfwRemarks || null,
         lat: r.lat || null,
         lng: r.lng || null,
         remarks: r.remarks || null,
@@ -3147,6 +3153,11 @@ function populateJFWManagers(){
     }
   }
 
+  var subs = [];
+  if (myLevel !== 99 && typeof getAllSubordinateIds === 'function') {
+    subs = getAllSubordinateIds(SESSION.user.id) || [];
+  }
+
   var chain = DB.employees.filter(function(e) {
     if (!e) return false;
     if (e.id === SESSION.user.id) return false;
@@ -3156,7 +3167,7 @@ function populateJFWManagers(){
     // If the user is an Admin (testing the system), let them see everyone.
     if (myLevel === 99) return true; 
     
-    return myManagerChainIds.includes(String(e.id).trim().toUpperCase());
+    return myManagerChainIds.includes(String(e.id).trim().toUpperCase()) || subs.includes(e.id);
   });
 
   var uniqueChain = [];
@@ -3560,6 +3571,7 @@ function submitReport(){
     classification:classification,
     callType:document.getElementById('r-calltype').value,
     jfwMgrId:document.getElementById('r-jfw-manager').value,
+    jfwRemarks:document.getElementById('r-jfw-remarks') ? document.getElementById('r-jfw-remarks').value.trim() : '',
     lat:document.getElementById('r-lat').value||'',
     lng:document.getElementById('r-lng').value||'',
     remarks:document.getElementById('r-remarks').value.trim(),
@@ -7596,7 +7608,7 @@ function runMISReport(){
   } else if(currentReportType==='jfw_days'){
     thead.innerHTML='<tr><th>MR Employee</th><th>Accompanying Manager ID</th><th>Manager Name</th><th>JFW Date</th><th>Work Remarks</th></tr>';
     baseReports.filter(function(r){return r.jfwMgrId !== '';}).forEach(function(r){
-      currentMISData.push([r.empName+' ('+r.empId+')', r.jfwMgrId, r.jfwMgrName, r.date, r.remarks]);
+      currentMISData.push([r.empName+' ('+r.empId+')', r.jfwMgrId, r.jfwMgrName, r.date, r.jfwRemarks ? (r.remarks + ' | JFW: ' + r.jfwRemarks) : r.remarks]);
     });
     
   } else if(currentReportType==='mgr_accomp'){

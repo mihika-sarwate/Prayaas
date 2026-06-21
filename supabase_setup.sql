@@ -92,12 +92,15 @@ create table reports (
   stock_status text,
   jfw_mgr_id text references employees(id),
   jfw_mgr_name text,
+  jfw_remarks text,
   lat text,
   lng text,
   remarks text,
   next_visit date,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
+
+alter table reports add column if not exists jfw_remarks text;
 
 -- 5. Monthly Tour Plans Table
 create table tour_plans (

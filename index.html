@@ -3167,7 +3167,8 @@ function populateJFWManagers(){
     // If the user is an Admin (testing the system), let them see everyone.
     if (myLevel === 99) return true; 
     
-    return myManagerChainIds.includes(String(e.id).trim().toUpperCase()) || subs.includes(e.id);
+    var eIdUpper = String(e.id).trim().toUpperCase();
+    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper);
   });
 
   var uniqueChain = [];

@@ -2888,7 +2888,7 @@ function populateReportCityPatch() {
   var territory = (tSel.value || 'HQ').trim().toUpperCase();
   
   var mrTownsByTerritory = window._mrTownsByTerritory || {};
-  var availableTowns = mrTownsByTerritory[territory] ? Array.from(mrTownsByTerritory[territory]).filter(function(x) { return x && !x.startsWith('--'); }).sort() : [];
+  var availableTowns = mrTownsByTerritory[territory] ? Array.from(mrTownsByTerritory[territory]).filter(function(x) { return x && x.trim() !== '' && !x.trim().startsWith('--'); }).sort() : [];
   
   var citySel = document.getElementById('r-city');
   if (citySel) {
@@ -2898,7 +2898,7 @@ function populateReportCityPatch() {
   }
   
   var mrAreasByTerritory = window._mrAreasByTerritory || {};
-  var availablePatches = mrAreasByTerritory[territory] ? Array.from(mrAreasByTerritory[territory]).filter(function(x) { return x && !x.startsWith('--'); }).sort() : [];
+  var availablePatches = mrAreasByTerritory[territory] ? Array.from(mrAreasByTerritory[territory]).filter(function(x) { return x && x.trim() !== '' && !x.trim().startsWith('--'); }).sort() : [];
   
   var patchSel = document.getElementById('r-patch');
   if (patchSel) {

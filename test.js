@@ -18,110 +18,23 @@ window.addEventListener('error', function(e) {
 // Master Data Store
 var DEFAULT_DB={
   employees:[
-    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'NSM001',name:'Sanjay Kapoor',designation:'National Sales Manager',pwd:'mgr123',area:'National Head Office',role:'nsm',managerId:'ADMIN',doj:'2025-01-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'ZM001',name:'Amitav Banerjee',designation:'Zonal Manager',pwd:'mgr123',area:'West Zone HQ',role:'zm',managerId:'NSM001',doj:'2025-02-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'RM001',name:'Vikram Malhotra',designation:'Regional Manager',pwd:'mgr123',area:'Maharashtra State',role:'rm',managerId:'ZM001',doj:'2025-02-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'AM001',name:'Deepa Iyer',designation:'Area Manager',pwd:'mgr123',area:'Mumbai Metropolitan',role:'am',managerId:'RM001',doj:'2025-03-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'FLM001',name:'Rajesh Verma',designation:'First Line Manager',pwd:'mgr123',area:'Mumbai Zone A',role:'manager',managerId:'AM001',doj:'2025-03-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'EMP001',name:'Rahul Sharma',designation:'Medical Representative',pwd:'pass123',area:'Mumbai West',role:'emp',managerId:'FLM001',doj:'2025-04-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:2,SL_used:1,EL_used:0,LWP_used:0}},
-    {id:'EMP002',name:'Priya Mehta',designation:'Medical Representative',pwd:'pass123',area:'Mumbai East',role:'emp',managerId:'FLM001',doj:'2025-04-15',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}},
-    {id:'EMP003',name:'Karan Patel',designation:'Medical Representative',pwd:'pass123',area:'Pune',role:'emp',managerId:'FLM001',doj:'2025-05-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:1,SL_used:0,EL_used:2,LWP_used:0}}
+    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}}
   ],
-  doctors:[
-    {id:'D001',code:'DOC001',name:'Dr. Anil Kumar',spec:'Cardiologist',qual:'MBBS, MD',address:'Bandra Medical Center',city:'Mumbai',area:'Bandra',phone:'9820000001',assignTo:'EMP001',status:'Active'},
-    {id:'D002',code:'DOC002',name:'Dr. Sunita Rao',spec:'Gynaecologist',qual:'MD, DGO',address:'Holy Spirit Compound',city:'Mumbai',area:'Andheri',phone:'9820000002',assignTo:'EMP002',status:'Active'},
-    {id:'D003',code:'DOC003',name:'Dr. Pradeep Joshi',spec:'Paediatrician',qual:'MBBS, DCH',address:'Hinduja Clinic Road',city:'Mumbai',area:'Bandra',phone:'9820000003',assignTo:'EMP001',status:'Active'},
-    {id:'D004',code:'DOC004',name:'Dr. Meera Nair',spec:'General Physician',qual:'MBBS',address:'KEM OPD Block',city:'Mumbai',area:'Dadar',phone:'9820000004',assignTo:'EMP001',status:'Active'},
-    {id:'D005',code:'DOC005',name:'Dr. Vikram Singh',spec:'ENT Specialist',qual:'MS (ENT)',address:'Kokilaben Hospital Wing C',city:'Mumbai',area:'Vile Parle',phone:'9820000005',assignTo:'EMP002',status:'Active'},
-    {id:'D006',code:'DOC006',name:'Dr. Kavita Shah',spec:'Dermatologist',qual:'MD (Skin)',address:'Sai Skin Clinic',city:'Mumbai',area:'Malad',phone:'9820000006',assignTo:'EMP002',status:'Active'},
-    {id:'D007',code:'DOC007',name:'Dr. Rohit Desai',spec:'Orthopaedic',qual:'MS (Ortho)',address:'Deenanath Hospital',city:'Pune',area:'Kothrud',phone:'9820000007',assignTo:'EMP003',status:'Active'},
-    {id:'D008',code:'DOC008',name:'Dr. Smita Kulkarni',spec:'Neurologist',qual:'DM (Neuro)',address:'Ruby Hall OPD',city:'Pune',area:'Wakad',phone:'9820000008',assignTo:'EMP003',status:'Active'}
-  ],
-  chemists:[
-    {id:'C001',name:'Noble Chemist',area:'Bandra',assignTo:'EMP001'},
-    {id:'C002',name:'Wellness Forever',area:'Andheri',assignTo:'EMP002'},
-    {id:'C003',name:'Apollo Pharmacy',area:'Dadar',assignTo:'EMP001'},
-    {id:'C004',name:'Kothrud Medicals',area:'Kothrud',assignTo:'EMP003'}
-  ],
+  doctors:[],
+  chemists:[],
+  stockists:[],
   products:['Aminoglobin-XT Susp','Arden 250','Arden 500','Arden 650','Arden A','Arden Junior','Arden MF Susp','Arden Spas','Coldaid+','Coldaid Susp','Coniderm-F','Hepaheal Syrup','Loramyl','ORT+','Servil Herbal','Servil Junior','Servil LS-Baby','Servil-D','Servil-LS Junior','Servil-LS Syrup','MV 30 Syrup','MV 30 Tab'],
   gifts:['Pen Set','Notepad','Visiting Card Holder','Anatomy Chart','Drug Compendium','Umbrella','Calendar','Desk Clock'],
   inputs:['Visual Aid Folder','Product Literature','Leave Behind Cards','Table Calendar','Brand Samples Box'],
-  reports:[
-    {
-      id: 'REP_MOCK_1',
-      empId: 'EMP001',
-      empName: 'Rahul Sharma',
-      date: '2026-06-01',
-      time: '10:30',
-      targetType: 'Doctor',
-      classification: 'Planned Call',
-      callType: 'Regular Visit',
-      docId: 'D001',
-      docName: 'Dr. Anil Kumar',
-      docSpec: 'Cardiologist',
-      docArea: 'Bandra',
-      promotedProducts: ['Arden 650', 'Coldaid+'],
-      samples: {'Arden 650': 2, 'Coldaid+': 1},
-      gifts: {'Pen Set': 1},
-      inputs: {'Product Literature': 1},
-      jfwMgrId: '',
-      lat: '19.0543',
-      lng: '72.8402',
-      remarks: 'Detailed visual aid. Doctor was positive about Arden 650.',
-      nextVisit: '2026-06-15'
-    },
-    {
-      id: 'REP_MOCK_2',
-      empId: 'EMP001',
-      empName: 'Rahul Sharma',
-      date: '2026-06-02',
-      time: '14:15',
-      targetType: 'Chemist',
-      classification: 'Planned Call',
-      callType: 'Regular Visit',
-      chemId: 'C001',
-      chemName: 'Noble Chemist',
-      chemArea: 'Bandra',
-      orderAmount: 12500,
-      stockStatus: 'Adequate Stock',
-      jfwMgrId: 'FLM001',
-      jfwMgrName: 'Rajesh Verma',
-      lat: '19.0545',
-      lng: '72.8410',
-      remarks: 'Joint field work with manager. Collected order of Rs 12,500.',
-      nextVisit: ''
-    }
-  ],
+  reports:[],
   tourPlans:[],
   expenses:[],
   leaves:[],
   cityRates:{daA:700,daB:500,daC:300,lodgeA:1500,lodgeB:1000,lodgeC:0,localConv:120},
-  sfc:[
-    {from:'Mumbai',to:'Pune',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
-    {from:'Pune',to:'Mumbai',distance:150,mode:'Bus',fare:350,da:600,lodge:1200,other:100},
-    {from:'Mumbai',to:'Nashik',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
-    {from:'Nashik',to:'Mumbai',distance:180,mode:'Train',fare:250,da:450,lodge:800,other:50},
-    {from:'Mumbai',to:'Aurangabad',distance:330,mode:'Bus',fare:600,da:450,lodge:800,other:150},
-    {from:'Pune',to:'Nashik',distance:210,mode:'Bus',fare:400,da:450,lodge:800,other:100},
-    {from:'Pune',to:'Aurangabad',distance:230,mode:'Bus',fare:450,da:450,lodge:800,other:100}
-  ],
-  samplesInventory:[
-    {prodName:'Arden 650',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
-    {prodName:'Coldaid+',empId:'EMP001',opening:100,received:100,distributed:0,balance:100},
-    {prodName:'Servil-D',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
-    {prodName:'Arden 650',empId:'EMP002',opening:100,received:100,distributed:0,balance:100},
-    {prodName:'Coldaid+',empId:'EMP002',opening:100,received:100,distributed:0,balance:100}
-  ],
-  giftsInventory:[
-    {giftName:'Pen Set',empId:'EMP001',opening:30,received:30,distributed:0,balance:30},
-    {giftName:'Notepad',empId:'EMP001',opening:50,received:50,distributed:0,balance:50},
-    {giftName:'Pen Set',empId:'EMP002',opening:30,received:30,distributed:0,balance:30}
-  ],
-  inputsInventory:[
-    {inputName:'Visual Aid Folder',empId:'EMP001',opening:10,received:10,distributed:0,balance:10},
-    {inputName:'Product Literature',empId:'EMP001',opening:100,received:100,distributed:0,balance:100}
-  ],
+  sfc:[],
+  samplesInventory:[],
+  giftsInventory:[],
+  inputsInventory:[],
   holidays:[
     {date: '2026-01-01', name: 'New Year Day'},
     {date: '2026-01-26', name: 'Republic Day'},
@@ -133,9 +46,10 @@ var DEFAULT_DB={
 
 var DB = DEFAULT_DB;
 var supabaseUrl = 'https://ajifnoazcvxvpyzlusuy.supabase.co';
-var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MjA5OTksImV4cCI6MjA5NjM5Njk5OX0.OULR1ym0Bl3Bu_xyFt-IaX8pDqu7qQZ5VKNUWp1igLE';
+var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDgyMDk5OSwiZXhwIjoyMDk2Mzk2OTk5fQ.ZWKocTrU_DzgXkOpi1M4oOl7oF4WobCIQmM99rzCW2U';
 var supabase = null;
 var useSupabase = false;
+var isLoadingData = false;
 
 function formatDateForPostgres(dateStr) {
   if (!dateStr) return null;
@@ -277,19 +191,35 @@ function ensureSupabaseLoaded(callback) {
     return;
   }
   
-  console.log("Supabase not loaded. Trying UNPKG...");
+  console.log("Supabase not loaded. Trying local file...");
   var s = document.createElement('script');
-  s.src = "https://unpkg.com/@supabase/supabase-js@2";
+  s.src = "supabase.js";
   s.onload = function() {
     if (initSupabaseClient()) {
-      console.log("Supabase loaded from UNPKG.");
+      console.log("Supabase loaded from local file.");
       if (callback) callback();
     } else {
-      tryCDNJS();
+      tryUnpkg();
     }
   };
-  s.onerror = tryCDNJS;
+  s.onerror = tryUnpkg;
   document.head.appendChild(s);
+
+  function tryUnpkg() {
+    console.log("Local file failed. Trying UNPKG...");
+    var sU = document.createElement('script');
+    sU.src = "https://unpkg.com/@supabase/supabase-js@2";
+    sU.onload = function() {
+      if (initSupabaseClient()) {
+        console.log("Supabase loaded from UNPKG.");
+        if (callback) callback();
+      } else {
+        tryCDNJS();
+      }
+    };
+    sU.onerror = tryCDNJS;
+    document.head.appendChild(sU);
+  }
 
   function tryCDNJS() {
     console.log("UNPKG failed. Trying CDNJS...");
@@ -352,18 +282,51 @@ async function fetchAllFromSupabase(table, options) {
 
 async function upsertInBatches(table, dataArray, chunkSize = 1000) {
   if (!dataArray || dataArray.length === 0) return;
-  for (let i = 0; i < dataArray.length; i += chunkSize) {
-    const chunk = dataArray.slice(i, i + chunkSize);
+  // Deduplicate by primary key to prevent PostgreSQL error 21000
+  // "ON CONFLICT DO UPDATE command cannot affect row a second time"
+  var seen = {};
+  var deduped = [];
+  for (var di = 0; di < dataArray.length; di++) {
+    var row = dataArray[di];
+    // Build a unique key for deduplication
+    var rowKey;
+    if (table === 'holidays') {
+      rowKey = (row.date || '') + '|' + (row.state || 'All');
+    } else if (table === 'sfc') {
+      rowKey = (row.from_loc || '') + '|' + (row.to_loc || '') + '|' + (row.mode || '');
+    } else {
+      rowKey = String(row.id || di);
+    }
+    if (!seen[rowKey]) {
+      seen[rowKey] = true;
+      deduped.push(row);
+    }
+  }
+  if (deduped.length < dataArray.length) {
+    console.warn('upsertInBatches(' + table + '): removed ' + (dataArray.length - deduped.length) + ' duplicate rows before upsert.');
+  }
+  for (let i = 0; i < deduped.length; i += chunkSize) {
+    const chunk = deduped.slice(i, i + chunkSize);
     const { error } = await supabase.from(table).upsert(chunk);
     if (error) {
-        console.error("Batch upsert failed on table " + table + ":", error);
-        throw error;
-      }
+      console.error("Batch upsert failed on table " + table + ":", error);
+      throw error;
+    }
   }
 }
 
 async function initSupabaseData(isSilent) {
+  if (isLoadingData) {
+    console.log("initSupabaseData ignored because load is already in progress.");
+    return;
+  }
   if (!supabase) {
+    if (window._hasAttemptedSupabaseLoad) {
+      console.warn("Supabase load already attempted. Using local database.");
+      loadLocalDB();
+      return;
+    }
+    window._hasAttemptedSupabaseLoad = true;
     ensureSupabaseLoaded(function() {
       if (supabase) {
         initSupabaseData(isSilent);
@@ -375,15 +338,11 @@ async function initSupabaseData(isSilent) {
     return;
   }
   
+  isLoadingData = true;
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
     const emps = await fetchAllFromSupabase('employees');
-    
-    useSupabase = true;
-    console.log("Connected to Supabase successfully.");
-    var indicator = document.getElementById('db-status-indicator');
-    if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
     
     const [
       doctors,
@@ -395,7 +354,8 @@ async function initSupabaseData(isSilent) {
       sfc,
       samplesInv,
       giftsInv,
-      inputsInv
+      inputsInv,
+      stockists
     ] = await Promise.all([
       fetchAllFromSupabase('doctors'),
       fetchAllFromSupabase('chemists'),
@@ -406,10 +366,17 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('sfc'),
       fetchAllFromSupabase('samples_inventory'),
       fetchAllFromSupabase('gifts_inventory'),
-      fetchAllFromSupabase('inputs_inventory')
+      fetchAllFromSupabase('inputs_inventory'),
+      fetchAllFromSupabase('stockists')
     ]);
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
+    
+    useSupabase = true;
+    console.log("Connected to Supabase successfully.");
+    var indicator = document.getElementById('db-status-indicator');
+    if (indicator) indicator.textContent = 'Database Connection: Supabase Cloud';
+
     let holidays = [];
     if (holData && holData.length > 0) {
       setHolidayDeletionFlag(false);
@@ -420,67 +387,94 @@ async function initSupabaseData(isSilent) {
     }
     
     if (!emps || emps.length === 0) {
+      if (window._hasSeededSupabase) {
+        console.warn("Seeding already attempted. Bailing out of init recursion.");
+        loadLocalDB();
+        isLoadingData = false;
+        return;
+      }
+      window._hasSeededSupabase = true;
       if (isSilent !== true) showToast("Seeding database with default records...");
       await seedSupabaseDatabase();
+      isLoadingData = false;
       await initSupabaseData(isSilent);
       return;
     }
     
     // Preserve local sort order if possible
-    if (typeof DB !== 'undefined' && DB) {
-      var empOrderRaw = [];
-      try { empOrderRaw = JSON.parse(localStorage.getItem('adonis_order_emps') || '[]'); } catch(e){}
-      if (DB.employees && DB.employees.length > 0) empOrderRaw = DB.employees.map(em => em.id);
-      if (empOrderRaw && empOrderRaw.length > 0) {
-        const localIds = empOrderRaw.map(id => String(id || '').trim().toUpperCase());
-        emps.sort(function(a, b) {
-          var idA = String(a.id || '').trim().toUpperCase();
-          var idB = String(b.id || '').trim().toUpperCase();
-          var idxA = localIds.indexOf(idA);
-          var idxB = localIds.indexOf(idB);
-          if (idxA === -1) idxA = 999999;
-          if (idxB === -1) idxB = 999999;
-          return idxA - idxB;
-        });
+    try {
+      if (typeof DB !== 'undefined' && DB) {
+        var empOrderRaw = [];
+        try { empOrderRaw = JSON.parse(localStorage.getItem('adonis_order_emps') || '[]'); } catch(e){}
+        if (DB.employees && DB.employees.length > 0) empOrderRaw = DB.employees.map(em => em.id);
+        if (empOrderRaw && empOrderRaw.length > 0) {
+          const empMap = {};
+          empOrderRaw.forEach((id, idx) => { empMap[String(id || '').trim().toUpperCase()] = idx; });
+          emps.sort(function(a, b) {
+            var idA = String(a.id || '').trim().toUpperCase();
+            var idB = String(b.id || '').trim().toUpperCase();
+            var idxA = empMap[idA] !== undefined ? empMap[idA] : 999999;
+            var idxB = empMap[idB] !== undefined ? empMap[idB] : 999999;
+            return idxA - idxB;
+          });
+        }
+        
+        var docOrderRaw = [];
+        try { docOrderRaw = JSON.parse(localStorage.getItem('adonis_order_docs') || '[]'); } catch(e){}
+        if (DB.doctors && DB.doctors.length > 0) docOrderRaw = DB.doctors.map(d => d.id);
+        if (docOrderRaw && docOrderRaw.length > 0) {
+          const docMap = {};
+          docOrderRaw.forEach((id, idx) => { docMap[String(id || '').trim().toUpperCase()] = idx; });
+          doctors.sort(function(a, b) {
+            var idA = String(a.id || '').trim().toUpperCase();
+            var idB = String(b.id || '').trim().toUpperCase();
+            var idxA = docMap[idA] !== undefined ? docMap[idA] : 999999;
+            var idxB = docMap[idB] !== undefined ? docMap[idB] : 999999;
+            return idxA - idxB;
+          });
+        }
+        
+        var chemOrderRaw = [];
+        try { chemOrderRaw = JSON.parse(localStorage.getItem('adonis_order_chems') || '[]'); } catch(e){}
+        if (DB.chemists && DB.chemists.length > 0) chemOrderRaw = DB.chemists.map(c => c.id);
+        if (chemOrderRaw && chemOrderRaw.length > 0) {
+          const chemMap = {};
+          chemOrderRaw.forEach((id, idx) => { chemMap[String(id || '').trim().toUpperCase()] = idx; });
+          chemists.sort(function(a, b) {
+            var idA = String(a.id || '').trim().toUpperCase();
+            var idB = String(b.id || '').trim().toUpperCase();
+            var idxA = chemMap[idA] !== undefined ? chemMap[idA] : 999999;
+            var idxB = chemMap[idB] !== undefined ? chemMap[idB] : 999999;
+            return idxA - idxB;
+          });
+        }
+
+        var stockistOrderRaw = [];
+        try { stockistOrderRaw = JSON.parse(localStorage.getItem('adonis_order_stockists') || '[]'); } catch(e){}
+        if (DB.stockists && DB.stockists.length > 0) stockistOrderRaw = DB.stockists.map(s => s.id);
+        if (stockistOrderRaw && stockistOrderRaw.length > 0) {
+          const stockistMap = {};
+          stockistOrderRaw.forEach((id, idx) => { stockistMap[String(id || '').trim().toUpperCase()] = idx; });
+          if (stockists) {
+            stockists.sort(function(a, b) {
+              var idA = String(a.id || '').trim().toUpperCase();
+              var idB = String(b.id || '').trim().toUpperCase();
+              var idxA = stockistMap[idA] !== undefined ? stockistMap[idA] : 999999;
+              var idxB = stockistMap[idB] !== undefined ? stockistMap[idB] : 999999;
+              return idxA - idxB;
+            });
+          }
+        }
       }
-      
-      var docOrderRaw = [];
-      try { docOrderRaw = JSON.parse(localStorage.getItem('adonis_order_docs') || '[]'); } catch(e){}
-      if (DB.doctors && DB.doctors.length > 0) docOrderRaw = DB.doctors.map(d => d.id);
-      if (docOrderRaw && docOrderRaw.length > 0) {
-        const localIds = docOrderRaw.map(id => String(id || '').trim().toUpperCase());
-        doctors.sort(function(a, b) {
-          var idA = String(a.id || '').trim().toUpperCase();
-          var idB = String(b.id || '').trim().toUpperCase();
-          var idxA = localIds.indexOf(idA);
-          var idxB = localIds.indexOf(idB);
-          if (idxA === -1) idxA = 999999;
-          if (idxB === -1) idxB = 999999;
-          return idxA - idxB;
-        });
-      }
-      
-      var chemOrderRaw = [];
-      try { chemOrderRaw = JSON.parse(localStorage.getItem('adonis_order_chems') || '[]'); } catch(e){}
-      if (DB.chemists && DB.chemists.length > 0) chemOrderRaw = DB.chemists.map(c => c.id);
-      if (chemOrderRaw && chemOrderRaw.length > 0) {
-        const localIds = chemOrderRaw.map(id => String(id || '').trim().toUpperCase());
-        chemists.sort(function(a, b) {
-          var idA = String(a.id || '').trim().toUpperCase();
-          var idB = String(b.id || '').trim().toUpperCase();
-          var idxA = localIds.indexOf(idA);
-          var idxB = localIds.indexOf(idB);
-          if (idxA === -1) idxA = 999999;
-          if (idxB === -1) idxB = 999999;
-          return idxA - idxB;
-        });
-      }
+    } catch(e) {
+      console.warn("Sorting failed:", e);
     }
     
     // ABORT OVERWRITE IF A SYNC IS CURRENTLY RUNNING OR PENDING
     // Otherwise we will wipe out local changes that haven't been pushed to the cloud yet
     if (isSyncing || syncPending) {
       console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending.");
+      isLoadingData = false;
       return;
     }
     
@@ -509,25 +503,75 @@ async function initSupabaseData(isSilent) {
           leaves: e.leaves
         };
       }),
-      doctors: (doctors || []).map(d => ({
-        id: d.id,
-        code: d.code,
-        name: d.name,
-        spec: d.spec,
-        qual: d.qual,
-        address: d.address,
-        city: d.city,
-        area: d.area,
-        phone: d.phone,
-        assignTo: d.assign_to,
-        status: d.status
-      })),
-      chemists: (chemists || []).map(c => ({
-        id: c.id,
-        name: c.name,
-        area: c.area,
-        assignTo: c.assign_to
-      })),
+      doctors: (function() {
+        var cloudDocs = (doctors || []).map(d => ({
+          id: d.id,
+          code: d.code,
+          name: d.name,
+          beName: d.be_name,
+          hq: d.hq,
+          managerName: d.manager_name,
+          spec: d.spec,
+          qual: d.qual,
+          address: d.address,
+          city: d.city,
+          area: d.area,
+          state: d.state,
+          territoryType: d.territory_type,
+          phone: d.phone,
+          assignTo: d.assign_to,
+          status: d.status
+        }));
+        var localDocs = (typeof DB !== 'undefined' && DB && DB.doctors) ? DB.doctors : [];
+        if (cloudDocs.length === 0 && localDocs.length > 0) {
+          console.warn('Supabase returned 0 doctors but local DB has ' + localDocs.length + '. Keeping local data to prevent data loss.');
+          return localDocs;
+        }
+        if (cloudDocs.length < localDocs.length) {
+          console.warn('Supabase returned fewer doctors (' + cloudDocs.length + ') than local (' + localDocs.length + '). Keeping local data to prevent data loss. Triggering re-sync.');
+          setTimeout(function() { if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase(); }, 2000);
+          return localDocs;
+        }
+        return cloudDocs;
+      })(),
+      chemists: (function() {
+        var cloudChems = (chemists || []).map(c => ({
+          id: c.id,
+          name: c.name,
+          area: c.area,
+          assignTo: c.assign_to
+        }));
+        var localChems = (typeof DB !== 'undefined' && DB && DB.chemists) ? DB.chemists : [];
+        if (cloudChems.length === 0 && localChems.length > 0) {
+          console.warn('Supabase returned 0 chemists but local DB has ' + localChems.length + '. Keeping local data.');
+          return localChems;
+        }
+        if (cloudChems.length < localChems.length) {
+          console.warn('Supabase returned fewer chemists (' + cloudChems.length + ') than local (' + localChems.length + '). Keeping local data. Triggering re-sync.');
+          setTimeout(function() { if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase(); }, 2000);
+          return localChems;
+        }
+        return cloudChems;
+      })(),
+      stockists: (function() {
+        var cloudStockists = (stockists || []).map(s => ({
+          id: s.id,
+          name: s.name,
+          area: s.area,
+          assignTo: s.assign_to
+        }));
+        var localStockists = (typeof DB !== 'undefined' && DB && DB.stockists) ? DB.stockists : [];
+        if (cloudStockists.length === 0 && localStockists.length > 0) {
+          console.warn('Supabase returned 0 stockists but local DB has ' + localStockists.length + '. Keeping local data.');
+          return localStockists;
+        }
+        if (cloudStockists.length < localStockists.length) {
+          console.warn('Supabase returned fewer stockists (' + cloudStockists.length + ') than local (' + localStockists.length + '). Keeping local data. Triggering re-sync.');
+          setTimeout(function() { if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase(); }, 2000);
+          return localStockists;
+        }
+        return cloudStockists;
+      })(),
       products: DEFAULT_DB.products,
       gifts: DEFAULT_DB.gifts,
       inputs: DEFAULT_DB.inputs,
@@ -555,6 +599,7 @@ async function initSupabaseData(isSilent) {
         stockStatus: r.stock_status,
         jfwMgrId: r.jfw_mgr_id,
         jfwMgrName: r.jfw_mgr_name,
+        jfwRemarks: r.jfw_remarks,
         lat: r.lat,
         lng: r.lng,
         remarks: r.remarks,
@@ -657,7 +702,25 @@ async function initSupabaseData(isSilent) {
     hasInitializedData = true;
 
     // Save synchronized DB to local storage cache
-    localStorage.setItem('adonis_db', JSON.stringify(DB));
+    try {
+      localStorage.setItem('adonis_db', JSON.stringify(DB));
+    } catch (e) {
+      console.warn("Failed to cache synchronized DB to localStorage (quota exceeded):", e);
+      try {
+        var dbCopy = Object.assign({}, DB);
+        dbCopy.doctors = [];
+        dbCopy.chemists = [];
+        dbCopy.stockists = [];
+        dbCopy.reports = [];
+        dbCopy.tourPlans = [];
+        dbCopy.expenses = [];
+        dbCopy.leaves = [];
+        dbCopy.sfc = [];
+        localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
+      } catch (e2) {
+        console.warn("Failed to save even truncated DB cache to localStorage:", e2);
+      }
+    }
     
     // Refresh the UI with the fresh data
     if (SESSION.user) {
@@ -693,22 +756,52 @@ async function initSupabaseData(isSilent) {
     }
     
     if (isSilent !== true) showToast("Supabase data synchronized!");
+    isLoadingData = false;
     
   } catch (err) {
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
-    if (isSilent !== true) showToast("Using local database cache.");
-    loadLocalDB();
+    if (isSilent !== true) {
+      showToast("Using local database cache.");
+      loadLocalDB();
+    }
+    isLoadingData = false;
   }
 }
 
 function loadLocalDB() {
-  DB = JSON.parse(localStorage.getItem('adonis_db')) || DEFAULT_DB;
-  if (!DB.reports || DB.reports.length === 0) {
-    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports));
+  try {
+    var raw = localStorage.getItem('adonis_db');
+    DB = raw ? JSON.parse(raw) : DEFAULT_DB;
+  } catch(e) {
+    DB = DEFAULT_DB;
   }
-  // Enforce doj, state, status, pwd and role defaults / normalization for all local employees
+  if (!DB || typeof DB !== 'object') {
+    DB = DEFAULT_DB;
+  }
+  if (!Array.isArray(DB.employees)) DB.employees = DEFAULT_DB.employees || [];
+  if (!Array.isArray(DB.doctors)) DB.doctors = DEFAULT_DB.doctors || [];
+  if (!Array.isArray(DB.chemists)) DB.chemists = DEFAULT_DB.chemists || [];
+  if (!Array.isArray(DB.stockists)) DB.stockists = DEFAULT_DB.stockists || [];
+  if (!Array.isArray(DB.products)) DB.products = DEFAULT_DB.products || [];
+  if (!Array.isArray(DB.gifts)) DB.gifts = DEFAULT_DB.gifts || [];
+  if (!Array.isArray(DB.inputs)) DB.inputs = DEFAULT_DB.inputs || [];
+  if (!Array.isArray(DB.reports)) DB.reports = DEFAULT_DB.reports || [];
+  if (!Array.isArray(DB.tourPlans)) DB.tourPlans = DEFAULT_DB.tourPlans || [];
+  if (!Array.isArray(DB.expenses)) DB.expenses = DEFAULT_DB.expenses || [];
+  if (!Array.isArray(DB.leaves)) DB.leaves = DEFAULT_DB.leaves || [];
+  if (!Array.isArray(DB.holidays)) DB.holidays = DEFAULT_DB.holidays || [];
+  if (!Array.isArray(DB.samplesInventory)) DB.samplesInventory = DEFAULT_DB.samplesInventory || [];
+  if (!Array.isArray(DB.giftsInventory)) DB.giftsInventory = DEFAULT_DB.giftsInventory || [];
+  if (!Array.isArray(DB.inputsInventory)) DB.inputsInventory = DEFAULT_DB.inputsInventory || [];
+  if (!Array.isArray(DB.sfc)) DB.sfc = DEFAULT_DB.sfc || [];
+
+  if (DB.reports.length === 0) {
+    DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports || []));
+  }
+  
   var updated = false;
   DB.employees.forEach(function(e) {
+    if (!e || !e.id) return;
     var def = DEFAULT_DB.employees.find(function(d){return d.id === e.id;});
     if (!e.doj) { e.doj = def ? def.doj : '2026-01-01'; updated = true; }
     if (!e.state) { e.state = def ? def.state : 'Maharashtra'; updated = true; }
@@ -727,16 +820,20 @@ function loadLocalDB() {
       updated = true;
     }
   });
+
   if (getHolidayDeletionFlag()) {
-    DB.holidays = Array.isArray(DB.holidays) ? DB.holidays : [];
     DB.holidays = [];
     updated = true;
-  } else if (!DB.holidays) {
+  } else if (DB.holidays.length === 0) {
     DB.holidays = JSON.parse(JSON.stringify(DEFAULT_DB.holidays || []));
     updated = true;
   }
   if (updated || !localStorage.getItem('adonis_db')) {
-    localStorage.setItem('adonis_db', JSON.stringify(DB));
+    try {
+      localStorage.setItem('adonis_db', JSON.stringify(DB));
+    } catch(e) {
+      console.warn("Failed to save DB in loadLocalDB (quota exceeded):", e);
+    }
   }
 }
 async function seedSupabaseDatabase() {
@@ -865,6 +962,7 @@ async function seedSupabaseDatabase() {
       stock_status: r.stockStatus || null,
       jfw_mgr_id: r.jfwMgrId || null,
       jfw_mgr_name: r.jfwMgrName || null,
+      jfw_remarks: r.jfwRemarks || null,
       lat: r.lat || null,
       lng: r.lng || null,
       remarks: r.remarks || null,
@@ -885,19 +983,27 @@ function saveDB() {
   try {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
   } catch (e) {
-    console.warn("localStorage quota exceeded. Attempting to save without large datasets.");
+    console.warn("localStorage quota exceeded. Attempting to save without reports.");
     try {
       var dbCopy = Object.assign({}, DB);
-      dbCopy.doctors = [];
-      dbCopy.chemists = [];
       dbCopy.reports = [];
-      dbCopy.tourPlans = [];
-      dbCopy.expenses = [];
-      dbCopy.leaves = [];
-      dbCopy.sfc = [];
       localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
-    } catch(e2) {
-      console.warn("Still exceeded quota even without large datasets.");
+    } catch (e2) {
+      console.warn("Still exceeded quota. Attempting to save without large datasets.");
+      try {
+        var dbCopy2 = Object.assign({}, DB);
+        dbCopy2.doctors = [];
+        dbCopy2.chemists = [];
+        dbCopy2.stockists = [];
+        dbCopy2.reports = [];
+        dbCopy2.tourPlans = [];
+        dbCopy2.expenses = [];
+        dbCopy2.leaves = [];
+        dbCopy2.sfc = [];
+        localStorage.setItem('adonis_db', JSON.stringify(dbCopy2));
+      } catch(e3) {
+        console.warn("Still exceeded quota even without large datasets.");
+      }
     }
   }
   if (typeof syncSupabaseDatabase === 'function') {
@@ -926,225 +1032,323 @@ window.addEventListener('beforeunload', function (e) {
     var dbStatus = document.getElementById('db-status-indicator');
     if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
     try {
-    const dbEmps = DB.employees.map(function(e) {
-      var managerId = e.managerId || null;
-      if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
-        managerId = null;
-      }
-      return {
-        id: e.id,
-        name: e.name,
-        pwd: e.pwd,
-        area: e.area,
-        role: e.role,
-        manager_id: managerId,
-        doj: formatDateForPostgres(e.doj),
-        state: e.state || null,
-        status: normalizeEmployeeStatus(e.status),
-        designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-        leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
-      };
-    });
-    await upsertEmployeeRowsToSupabase(dbEmps);
-    await reconcileSupabaseRows('employees', DB.employees, function(row) {
-      return String(row.id || '').toUpperCase();
-    }, function(row) {
-      return supabase.from('employees').delete().eq('id', row.id);
-    });
+    // Sync Employees
+    try {
+      const dbEmps = DB.employees.map(function(e) {
+        var managerId = e.managerId || null;
+        if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
+          managerId = null;
+        }
+        return {
+          id: e.id,
+          name: e.name,
+          pwd: e.pwd,
+          area: e.area,
+          role: e.role,
+          manager_id: managerId,
+          doj: formatDateForPostgres(e.doj),
+          state: e.state || null,
+          status: normalizeEmployeeStatus(e.status),
+          designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
+          leaves: e.leaves ? Object.assign({}, e.leaves, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) }) : {}
+        };
+      });
+      await upsertEmployeeRowsToSupabase(dbEmps);
+      await reconcileSupabaseRows('employees', DB.employees, function(row) {
+        return String(row.id || '').toUpperCase();
+      }, function(row) {
+        return supabase.from('employees').delete().eq('id', row.id);
+      });
+    } catch (e) {
+      console.error("Error syncing employees:", e);
+    }
 
-    const dbDocs = DB.doctors.map(d => {
-      var assignTo = d.assignTo || null;
-      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
-        assignTo = null;
-      }
-      return {
-        id: d.id,
-        code: d.code,
-        name: d.name,
-        spec: d.spec,
-        qual: d.qual,
-        address: d.address,
-        city: d.city,
-        area: d.area,
-        phone: d.phone,
-        assign_to: assignTo,
-        status: d.status
-      };
-    });
-    await upsertInBatches('doctors', dbDocs);
-    await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
-      return String(row.id || '').toUpperCase();
-    }, function(row) {
-      return supabase.from('doctors').delete().eq('id', row.id);
-    });
+    // Sync Doctors
+    try {
+      const dbDocs = DB.doctors.map(d => {
+        var assignTo = d.assignTo || null;
+        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
+          assignTo = null;
+        }
+        return {
+          id: d.id,
+          code: d.code,
+          name: d.name,
+          be_name: d.beName || '',
+          hq: d.hq || '',
+          manager_name: d.managerName || '',
+          spec: d.spec || '',
+          qual: d.qual || '',
+          address: d.address || '',
+          city: d.city || '',
+          area: d.area || '',
+          state: d.state || '',
+          territory_type: d.territoryType || '',
+          phone: d.phone || '',
+          assign_to: assignTo,
+          status: d.status
+        };
+      });
+      await upsertInBatches('doctors', dbDocs);
+      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
+      /*
+      await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
+        return String(row.id || '').toUpperCase();
+      }, function(row) {
+        return supabase.from('doctors').delete().eq('id', row.id);
+      });
+      */
+    } catch (e) {
+      console.error("Error syncing doctors:", e);
+      showToast('⚠️ Doctor sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
+    }
 
-    const dbChems = DB.chemists.map(c => {
-      var assignTo = c.assignTo || null;
-      if (assignTo && !DB.employees.find(x => x.id === assignTo)) {
-        assignTo = null;
-      }
-      return {
-        id: c.id,
-        name: c.name,
-        area: c.area,
-        assign_to: assignTo
-      };
-    });
-    await upsertInBatches('chemists', dbChems);
-    await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
-      return String(row.id || '').toUpperCase();
-    }, function(row) {
-      return supabase.from('chemists').delete().eq('id', row.id);
-    });
+    // Sync Chemists
+    try {
+      const dbChems = DB.chemists.map(c => {
+        var assignTo = c.assignTo || null;
+        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
+          assignTo = null;
+        }
+        return {
+          id: c.id,
+          name: c.name,
+          area: c.area,
+          assign_to: assignTo
+        };
+      });
+      await upsertInBatches('chemists', dbChems);
+      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
+      /*
+      await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
+        return String(row.id || '').toUpperCase();
+      }, function(row) {
+        return supabase.from('chemists').delete().eq('id', row.id);
+      });
+      */
+    } catch (e) {
+      console.error("Error syncing chemists:", e);
+      showToast('⚠️ Chemist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
+    }
 
-    const dbReports = DB.reports.map(r => ({
-      id: r.id,
-      emp_id: r.empId,
-      emp_name: r.empName,
-      date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
-      time: r.time,
-      target_type: r.targetType,
-      classification: r.classification,
-      call_type: r.callType,
-      doc_id: r.docId || null,
-      doc_name: r.docName || null,
-      doc_spec: r.docSpec || null,
-      doc_area: r.docArea || null,
-      promoted_products: r.promotedProducts || [],
-      samples: r.samples || {},
-      gifts: r.gifts || {},
-      inputs: r.inputs || {},
-      chem_id: r.chemId || null,
-      chem_name: r.chemName || null,
-      chem_area: r.chemArea || null,
-      order_amount: r.orderAmount || 0,
-      stock_status: r.stockStatus || null,
-      jfw_mgr_id: r.jfwMgrId || null,
-      jfw_mgr_name: r.jfwMgrName || null,
-      lat: r.lat || null,
-      lng: r.lng || null,
-      remarks: r.remarks || null,
-      next_visit: formatDateForPostgres(r.nextVisit)
-    }));
-    await upsertInBatches('reports', dbReports);
-    await reconcileSupabaseRows('reports', DB.reports, function(row) {
-      return String(row.id || '').toUpperCase();
-    }, function(row) {
-      return supabase.from('reports').delete().eq('id', row.id);
-    });
+    // Sync Stockists
+    try {
+      const dbStockists = DB.stockists.map(s => {
+        var assignTo = s.assignTo || null;
+        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
+          assignTo = null;
+        }
+        return {
+          id: s.id,
+          name: s.name,
+          area: s.area,
+          assign_to: assignTo
+        };
+      });
+      await upsertInBatches('stockists', dbStockists);
+      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
+      /*
+      await reconcileSupabaseRows('stockists', DB.stockists, function(row) {
+        return String(row.id || '').toUpperCase();
+      }, function(row) {
+        return supabase.from('stockists').delete().eq('id', row.id);
+      });
+      */
+    } catch (e) {
+      console.error("Error syncing stockists:", e);
+      showToast('⚠️ Stockist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
+    }
 
-    const dbTourPlans = DB.tourPlans.map(tp => ({
-      id: tp.id,
-      emp_id: tp.empId,
-      emp_name: tp.empName,
-      month: tp.month,
-      manager_id: resolveManagerId(tp.managerId),
-      manager_name: tp.managerName || null,
-      days: tp.days,
-      status: tp.status,
-      remarks: tp.remarks || null,
-      submitted_at: tp.submittedAt || null,
-      approved_date: formatDateForPostgres(tp.approvedDate),
-      approved_by: tp.approvedBy || null,
-      revision_history: tp.revisionHistory || []
-    }));
-    await upsertInBatches('tour_plans', dbTourPlans);
-    await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
-      return String(row.id || '').toUpperCase();
-    }, function(row) {
-      return supabase.from('tour_plans').delete().eq('id', row.id);
-    });
+    // Sync Reports
+    try {
+      const dbReports = DB.reports.map(r => ({
+        id: r.id,
+        emp_id: r.empId,
+        emp_name: r.empName,
+        date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
+        time: r.time,
+        target_type: r.targetType,
+        classification: r.classification,
+        call_type: r.callType,
+        doc_id: r.docId || null,
+        doc_name: r.docName || null,
+        doc_spec: r.docSpec || null,
+        doc_area: r.docArea || null,
+        promoted_products: r.promotedProducts || [],
+        samples: r.samples || {},
+        gifts: r.gifts || {},
+        inputs: r.inputs || {},
+        chem_id: r.chemId || null,
+        chem_name: r.chemName || null,
+        chem_area: r.chemArea || null,
+        order_amount: r.orderAmount || 0,
+        stock_status: r.stockStatus || null,
+        jfw_mgr_id: r.jfwMgrId || null,
+        jfw_mgr_name: r.jfwMgrName || null,
+        jfw_remarks: r.jfwRemarks || null,
+        lat: r.lat || null,
+        lng: r.lng || null,
+        remarks: r.remarks || null,
+        next_visit: formatDateForPostgres(r.nextVisit)
+      }));
+      await upsertInBatches('reports', dbReports);
+      await reconcileSupabaseRows('reports', DB.reports, function(row) {
+        return String(row.id || '').toUpperCase();
+      }, function(row) {
+        return supabase.from('reports').delete().eq('id', row.id);
+      });
+    } catch (e) {
+      console.error("Error syncing reports:", e);
+    }
 
-    const dbExpenses = DB.expenses.map(ex => ({
-      id: ex.id,
-      emp_id: ex.empId,
-      emp_name: ex.empName,
-      month: ex.month,
-      manager_id: resolveManagerId(ex.managerId),
-      lines: ex.lines,
-      total: ex.total,
-      receipt_file: ex.receiptFile || null,
-      status: ex.status,
-      submitted_at: ex.submittedAt || null,
-      remarks: ex.remarks || null
-    }));
-    await upsertInBatches('expenses', dbExpenses);
-    await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
-      return String(row.id || '').toUpperCase();
-    }, function(row) {
-      return supabase.from('expenses').delete().eq('id', row.id);
-    });
+    // Sync Tour Plans
+    try {
+      const dbTourPlans = DB.tourPlans.map(tp => ({
+        id: tp.id,
+        emp_id: tp.empId,
+        emp_name: tp.empName,
+        month: tp.month,
+        manager_id: resolveManagerId(tp.managerId),
+        manager_name: tp.managerName || null,
+        days: tp.days,
+        status: tp.status,
+        remarks: tp.remarks || null,
+        submitted_at: tp.submittedAt || null,
+        approved_date: formatDateForPostgres(tp.approvedDate),
+        approved_by: tp.approvedBy || null,
+        revision_history: tp.revisionHistory || []
+      }));
+      await upsertInBatches('tour_plans', dbTourPlans);
+      await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
+        return String(row.id || '').toUpperCase();
+      }, function(row) {
+        return supabase.from('tour_plans').delete().eq('id', row.id);
+      });
+    } catch (e) {
+      console.error("Error syncing tour plans:", e);
+    }
 
-    const dbLeaves = DB.leaves.map(lv => ({
-      id: lv.id,
-      emp_id: lv.empId,
-      emp_name: lv.empName,
-      type: lv.type,
-      start: formatDateForPostgres(lv.start),
-      "end": formatDateForPostgres(lv.end),
-      days: lv.days,
-      reason: lv.reason || null,
-      manager_id: lv.managerId || null,
-      status: lv.status,
-      submitted_at: lv.submittedAt || null,
-      remarks: lv.remarks || null
-    }));
-    await upsertInBatches('leaves', dbLeaves);
-    await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
-      return String(row.id || '').toUpperCase();
-    }, function(row) {
-      return supabase.from('leaves').delete().eq('id', row.id);
-    });
+    // Sync Expenses
+    try {
+      const dbExpenses = DB.expenses.map(ex => ({
+        id: ex.id,
+        emp_id: ex.empId,
+        emp_name: ex.empName,
+        month: ex.month,
+        manager_id: resolveManagerId(ex.managerId),
+        lines: ex.lines,
+        total: ex.total,
+        receipt_file: ex.receiptFile || null,
+        status: ex.status,
+        submitted_at: ex.submittedAt || null,
+        remarks: ex.remarks || null
+      }));
+      await upsertInBatches('expenses', dbExpenses);
+      await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
+        return String(row.id || '').toUpperCase();
+      }, function(row) {
+        return supabase.from('expenses').delete().eq('id', row.id);
+      });
+    } catch (e) {
+      console.error("Error syncing expenses:", e);
+    }
 
-    const dbSamples = DB.samplesInventory.map(s => ({
-      id: s.id || undefined,
-      prod_name: s.prodName,
-      emp_id: s.empId,
-      opening: s.opening,
-      received: s.received,
-      distributed: s.distributed,
-      balance: s.balance
-    }));
-    await upsertInBatches('samples_inventory', dbSamples);
+    // Sync Leaves
+    try {
+      const dbLeaves = DB.leaves.map(lv => ({
+        id: lv.id,
+        emp_id: lv.empId,
+        emp_name: lv.empName,
+        type: lv.type,
+        start: formatDateForPostgres(lv.start),
+        "end": formatDateForPostgres(lv.end),
+        days: lv.days,
+        reason: lv.reason || null,
+        manager_id: lv.managerId || null,
+        status: lv.status,
+        submitted_at: lv.submittedAt || null,
+        remarks: lv.remarks || null
+      }));
+      await upsertInBatches('leaves', dbLeaves);
+      await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
+        return String(row.id || '').toUpperCase();
+      }, function(row) {
+        return supabase.from('leaves').delete().eq('id', row.id);
+      });
+    } catch (e) {
+      console.error("Error syncing leaves:", e);
+    }
 
-    const dbGifts = DB.giftsInventory.map(g => ({
-      id: g.id || undefined,
-      gift_name: g.giftName,
-      emp_id: g.empId,
-      opening: g.opening,
-      received: g.received,
-      distributed: g.distributed,
-      balance: g.balance
-    }));
-    await upsertInBatches('gifts_inventory', dbGifts);
+    // Sync Samples Inventory
+    try {
+      const dbSamples = DB.samplesInventory.map(s => ({
+        id: s.id || undefined,
+        prod_name: s.prodName,
+        emp_id: s.empId,
+        opening: s.opening,
+        received: s.received,
+        distributed: s.distributed,
+        balance: s.balance
+      }));
+      await upsertInBatches('samples_inventory', dbSamples);
+    } catch (e) {
+      console.error("Error syncing samples inventory:", e);
+    }
 
-    const dbInputs = DB.inputsInventory.map(i => ({
-      id: i.id || undefined,
-      input_name: i.inputName,
-      emp_id: i.empId,
-      opening: i.opening,
-      received: i.received,
-      distributed: i.distributed,
-      balance: i.balance
-    }));
-    await upsertInBatches('inputs_inventory', dbInputs);
+    // Sync Gifts Inventory
+    try {
+      const dbGifts = DB.giftsInventory.map(g => ({
+        id: g.id || undefined,
+        gift_name: g.giftName,
+        emp_id: g.empId,
+        opening: g.opening,
+        received: g.received,
+        distributed: g.distributed,
+        balance: g.balance
+      }));
+      await upsertInBatches('gifts_inventory', dbGifts);
+    } catch (e) {
+      console.error("Error syncing gifts inventory:", e);
+    }
 
-    const dbSfc = DB.sfc.map(s => ({
-      id: s.id || undefined,
-      from_loc: s.from,
-      to_loc: s.to,
-      distance: s.distance || 0,
-      mode: JSON.stringify({ mode: s.mode, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
-      fare: s.fare || 0,
-      da: s.da || 0,
-      lodge: 0,
-      other: 0
-    }));
-    await upsertInBatches('sfc', dbSfc);
-    await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
-      return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
-    });
+    // Sync Inputs Inventory
+    try {
+      const dbInputs = DB.inputsInventory.map(i => ({
+        id: i.id || undefined,
+        input_name: i.inputName,
+        emp_id: i.empId,
+        opening: i.opening,
+        received: i.received,
+        distributed: i.distributed,
+        balance: i.balance
+      }));
+      await upsertInBatches('inputs_inventory', dbInputs);
+    } catch (e) {
+      console.error("Error syncing inputs inventory:", e);
+    }
 
+    // Sync SFC
+    try {
+      const dbSfc = DB.sfc.map(s => ({
+        id: s.id || undefined,
+        from_loc: s.from,
+        to_loc: s.to,
+        distance: s.distance || 0,
+        mode: JSON.stringify({ mode: s.mode, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
+        fare: s.fare || 0,
+        da: s.da || 0,
+        lodge: 0,
+        other: 0
+      }));
+      await upsertInBatches('sfc', dbSfc);
+      await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
+        return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
+      });
+    } catch (e) {
+      console.error("Error syncing SFC:", e);
+    }
+
+    // Sync Holidays
     try {
       if (getHolidayTableMissingFlag()) {
         // Keep using the local holiday cache when the cloud table doesn't exist.
@@ -1312,20 +1516,377 @@ function initEmpApp(){
   goTab('home');
 }
 
-function populateReportingDropdowns(){
-  var docSel=document.getElementById('r-doctor');
-  docSel.innerHTML='<option value="">-- Select Doctor --</option>';
-  DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active';}).forEach(function(d){
-    var o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.spec+' - '+d.area+')';docSel.appendChild(o);
+var _allReportingDocs = [];
+var _allReportingChems = [];
+
+function updateMRInitialStock(type, itemName, newVal) {
+  var val = parseInt(newVal) || 0;
+  var empId = SESSION.user.id;
+  var table = '';
+  var invArray = [];
+  
+  if (type === 'sample') {
+    table = 'samples_inventory';
+    invArray = DB.samplesInventory;
+  } else if (type === 'gift') {
+    table = 'gifts_inventory';
+    invArray = DB.giftsInventory;
+  } else if (type === 'input') {
+    table = 'inputs_inventory';
+    invArray = DB.inputsInventory;
+  }
+  
+  if (!invArray) {
+    invArray = [];
+    if (type === 'sample') DB.samplesInventory = invArray;
+    else if (type === 'gift') DB.giftsInventory = invArray;
+    else DB.inputsInventory = invArray;
+  }
+  
+  var record = invArray.find(function(s){
+    if (type === 'sample') return s.empId === empId && s.prodName === itemName;
+    if (type === 'gift') return s.empId === empId && s.giftName === itemName;
+    return s.empId === empId && s.inputName === itemName;
+  });
+  
+  if (!record) {
+    record = {
+      id: type.toUpperCase() + 'INV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+      empId: empId,
+      opening: 0,
+      received: val,
+      distributed: 0,
+      balance: val
+    };
+    if (type === 'sample') record.prodName = itemName;
+    else if (type === 'gift') record.giftName = itemName;
+    else record.inputName = itemName;
+    invArray.push(record);
+  } else {
+    record.received = val - (record.opening || 0);
+    record.balance = val - (record.distributed || 0);
+  }
+  
+  saveDB();
+  populateReportingDropdowns();
+}
+
+function calculateReportingBalance(type, idx, availableBal) {
+  var distInp = document.getElementById(type === 'sample' ? 'smp-' + idx : (type === 'gift' ? 'gft-' + idx : 'inp-' + idx));
+  var balSpan = document.getElementById(type === 'sample' ? 'smp-bal-' + idx : (type === 'gift' ? 'gft-bal-' + idx : 'inp-bal-' + idx));
+  if (!distInp || !balSpan) return;
+  var distVal = parseInt(distInp.value) || 0;
+  
+  distInp.max = availableBal;
+  if (distVal > availableBal) {
+    distInp.value = availableBal;
+    distVal = availableBal;
+  }
+  
+  balSpan.textContent = Math.max(0, availableBal - distVal);
+}
+
+function renderDoctorOptions(list) {
+  var docSel = $('#r-doctor');
+  var currentVal = docSel.val();
+  
+  if (docSel.hasClass('select2-hidden-accessible')) {
+    docSel.select2('destroy');
+  }
+  
+  var html = '<option value="">-- Select Doctor --</option>';
+  list.forEach(function(d){
+    html += '<option value="'+d.id+'">'+(d.name || '') + ' (' + (d.spec || '') + ' - ' + (d.area || 'No Patch') + ')'+'</option>';
+  });
+  docSel.html(html);
+  
+  docSel.select2({ width: '100%' });
+  
+  if (list.some(function(d) { return d.id === currentVal; })) {
+    docSel.val(currentVal).trigger('change');
+  }
+}
+
+function renderChemistOptions(list) {
+  var chemSel = $('#r-chemist');
+  var currentVal = chemSel.val();
+  
+  if (chemSel.hasClass('select2-hidden-accessible')) {
+    chemSel.select2('destroy');
+  }
+  
+  var html = '<option value="">-- Select Chemist --</option>';
+  list.forEach(function(c){
+    html += '<option value="'+c.id+'">'+(c.name || '') + ' (' + (c.area || 'No Area') + ')'+'</option>';
+  });
+  chemSel.html(html);
+  
+  chemSel.select2({ width: '100%' });
+  
+  if (list.some(function(c) { return c.id === currentVal; })) {
+    chemSel.val(currentVal).trigger('change');
+  }
+}
+
+function filterReportingDoctorsDropdown() {
+  var filtered = window._allReportingDocs || [];
+  
+  var citySel = document.getElementById('r-city');
+  var patchSel = document.getElementById('r-patch');
+  var city = citySel ? citySel.value.toLowerCase().trim() : '';
+  var patch = patchSel ? patchSel.value.toLowerCase().trim() : '';
+  
+  filtered = filtered.filter(function(d) {
+    if (city && (d.city || '').toLowerCase().trim() !== city) return false;
+    if (patch && (d.area || '').toLowerCase().trim() !== patch) return false;
+    return true;
   });
 
-  var chemSel=document.getElementById('r-chemist');
-  chemSel.innerHTML='<option value="">-- Select Chemist --</option>';
-  DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).forEach(function(c){
-    var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.area+')';chemSel.appendChild(o);
+  renderDoctorOptions(filtered);
+}
+
+function filterReportingChemistsDropdown() {
+  var filtered = window._allReportingChems || [];
+  
+  var citySel = document.getElementById('r-city');
+  var patchSel = document.getElementById('r-patch');
+  var city = citySel ? citySel.value.toLowerCase().trim() : '';
+  var patch = patchSel ? patchSel.value.toLowerCase().trim() : '';
+
+  filtered = filtered.filter(function(c) {
+    if (city && (c.city || '').toLowerCase().trim() !== city) return false;
+    if (patch && (c.area || '').toLowerCase().trim() !== patch) return false;
+    return true;
   });
+
+  renderChemistOptions(filtered);
+}
+
+function filterReportingDropdownsByPatch() {
+  filterReportingDoctorsDropdown();
+  filterReportingChemistsDropdown();
+  filterReportingStockistsDropdown();
+}
+
+function renderStockistOptions(list) {
+  var stockSel = $('#r-stockist');
+  if(stockSel.length === 0) return;
+  var currentVal = stockSel.val();
+  
+  if (stockSel.hasClass('select2-hidden-accessible')) {
+    stockSel.select2('destroy');
+  }
+  
+  var html = '<option value="">-- Select Stockist --</option>';
+  list.forEach(function(s){
+    html += '<option value="'+s.id+'">'+(s.name || '') + ' (' + (s.area || 'No Area') + ')'+'</option>';
+  });
+  stockSel.html(html);
+  
+  stockSel.select2({ width: '100%' });
+  
+  if (list.some(function(s) { return s.id === currentVal; })) {
+    stockSel.val(currentVal).trigger('change');
+  }
+}
+
+function filterReportingStockistsDropdown() {
+  var filtered = window._allReportingStockists || [];
+  renderStockistOptions(filtered);
+}
+
+function populateReportTerritoryDropdowns() {
+  if (!SESSION.user) return;
+  var myLvl = getLevel(SESSION.user.role, SESSION.user.designation);
+  var teamIds = (SESSION.user.role !== 'admin' && myLvl <= 1) ? getAllSubordinateIds(SESSION.user.id) : null;
+  if (teamIds) {
+    teamIds.push(SESSION.user.id);
+  }
+  
+  var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  
+  DB.doctors.forEach(function(d) {
+    var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+    var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase(); }) : null;
+    var isAssignedToTeam = teamIdsUpper ? assignedList.some(function(a){ return teamIdsUpper.includes(a); }) : true;
+    
+    if (isAssignedToTeam && d.status === 'Active') {
+      var tType = (d.territoryType || '').trim().toUpperCase();
+      if (tType) {
+        if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
+        if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
+        if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
+        if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
+      }
+    }
+  });
+
+  var areaToTType = {};
+  Object.keys(mrAreasByTerritory).forEach(function(tt) {
+    mrAreasByTerritory[tt].forEach(function(a) {
+      if (!areaToTType[a]) areaToTType[a] = [];
+      areaToTType[a].push(tt);
+    });
+  });
+
+  DB.chemists.forEach(function(c) {
+    var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+    var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase(); }) : null;
+    var isAssignedToTeam = teamIdsUpper ? assignedList.some(function(a){ return teamIdsUpper.includes(a); }) : true;
+
+    if (isAssignedToTeam && c.area) {
+      var cArea = c.area.trim();
+      var tTypes = areaToTType[cArea];
+      if (tTypes && tTypes.length > 0) {
+        tTypes.forEach(function(tt) {
+          mrAreasByTerritory[tt].add(cArea);
+          if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
+        });
+      } else {
+        mrAreasByTerritory['HQ'].add(cArea);
+        if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
+      }
+    }
+  });
+  
+  window._mrTownsByTerritory = mrTownsByTerritory;
+  window._mrAreasByTerritory = mrAreasByTerritory;
+  
+  populateReportCityPatch();
+}
+
+function populateReportCityPatch() {
+  var tSel = document.getElementById('r-territory');
+  if (!tSel) return;
+  var territory = (tSel.value || 'HQ').trim().toUpperCase();
+  
+  var mrTownsByTerritory = window._mrTownsByTerritory || {};
+  var availableTowns = mrTownsByTerritory[territory] ? Array.from(mrTownsByTerritory[territory]).filter(function(x) { return x && !x.startsWith('--'); }).sort() : [];
+  
+  var citySel = document.getElementById('r-city');
+  if (citySel) {
+    citySel.innerHTML = '<option value="">-- Select Town --</option>' + availableTowns.map(function(t) {
+      return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>';
+    }).join('');
+  }
+  
+  var mrAreasByTerritory = window._mrAreasByTerritory || {};
+  var availablePatches = mrAreasByTerritory[territory] ? Array.from(mrAreasByTerritory[territory]).filter(function(x) { return x && !x.startsWith('--'); }).sort() : [];
+  
+  var patchSel = document.getElementById('r-patch');
+  if (patchSel) {
+    patchSel.innerHTML = '<option value="">-- Select Patch --</option>' + availablePatches.map(function(p) {
+      return '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>';
+    }).join('');
+  }
+}
+
+function toggleReportWorkTypeFields() {
+  var wt = document.getElementById('r-work-type');
+  var isFieldWork = wt && wt.value === 'FIELD WORK';
+  
+  ['r-territory', 'r-city', 'r-patch', 'r-target-type', 'r-classification', 'r-calltype'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !isFieldWork;
+  });
+  
+  var w1 = document.getElementById('r-doctor-wrap');
+  var w2 = document.getElementById('r-chemist-wrap');
+  var w3 = document.getElementById('r-stockist-wrap');
+  
+  if (!isFieldWork) {
+    if(w1) w1.style.display = 'none';
+    if(w2) w2.style.display = 'none';
+    if(w3) w3.style.display = 'none';
+  } else {
+    toggleReportTargetFields();
+  }
+}
+
+function populateReportingDropdowns(){
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  if (teamIds) {
+    teamIds.push(SESSION.user.id);
+  }
+
+  var docSel=document.getElementById('r-doctor');
+  
+  var finalDocs = DB.doctors.filter(function(d){
+    if (teamIds) {
+      var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      return assignedList.some(function(a){ return teamIds.includes(a); }) && d.status === 'Active';
+    }
+    return d.status === 'Active'; // Admin sees all active
+  });
+
+  if (finalDocs.length === 0) {
+    finalDocs = DB.doctors.filter(function(d){ return d.status === 'Active'; });
+  }
+
+  finalDocs.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
+  window._allReportingDocs = finalDocs;
+  renderDoctorOptions(finalDocs);
+
+  var chemSel=document.getElementById('r-chemist');
+  
+  // Find all areas where this MR (or their team) has active doctors assigned
+  var activeDocAreas = new Set();
+  DB.doctors.forEach(function(d){
+    var docAssignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+    var isAssignedToTeam = teamIds ? docAssignedList.some(function(a){ return teamIds.includes(a); }) : true;
+    if (isAssignedToTeam && d.status === 'Active' && d.area) {
+      activeDocAreas.add(d.area.toLowerCase().trim());
+    }
+  });
+
+  var finalChems = DB.chemists.filter(function(c){
+    if (teamIds) {
+      var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      var hasAssign = assignedList.some(function(a){ return teamIds.includes(a); });
+      var unassigned = !c.assignTo || c.assignTo.trim() === '';
+      var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
+      return hasAssign || inMyAreas;
+    }
+    return true; // Admin sees all
+  });
+
+  if (finalChems.length === 0) {
+    finalChems = DB.chemists;
+  }
+
+  finalChems.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
+  window._allReportingChems = finalChems;
+  renderChemistOptions(finalChems);
+
   docSel.onchange=updateReportClassificationFromTarget;
   chemSel.onchange=updateReportClassificationFromTarget;
+
+  var docSearchInp = document.getElementById('r-doc-search');
+  if (docSearchInp) docSearchInp.value = '';
+  var chemSearchInp = document.getElementById('r-chem-search-inp');
+  if (chemSearchInp) chemSearchInp.value = '';
+  
+  var stockSel=document.getElementById('r-stockist');
+  if(stockSel) {
+    var finalStockists = DB.stockists.filter(function(s){
+      if (teamIds) {
+        var assignedList = String(s.assignTo || '').toUpperCase().split(',').map(function(x){return x.trim();});
+        var hasAssign = assignedList.some(function(a){ return teamIds.includes(a); });
+        var unassigned = !s.assignTo || s.assignTo.trim() === '';
+        var inMyAreas = unassigned && s.area && activeDocAreas.has(s.area.toLowerCase().trim());
+        return hasAssign || inMyAreas;
+      }
+      return true;
+    });
+    if (finalStockists.length === 0) finalStockists = DB.stockists;
+    finalStockists.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
+    window._allReportingStockists = finalStockists;
+    renderStockistOptions(finalStockists);
+    stockSel.onchange=updateReportClassificationFromTarget;
+  }
+  var stockSearchInp = document.getElementById('r-stockist-search-inp');
+  if (stockSearchInp) stockSearchInp.value = '';
   
   // Product checklist grid
   var promoProductsGrid=document.getElementById('r-promo-products');
@@ -1335,23 +1896,74 @@ function populateReportingDropdowns(){
   
   // Samples
   document.getElementById('samples-list').innerHTML=DB.products.map(function(p,i){
-    var myStock=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+    var myStock=(DB.samplesInventory || []).find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row"><div class="sample-name">'+p+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" class="sample-inp"></div></div>';
+    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
+      '<div style="display: flex; gap: 12px; align-items: center;">'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
+          '<input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="smp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
 
   // Gifts
   document.getElementById('gifts-list').innerHTML=DB.gifts.map(function(g,i){
-    var myStock=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+    var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row"><div class="sample-name">'+g+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" class="gift-inp"></div></div>';
+    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
+      '<div style="display: flex; gap: 12px; align-items: center;">'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
+          '<input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="gft-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
 
   // Inputs
   document.getElementById('inputs-list').innerHTML=DB.inputs.map(function(ip,i){
-    var myStock=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+    var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row"><div class="sample-name">'+ip+' (Bal: '+bal+')</div><div class="sample-qty"><input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" class="input-inp"></div></div>';
+    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+      '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
+      '<div style="display: flex; gap: 12px; align-items: center;">'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
+          '<input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="inp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
 }
 
@@ -1359,22 +1971,40 @@ function populateJFWManagers(){
   var jfwSel=document.getElementById('r-jfw-manager');
   jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
   
-  var levels = { 'emp': 1, 'manager': 2, 'am': 3, 'rm': 4, 'zm': 5, 'nsm': 6, 'avp': 7, 'admin': 8 };
-  var myLevel = levels[(SESSION.user.role || '').toLowerCase()] || 0;
+  var myLevel = getLevel(SESSION.user.role, SESSION.user.designation);
   
+  var myManagerChainIds = [];
+  if (myLevel !== 99) {
+    var current = SESSION.user;
+    var maxDepth = 20;
+    while (current && current.managerId && maxDepth > 0) {
+      var mId = String(current.managerId).trim().toUpperCase();
+      myManagerChainIds.push(mId);
+      current = DB.employees.find(function(x) { return x && x.id && String(x.id).trim().toUpperCase() === mId; });
+      maxDepth--;
+    }
+  }
+
+  var subs = [];
+  if (myLevel !== 99 && typeof getAllSubordinateIds === 'function') {
+    subs = getAllSubordinateIds(SESSION.user.id) || [];
+  }
+
+  var myManagerIdUpper = String(SESSION.user.managerId || '').trim().toUpperCase();
+
   var chain = DB.employees.filter(function(e) {
+    if (!e) return false;
     if (e.id === SESSION.user.id) return false;
     if (e.status !== 'Active') return false;
     if ((e.role || '').toLowerCase() === 'admin') return false; // Explicitly hide admin
     
-    var roleStr = (e.role || '').toLowerCase();
-    var eLevel = levels[roleStr] || 0;
+    // If the user is an Admin (testing the system), let them see everyone.
+    if (myLevel === 99) return true; 
     
-    var isHigher = eLevel > myLevel;
-    var isJayashree = e.name && e.name.toLowerCase().indexOf('jayashree') !== -1;
-    var isAVP = roleStr === 'avp' || (e.designation || '').toLowerCase().indexOf('avp') !== -1;
+    var eIdUpper = String(e.id).trim().toUpperCase();
+    var isJayashree = String(e.name || '').trim().toLowerCase().includes('jayashree');
     
-    return isHigher || isJayashree || isAVP;
+    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isJayashree;
   });
 
   var uniqueChain = [];
@@ -1401,17 +2031,17 @@ function populateJFWManagers(){
 
 function toggleReportTargetFields(){
   var type=document.getElementById('r-target-type').value;
-  if(type==='Doctor'){
-    document.getElementById('r-doctor-wrap').style.display='block';
-    document.getElementById('r-chemist-wrap').style.display='none';
-    document.getElementById('r-doctor-details-wrap').style.display='block';
-    document.getElementById('r-chemist-details-wrap').style.display='none';
-  } else {
-    document.getElementById('r-doctor-wrap').style.display='none';
-    document.getElementById('r-chemist-wrap').style.display='block';
-    document.getElementById('r-doctor-details-wrap').style.display='none';
-    document.getElementById('r-chemist-details-wrap').style.display='block';
-  }
+  var dw = document.getElementById('r-doctor-wrap'), cw = document.getElementById('r-chemist-wrap'), sw = document.getElementById('r-stockist-wrap');
+  var ddw = document.getElementById('r-doctor-details-wrap'), cdw = document.getElementById('r-chemist-details-wrap'), sdw = document.getElementById('r-stockist-details-wrap');
+  
+  if (dw) dw.style.display = type === 'Doctor' ? 'block' : 'none';
+  if (cw) cw.style.display = type === 'Chemist' ? 'block' : 'none';
+  if (sw) sw.style.display = type === 'Stockist' ? 'block' : 'none';
+  
+  if (ddw) ddw.style.display = type === 'Doctor' ? 'block' : 'none';
+  if (cdw) cdw.style.display = type === 'Chemist' ? 'block' : 'none';
+  if (sdw) sdw.style.display = type === 'Stockist' ? 'block' : 'none';
+  
   updateReportClassificationFromTarget();
 }
 
@@ -1446,19 +2076,22 @@ function renderPlannedTargetsForReport(plannedDay){
   wrap.innerHTML='<label class="lbl">Approved MTP Targets for this Date</label><div class="info-box green" style="margin-bottom:0">'+
     (docBtns ? '<div style="margin-bottom:6px"><strong>Doctors:</strong><br>'+docBtns+'</div>' : '')+
     (chemBtns ? '<div><strong>Chemists:</strong><br>'+chemBtns+'</div>' : '')+
-    '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor or chemist as an unplanned call.</div></div>';
+    '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor, chemist, or stockist as an unplanned call.</div></div>';
 }
 
 
 function getAllSubordinateIds(managerId) {
   let subIds = new Set();
-  let toCheck = [managerId];
+  let toCheck = [String(managerId || '').trim().toUpperCase()];
   while (toCheck.length > 0) {
     let currentId = toCheck.pop();
     subIds.add(currentId);
     DB.employees.forEach(emp => {
-      if (emp.managerId === currentId && !subIds.has(emp.id)) {
-        toCheck.push(emp.id);
+      if (!emp || !emp.id) return;
+      var empIdUpper = String(emp.id).trim().toUpperCase();
+      var mId = String(emp.managerId || '').trim().toUpperCase();
+      if (mId === currentId && !subIds.has(empIdUpper)) {
+        toCheck.push(empIdUpper);
       }
     });
   }
@@ -1612,14 +2245,32 @@ function getDesignationLabel(role) {
 
 function getLeaveLedger(emp) {
   var leaves = emp && emp.leaves ? emp.leaves : {};
-  var clLimit = parseInt(leaves.CL, 10) || 0;
-  var clUsed = parseInt(leaves.CL_used, 10) || 0;
-  var plLimit = parseInt(leaves.EL, 10) || 0;
-  var plUsed = parseInt(leaves.EL_used, 10) || 0;
-  var slLimit = parseInt(leaves.SL, 10) || 0;
-  var slUsed = parseInt(leaves.SL_used, 10) || 0;
-  var lopLimit = parseInt(leaves.LWP, 10) || 0;
-  var lopUsed = parseInt(leaves.LWP_used, 10) || 0;
+  var clLimit = parseFloat(leaves.CL) || 0;
+  var plLimit = parseFloat(leaves.EL) || 0;
+  var slLimit = parseFloat(leaves.SL) || 0;
+  var lopLimit = parseFloat(leaves.LWP) || 0;
+
+  var clUsed = 0, plUsed = 0, slUsed = 0, lopUsed = 0;
+  
+  if (emp && emp.id && typeof DB !== 'undefined' && DB && Array.isArray(DB.leaves)) {
+    DB.leaves.forEach(function(l) {
+      if (String(l.empId).trim().toUpperCase() === String(emp.id).trim().toUpperCase() && 
+         (l.status === 'Approved' || l.status === 'Submitted' || l.status === 'Approved by Manager' || l.status === 'Approved by Admin')) {
+        var days = parseFloat(l.days) || 0;
+        var t = (l.type || '').trim().toLowerCase();
+        if (t === 'casual leave') clUsed += days;
+        else if (t === 'sick leave') slUsed += days;
+        else if (t === 'earned leave') plUsed += days;
+        else if (t === 'leave without pay' || t === 'lwp') lopUsed += days;
+      }
+    });
+  }
+
+  if (clUsed === 0 && (parseFloat(leaves.CL_used) || 0) > 0) clUsed = parseFloat(leaves.CL_used) || 0;
+  if (plUsed === 0 && (parseFloat(leaves.EL_used) || 0) > 0) plUsed = parseFloat(leaves.EL_used) || 0;
+  if (slUsed === 0 && (parseFloat(leaves.SL_used) || 0) > 0) slUsed = parseFloat(leaves.SL_used) || 0;
+  if (lopUsed === 0 && (parseFloat(leaves.LWP_used) || 0) > 0) lopUsed = parseFloat(leaves.LWP_used) || 0;
+
   return {
     cl: { limit: clLimit, used: clUsed, balance: Math.max(0, clLimit - clUsed) },
     pl: { limit: plLimit, used: plUsed, balance: Math.max(0, plLimit - plUsed) },
@@ -1748,11 +2399,16 @@ function submitReport(){
     empId:SESSION.user.id,
     empName:SESSION.user.name,
     date:date,
+    workType: document.getElementById('r-work-type') ? document.getElementById('r-work-type').value : 'FIELD WORK',
+    territory: document.getElementById('r-territory') ? document.getElementById('r-territory').value : '',
+    city: document.getElementById('r-city') ? document.getElementById('r-city').value : '',
+    patch: document.getElementById('r-patch') ? document.getElementById('r-patch').value : '',
     time:time,
     targetType:targetType,
     classification:classification,
     callType:document.getElementById('r-calltype').value,
     jfwMgrId:document.getElementById('r-jfw-manager').value,
+    jfwRemarks:document.getElementById('r-jfw-remarks') ? document.getElementById('r-jfw-remarks').value.trim() : '',
     lat:document.getElementById('r-lat').value||'',
     lng:document.getElementById('r-lng').value||'',
     remarks:document.getElementById('r-remarks').value.trim(),
@@ -1826,7 +2482,7 @@ function submitReport(){
     });
     repObj.inputs = inputs;
     
-  } else {
+  } else if (targetType === 'Chemist') {
     var chemId=document.getElementById('r-chemist').value;
     if(!chemId){showToast('Please select chemist');return;}
     var chem=DB.chemists.find(function(c){return c.id===chemId;});
@@ -1835,6 +2491,15 @@ function submitReport(){
     repObj.chemArea=chem?chem.area:'';
     repObj.orderAmount=parseFloat(document.getElementById('r-chem-order').value)||0;
     repObj.stockStatus=document.getElementById('r-chem-stock').value;
+  } else if (targetType === 'Stockist') {
+    var stockId=document.getElementById('r-stockist').value;
+    if(!stockId){showToast('Please select stockist');return;}
+    var stock=DB.stockists.find(function(s){return s.id===stockId;});
+    repObj.stockId=stockId;
+    repObj.stockName=stock?stock.name:'';
+    repObj.stockArea=stock?stock.area:'';
+    repObj.orderAmount=parseFloat(document.getElementById('r-stockist-order').value)||0;
+    repObj.stockStatus=document.getElementById('r-stockist-stock').value;
   }
   
   DB.reports.unshift(repObj);
@@ -1847,6 +2512,8 @@ function submitReport(){
   document.getElementById('r-doctor').value='';
   document.getElementById('r-chemist').value='';
   document.getElementById('r-chem-order').value='';
+  if (document.getElementById('r-stockist')) document.getElementById('r-stockist').value='';
+  if (document.getElementById('r-stockist-order')) document.getElementById('r-stockist-order').value='';
   document.querySelectorAll('.promo-prod-check').forEach(function(cb){cb.checked=false;});
   document.querySelectorAll('.sample-inp, .gift-inp, .input-inp').forEach(function(ip){ip.value='';});
   
@@ -1923,9 +2590,24 @@ function renderHomeStats(){
 function repRow(r){
   var title = r.targetType==='Doctor' ? r.docName : r.chemName;
   var sub = r.targetType==='Doctor' ? r.docSpec+' | '+r.docArea : 'Chemist | '+r.chemArea;
-  var val = r.targetType==='Doctor' ? Object.keys(r.samples).length+' sample(s) distributed' : 'Order Claim: \u20B9'+r.orderAmount;
+  
+  var val = '';
+  if (r.targetType==='Doctor') {
+    var details = [];
+    if (r.promotedProducts && r.promotedProducts.length) details.push('Promoted: ' + r.promotedProducts.join(', '));
+    var sKeys = r.samples ? Object.keys(r.samples) : [];
+    if (sKeys.length) details.push('Samples: ' + sKeys.map(function(k){return k+' ('+r.samples[k]+')';}).join(', '));
+    var gKeys = r.gifts ? Object.keys(r.gifts) : [];
+    if (gKeys.length) details.push('Gifts: ' + gKeys.map(function(k){return k+' ('+r.gifts[k]+')';}).join(', '));
+    var iKeys = r.inputs ? Object.keys(r.inputs) : [];
+    if (iKeys.length) details.push('Inputs: ' + iKeys.map(function(k){return k+' ('+r.inputs[k]+')';}).join(', '));
+    val = details.length ? details.join('<br>') : 'No promotional items distributed';
+  } else {
+    val = 'Order Claim: \u20B9' + r.orderAmount;
+  }
+  
   var badgeClass=r.classification==='Planned Call' ? 'green' : 'orange';
-  return '<div class="report-row"><div class="report-doc">'+title+' <span class="badge '+badgeClass+'">'+r.classification+'</span></div><div class="report-meta">'+r.date+' '+r.time+' | '+sub+'</div><div class="report-value">'+val+'</div></div>';
+  return '<div class="report-row"><div class="report-doc">'+title+' <span class="badge '+badgeClass+'">'+r.classification+'</span></div><div class="report-meta">'+r.date+' '+r.time+' | '+sub+'</div><div class="report-value" style="font-size:0.85rem; line-height:1.4;">'+val+'</div></div>';
 }
 
 // ===== TOUR PLAN MTP FUNCTIONS =====
@@ -1955,18 +2637,30 @@ function renderTPDaysForMonth(){
     var dayStr = i < 10 ? '0'+i : i;
     var fullDateStr = month+'-'+dayStr;
     var existingDay = existing ? existing.days.find(function(d){return d.date===fullDateStr;}) : null;
-    currentMTPDays.push(existingDay ? JSON.parse(JSON.stringify(existingDay)) : {
+    var dayObj = {
       date: fullDateStr,
       dayNum: i,
-      category:'HQ',
-      areaTerritory:'',
-      fromLocation:SESSION.user.area,
-      toLocation:'',
-      stayCity:'',
-      objective:'',
-      plannedDocs:[],
-      plannedChems:[]
-    });
+      category: 'HQ',
+      workType: 'FIELD WORK',
+      territory: 'HQ',
+      fromLocation: SESSION.user.area,
+      toLocation: '',
+      areaTerritory: '',
+      stayCity: '',
+      objective: '',
+      plannedDocs: [],
+      plannedChems: []
+    };
+    if (existingDay) {
+      dayObj.workType = existingDay.workType || (['Weekly Off', 'Leave', 'Transit', 'Holiday', 'Meeting'].includes(existingDay.areaTerritory) ? existingDay.areaTerritory.toUpperCase() : 'FIELD WORK');
+      dayObj.territory = existingDay.territory || 'HQ';
+      dayObj.stayCity = existingDay.stayCity || '';
+      dayObj.areaTerritory = existingDay.areaTerritory || '';
+      dayObj.toLocation = existingDay.toLocation || '';
+      dayObj.plannedDocs = existingDay.plannedDocs || [];
+      dayObj.plannedChems = existingDay.plannedChems || [];
+    }
+    currentMTPDays.push(dayObj);
     
     i++;
     date.setDate(date.getDate() + 1);
@@ -1984,13 +2678,20 @@ function renderTPDaysForMonth(){
 function getAssignedDoctorsForArea(area){
   var clean=(area||'').trim().toLowerCase();
   if(!clean)return [];
-  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id && d.status==='Active' && d.area.toLowerCase()===clean;});
+  return DB.doctors.filter(function(d){
+    var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    return assigned && d.status==='Active' && (d.area || '').toLowerCase()===clean;
+  });
 }
 
 function getAssignedChemistsForArea(area){
   var clean=(area||'').trim().toLowerCase();
   if(!clean)return [];
-  return DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id && c.area.toLowerCase()===clean;});
+  return DB.chemists.filter(function(c){
+    var assigned = String(c.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    var unassigned = !c.assignTo || c.assignTo.trim() === '';
+    return (assigned || unassigned) && (c.area || '').toLowerCase()===clean;
+  });
 }
 
 function getHolidayForDateAndState(dateStr, state) {
@@ -2005,7 +2706,7 @@ function getHolidayForDateAndState(dateStr, state) {
 
 function renderMTPDaysUI(isReadOnly, existing){
   var c=document.getElementById('tp-days-container');
-  var readOnlyAttr = '';
+  var readOnlyAttr = isReadOnly ? 'disabled' : '';
   var html = '';
   isReadOnly = false;
   
@@ -2024,34 +2725,58 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 
   html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
-    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Area / Territory</th><th>Town / City</th></tr></thead><tbody>';
+    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Type of Working</th><th>Territory</th><th>Town / City</th><th>Patch</th></tr></thead><tbody>';
 
-  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return !!(day.areaTerritory||day.toLocation||'').trim();}) : currentMTPDays;
+  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return day.workType === 'FIELD WORK' && !!(day.areaTerritory||'').trim();}) : currentMTPDays;
 
-  var mrAreas = [];
+  var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  
   if (SESSION.user) {
-    var areaSet = new Set();
     DB.doctors.forEach(function(d) {
-      if (d.assignTo === SESSION.user.id && d.status === 'Active' && d.area) {
-        areaSet.add(d.area.trim());
+      if (String(d.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && d.status === 'Active') {
+        var tType = (d.territoryType || '').trim().toUpperCase();
+        if (tType) {
+          if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
+          if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
+          if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
+          if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
+        }
       }
     });
+
+    var areaToTType = {};
+    Object.keys(mrAreasByTerritory).forEach(function(tt) {
+      mrAreasByTerritory[tt].forEach(function(a) {
+        if (!areaToTType[a]) areaToTType[a] = [];
+        areaToTType[a].push(tt);
+      });
+    });
+
     DB.chemists.forEach(function(c) {
-      if (c.assignTo === SESSION.user.id && c.area) {
-        areaSet.add(c.area.trim());
+      if (String(c.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && c.area) {
+        var cArea = c.area.trim();
+        var tTypes = areaToTType[cArea];
+        if (tTypes && tTypes.length > 0) {
+          tTypes.forEach(function(tt) {
+            mrAreasByTerritory[tt].add(cArea);
+            if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
+          });
+        } else {
+          mrAreasByTerritory['HQ'].add(cArea);
+          if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
+        }
       }
     });
-    mrAreas = Array.from(areaSet).sort();
   }
 
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);
-    var area=d.areaTerritory||d.toLocation||'';
+    var area=d.areaTerritory||'';
     var city=d.stayCity||'';
-    var docs=getAssignedDoctorsForArea(area);
-    var chems=getAssignedChemistsForArea(area);
-    d.plannedDocs=docs.map(function(doc){return doc.id;});
-    d.plannedChems=chems.map(function(chem){return chem.id;});
+    var workType=d.workType||'FIELD WORK';
+    var territory=d.territory||'HQ';
+    
     var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
     
     var holiday = getHolidayForDateAndState(d.date, SESSION.user ? SESSION.user.state : '');
@@ -2062,34 +2787,66 @@ function renderMTPDaysUI(isReadOnly, existing){
       holidayRowStyle = ' style="background-color: #FFF5F5"';
     }
     
-    var areaSelect = '';
+    var workTypeSelect = '';
+    var territorySelect = '';
+    var patchSelect = '';
+    var isFieldWork = (workType === 'FIELD WORK');
+    
     if (isReadOnly) {
-      areaSelect = '<span>' + (area || '--') + '</span>';
+      workTypeSelect = '<span>' + workType + '</span>';
+      territorySelect = '<span>' + (isFieldWork ? territory : '--') + '</span>';
+      patchSelect = '<span>' + (isFieldWork ? (area || '--') : '--') + '</span>';
     } else {
-      var currentAreas = mrAreas.slice();
-      if (area && !currentAreas.includes(area) && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
+      // Work Type Dropdown
+      workTypeSelect = '<select style="width:100%" onchange="updateMTPWorkType('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="FIELD WORK"' + (workType === 'FIELD WORK' ? ' selected' : '') + '>FIELD WORK</option>' +
+        '<option value="WEEKLY OFF"' + (workType === 'WEEKLY OFF' ? ' selected' : '') + '>WEEKLY OFF</option>' +
+        '<option value="LEAVE"' + (workType === 'LEAVE' ? ' selected' : '') + '>LEAVE</option>' +
+        '<option value="HOLIDAY"' + (workType === 'HOLIDAY' ? ' selected' : '') + '>HOLIDAY</option>' +
+        '<option value="MEETING"' + (workType === 'MEETING' ? ' selected' : '') + '>MEETING</option>' +
+        '<option value="TRANSIT"' + (workType === 'TRANSIT' ? ' selected' : '') + '>TRANSIT</option>' +
+        '</select>';
+        
+      // Territory Dropdown
+      territorySelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPTerritory('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="HQ"' + (territory === 'HQ' ? ' selected' : '') + '>HQ</option>' +
+        '<option value="Ex"' + (territory === 'Ex' ? ' selected' : '') + '>Ex</option>' +
+        '<option value="OS"' + (territory === 'OS' ? ' selected' : '') + '>OS</option>' +
+        '</select>';
+        
+      // Patch Dropdown
+      var lookupTerritory = (territory || 'HQ').trim().toUpperCase();
+      var currentAreas = mrAreasByTerritory[lookupTerritory] ? Array.from(mrAreasByTerritory[lookupTerritory]).sort() : [];
+      if (area && !currentAreas.includes(area)) {
         currentAreas.push(area);
       }
-      areaSelect = '<select style="width:100%" onchange="updateMTPArea('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
-        '<option value="">-- Select Area --</option>' +
-        '<option value="Weekly Off"' + (area === 'Weekly Off' ? ' selected' : '') + '>Weekly Off</option>' +
-        '<option value="Leave"' + (area === 'Leave' ? ' selected' : '') + '>Leave</option>' +
-        '<option value="Transit"' + (area === 'Transit' ? ' selected' : '') + '>Transit</option>' +
-        '<option value="HQ"' + (area === 'HQ' ? ' selected' : '') + '>HQ</option>' +
-        '<option value="Holiday"' + (area === 'Holiday' ? ' selected' : '') + '>Holiday</option>' +
+      patchSelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPPatch('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="">-- Select Patch --</option>' +
         currentAreas.map(function(a) {
-          return '<option value="' + a + '"' + (area === a ? ' selected' : '') + '>' + a + '</option>';
+          return '<option value="' + escapeHTML(a) + '"' + (area === a ? ' selected' : '') + '>' + escapeHTML(a) + '</option>';
         }).join('') +
         '</select>';
     }
 
+    var lookupTerritory = (territory || 'HQ').trim().toUpperCase();
+    var availableTowns = mrTownsByTerritory[lookupTerritory] ? Array.from(mrTownsByTerritory[lookupTerritory]).sort() : [];
+    if (city && !availableTowns.includes(city)) {
+      availableTowns.push(city);
+    }
+    var cityInput = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPCity('+originalIdx+', this.value)">' +
+      '<option value="">-- Town/City --</option>' +
+      availableTowns.map(function(t) {
+        return '<option value="' + escapeHTML(t) + '"' + (city === t ? ' selected' : '') + '>' + escapeHTML(t) + '</option>';
+      }).join('') +
+      '</select>';
+
     return '<tr class="mtp-area-row"'+holidayRowStyle+'>'+
       '<td class="tbl-name">'+d.date+holidayText+'</td>'+
       '<td>'+dow+'</td>'+
-      '<td>'+areaSelect+'</td>'+
-      '<td><input type="text" '+readOnlyAttr+' value="'+city+'" placeholder="Enter town/city" onchange="updateMTPCity('+originalIdx+', this.value)"></td>'+
-      
-      
+      '<td>'+workTypeSelect+'</td>'+
+      '<td>'+territorySelect+'</td>'+
+      '<td>'+cityInput+'</td>'+
+      '<td>'+patchSelect+'</td>'+
       '</tr>';
   }).join('');
 
@@ -2102,23 +2859,85 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 }
 
-function updateMTPArea(idx, value){
-  var area=value.trim();
-  currentMTPDays[idx].areaTerritory=area;
-  currentMTPDays[idx].toLocation=area;
-  currentMTPDays[idx].fromLocation=SESSION.user.area;
-  currentMTPDays[idx].category=area ? 'HQ' : 'HQ';
-  currentMTPDays[idx].plannedDocs=getAssignedDoctorsForArea(area).map(function(doc){return doc.id;});
-  currentMTPDays[idx].plannedChems=getAssignedChemistsForArea(area).map(function(chem){return chem.id;});
+function updateMTPWorkType(idx, value){
+  var wt = value.trim().toUpperCase();
+  currentMTPDays[idx].workType = wt;
+  if (wt !== 'FIELD WORK') {
+    currentMTPDays[idx].areaTerritory = '';
+    currentMTPDays[idx].toLocation = '';
+    currentMTPDays[idx].stayCity = '';
+    currentMTPDays[idx].plannedDocs = [];
+    currentMTPDays[idx].plannedChems = [];
+  } else {
+    currentMTPDays[idx].territory = 'HQ';
+  }
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function getLevel(role, d) {
+  if (role && role.toLowerCase() === 'admin') return 99;
+  var r = (role || '').toLowerCase();
+  d = d ? d.trim().toUpperCase() : '';
   
-  // Set stayCity automatically based on the area!
-  if (area && area !== 'Weekly Off' && area !== 'Leave' && area !== 'Transit' && area !== 'HQ' && area !== 'Holiday') {
-    var matchedDoc = DB.doctors.find(function(d){return d.area.toLowerCase() === area.toLowerCase() && d.assignTo === SESSION.user.id;});
+  if (d === 'CEO') return 11;
+  if (d === 'VP') return 10;
+  if (d === 'AVP') return 9;
+  if (d === 'DGM') return 8;
+  if (d === 'ZSM') return 7;
+  if (d === 'SR RSM') return 6;
+  if (d === 'RSM') return 5;
+  if (d === 'DY RSM') return 4;
+  if (d === 'SR ASM') return 3;
+  if (d === 'ASM') return 2;
+  if (d === 'BE') return 1;
+  
+  if (d.indexOf('CEO') !== -1) return 11;
+  if (d.indexOf('VP') !== -1 && d.indexOf('AVP') === -1) return 10;
+  if (d.indexOf('AVP') !== -1) return 9;
+  if (d.indexOf('DGM') !== -1) return 8;
+  if (d.indexOf('ZSM') !== -1) return 7;
+  if (d.indexOf('SR RSM') !== -1) return 6;
+  if (d.indexOf('DY RSM') !== -1) return 4;
+  if (d.indexOf('RSM') !== -1) return 5;
+  if (d.indexOf('SR ASM') !== -1) return 3;
+  if (d.indexOf('ASM') !== -1) return 2;
+  if (d.indexOf('BE') !== -1) return 1;
+  
+  // Fallback if designation is blank or non-standard
+  if (r === 'ceo') return 11;
+  if (r === 'vp') return 10;
+  if (r === 'avp') return 9;
+  if (r === 'nsm') return 6;
+  if (r === 'zm') return 5;
+  if (r === 'rm') return 4;
+  if (r === 'am') return 3;
+  if (r === 'manager') return 2;
+  if (r === 'emp') return 1;
+  
+  return 0;
+}
+
+function updateMTPTerritory(idx, value){
+  currentMTPDays[idx].territory = value.trim();
+  currentMTPDays[idx].stayCity = ''; // clear city when territory changes
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function updateMTPPatch(idx, value){
+  var patch = value.trim();
+  currentMTPDays[idx].areaTerritory = patch;
+  currentMTPDays[idx].toLocation = patch;
+  currentMTPDays[idx].plannedDocs = getAssignedDoctorsForArea(patch).map(function(doc){return doc.id;});
+  currentMTPDays[idx].plannedChems = getAssignedChemistsForArea(patch).map(function(chem){return chem.id;});
+  
+  if (patch) {
+    var matchedDoc = DB.doctors.find(function(d){
+      var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+      return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
+    });
     if (matchedDoc && matchedDoc.city) {
       currentMTPDays[idx].stayCity = matchedDoc.city;
     }
-  } else if (area === 'Weekly Off' || area === 'Leave' || area === 'Transit' || area === 'HQ' || area === 'Holiday') {
-    currentMTPDays[idx].stayCity = 'HQ';
   }
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
@@ -2548,8 +3367,14 @@ function submitLeave(){
   var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   
   // Check leave balance availability
+  var ledger = getLeaveLedger(SESSION.user);
+  var bal = 0;
   var key = type==='Casual Leave'?'CL':type==='Sick Leave'?'SL':type==='Earned Leave'?'EL':'LWP';
-  var bal = SESSION.user.leaves[key] - SESSION.user.leaves[key+'_used'];
+  
+  if (type === 'Casual Leave') bal = ledger.cl.balance;
+  else if (type === 'Sick Leave') bal = ledger.sl.balance;
+  else if (type === 'Earned Leave') bal = ledger.pl.balance;
+  else if (type === 'LWP') bal = ledger.lop.balance;
   
   if(key!=='LWP' && diffDays > bal){
     showToast('Insufficient '+type+' balance! Available: '+bal+' days');
@@ -2576,6 +3401,7 @@ function submitLeave(){
   document.getElementById('lv-start').value='';
   document.getElementById('lv-end').value='';
   document.getElementById('lv-reason').value='';
+  renderLeaveBalances();
   renderMyLeaves();
 }
 
@@ -2592,43 +3418,99 @@ function renderMyLeaves(){
 
 // ===== LISTING SUB-MODULE FUNCTIONS =====
 function getMyDoctors(){
-  return DB.doctors.filter(function(d){return d.assignTo===SESSION.user.id;});
+  return DB.doctors.filter(function(d){
+    return String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+  });
 }
 
 function renderDocList(){
-  var q=(document.getElementById('doc-search').value||'').toLowerCase();
-  var docs=getMyDoctors().filter(function(d){return !q||d.name.toLowerCase().includes(q)||d.spec.toLowerCase().includes(q)||d.area.toLowerCase().includes(q);});
+  var q=(document.getElementById('doc-search').value||'').trim().toLowerCase();
+  var docs=getMyDoctors().filter(function(d){return !q||(d.name||'').toLowerCase().includes(q)||(d.spec||'').toLowerCase().includes(q)||(d.area||'').toLowerCase().includes(q);});
   var el=document.getElementById('doc-list');
   if(!docs.length){el.innerHTML='<div class="empty">No doctors found</div>';return;}
   el.innerHTML=docs.map(function(d){
-    var ini=d.name.replace('Dr. ','').split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+    var nameVal = d.name || '';
+    var ini=nameVal.replace('Dr. ','').split(' ').filter(Boolean).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
     var actBadge=d.status==='Active'?'<span class="badge green">Active</span>':'<span class="badge red">Inactive</span>';
-    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+d.name+' '+actBadge+'</div><div class="doc-spec">'+d.spec+' ('+d.qual+')</div><div class="doc-area">&#128205; '+d.area+' | '+d.address+' | Phone: '+d.phone+'</div></div></div>';
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+nameVal+' '+actBadge+'</div><div class="doc-spec">'+(d.spec||'')+' ('+(d.qual||'')+')</div><div class="doc-area">&#128205; '+(d.area||'No Patch')+' | '+(d.address||'')+' | Phone: '+(d.phone||'')+'</div></div></div>';
   }).join('');
 }
 
 function renderChemistList(){
-  var q=(document.getElementById('chem-search').value||'').toLowerCase();
-  var chemists=DB.chemists.filter(function(c){return c.assignTo===SESSION.user.id;}).filter(function(c){return !q||c.name.toLowerCase().includes(q)||c.area.toLowerCase().includes(q);});
+  var q=(document.getElementById('chem-search').value||'').trim().toLowerCase();
+  
+  // Find all areas where this MR has active doctors assigned
+  var activeDocAreas = new Set();
+  getMyDoctors().forEach(function(d){
+    if (d.status === 'Active' && d.area) {
+      activeDocAreas.add(d.area.toLowerCase().trim());
+    }
+  });
+
+  var chemists=DB.chemists.filter(function(c){
+    var assigned = String(c.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    var unassigned = !c.assignTo || c.assignTo.trim() === '';
+    var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
+    return assigned || inMyAreas;
+  }).filter(function(c){return !q||(c.name||'').toLowerCase().includes(q)||(c.area||'').toLowerCase().includes(q);});
+  
   var el=document.getElementById('chemist-list');
   if(!chemists.length){el.innerHTML='<div class="empty">No chemists found</div>';return;}
   el.innerHTML=chemists.map(function(c){
-    var ini=c.name.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
-    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+c.name+'</div><div class="doc-area">&#128205; '+c.area+'</div></div></div>';
+    var nameVal = c.name || '';
+    var ini=nameVal.split(' ').filter(Boolean).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+nameVal+'</div><div class="doc-area">&#128205; '+(c.area || '')+'</div></div></div>';
+  }).join('');
+}
+
+function renderStockistList(){
+  var q=(document.getElementById('stockist-search').value||'').trim().toLowerCase();
+  
+  // Find all areas where this MR has active doctors assigned
+  var activeDocAreas = new Set();
+  getMyDoctors().forEach(function(d){
+    if (d.status === 'Active' && d.area) {
+      activeDocAreas.add(d.area.toLowerCase().trim());
+    }
+  });
+
+  var stockists=DB.stockists.filter(function(s){
+    var assigned = String(s.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    var unassigned = !s.assignTo || s.assignTo.trim() === '';
+    var inMyAreas = unassigned && s.area && activeDocAreas.has(s.area.toLowerCase().trim());
+    return assigned || inMyAreas;
+  }).filter(function(s){return !q||(s.name||'').toLowerCase().includes(q)||(s.area||'').toLowerCase().includes(q);});
+  
+  var el=document.getElementById('stockist-list');
+  if(!stockists.length){el.innerHTML='<div class="empty">No stockists found</div>';return;}
+  el.innerHTML=stockists.map(function(s){
+    var nameVal = s.name || '';
+    var ini=nameVal.split(' ').filter(Boolean).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    return '<div class="doc-card"><div class="doc-avatar">'+ini+'</div><div class="doc-info"><div class="doc-name">'+nameVal+'</div><div class="doc-area">&#128205; '+(s.area || '')+'</div></div></div>';
   }).join('');
 }
 
 function toggleDocChemistSubtab(type){
+  document.getElementById('doc-subtab-btn').classList.remove('on');
+  document.getElementById('chem-subtab-btn').classList.remove('on');
+  var sBtn = document.getElementById('stockist-subtab-btn');
+  if(sBtn) sBtn.classList.remove('on');
+  
+  document.getElementById('doc-subtab-content').style.display='none';
+  document.getElementById('chem-subtab-content').style.display='none';
+  var sCont = document.getElementById('stockist-subtab-content');
+  if(sCont) sCont.style.display='none';
+  
   if(type==='doc'){
     document.getElementById('doc-subtab-btn').classList.add('on');
-    document.getElementById('chem-subtab-btn').classList.remove('on');
     document.getElementById('doc-subtab-content').style.display='block';
-    document.getElementById('chem-subtab-content').style.display='none';
-  } else {
-    document.getElementById('doc-subtab-btn').classList.remove('on');
+  } else if(type==='chem') {
     document.getElementById('chem-subtab-btn').classList.add('on');
-    document.getElementById('doc-subtab-content').style.display='none';
     document.getElementById('chem-subtab-content').style.display='block';
+  } else if(type==='stockist') {
+    if(sBtn) sBtn.classList.add('on');
+    if(sCont) sCont.style.display='block';
+    renderStockistList();
   }
 }
 
@@ -2650,6 +3532,7 @@ function goTab(name){
   });
   if(name==='report') {
     populateReportingDropdowns();
+    populateReportTerritoryDropdowns();
     populateJFWManagers();
     checkMTPForSelectedDate();
   }
@@ -2671,9 +3554,31 @@ function selectPlannedReportTarget(type, id){
   document.getElementById('r-target-type').value = type;
   toggleReportTargetFields();
   if(type==='Doctor') {
-    document.getElementById('r-doctor').value = id;
+    var docSel = document.getElementById('r-doctor');
+    var exists = Array.from(docSel.options).some(function(opt) { return opt.value === id; });
+    if (!exists) {
+      var docObj = (window._allReportingDocs || []).find(function(d) { return d.id === id; });
+      if (docObj) {
+        var o = document.createElement('option');
+        o.value = docObj.id;
+        o.textContent = (docObj.name || '') + ' (' + (docObj.spec || '') + ' - ' + (docObj.area || 'No Patch') + ')';
+        docSel.appendChild(o);
+      }
+    }
+    docSel.value = id;
   } else {
-    document.getElementById('r-chemist').value = id;
+    var chemSel = document.getElementById('r-chemist');
+    var exists = Array.from(chemSel.options).some(function(opt) { return opt.value === id; });
+    if (!exists) {
+      var chemObj = (window._allReportingChems || []).find(function(c) { return c.id === id; });
+      if (chemObj) {
+        var o = document.createElement('option');
+        o.value = chemObj.id;
+        o.textContent = (chemObj.name || '') + ' (' + (chemObj.area || 'No Area') + ')';
+        chemSel.appendChild(o);
+      }
+    }
+    chemSel.value = id;
   }
   document.getElementById('r-classification').value = 'Planned Call';
   showToast('Auto-selected planned target: ' + (type==='Doctor' ? 'Doctor' : 'Chemist'));
@@ -2692,6 +3597,7 @@ function goMasterSubTab(id) {
   else if (id === 'emp') renderEmpTable();
   else if (id === 'doc') renderAdminDocList();
   else if (id === 'chem') renderAdminChemistList();
+  else if (id === 'stockist') renderAdminStockistList();
   else if (id === 'leave') renderLeaveBalanceTable();
   else if (id === 'holiday') renderHolidayTable();
 }
@@ -2706,6 +3612,7 @@ function initAdminApp(){
   renderEmpTable();
   renderAdminDocList();
   renderAdminChemistList();
+  renderAdminStockistList();
   renderLeaveBalanceTable();
   renderHolidayTable();
   renderSFCTable();
@@ -2731,6 +3638,9 @@ function goAdminTab(name){
     if(tr) {
       document.getElementById('sec-adm-visit').appendChild(tr);
       tr.style.display = 'block';
+      populateReportingDropdowns();
+      populateJFWManagers();
+      checkMTPForSelectedDate();
     }
   }
   
@@ -2975,7 +3885,8 @@ function approveLeave(){
       var emp=DB.employees.find(function(e){return e.id===lv.empId;});
       if(emp){
         var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':'LWP';
-        emp.leaves[key+'_used'] += lv.days;
+        if (!emp.leaves) emp.leaves = {};
+        emp.leaves[key+'_used'] = (parseFloat(emp.leaves[key+'_used']) || 0) + parseFloat(lv.days || 0);
       }
     }
   }
@@ -3295,51 +4206,72 @@ function uploadEmployees(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var count=0;
-    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
-    var dataLines = hasHeader ? lines.slice(1) : lines;
+    
+    var headerLineIndex = -1;
+    var headers = [];
+    for (var j = 0; j < Math.min(3, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
+      if (candidate.some(function(c){return c === 'id' || c.indexOf('employee') !== -1 || c.indexOf('name') !== -1;})) {
+        headerLineIndex = j;
+        headers = candidate;
+        break;
+      }
+    }
+    
+    var idCol=0, nameCol=1, pwdCol=2, terrCol=3, desigCol=4, roleCol=5, mgrCol=6, dojCol=7, stateCol=8, statusCol=9;
+    if (headers.length > 0) {
+      headers.forEach(function(h, idx) {
+        if (h === 'id' || h === 'employee id' || h === 'employeeid' || h === 'code') idCol = idx;
+        else if (h.indexOf('name') !== -1) nameCol = idx;
+        else if (h.indexOf('password') !== -1 || h === 'pwd') pwdCol = idx;
+        else if (h.indexOf('territory') !== -1 || h === 'area') terrCol = idx;
+        else if (h.indexOf('designation') !== -1) desigCol = idx;
+        else if (h.indexOf('role') !== -1) roleCol = idx;
+        else if (h.indexOf('manager') !== -1) mgrCol = idx;
+        else if (h.indexOf('doj') !== -1 || h.indexOf('joining') !== -1) dojCol = idx;
+        else if (h.indexOf('state') !== -1) stateCol = idx;
+        else if (h.indexOf('status') !== -1) statusCol = idx;
+      });
+    }
+    
+    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newEmps = [];
     var touchedIds = [];
     dataLines.forEach(function(line){
       var cols=parseCSVLine(line);
-      if(!cols[0]||!cols[1])return;
-      var pwd = cols[2] || 'pass123';
-      
-      // Fixed 10-column mapping from template
-      // 0:ID, 1:Name, 2:Pwd, 3:Territory, 4:Designation, 5:Role, 6:Manager, 7:DOJ, 8:State, 9:Status
-      var designation = cols[4] || '';
-      var rawRole = (cols[5] || '').trim().toLowerCase();
-      var mgrIndex = 6;
-      var dojIndex = 7;
-      var stateIndex = 8;
-      var statusIndex = 9;
-      
+      if(!cols[idCol]||!cols[nameCol])return;
+      var pwd = cols[pwdCol] || 'pass123';
+      var designation = cols[desigCol] || '';
+      var rawRole = (cols[roleCol] || '').trim().toLowerCase();
       var validRoles = ['emp', 'manager', 'am', 'rm', 'zm', 'nsm', 'admin'];
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
-      var existing=DB.employees.find(function(em){return em.id===cols[0].toUpperCase();});
+      
+      var eId = cols[idCol].toUpperCase();
+      var existing=DB.employees.find(function(em){return em && em.id===eId;});
       var newEmp;
       if(existing){
-        existing.name=cols[1];
+        existing.name=cols[nameCol];
         existing.pwd=pwd;
-        existing.area=cols[3]||'';
-        existing.designation = typeof cols[4] !== 'undefined' ? cols[4].trim() : existing.designation;
+        existing.area=cols[terrCol]||'';
+        existing.designation = typeof cols[desigCol] !== 'undefined' ? cols[desigCol].trim() : existing.designation;
         existing.role=role;
-        existing.managerId=cols[mgrIndex]||'';
-        existing.doj=cols[dojIndex]||'';
-        existing.state=cols[stateIndex]||'';
-        existing.status=normalizeEmployeeStatus(cols[statusIndex]||'Active');
+        existing.managerId=cols[mgrCol]||'';
+        existing.doj=cols[dojCol]||'';
+        existing.state=cols[stateCol]||'';
+        existing.status=normalizeEmployeeStatus(cols[statusCol]||'Active');
         newEmp = existing;
       } else {
         newEmp = {
-          id:cols[0].toUpperCase(),
-          name:cols[1],
+          id:eId,
+          name:cols[nameCol],
           pwd:pwd,
-          area:cols[3]||'',
+          area:cols[terrCol]||'',
           designation:designation,
           role:role,
-          managerId:cols[mgrIndex]||'',
-          doj:cols[dojIndex]||'',
-          state:cols[stateIndex]||'',
-          status:normalizeEmployeeStatus(cols[statusIndex]||'Active'),
+          managerId:cols[mgrCol]||'',
+          doj:cols[dojCol]||'',
+          state:cols[stateCol]||'',
+          status:normalizeEmployeeStatus(cols[statusCol]||'Active'),
           leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
         };
       }
@@ -3624,6 +4556,11 @@ function editDoctor(id){
   document.getElementById('md-id').value=doc.id;
   document.getElementById('md-code').value=doc.code;
   document.getElementById('md-name').value=doc.name;
+  document.getElementById('md-bename').value=doc.beName||'';
+  document.getElementById('md-hq').value=doc.hq||'';
+  document.getElementById('md-managername').value=doc.managerName||'';
+  document.getElementById('md-state').value=doc.state||'';
+  document.getElementById('md-territorytype').value=doc.territoryType||'';
   document.getElementById('md-spec').value=doc.spec;
   document.getElementById('md-qual').value=doc.qual||'';
   document.getElementById('md-city').value=doc.city||'';
@@ -3654,6 +4591,11 @@ function saveDoctor(){
       id: docId,
       code: code,
       name: name,
+      beName: document.getElementById('md-bename').value.trim(),
+      hq: document.getElementById('md-hq').value.trim(),
+      managerName: document.getElementById('md-managername').value.trim(),
+      state: document.getElementById('md-state').value.trim(),
+      territoryType: document.getElementById('md-territorytype').value,
       spec: document.getElementById('md-spec').value.trim(),
       qual: document.getElementById('md-qual').value.trim(),
       city: document.getElementById('md-city').value.trim(),
@@ -3669,6 +4611,11 @@ function saveDoctor(){
     if(doc){
       doc.code=code;
       doc.name=name;
+      doc.beName=document.getElementById('md-bename').value.trim();
+      doc.hq=document.getElementById('md-hq').value.trim();
+      doc.managerName=document.getElementById('md-managername').value.trim();
+      doc.state=document.getElementById('md-state').value.trim();
+      doc.territoryType=document.getElementById('md-territorytype').value;
       doc.spec=document.getElementById('md-spec').value.trim();
       doc.qual=document.getElementById('md-qual').value.trim();
       doc.city=document.getElementById('md-city').value.trim();
@@ -3693,39 +4640,84 @@ function uploadDoctors(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var added=0;
-    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('code') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
-    var dataLines = hasHeader ? lines.slice(1) : lines;
+    
+    var headerLineIndex = -1;
+    var headers = [];
+    for (var j = 0; j < Math.min(3, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
+      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('doctor') !== -1 || c.indexOf('name') !== -1;})) {
+        headerLineIndex = j;
+        headers = candidate;
+        break;
+      }
+    }
+    
+    var idCol=0, empIdCol=1, beNameCol=2, hqCol=3, mgrNameCol=4, nameCol=5, specCol=6, qualCol=7, addCol=8, cityCol=9, areaCol=10, stateCol=11, typeCol=12, phoneCol=13;
+    if (headers.length > 0) {
+      headers.forEach(function(h, idx) {
+        if (h.indexOf('doctorcode') !== -1 || h === 'code' || h === 'id') idCol = idx;
+        else if (h.indexOf('emp id') !== -1 || h === 'emp id' || h.indexOf('assign') !== -1) empIdCol = idx;
+        else if (h.indexOf('name of be') !== -1 || h.indexOf('be name') !== -1) beNameCol = idx;
+        else if (h === 'hq' || h.indexOf('hq') !== -1) hqCol = idx;
+        else if (h.indexOf('reporting manager') !== -1 || h.indexOf('manager') !== -1) mgrNameCol = idx;
+        else if (h.indexOf('name of doctor') !== -1 || h === 'name' || h.indexOf('doctor') !== -1) nameCol = idx;
+        else if (h.indexOf('speciality') !== -1 || h === 'spec') specCol = idx;
+        else if (h.indexOf('qualification') !== -1 || h === 'qual') qualCol = idx;
+        else if (h.indexOf('address') !== -1) addCol = idx;
+        else if (h === 'city' || h.indexOf('town') !== -1 || h.indexOf('locality') !== -1) cityCol = idx;
+        else if (h.indexOf('territory type') !== -1 || h.indexOf('type') !== -1) typeCol = idx;
+        else if (h.indexOf('patch') !== -1 || h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
+        else if (h === 'state') stateCol = idx;
+        else if (h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) phoneCol = idx;
+      });
+    }
+    
+    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newDocs = [];
     var touchedCodes = [];
+    var seenInBatch = {};
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(!p[0]||!p[1])return;
-      var existing = DB.doctors.find(function(d){ return d.code === p[0]; });
+      if(!p[idCol]||!p[nameCol])return;
+      var docCode = String(p[idCol]).trim();
+      if(seenInBatch[docCode]) return; // skip duplicate codes in the CSV
+      seenInBatch[docCode] = true;
+      var existing = DB.doctors.find(function(d){ return d.code === docCode; });
       var newDoc;
       if(existing){
-        existing.name = p[1];
-        existing.spec = p[2]||'';
-        existing.qual = p[3]||'';
-        existing.address = p[4]||'';
-        existing.city = p[5]||'';
-        existing.area = p[6]||'';
-        existing.phone = p[7]||'';
-        existing.assignTo = (p[8]||'').toUpperCase();
-        existing.status = p[9]||'Active';
+        existing.name = p[nameCol];
+        existing.assignTo = (p[empIdCol]||'').toUpperCase();
+        existing.beName = p[beNameCol]||'';
+        existing.hq = p[hqCol]||'';
+        existing.managerName = p[mgrNameCol]||'';
+        existing.spec = p[specCol]||'';
+        existing.qual = p[qualCol]||'';
+        existing.address = p[addCol]||'';
+        existing.city = p[cityCol]||'';
+        existing.area = p[areaCol]||'';
+        existing.state = p[stateCol]||'';
+        existing.territoryType = p[typeCol]||'';
+        existing.phone = p[phoneCol]||'';
+        existing.status = 'Active';
         newDoc = existing;
       } else {
         newDoc = {
           id: 'D'+Date.now()+Math.random(),
-          code: p[0],
-          name: p[1],
-          spec: p[2]||'',
-          qual: p[3]||'',
-          address: p[4]||'',
-          city: p[5]||'',
-          area: p[6]||'',
-          phone: p[7]||'',
-          assignTo: (p[8]||'').toUpperCase(),
-          status: p[9]||'Active'
+          code: docCode,
+          assignTo: (p[empIdCol]||'').toUpperCase(),
+          beName: p[beNameCol]||'',
+          hq: p[hqCol]||'',
+          managerName: p[mgrNameCol]||'',
+          name: p[nameCol],
+          spec: p[specCol]||'',
+          qual: p[qualCol]||'',
+          address: p[addCol]||'',
+          city: p[cityCol]||'',
+          area: p[areaCol]||'',
+          state: p[stateCol]||'',
+          territoryType: p[typeCol]||'',
+          phone: p[phoneCol]||'',
+          status: 'Active'
         };
       }
       
@@ -3743,7 +4735,7 @@ function uploadDoctors(inp){
 }
 
 function downloadDocTemplate(){
-  var csv='DoctorCode,Name,Speciality,Qualification,Address,City,Area,Mobile,AssignToEmpID,Status\n';
+  var csv='DoctorCode,Emp Id,Name of BE,HQ,Reporting Manager,Name of Doctor,Speciality,Qualification,Address,City,Patch,State,Territory Type (HQ/Ex/OS),Mobile\n';
   var checked = document.querySelectorAll('.doc-row-check:checked');
   var docsToExport = [];
   if (checked.length > 0) {
@@ -3757,20 +4749,24 @@ function downloadDocTemplate(){
     docsToExport.forEach(function(d){
       csv += [
         d.code || '',
+        d.assignTo || '',
+        d.beName || '',
+        d.hq || '',
+        d.managerName || '',
         d.name || '',
         d.spec || '',
         d.qual || '',
         d.address || '',
         d.city || '',
         d.area || '',
-        d.phone || '',
-        d.assignTo || '',
-        d.status || 'Active'
+        d.state || '',
+        d.territoryType || '',
+        d.phone || ''
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'doctor_master.csv');
   } else {
-    csv += 'DOC009,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,9830000001,EMP002,Active\n';
+    csv += 'DOC009,EMP002,BE Name,Mumbai HQ,Reporting Mgr,Dr. Sarah Jacob,Gynaecologist,MD,Andheri West Compound,Mumbai,Andheri,Maharashtra,HQ,9830000001\n';
     downloadData(csv,'doctor_master_template.csv');
   }
 }
@@ -3778,6 +4774,7 @@ function downloadDocTemplate(){
 var adminTableState = {
   doctors: { sortCol: null, sortAsc: true, filters: {} },
   chemists: { sortCol: null, sortAsc: true, filters: {} },
+  stockists: { sortCol: null, sortAsc: true, filters: {} },
   employees: { sortCol: null, sortAsc: true, filters: {} }
 };
 
@@ -3793,12 +4790,13 @@ function handleTableSort(table, col) {
     adminTableState[table].sortCol = col;
     adminTableState[table].sortAsc = true;
   }
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : 'emp-table-head');
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : 'emp-table-head'));
   var thead = document.getElementById(theadId);
   if (thead) thead.innerHTML = ''; // Force header re-render to update sort arrows
   
   if (table === 'doctors') renderAdminDocList(1);
   else if (table === 'chemists') renderAdminChemistList(1);
+  else if (table === 'stockists') renderAdminStockistList(1);
   else if (table === 'employees') renderEmpTable();
 }
 
@@ -3820,7 +4818,7 @@ function getCellValue(table, col, item) {
       return ROLE_MAPPING[item.role] || item.role || '';
     }
   }
-  if (table === 'doctors' || table === 'chemists') {
+  if (table === 'doctors' || table === 'chemists' || table === 'stockists') {
     if (col === 'assignTo') {
       var emp = DB.employees.find(function(e){return e.id===item.assignTo;});
       return emp ? emp.name + ' (' + item.assignTo + ')' : 'Unassigned';
@@ -3934,7 +4932,7 @@ function applyExcelFilter() {
   
   closeExcelFilter();
   
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : 'emp-table-head');
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : 'emp-table-head'));
   var thead = document.getElementById(theadId);
   if (thead) {
     thead.innerHTML = ''; // Force header re-render to update filter icon colors
@@ -3942,6 +4940,7 @@ function applyExcelFilter() {
   
   if (table === 'doctors') renderAdminDocList(1);
   else if (table === 'chemists') renderAdminChemistList(1);
+  else if (table === 'stockists') renderAdminStockistList(1);
   else if (table === 'employees') renderEmpTable();
 }
 
@@ -3979,18 +4978,26 @@ function renderSortHead(table, col, label) {
 var currentDocPage = 1; var docsPerPage = 50;
 function renderAdminDocList(page = 1) {
   currentDocPage = page;
-  var q=(document.getElementById('adm-doc-search').value||'').toLowerCase();
+  var q=(document.getElementById('adm-doc-search').value||'').trim().toLowerCase();
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   
   var thead = document.getElementById('doc-table-head');
   if (thead && !thead.innerHTML.includes('<th')) {
     thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-docs" class="admin-only" onclick="toggleSelectAllDocs(this)"></th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'code', 'Code') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'name', 'Name') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'code', 'DoctorCode') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'assignTo', 'Emp Id') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'beName', 'Name of BE') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'hq', 'HQ') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'managerName', 'Reporting Manager') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'name', 'Name of Doctor') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'spec', 'Speciality') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'area', 'Area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'qual', 'Qualification') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'address', 'Address') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'city', 'City') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'area', 'Patch') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'state', 'State') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('doctors', 'territoryType', 'Territory Type') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'phone', 'Mobile') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('doctors', 'assignTo', 'Assigned MR') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('doctors', 'status', 'Status') + '</th>' +
       '<th style="vertical-align:top">Actions</th></tr>';
   }
@@ -4010,7 +5017,7 @@ function renderAdminDocList(page = 1) {
     }
     
     // Column filters
-    var cols = ['code', 'name', 'spec', 'area', 'phone', 'assignTo', 'status'];
+    var cols = ['code', 'assignTo', 'beName', 'hq', 'managerName', 'name', 'spec', 'qual', 'address', 'city', 'area', 'state', 'territoryType', 'phone', 'status'];
     for (var i = 0; i < cols.length; i++) {
       var c = cols[i];
       if (filters[c]) {
@@ -4055,7 +5062,24 @@ function renderAdminDocList(page = 1) {
   
   tbody.innerHTML=pagedDocs.map(function(d){
     var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
-    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td><td>'+d.code+'</td><td class="tbl-name">'+d.name+'</td><td>'+d.spec+'</td><td>'+d.area+'</td><td>'+d.phone+'</td><td>'+(emp?emp.name+' ('+d.assignTo+')':'Unassigned')+'</td><td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+d.status+'</span></td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td>' +
+      '<td>'+(d.code||'')+'</td>' +
+      '<td>'+(d.assignTo||'Unassigned')+'</td>' +
+      '<td>'+(d.beName||'')+'</td>' +
+      '<td>'+(d.hq||'')+'</td>' +
+      '<td>'+(d.managerName||'')+'</td>' +
+      '<td class="tbl-name">'+(d.name||'')+'</td>' +
+      '<td>'+(d.spec||'')+'</td>' +
+      '<td>'+(d.qual||'')+'</td>' +
+      '<td>'+(d.address||'')+'</td>' +
+      '<td>'+(d.city||'')+'</td>' +
+      '<td>'+(d.area||'')+'</td>' +
+      '<td>'+(d.state||'')+'</td>' +
+      '<td>'+(d.territoryType||'')+'</td>' +
+      '<td>'+(d.phone||'')+'</td>' +
+      '<td><span class="badge '+(d.status==='Active'?'green':'red')+'">'+(d.status||'Active')+'</span></td>' +
+      '<td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editDoctor(\''+d.id+'\')">Edit</button>' +
+      '<button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeDoc(\''+d.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-docs');
@@ -4092,14 +5116,35 @@ function toggleSelectAllDocs(masterCheck) {
 function updateSelectedDocsCount() {
   var selected = document.querySelectorAll('.doc-row-check:checked').length;
   var btn = document.getElementById('btn-bulk-delete-selected-docs');
+  var btnReassign = document.getElementById('btn-bulk-reassign-selected-docs');
   if (btn) {
     if (selected > 0) {
       btn.style.display = 'inline-block';
       btn.textContent = '🗑 Delete Selected (' + selected + ')';
+      if (btnReassign) {
+        btnReassign.style.display = 'inline-block';
+        btnReassign.textContent = '⟳ Reassign Selected (' + selected + ')';
+      }
     } else {
       btn.style.display = 'none';
+      if (btnReassign) btnReassign.style.display = 'none';
     }
   }
+}
+
+function bulkReassignSelectedDoctors() {
+  var checked = document.querySelectorAll('.doc-row-check:checked');
+  if (!checked.length) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected doctor records:');
+  if (newEmpId === null) return;
+  newEmpId = newEmpId.trim().toUpperCase();
+  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.doctors.forEach(function(d) {
+    if (idsToUpdate.includes(d.id)) d.assignTo = newEmpId;
+  });
+  saveDB();
+  renderAdminDocList();
+  showToast(checked.length + ' doctors reassigned successfully.');
 }
 
 function bulkDeleteSelectedDoctors() {
@@ -4208,26 +5253,51 @@ function uploadChemists(inp){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if(!lines.length)return;
     var added=0;
-    var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && (lines[0].toLowerCase().indexOf('id') !== -1 || lines[0].toLowerCase().indexOf('name') !== -1);
-    var dataLines = hasHeader ? lines.slice(1) : lines;
+    
+    var headerLineIndex = -1;
+    var headers = [];
+    for (var j = 0; j < Math.min(3, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
+      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('chemist') !== -1 || c.indexOf('name') !== -1;})) {
+        headerLineIndex = j;
+        headers = candidate;
+        break;
+      }
+    }
+    
+    var idCol=0, nameCol=1, areaCol=2, assignCol=3;
+    if (headers.length > 0) {
+      headers.forEach(function(h, idx) {
+        if (h === 'code' || h === 'id' || h === 'chemist code') idCol = idx;
+        else if (h.indexOf('name') !== -1) nameCol = idx;
+        else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
+        else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
+      });
+    }
+    
+    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newChems = [];
     var touchedIds = [];
+    var seenInBatch = {};
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(!p[0]||!p[1])return;
-      var existing = DB.chemists.find(function(c){ return c.id === p[0]; });
+      if(!p[idCol]||!p[nameCol])return;
+      var chemId = String(p[idCol]).trim();
+      if(seenInBatch[chemId]) return; // skip duplicate IDs in the CSV
+      seenInBatch[chemId] = true;
+      var existing = DB.chemists.find(function(c){ return c.id === chemId; });
       var newChem;
       if(existing){
-        existing.name = p[1];
-        existing.area = p[2]||'';
-        existing.assignTo = (p[3]||'').toUpperCase();
+        existing.name = p[nameCol];
+        existing.area = p[areaCol]||'';
+        existing.assignTo = (p[assignCol]||'').toUpperCase();
         newChem = existing;
       } else {
         newChem = {
-          id: p[0],
-          name: p[1],
-          area: p[2]||'',
-          assignTo: (p[3]||'').toUpperCase()
+          id: chemId,
+          name: p[nameCol],
+          area: p[areaCol]||'',
+          assignTo: (p[assignCol]||'').toUpperCase()
         };
       }
       
@@ -4274,7 +5344,7 @@ function downloadChemTemplate(){
 var currentChemPage = 1; var chemsPerPage = 50;
 function renderAdminChemistList(page = 1) {
   currentChemPage = page;
-  var q=(document.getElementById('adm-chem-search').value||'').toLowerCase();
+  var q=(document.getElementById('adm-chem-search').value||'').trim().toLowerCase();
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   
   var thead = document.getElementById('chem-table-head');
@@ -4302,7 +5372,7 @@ function renderAdminChemistList(page = 1) {
     }
     
     // Column filters
-    var cols = ['id', 'name', 'area', 'assignTo'];
+    var cols = ['id', 'name', 'address', 'area', 'phone', 'assignTo', 'status'];
     for (var i = 0; i < cols.length; i++) {
       var colName = cols[i];
       if (filters[colName]) {
@@ -4384,14 +5454,35 @@ function toggleSelectAllChems(masterCheck) {
 function updateSelectedChemsCount() {
   var selected = document.querySelectorAll('.chem-row-check:checked').length;
   var btn = document.getElementById('btn-bulk-delete-selected-chems');
+  var btnReassign = document.getElementById('btn-bulk-reassign-selected-chems');
   if (btn) {
     if (selected > 0) {
       btn.style.display = 'inline-block';
       btn.textContent = '🗑 Delete Selected (' + selected + ')';
+      if (btnReassign) {
+        btnReassign.style.display = 'inline-block';
+        btnReassign.textContent = '⟳ Reassign Selected (' + selected + ')';
+      }
     } else {
       btn.style.display = 'none';
+      if (btnReassign) btnReassign.style.display = 'none';
     }
   }
+}
+
+function bulkReassignSelectedChemists() {
+  var checked = document.querySelectorAll('.chem-row-check:checked');
+  if (!checked.length) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected chemist records:');
+  if (newEmpId === null) return;
+  newEmpId = newEmpId.trim().toUpperCase();
+  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.chemists.forEach(function(c) {
+    if (idsToUpdate.includes(c.id)) c.assignTo = newEmpId;
+  });
+  saveDB();
+  renderAdminChemistList();
+  showToast(checked.length + ' chemists reassigned successfully.');
 }
 
 function bulkDeleteSelectedChemists() {
@@ -4429,6 +5520,351 @@ function bulkDeleteAllChemists() {
   updateSelectedChemsCount();
 }
 
+// ===== STOCKIST MASTER FUNCTIONS =====
+function addStockistManual() {
+  document.getElementById('stockist-modal-title-text').textContent = 'Add Stockist';
+  document.getElementById('ms-id').value = '';
+  document.getElementById('ms-code').value = '';
+  document.getElementById('ms-code').disabled = false;
+  document.getElementById('ms-name').value = '';
+  document.getElementById('ms-area').value = '';
+  
+  var sel = document.getElementById('ms-assign');
+  sel.innerHTML = '<option value="">-- Assign MR --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-stockist').classList.add('on');
+}
+
+function editStockist(id) {
+  var stockist = DB.stockists.find(function(s){return s.id===id;});
+  if(!stockist) return;
+  
+  document.getElementById('stockist-modal-title-text').textContent = 'Edit Stockist';
+  document.getElementById('ms-id').value = stockist.id;
+  document.getElementById('ms-code').value = stockist.id;
+  document.getElementById('ms-code').disabled = true;
+  document.getElementById('ms-name').value = stockist.name;
+  document.getElementById('ms-area').value = stockist.area;
+  
+  var sel = document.getElementById('ms-assign');
+  sel.innerHTML = '<option value="">-- Unassigned --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+    return '<option value="'+e.id+'" '+(e.id===stockist.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
+  }).join('');
+  
+  document.getElementById('modal-add-stockist').classList.add('on');
+}
+
+function saveStockist() {
+  var id = document.getElementById('ms-id').value;
+  var code = document.getElementById('ms-code').value.trim();
+  var name = document.getElementById('ms-name').value.trim();
+  var area = document.getElementById('ms-area').value.trim();
+  
+  if(!code || !name){showToast('Stockist ID and Name required!');return;}
+  
+  if(!id){
+    if(DB.stockists.some(function(s){return s.id===code;})){
+      showToast('Stockist ID already exists!');
+      return;
+    }
+    DB.stockists.push({
+      id: code,
+      name: name,
+      area: area,
+      assignTo: document.getElementById('ms-assign').value
+    });
+  } else {
+    var stockist = DB.stockists.find(function(s){return s.id===id;});
+    if(stockist){
+      stockist.name = name;
+      stockist.area = area;
+      stockist.assignTo = document.getElementById('ms-assign').value;
+    }
+  }
+  
+  saveDB();
+  closeModal('modal-add-stockist');
+  showToast('Stockist record saved successfully.');
+  renderAdminStockistList();
+}
+
+function uploadStockists(inp) {
+  var file = inp.files[0];if(!file)return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var lines = e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length)return;
+    var added = 0;
+    
+    var headerLineIndex = -1;
+    var headers = [];
+    for (var j = 0; j < Math.min(3, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]).map(function(s){return s.trim().toLowerCase();});
+      if (candidate.some(function(c){return c === 'code' || c === 'id' || c.indexOf('stockist') !== -1 || c.indexOf('name') !== -1;})) {
+        headerLineIndex = j;
+        headers = candidate;
+        break;
+      }
+    }
+    
+    var idCol = 0, nameCol = 1, areaCol = 2, assignCol = 3;
+    if (headers.length > 0) {
+      headers.forEach(function(h, idx) {
+        if (h === 'code' || h === 'id' || h === 'stockist code' || h === 'stockistid') idCol = idx;
+        else if (h.indexOf('name') !== -1) nameCol = idx;
+        else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
+        else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
+      });
+    }
+    
+    var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
+    var newStockists = [];
+    var touchedIds = [];
+    var seenInBatch = {};
+    dataLines.forEach(function(line){
+      var p = parseCSVLine(line);
+      if(!p[idCol] || !p[nameCol])return;
+      var stockistId = String(p[idCol]).trim();
+      if(seenInBatch[stockistId]) return; // skip duplicate IDs in the CSV
+      seenInBatch[stockistId] = true;
+      var existing = DB.stockists.find(function(s){ return s.id === stockistId; });
+      var newStk;
+      if(existing){
+        existing.name = p[nameCol];
+        existing.area = p[areaCol]||'';
+        existing.assignTo = (p[assignCol]||'').toUpperCase();
+        newStk = existing;
+      } else {
+        newStk = {
+          id: stockistId,
+          name: p[nameCol],
+          area: p[areaCol]||'',
+          assignTo: (p[assignCol]||'').toUpperCase()
+        };
+      }
+      
+      newStockists.push(newStk);
+      touchedIds.push(newStk.id);
+      added++;
+    });
+    var untouched = DB.stockists.filter(function(s){ return !touchedIds.includes(s.id); });
+    DB.stockists = newStockists.concat(untouched);
+    saveDB();
+    showToast(added+' Stockists processed successfully!');
+    renderAdminStockistList();
+  };
+  reader.readAsText(file);inp.value='';
+}
+
+function downloadStockistTemplate() {
+  var csv = 'StockistID,Name,Area,AssignToEmpID\n';
+  var checked = document.querySelectorAll('.stockist-row-check:checked');
+  var stkToExport = [];
+  if (checked.length > 0) {
+    var ids = Array.from(checked).map(c => c.value);
+    stkToExport = DB.stockists.filter(s => ids.includes(s.id));
+  } else {
+    stkToExport = DB.stockists || [];
+  }
+
+  if(stkToExport.length > 0) {
+    stkToExport.forEach(function(s){
+      csv += [
+        s.id || '',
+        s.name || '',
+        s.area || '',
+        s.assignTo || ''
+      ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+    downloadData(csv,'stockist_master.csv');
+  } else {
+    csv += 'STK009,Vikas Stockist,Dadar,EMP001\n';
+    downloadData(csv,'stockist_master_template.csv');
+  }
+}
+
+var currentStockistPage = 1; var stockistsPerPage = 50;
+function renderAdminStockistList(page = 1) {
+  currentStockistPage = page;
+  var q = (document.getElementById('adm-stockist-search').value||'').trim().toLowerCase();
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  
+  var thead = document.getElementById('stockist-table-head');
+  if (thead && !thead.innerHTML.includes('<th')) {
+    thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-stockists" class="admin-only" onclick="toggleSelectAllStockists(this)"></th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'id', 'Stockist ID') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'name', 'Name') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'area', 'Area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'assignTo', 'Assigned MR') + '</th>' +
+      '<th style="vertical-align:top">Actions</th></tr>';
+  }
+
+  var filters = adminTableState.stockists.filters;
+  var stockists = DB.stockists.filter(function(s){
+    if (teamIds && !teamIds.includes(s.assignTo)) return false;
+    
+    // Global search
+    if (q) {
+      var mr = DB.employees.find(function(e){return e.id===s.assignTo;});
+      var mrName = mr && mr.name ? mr.name : '';
+      var haystack = [
+        s.id, s.name, s.area, s.assignTo, mrName
+      ].join(' ').toLowerCase();
+      if (haystack.indexOf(q) === -1) return false;
+    }
+    
+    // Column filters
+    var cols = ['id', 'name', 'area', 'assignTo'];
+    for (var i = 0; i < cols.length; i++) {
+      var colName = cols[i];
+      if (filters[colName]) {
+        var v = getCellValue('stockists', colName, s);
+        if (v === null || v === undefined || v === '') v = '(Blanks)';
+        else v = String(v).trim();
+        if (!filters[colName].includes(v)) return false;
+      }
+    }
+    
+    return true;
+  });
+
+  // Apply visual sort
+  var sortCol = adminTableState.stockists.sortCol;
+  if (sortCol) {
+    var sortAsc = adminTableState.stockists.sortAsc ? 1 : -1;
+    stockists = stockists.slice().sort(function(a, b) {
+      var valA = String(getCellValue('stockists', sortCol, a) || '');
+      var valB = String(getCellValue('stockists', sortCol, b) || '');
+      return sortAsc * valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  // Apply relevance sort if searching
+  if (q) {
+    stockists.sort(function(a, b) {
+      var aMatch = (a.name||"").toLowerCase().includes(q) ? 1 : 0;
+      var bMatch = (b.name||"").toLowerCase().includes(q) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  }
+
+  var countEl = document.getElementById('stockist-count');
+  if (countEl) countEl.textContent = stockists.length;
+  var totalPages = Math.ceil(stockists.length / stockistsPerPage);
+  if (currentStockistPage > totalPages) currentStockistPage = totalPages || 1;
+  var startIdx = (currentStockistPage - 1) * stockistsPerPage;
+  var endIdx = startIdx + stockistsPerPage;
+  var pagedStockists = stockists.slice(startIdx, endIdx);
+  var tbody = document.getElementById('stockist-table-body');
+  if(!tbody) return;
+  
+  tbody.innerHTML = pagedStockists.map(function(s){
+    var emp = DB.employees.find(function(e){return e.id===s.assignTo;});
+    return '<tr><td><input type="checkbox" class="stockist-row-check admin-only" value="'+s.id+'" onchange="updateSelectedStockistsCount()"></td><td>'+s.id+'</td><td class="tbl-name">'+s.name+'</td><td>'+s.area+'</td><td>'+(emp?emp.name+' ('+s.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editStockist(\''+s.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeStockist(\''+s.id+'\')">Del</button></td></tr>';
+  }).join('');
+  
+  var masterCheck = document.getElementById('check-all-stockists');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedStockistsCount();
+  var pagEl = document.getElementById('stockist-pagination');
+  if (pagEl) {
+    var phtml = '';
+    if (currentStockistPage > 1) phtml += '<button class="btn sm" onclick="renderAdminStockistList('+(currentStockistPage-1)+')">Prev</button> ';
+    phtml += '<span style="font-size:12px;margin:0 10px;">Page ' + currentStockistPage + ' of ' + (totalPages || 1) + '</span>';
+    if (currentStockistPage < totalPages) phtml += ' <button class="btn sm" onclick="renderAdminStockistList('+(currentStockistPage+1)+')">Next</button>';
+    pagEl.innerHTML = phtml;
+  }
+}
+
+function removeStockist(id) {
+  if(!confirm('Delete stockist record?'))return;
+  DB.stockists = DB.stockists.filter(function(s){return s.id!==id;});
+  saveDB();
+  renderAdminStockistList();
+  runSupabaseDelete('stockists', function(q) {
+    return q.eq('id', id);
+  });
+}
+
+function toggleSelectAllStockists(masterCheck) {
+  var checks = document.querySelectorAll('.stockist-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedStockistsCount();
+}
+
+function updateSelectedStockistsCount() {
+  var selected = document.querySelectorAll('.stockist-row-check:checked').length;
+  var btn = document.getElementById('btn-bulk-delete-selected-stockists');
+  var btnReassign = document.getElementById('btn-bulk-reassign-selected-stockists');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🗑 Delete Selected (' + selected + ')';
+      if (btnReassign) {
+        btnReassign.style.display = 'inline-block';
+        btnReassign.textContent = '⟳ Reassign Selected (' + selected + ')';
+      }
+    } else {
+      btn.style.display = 'none';
+      if (btnReassign) btnReassign.style.display = 'none';
+    }
+  }
+}
+
+function bulkReassignSelectedStockists() {
+  var checked = document.querySelectorAll('.stockist-row-check:checked');
+  if (!checked.length) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected stockist records:');
+  if (newEmpId === null) return;
+  newEmpId = newEmpId.trim().toUpperCase();
+  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.stockists.forEach(function(s) {
+    if (idsToUpdate.includes(s.id)) s.assignTo = newEmpId;
+  });
+  saveDB();
+  renderAdminStockistList();
+  showToast(checked.length + ' stockists reassigned successfully.');
+}
+
+function bulkDeleteSelectedStockists() {
+  var checked = document.querySelectorAll('.stockist-row-check:checked');
+  if (!checked.length) return;
+  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected stockist records?')) return;
+  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  DB.stockists = DB.stockists.filter(function(s) { return !idsToDelete.includes(s.id); });
+  saveDB();
+  renderAdminStockistList();
+  runSupabaseDelete('stockists', function(q) {
+    return q.in('id', idsToDelete);
+  });
+  showToast(checked.length + ' stockists deleted successfully!');
+  var masterCheck = document.getElementById('check-all-stockists');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedStockistsCount();
+}
+
+function bulkDeleteAllStockists() {
+  if (DB.stockists.length === 0) {
+    showToast('Stockist list is already empty.');
+    return;
+  }
+  if (!confirm('WARNING: Are you sure you want to delete ALL stockist records (' + DB.stockists.length + ') from the system? This cannot be undone.')) return;
+  DB.stockists = [];
+  saveDB();
+  renderAdminStockistList();
+  runSupabaseDelete('stockists', function(q) {
+    return q.neq('id', 'dummy_value_to_delete_all');
+  });
+  showToast('All stockist records deleted successfully!');
+  var masterCheck = document.getElementById('check-all-stockists');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedStockistsCount();
+}
+
 // ===== LEAVE BALANCE MASTER FUNCTIONS =====
 function renderLeaveBalanceTable(){
   var thead = document.getElementById('leave-bal-table-head');
@@ -4445,7 +5881,9 @@ function renderLeaveBalanceTable(){
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var emps=DB.employees.filter(function(e){
     if (!e || e.id==='ADMIN') return false;
-    if (!e.leaves || Object.keys(e.leaves).length === 0) return false;
+    if (!e.leaves) return false;
+    var keys = Object.keys(e.leaves).filter(function(k) { return k !== '_designation'; });
+    if (keys.length === 0) return false;
     if (teamIds && !teamIds.includes(e.id)) return false;
     if (!q) return true;
     var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
@@ -4570,7 +6008,7 @@ function deleteLeaveBalance(id) {
   if(!confirm('Clear leave data for '+id+'?')) return;
   var emp = DB.employees.find(function(e) { return e.id === id; });
   if (emp) {
-    emp.leaves = {CL:0,SL:0,EL:0,LWP:0,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+    emp.leaves = {};
     saveDB();
     renderLeaveBalanceTable();
     showToast('Leave data cleared for ' + id);
@@ -4620,33 +6058,97 @@ function uploadLeaveBalances(inp){
   var reader=new FileReader();
   reader.onload=function(e){
     var lines=e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
-    if(!lines.length)return;
-    var updated=0;
-    lines.forEach(function(line){
-      var p=parseCSVLine(line);
-      if(p.length < 18) return; // Need at least 18 columns for the new format
+    if(lines.length < 2) { showToast("CSV file is empty or missing data."); return; }
+    
+    // Combine the first 5 rows to catch headers spread across multiple lines (like Leave Eligibility -> CL)
+    var headerLineIndex = 0;
+    var headers = [];
+    var combinedHeaders = [];
+    
+    for (var j = 0; j < Math.min(5, lines.length); j++) {
+      var candidate = parseCSVLine(lines[j]);
+      var flatCandidate = candidate.map(function(h) { return String(h).toLowerCase().replace(/[^a-z0-9]/g, ''); });
       
-      // employee ID is in p[1]
-      var empId = p[1].toUpperCase();
+      // Update combined headers
+      for (var c = 0; c < flatCandidate.length; c++) {
+        if (!combinedHeaders[c]) combinedHeaders[c] = '';
+        if (flatCandidate[c]) combinedHeaders[c] += flatCandidate[c];
+      }
+      
+      if (flatCandidate.some(function(h) { return h.indexOf('employee') !== -1 || h === 'id' || h === 'empid'; })) {
+        headerLineIndex = j;
+      }
+    }
+    
+    headers = combinedHeaders;
+    
+    // Find column indices
+    var idCol = -1, clCol = -1, plCol = -1, slCol = -1, lopCol = -1;
+    var clUsedCol = -1, plUsedCol = -1, slUsedCol = -1, lopUsedCol = -1;
+    
+    headers.forEach(function(h, i) {
+      if (h.indexOf('employeeid') !== -1 || h.indexOf('empid') !== -1 || h === 'id' || h === 'employee') idCol = i;
+      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('cl') !== -1 || h.indexOf('casualleave') !== -1)) clCol = i;
+      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('pl') !== -1 || h.indexOf('el') !== -1 || h.indexOf('privilege') !== -1)) plCol = i;
+      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('sl') !== -1 || h.indexOf('sick') !== -1)) slCol = i;
+      else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('lop') !== -1 || h.indexOf('lwp') !== -1)) lopCol = i;
+      else if (h.indexOf('leavetakencl') !== -1 || h === 'clused') clUsedCol = i;
+      else if (h.indexOf('leavetakenpl') !== -1 || h.indexOf('leavetakenel') !== -1 || h === 'plused' || h === 'elused') plUsedCol = i;
+      else if (h.indexOf('leavetakensl') !== -1 || h === 'slused') slUsedCol = i;
+      else if (h.indexOf('leavetakenlop') !== -1 || h.indexOf('leavetakenlwp') !== -1 || h === 'lopused') lopUsedCol = i;
+    });
+    
+    // If dynamic detection failed completely OR if it perfectly matches the known template structure
+    // (where Leave Eligibility is at col 6 and Taken is at col 10), we force the default known positions.
+    if (idCol === -1 || clCol === -1 || clUsedCol === -1 || idCol <= 1) {
+      if (idCol === -1) idCol = 1; 
+      clCol = idCol + 5; 
+      plCol = idCol + 6; 
+      slCol = idCol + 7; 
+      lopCol = idCol + 8;
+      clUsedCol = idCol + 9; 
+      plUsedCol = idCol + 10; 
+      slUsedCol = idCol + 11; 
+      lopUsedCol = idCol + 12;
+    }
+    
+    var updated=0;
+    var notFoundIds = [];
+    
+    for (var i = headerLineIndex + 1; i < lines.length; i++) {
+      var p = parseCSVLine(lines[i]);
+      if (!p[idCol]) continue;
+      
+      var empId = String(p[idCol]).trim().toUpperCase();
       var emp = DB.employees.find(function(x){return x.id === empId;});
       if(emp){
         if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
         
-        emp.leaves.CL = parseInt(p[6]) || 0;
-        emp.leaves.EL = parseInt(p[7]) || 0; // PL mapped to EL
-        emp.leaves.SL = parseInt(p[8]) || 0;
-        emp.leaves.LWP = parseInt(p[9]) || 0;
+        if (clCol !== -1 && p[clCol]) emp.leaves.CL = parseInt(p[clCol]) || 0;
+        if (plCol !== -1 && p[plCol]) emp.leaves.EL = parseInt(p[plCol]) || 0; // PL mapped to EL
+        if (slCol !== -1 && p[slCol]) emp.leaves.SL = parseInt(p[slCol]) || 0;
+        if (lopCol !== -1 && p[lopCol]) emp.leaves.LWP = parseInt(p[lopCol]) || 0;
         
-        emp.leaves.CL_used = parseInt(p[10]) || 0;
-        emp.leaves.EL_used = parseInt(p[11]) || 0;
-        emp.leaves.SL_used = parseInt(p[12]) || 0;
-        emp.leaves.LWP_used = parseInt(p[13]) || 0;
+        if (clUsedCol !== -1 && p[clUsedCol]) emp.leaves.CL_used = parseInt(p[clUsedCol]) || 0;
+        if (plUsedCol !== -1 && p[plUsedCol]) emp.leaves.EL_used = parseInt(p[plUsedCol]) || 0;
+        if (slUsedCol !== -1 && p[slUsedCol]) emp.leaves.SL_used = parseInt(p[slUsedCol]) || 0;
+        if (lopUsedCol !== -1 && p[lopUsedCol]) emp.leaves.LWP_used = parseInt(p[lopUsedCol]) || 0;
         
         updated++;
+      } else {
+        if (empId) notFoundIds.push(empId);
       }
-    });
+    }
+    
     saveDB();
-    showToast(updated+' employee leave balances updated successfully!');
+    
+    var totalRows = lines.length - headerLineIndex - 1;
+    if (updated < totalRows) {
+      alert("WARNING: Only " + updated + " out of " + totalRows + " rows were successfully updated!\n\nThe following Employee IDs were found in your CSV but DO NOT EXIST in the Employee Master:\n" + notFoundIds.slice(0, 10).join(", ") + (notFoundIds.length > 10 ? " ...and " + (notFoundIds.length - 10) + " more" : "") + "\n\nYou must add these employees to the Employee Master first before you can attach leave balances to them.");
+    } else {
+      showToast(updated+' employee leave balances updated successfully!');
+    }
+    
     renderLeaveBalanceTable();
   };
   reader.readAsText(file);inp.value='';
@@ -4891,10 +6393,14 @@ function runMISReport(){
   var html='';
   
   if(currentReportType==='doc_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
     currentMISData=docCalls.map(function(r){
-      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
+      var promoted = r.promotedProducts && r.promotedProducts.length ? r.promotedProducts.join(', ') : 'None';
+      var samples = r.samples ? Object.keys(r.samples).map(function(k){return k+' ('+r.samples[k]+')';}).join(', ') : 'None';
+      var gifts = r.gifts ? Object.keys(r.gifts).map(function(k){return k+' ('+r.gifts[k]+')';}).join(', ') : 'None';
+      var inputs = r.inputs ? Object.keys(r.inputs).map(function(k){return k+' ('+r.inputs[k]+')';}).join(', ') : 'None';
+      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
     
   } else if(currentReportType==='chem_calls'){
@@ -4982,7 +6488,7 @@ function runMISReport(){
   } else if(currentReportType==='jfw_days'){
     thead.innerHTML='<tr><th>MR Employee</th><th>Accompanying Manager ID</th><th>Manager Name</th><th>JFW Date</th><th>Work Remarks</th></tr>';
     baseReports.filter(function(r){return r.jfwMgrId !== '';}).forEach(function(r){
-      currentMISData.push([r.empName+' ('+r.empId+')', r.jfwMgrId, r.jfwMgrName, r.date, r.remarks]);
+      currentMISData.push([r.empName+' ('+r.empId+')', r.jfwMgrId, r.jfwMgrName, r.date, r.jfwRemarks ? (r.remarks + ' | JFW: ' + r.jfwRemarks) : r.remarks]);
     });
     
   } else if(currentReportType==='mgr_accomp'){
@@ -4998,19 +6504,71 @@ function runMISReport(){
     });
     
   } else if(currentReportType==='samples_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed</th><th>Current Balance</th></tr>';
-    var filteredSamples = DB.samplesInventory.filter(function(s){return !empId||s.empId===empId;});
-    currentMISData=filteredSamples.map(function(s){
-      var emp=DB.employees.find(function(e){return e.id===s.empId;});
-      return [emp?emp.name:'', s.prodName, s.opening, s.received, s.distributed, s.balance];
+    thead.innerHTML='<tr><th>MR Name</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    var empsToProcess = DB.employees.filter(function(e){ return e.role === 'emp' && (!empId || e.id === empId); });
+    
+    empsToProcess.forEach(function(e) {
+      // Get all samples ever allocated
+      var myInv = DB.samplesInventory.filter(function(s){ return s.empId === e.id; });
+      var itemsMap = {};
+      myInv.forEach(function(s){
+        itemsMap[s.prodName] = { opening: s.opening, received: s.received, balance: s.balance, distributed: 0 };
+      });
+      
+      // Calculate distributed in date range from reports
+      var myReports = DB.reports.filter(function(r){
+        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+      });
+      myReports.forEach(function(r) {
+        if (r.samples) {
+          for (var p in r.samples) {
+            if (!itemsMap[p]) itemsMap[p] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+            itemsMap[p].distributed += r.samples[p];
+          }
+        }
+      });
+      
+      // Add to table
+      for (var p in itemsMap) {
+        // Only show if there was inventory or if it was distributed
+        if (itemsMap[p].opening > 0 || itemsMap[p].received > 0 || itemsMap[p].distributed > 0 || itemsMap[p].balance > 0) {
+          currentMISData.push([e.name, p, itemsMap[p].opening, itemsMap[p].received, itemsMap[p].distributed, itemsMap[p].balance]);
+        }
+      }
     });
     
   } else if(currentReportType==='gifts_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed</th><th>Current Balance</th></tr>';
-    var filteredGifts = DB.giftsInventory.filter(function(g){return !empId||g.empId===empId;});
-    currentMISData=filteredGifts.map(function(g){
-      var emp=DB.employees.find(function(e){return e.id===g.empId;});
-      return [emp?emp.name:'', g.giftName, g.opening, g.received, g.distributed, g.balance];
+    thead.innerHTML='<tr><th>MR Name</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    var empsToProcess = DB.employees.filter(function(e){ return e.role === 'emp' && (!empId || e.id === empId); });
+    
+    empsToProcess.forEach(function(e) {
+      // Get all gifts ever allocated
+      var myInv = DB.giftsInventory.filter(function(g){ return g.empId === e.id; });
+      var itemsMap = {};
+      myInv.forEach(function(g){
+        itemsMap[g.giftName] = { opening: g.opening, received: g.received, balance: g.balance, distributed: 0 };
+      });
+      
+      // Calculate distributed in date range from reports
+      var myReports = DB.reports.filter(function(r){
+        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+      });
+      myReports.forEach(function(r) {
+        if (r.gifts) {
+          for (var g in r.gifts) {
+            if (!itemsMap[g]) itemsMap[g] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+            itemsMap[g].distributed += r.gifts[g];
+          }
+        }
+      });
+      
+      // Add to table
+      for (var g in itemsMap) {
+        // Only show if there was inventory or if it was distributed
+        if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
+          currentMISData.push([e.name, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
+        }
+      }
     });
     
   } else if(currentReportType==='expenses_rep'){
@@ -5141,4 +6699,98 @@ function showToast(msg, duration){
   var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
   clearTimeout(window._toastTimer);
   window._toastTimer=setTimeout(function(){t.style.display='none';}, duration || 2800);
+}
+
+function beautifyEmojis() {
+  const emojiMap = {
+    '🏠': 'home',
+    '📋': 'description',
+    '🗺️': 'map',
+    '🗺': 'map',
+    '💰': 'payments',
+    '🏥': 'medical_services',
+    '👨': 'person',
+    '📅': 'calendar_month',
+    '💼': 'work',
+    '🎁': 'card_giftcard',
+    '🆕': 'new_releases',
+    '📄': 'article',
+    '📝': 'edit_note',
+    '📍': 'location_on',
+    '🎫': 'local_activity',
+    '🔍': 'search',
+    '👥': 'group',
+    '✅': 'check_circle',
+    '📦': 'inventory_2',
+    '🔄': 'sync',
+    '↓': 'download',
+    '↑': 'upload',
+    '🗑️': 'delete',
+    '🗑': 'delete',
+    '🔧': 'build'
+  };
+
+  function replaceInNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      let text = node.nodeValue;
+      for (const [emoji, symbol] of Object.entries(emojiMap)) {
+        if (text.includes(emoji)) {
+          const parent = node.parentNode;
+          if (parent && !parent.classList.contains('ni') && !parent.classList.contains('header-icon')) {
+            const parts = text.split(emoji);
+            const fragment = document.createDocumentFragment();
+            
+            parts.forEach((part, index) => {
+              if (part) {
+                fragment.appendChild(document.createTextNode(part));
+              }
+              if (index < parts.length - 1) {
+                const span = document.createElement('span');
+                span.className = 'material-symbols-outlined header-icon';
+                span.textContent = symbol;
+                fragment.appendChild(span);
+              }
+            });
+            
+            parent.replaceChild(fragment, node);
+            break;
+          }
+        }
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      // Don't traverse script or style tags
+      if (node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
+        Array.from(node.childNodes).forEach(replaceInNode);
+      }
+    }
+  }
+
+  replaceInNode(document.body);
+}
+
+// Observe dynamic additions
+const emojiObserver = new MutationObserver((mutations) => {
+  let shouldRun = false;
+  for (let mutation of mutations) {
+    for (let node of mutation.addedNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
+        shouldRun = true;
+        break;
+      }
+    }
+    if (shouldRun) break;
+  }
+  if (shouldRun) {
+    emojiObserver.disconnect();
+    beautifyEmojis();
+    emojiObserver.observe(document.body, { childList: true, subtree: true });
+  }
+});
+
+emojiObserver.observe(document.body, { childList: true, subtree: true });
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', beautifyEmojis);
+} else {
+  beautifyEmojis();
 }

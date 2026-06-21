@@ -690,7 +690,6 @@ table.tbl tr:last-child td{border-bottom:none}
               <thead>
                 <tr>
                   <th rowspan="3"><input type="checkbox" id="check-all-sfc" class="admin-only" onclick="toggleSelectAllSFC(this)"></th>
-                  <th rowspan="3">Emp ID</th>
                   <th rowspan="3">Working<br>Days</th>
                   <th rowspan="3">Name of BE</th>
                   <th rowspan="3">HQ</th>
@@ -2824,7 +2823,8 @@ function filterReportingStockistsDropdown() {
 
 function populateReportTerritoryDropdowns() {
   if (!SESSION.user) return;
-  var teamIds = (SESSION.user.role === 'emp') ? [] : null;
+  var myLvl = getLevel(SESSION.user.role, SESSION.user.designation);
+  var teamIds = (SESSION.user.role !== 'admin' && myLvl <= 1) ? getAllSubordinateIds(SESSION.user.id) : null;
   if (teamIds) {
     teamIds.push(SESSION.user.id);
   }
@@ -3859,16 +3859,8 @@ function renderMTPDaysUI(isReadOnly, existing){
   var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   
   if (SESSION.user) {
-    var teamIds = (SESSION.user.role === 'emp') ? [] : null;
-    if (teamIds) {
-      teamIds.push(SESSION.user.id);
-    }
-
     DB.doctors.forEach(function(d) {
-      var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-
-      if (isAssignedToTeam && d.status === 'Active') {
+      if (String(d.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && d.status === 'Active') {
         var tType = (d.territoryType || '').trim().toUpperCase();
         if (tType) {
           if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
@@ -3888,10 +3880,7 @@ function renderMTPDaysUI(isReadOnly, existing){
     });
 
     DB.chemists.forEach(function(c) {
-      var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-
-      if (isAssignedToTeam && c.area) {
+      if (String(c.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && c.area) {
         var cArea = c.area.trim();
         var tTypes = areaToTType[cArea];
         if (tTypes && tTypes.length > 0) {
@@ -5071,7 +5060,6 @@ function renderSFCTable(){
   tbody.innerHTML=filtered.map(function(item){
     var s = item.s || {};
     return '<tr><td><input type="checkbox" class="sfc-row-check admin-only" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td>' +
-           '<td>'+(s.empId||'')+'</td>' +
            '<td>'+(s.workingDays||'')+'</td>' +
            '<td>'+(s.empName||'')+'</td>' +
            '<td>'+(s.hq||'')+'</td>' +
@@ -5180,45 +5168,43 @@ function uploadSFC(inp){
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(p.length<7||!p[5]||!p[6])return;
+      if(p.length<6||!p[4]||!p[5])return;
       var existing = DB.sfc.find(function(s){
-        return s.from.toLowerCase() === p[5].toLowerCase() && s.to.toLowerCase() === p[6].toLowerCase() && (s.empId || '').toLowerCase() === (p[0] || '').toLowerCase();
+        return s.from.toLowerCase() === p[4].toLowerCase() && s.to.toLowerCase() === p[5].toLowerCase();
       });
-      var fare = parseFloat(p[10])||0;
-      var da = parseFloat(p[11])||0;
-      var total = parseFloat(p[12]) || (fare + da);
+      var fare = parseFloat(p[9])||0;
+      var da = parseFloat(p[10])||0;
+      var total = parseFloat(p[11]) || (fare + da);
 
       if(existing){
-        existing.empId = p[0]||'';
-        existing.workingDays = p[1]||'';
-        existing.empName = p[2]||'';
-        existing.hq = p[3]||'';
-        existing.state = p[4]||'';
-        existing.category = p[7]||'';
-        existing.distance = parseInt(p[8])||0;
-        existing.mode = p[9]||'';
+        existing.workingDays = p[0]||'';
+        existing.empName = p[1]||'';
+        existing.hq = p[2]||'';
+        existing.state = p[3]||'';
+        existing.category = p[6]||'';
+        existing.distance = parseInt(p[7])||0;
+        existing.mode = p[8]||'';
         existing.fare = fare;
         existing.da = da;
         existing.total = total;
-        existing.doctors = p[13]||'';
-        existing.business = p[14]||'';
+        existing.doctors = p[12]||'';
+        existing.business = p[13]||'';
       } else {
         DB.sfc.push({
-          empId: p[0]||'',
-          workingDays: p[1]||'',
-          empName: p[2]||'',
-          hq: p[3]||'',
-          state: p[4]||'',
-          from: p[5]||'',
-          to: p[6]||'',
-          category: p[7]||'',
-          distance: parseInt(p[8])||0,
-          mode: p[9]||'',
+          workingDays: p[0]||'',
+          empName: p[1]||'',
+          hq: p[2]||'',
+          state: p[3]||'',
+          from: p[4]||'',
+          to: p[5]||'',
+          category: p[6]||'',
+          distance: parseInt(p[7])||0,
+          mode: p[8]||'',
           fare: fare,
           da: da,
           total: total,
-          doctors: p[13]||'',
-          business: p[14]||''
+          doctors: p[12]||'',
+          business: p[13]||''
         });
       }
       added++;
@@ -5231,7 +5217,7 @@ function uploadSFC(inp){
 }
 
 function downloadSFCTemplate(){
-  var csv='EmpID,WorkingDays,EmpName,HQ,State,From,To,Category,Distance,Mode,Fare,DA,Total,Doctors,Business\n';
+  var csv='WorkingDays,EmpName,HQ,State,From,To,Category,Distance,Mode,Fare,DA,Total,Doctors,Business\n';
   var checked = document.querySelectorAll('.sfc-row-check:checked');
   var list = [];
   if (checked.length > 0) {
@@ -5244,7 +5230,6 @@ function downloadSFCTemplate(){
   if (list.length > 0) {
     list.forEach(function(s){
       csv += [
-        s.empId || '',
         s.workingDays || '',
         s.empName || '',
         s.hq || '',

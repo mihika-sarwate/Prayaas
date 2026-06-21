@@ -1766,7 +1766,7 @@ function populateReportCityPatch() {
   
   var citySel = document.getElementById('r-city');
   if (citySel) {
-    citySel.innerHTML = '<option value="">-- Select Town --</option>' + availableTowns.map(function(t) {
+    citySel.innerHTML = '<option value="">-- Select Town (' + availableTowns.length + ') --</option>' + availableTowns.map(function(t) {
       return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>';
     }).join('');
   }

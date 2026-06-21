@@ -3158,6 +3158,8 @@ function populateJFWManagers(){
     subs = getAllSubordinateIds(SESSION.user.id) || [];
   }
 
+  var myManagerIdUpper = String(SESSION.user.managerId || '').trim().toUpperCase();
+
   var chain = DB.employees.filter(function(e) {
     if (!e) return false;
     if (e.id === SESSION.user.id) return false;
@@ -3168,7 +3170,11 @@ function populateJFWManagers(){
     if (myLevel === 99) return true; 
     
     var eIdUpper = String(e.id).trim().toUpperCase();
-    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper);
+    var eManagerUpper = String(e.managerId || '').trim().toUpperCase();
+    var isPeer = (myManagerIdUpper !== '' && eManagerUpper === myManagerIdUpper);
+    var isSameLevel = (getLevel(e.role, e.designation) === myLevel);
+    
+    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isPeer || isSameLevel;
   });
 
   var uniqueChain = [];

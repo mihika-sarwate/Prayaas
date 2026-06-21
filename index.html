@@ -690,6 +690,7 @@ table.tbl tr:last-child td{border-bottom:none}
               <thead>
                 <tr>
                   <th rowspan="3"><input type="checkbox" id="check-all-sfc" class="admin-only" onclick="toggleSelectAllSFC(this)"></th>
+                  <th rowspan="3">Emp ID</th>
                   <th rowspan="3">Working<br>Days</th>
                   <th rowspan="3">Name of BE</th>
                   <th rowspan="3">HQ</th>
@@ -5058,6 +5059,7 @@ function renderSFCTable(){
   tbody.innerHTML=filtered.map(function(item){
     var s = item.s || {};
     return '<tr><td><input type="checkbox" class="sfc-row-check admin-only" value="'+item.index+'" onchange="updateSelectedSFCCount()"></td>' +
+           '<td>'+(s.empId||'')+'</td>' +
            '<td>'+(s.workingDays||'')+'</td>' +
            '<td>'+(s.empName||'')+'</td>' +
            '<td>'+(s.hq||'')+'</td>' +
@@ -5166,43 +5168,45 @@ function uploadSFC(inp){
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(p.length<6||!p[4]||!p[5])return;
+      if(p.length<7||!p[5]||!p[6])return;
       var existing = DB.sfc.find(function(s){
-        return s.from.toLowerCase() === p[4].toLowerCase() && s.to.toLowerCase() === p[5].toLowerCase();
+        return s.from.toLowerCase() === p[5].toLowerCase() && s.to.toLowerCase() === p[6].toLowerCase() && (s.empId || '').toLowerCase() === (p[0] || '').toLowerCase();
       });
-      var fare = parseFloat(p[9])||0;
-      var da = parseFloat(p[10])||0;
-      var total = parseFloat(p[11]) || (fare + da);
+      var fare = parseFloat(p[10])||0;
+      var da = parseFloat(p[11])||0;
+      var total = parseFloat(p[12]) || (fare + da);
 
       if(existing){
-        existing.workingDays = p[0]||'';
-        existing.empName = p[1]||'';
-        existing.hq = p[2]||'';
-        existing.state = p[3]||'';
-        existing.category = p[6]||'';
-        existing.distance = parseInt(p[7])||0;
-        existing.mode = p[8]||'';
+        existing.empId = p[0]||'';
+        existing.workingDays = p[1]||'';
+        existing.empName = p[2]||'';
+        existing.hq = p[3]||'';
+        existing.state = p[4]||'';
+        existing.category = p[7]||'';
+        existing.distance = parseInt(p[8])||0;
+        existing.mode = p[9]||'';
         existing.fare = fare;
         existing.da = da;
         existing.total = total;
-        existing.doctors = p[12]||'';
-        existing.business = p[13]||'';
+        existing.doctors = p[13]||'';
+        existing.business = p[14]||'';
       } else {
         DB.sfc.push({
-          workingDays: p[0]||'',
-          empName: p[1]||'',
-          hq: p[2]||'',
-          state: p[3]||'',
-          from: p[4]||'',
-          to: p[5]||'',
-          category: p[6]||'',
-          distance: parseInt(p[7])||0,
-          mode: p[8]||'',
+          empId: p[0]||'',
+          workingDays: p[1]||'',
+          empName: p[2]||'',
+          hq: p[3]||'',
+          state: p[4]||'',
+          from: p[5]||'',
+          to: p[6]||'',
+          category: p[7]||'',
+          distance: parseInt(p[8])||0,
+          mode: p[9]||'',
           fare: fare,
           da: da,
           total: total,
-          doctors: p[12]||'',
-          business: p[13]||''
+          doctors: p[13]||'',
+          business: p[14]||''
         });
       }
       added++;
@@ -5215,7 +5219,7 @@ function uploadSFC(inp){
 }
 
 function downloadSFCTemplate(){
-  var csv='WorkingDays,EmpName,HQ,State,From,To,Category,Distance,Mode,Fare,DA,Total,Doctors,Business\n';
+  var csv='EmpID,WorkingDays,EmpName,HQ,State,From,To,Category,Distance,Mode,Fare,DA,Total,Doctors,Business\n';
   var checked = document.querySelectorAll('.sfc-row-check:checked');
   var list = [];
   if (checked.length > 0) {
@@ -5228,6 +5232,7 @@ function downloadSFCTemplate(){
   if (list.length > 0) {
     list.forEach(function(s){
       csv += [
+        s.empId || '',
         s.workingDays || '',
         s.empName || '',
         s.hq || '',

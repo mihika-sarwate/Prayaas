@@ -2823,7 +2823,8 @@ function filterReportingStockistsDropdown() {
 
 function populateReportTerritoryDropdowns() {
   if (!SESSION.user) return;
-  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  var myLvl = getLevel(SESSION.user.role, SESSION.user.designation);
+  var teamIds = (SESSION.user.role !== 'admin' && myLvl <= 1) ? getAllSubordinateIds(SESSION.user.id) : null;
   if (teamIds) {
     teamIds.push(SESSION.user.id);
   }

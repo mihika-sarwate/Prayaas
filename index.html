@@ -8543,13 +8543,14 @@ function renderBroadcastPanel(containerId) {
             </div>
           </div>
           
-          <div id="announcement-users-container" style="display:none; border:1px solid #cbd5e1; border-radius:12px; padding:16px; max-height:220px; overflow-y:auto; background:#f8fafc;">
+          <div id="announcement-users-container" style="display:none; border:1px solid #cbd5e1; border-radius:12px; padding:16px; max-height:300px; overflow-y:auto; background:#f8fafc;">
             <label class="lbl" style="margin-bottom:8px; font-weight:600;">Select Recipients</label>
+            <input type="text" id="announcement-user-search" placeholder="🔍 Search employee by name, ID, or designation..." style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:13px; margin-bottom:10px; background:#fff;" oninput="filterAnnouncementUsers(this.value)">
             <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #cbd5e1; padding-bottom:6px;">
               <button class="btn sm primary" onclick="toggleSelectAllAnnouncemntUsers(true)" style="padding: 2px 8px; font-size:11px; width:auto; height:auto; line-height:1;">Select All</button>
               <button class="btn sm danger" onclick="toggleSelectAllAnnouncemntUsers(false)" style="padding: 2px 8px; font-size:11px; width:auto; height:auto; line-height:1;">Clear All</button>
             </div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:6px 12px;">
+            <div id="announcement-users-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:6px 12px;">
               ${empsListHtml}
             </div>
           </div>
@@ -8595,6 +8596,19 @@ function toggleAnnouncementTargetFields() {
 function toggleSelectAllAnnouncemntUsers(checked) {
   document.querySelectorAll('.announcement-user-chk').forEach(function(chk) {
     chk.checked = checked;
+  });
+}
+
+function filterAnnouncementUsers(query) {
+  var q = (query || '').toLowerCase().trim();
+  var labels = document.querySelectorAll('#announcement-users-list label');
+  labels.forEach(function(label) {
+    var txt = label.textContent.toLowerCase();
+    if (txt.includes(q)) {
+      label.style.display = 'flex';
+    } else {
+      label.style.display = 'none';
+    }
   });
 }
 

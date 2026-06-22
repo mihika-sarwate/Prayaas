@@ -8410,7 +8410,14 @@ function showAnnouncementModal(ann) {
           <embed src="${ann.fileData}" type="application/pdf" style="width:100%; height:320px; border-radius:12px;">
           <p style="font-size:12px; padding:10px 0;">PDF Preview is not supported by your browser. <a href="${ann.fileData}" target="_blank" download="document.pdf" style="color:#001a72; font-weight:bold; text-decoration:underline;">Click here to download/open the PDF</a></p>
         </object>`;
+      } else if (ann.fileType === 'audio') {
+        bodyHtml += `<br><br><audio src="${ann.fileData}" controls style="width:100%; margin-top:8px;"></audio>`;
+      } else if (ann.fileType === 'video') {
+        bodyHtml += `<br><br><video src="${ann.fileData}" controls style="width:100%; max-height:280px; border-radius:12px; border:1px solid #cbd5e1; margin-top:8px;"></video>`;
       }
+      
+      // Universal Download Button
+      bodyHtml += `<br><a href="${ann.fileData}" download="announcement_attachment" style="display:inline-flex; align-items:center; gap:6px; margin-top:12px; color:#001a72; font-weight:600; text-decoration:underline; font-size:13px; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">download</span>Download Attachment</a>`;
     }
     
     bodyEl.innerHTML = bodyHtml;
@@ -8472,6 +8479,16 @@ function previewAnnouncementFile(input) {
         <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">picture_as_pdf</span>
         <span>PDF Selected: <strong>${escapeHTML(file.name)}</strong> (${Math.round(file.size / 1024)} KB)</span>
       </div>`;
+    } else if (file.type.startsWith('audio/')) {
+      previewContainer.innerHTML = `<div style="padding:10px; background:#e2e8f0; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; color:#475569; display:flex; align-items:center; gap:8px;">
+        <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">audiotrack</span>
+        <span>Audio Selected: <strong>${escapeHTML(file.name)}</strong> (${Math.round(file.size / 1024)} KB)</span>
+      </div>`;
+    } else if (file.type.startsWith('video/')) {
+      previewContainer.innerHTML = `<div style="padding:10px; background:#e2e8f0; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; color:#475569; display:flex; align-items:center; gap:8px;">
+        <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">movie</span>
+        <span>Video Selected: <strong>${escapeHTML(file.name)}</strong> (${Math.round(file.size / 1024)} KB)</span>
+      </div>`;
     }
   };
   reader.readAsDataURL(file);
@@ -8515,8 +8532,8 @@ function renderBroadcastPanel(containerId) {
             <textarea id="announcement-msg-input" placeholder="Type your broadcast message here..." style="width:100%; height:120px; padding:12px; border-radius:10px; border:1px solid #cbd5e1; font-family:'Inter',sans-serif; font-size:14px; resize:vertical;"></textarea>
           </div>
           <div>
-            <label class="lbl">Add Photo or PDF (inline display)</label>
-            <input type="file" id="announcement-file-input" accept="image/*,application/pdf" style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; background:#fff;" onchange="previewAnnouncementFile(this)">
+            <label class="lbl">Add File (Photo, PDF, Audio, or Video)</label>
+            <input type="file" id="announcement-file-input" accept="image/*,application/pdf,audio/*,video/*" style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; background:#fff;" onchange="previewAnnouncementFile(this)">
             <div id="announcement-file-preview" style="margin-top:8px; display:none;"></div>
           </div>
           
@@ -8644,9 +8661,18 @@ async function sendBroadcastMessage() {
   if (fileInput && fileInput.files && fileInput.files[0]) {
     var file = fileInput.files[0];
     
-    fileType = file.type.startsWith('image/') ? 'image' : (file.type === 'application/pdf' ? 'pdf' : '');
+    if (file.type.startsWith('image/')) {
+      fileType = 'image';
+    } else if (file.type === 'application/pdf') {
+      fileType = 'pdf';
+    } else if (file.type.startsWith('audio/')) {
+      fileType = 'audio';
+    } else if (file.type.startsWith('video/')) {
+      fileType = 'video';
+    }
+    
     if (!fileType) {
-      showToast('Invalid file type. Only photos and PDFs are allowed.');
+      showToast('Invalid file type. Only photos, PDFs, audio, and videos are allowed.');
       return;
     }
     

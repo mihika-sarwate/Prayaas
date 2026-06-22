@@ -2458,6 +2458,14 @@ window.addEventListener('beforeunload', function (e) {
 
     // Sync SFC
     try {
+      var sfcKeysLocal = new Set();
+      DB.sfc = DB.sfc.filter(function(s) {
+        var k = normalizeSfcKey(s);
+        if (sfcKeysLocal.has(k)) return false;
+        sfcKeysLocal.add(k);
+        return true;
+      });
+
       const dbSfc = DB.sfc.map(s => ({
         id: s.id || undefined,
         from_loc: s.from,
@@ -3355,10 +3363,36 @@ function normalizeHolidayKey(row) {
 async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn) {
   try {
     const remoteRows = await fetchAllFromSupabase(table);
-    const localKeys = new Set((localRows || []).map(localKeyFn));
-    const staleRows = remoteRows.filter(function(row) {
-      return !localKeys.has(localKeyFn(row));
+    const localRowsMap = new Map();
+    (localRows || []).forEach(function(l) {
+      localRowsMap.set(localKeyFn(l), l);
     });
+    
+    const seenRemoteKeys = new Set();
+    const staleRows = [];
+    let needsSave = false;
+
+    remoteRows.forEach(function(row) {
+      const key = localKeyFn(row);
+      if (!localRowsMap.has(key)) {
+        staleRows.push(row);
+      } else {
+        if (seenRemoteKeys.has(key)) {
+          staleRows.push(row);
+        } else {
+          seenRemoteKeys.add(key);
+          const localRow = localRowsMap.get(key);
+          if (localRow && !localRow.id && row.id) {
+            localRow.id = row.id;
+            needsSave = true;
+          }
+        }
+      }
+    });
+
+    if (needsSave && typeof saveDB === 'function') {
+      saveDB();
+    }
 
     for (const row of staleRows) {
       const res = await deleteRowFn(row);

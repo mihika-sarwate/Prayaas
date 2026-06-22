@@ -1374,14 +1374,14 @@ async function fetchAllFromSupabase(table, options) {
   let page = 0;
   const pageSize = 1000;
   while (true) {
-    const query = supabase
+    let query = supabase
       .from(table)
       .select('*');
       
     if (table === 'holidays') {
-      query.order('date');
+      query = query.order('date');
     } else {
-      query.order('id');
+      query = query.order('id');
     }
     
     const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
@@ -2354,15 +2354,36 @@ window.addEventListener('beforeunload', function (e) {
     // Sync Reports
     try {
       const dbReports = DB.reports.map(r => {
+        var empId = r.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
+        var docId = r.docId || null;
+        if (docId) {
+          var matchedDoc = DB.doctors.find(x => String(x.id || '').toUpperCase() === String(docId).toUpperCase());
+          docId = matchedDoc ? matchedDoc.id : null;
+        }
+        var chemId = r.chemId || null;
+        if (chemId) {
+          var matchedChem = DB.chemists.find(x => String(x.id || '').toUpperCase() === String(chemId).toUpperCase());
+          chemId = matchedChem ? matchedChem.id : null;
+        }
+        var jfwMgrId = r.jfwMgrId || null;
+        if (jfwMgrId) {
+          var matchedMgr = DB.employees.find(x => String(x.id || '').toUpperCase() === String(jfwMgrId).toUpperCase());
+          jfwMgrId = matchedMgr ? matchedMgr.id : null;
+        }
+
         var row = {
-          emp_id: r.empId || '',
+          emp_id: empId,
           emp_name: r.empName || '',
           date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
           time: r.time || '',
           target_type: r.targetType || '',
           classification: r.classification || '',
           call_type: r.callType || '',
-          doc_id: r.docId || null,
+          doc_id: docId,
           doc_name: r.docName || null,
           doc_spec: r.docSpec || null,
           doc_area: r.docArea || null,
@@ -2370,12 +2391,12 @@ window.addEventListener('beforeunload', function (e) {
           samples: JSON.stringify(r.samples || {}),
           gifts: JSON.stringify(r.gifts || {}),
           inputs: JSON.stringify(r.inputs || {}),
-          chem_id: r.chemId || null,
+          chem_id: chemId,
           chem_name: r.chemName || null,
           chem_area: r.chemArea || null,
           order_amount: r.orderAmount || 0,
           stock_status: r.stockStatus || null,
-          jfw_mgr_id: r.jfwMgrId || null,
+          jfw_mgr_id: jfwMgrId,
           jfw_mgr_name: r.jfwMgrName || null,
           jfw_remarks: r.jfwRemarks || null,
           lat: r.lat || null,
@@ -2400,21 +2421,33 @@ window.addEventListener('beforeunload', function (e) {
 
     // Sync Tour Plans
     try {
-      const dbTourPlans = DB.tourPlans.map(tp => ({
-        id: tp.id || undefined,
-        emp_id: tp.empId || '',
-        emp_name: tp.empName || '',
-        month: tp.month || '',
-        manager_id: resolveManagerId(tp.managerId),
-        manager_name: tp.managerName || null,
-        days: JSON.stringify(tp.days || []),
-        status: tp.status || 'draft',
-        remarks: tp.remarks || null,
-        submitted_at: tp.submittedAt || null,
-        approved_date: formatDateForPostgres(tp.approvedDate) || null,
-        approved_by: tp.approvedBy || null,
-        revision_history: JSON.stringify(tp.revisionHistory || [])
-      }));
+      const dbTourPlans = DB.tourPlans.map(tp => {
+        var empId = tp.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
+        var approvedBy = tp.approvedBy || null;
+        if (approvedBy) {
+          var matchedAppr = DB.employees.find(x => String(x.id || '').toUpperCase() === String(approvedBy).toUpperCase());
+          approvedBy = matchedAppr ? matchedAppr.id : null;
+        }
+        return {
+          id: tp.id || undefined,
+          emp_id: empId,
+          emp_name: tp.empName || '',
+          month: tp.month || '',
+          manager_id: resolveManagerId(tp.managerId),
+          manager_name: tp.managerName || null,
+          days: JSON.stringify(tp.days || []),
+          status: tp.status || 'draft',
+          remarks: tp.remarks || null,
+          submitted_at: tp.submittedAt || null,
+          approved_date: formatDateForPostgres(tp.approvedDate) || null,
+          approved_by: approvedBy,
+          revision_history: JSON.stringify(tp.revisionHistory || [])
+        };
+      });
       await upsertInBatches('tour_plans', dbTourPlans);
       await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
         return String(row.id || '').toUpperCase();
@@ -2427,19 +2460,26 @@ window.addEventListener('beforeunload', function (e) {
 
     // Sync Expenses
     try {
-      const dbExpenses = DB.expenses.map(ex => ({
-        id: ex.id || undefined,
-        emp_id: ex.empId || '',
-        emp_name: ex.empName || '',
-        month: ex.month || '',
-        manager_id: resolveManagerId(ex.managerId),
-        lines: JSON.stringify(ex.lines || []),
-        total: ex.total || 0,
-        receipt_file: ex.receiptFile || null,
-        status: ex.status || 'draft',
-        submitted_at: ex.submittedAt || null,
-        remarks: ex.remarks || null
-      }));
+      const dbExpenses = DB.expenses.map(ex => {
+        var empId = ex.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
+        return {
+          id: ex.id || undefined,
+          emp_id: empId,
+          emp_name: ex.empName || '',
+          month: ex.month || '',
+          manager_id: resolveManagerId(ex.managerId),
+          lines: JSON.stringify(ex.lines || []),
+          total: ex.total || 0,
+          receipt_file: ex.receiptFile || null,
+          status: ex.status || 'draft',
+          submitted_at: ex.submittedAt || null,
+          remarks: ex.remarks || null
+        };
+      });
       await upsertInBatches('expenses', dbExpenses);
       await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
         return String(row.id || '').toUpperCase();
@@ -2452,20 +2492,32 @@ window.addEventListener('beforeunload', function (e) {
 
     // Sync Leaves
     try {
-      const dbLeaves = DB.leaves.map(lv => ({
-        id: lv.id || undefined,
-        emp_id: lv.empId || '',
-        emp_name: lv.empName || '',
-        type: lv.type || '',
-        start: formatDateForPostgres(lv.start) || null,
-        "end": formatDateForPostgres(lv.end) || null,
-        days: lv.days || 0,
-        reason: lv.reason || null,
-        manager_id: lv.managerId || null,
-        status: lv.status || 'pending',
-        submitted_at: lv.submittedAt || null,
-        remarks: lv.remarks || null
-      }));
+      const dbLeaves = DB.leaves.map(lv => {
+        var empId = lv.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
+        var managerId = lv.managerId || null;
+        if (managerId) {
+          var matchedMgr = DB.employees.find(x => String(x.id || '').toUpperCase() === String(managerId).toUpperCase());
+          managerId = matchedMgr ? matchedMgr.id : null;
+        }
+        return {
+          id: lv.id || undefined,
+          emp_id: empId,
+          emp_name: lv.empName || '',
+          type: lv.type || '',
+          start: formatDateForPostgres(lv.start) || null,
+          "end": formatDateForPostgres(lv.end) || null,
+          days: lv.days || 0,
+          reason: lv.reason || null,
+          manager_id: managerId,
+          status: lv.status || 'pending',
+          submitted_at: lv.submittedAt || null,
+          remarks: lv.remarks || null
+        };
+      });
       await upsertInBatches('leaves', dbLeaves);
       await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
         return String(row.id || '').toUpperCase();
@@ -2480,9 +2532,14 @@ window.addEventListener('beforeunload', function (e) {
     // Sync Samples Inventory
     try {
       const dbSamples = DB.samplesInventory.map(s => {
+        var empId = s.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
         var row = {
           prod_name: s.prodName || '',
-          emp_id: s.empId || '',
+          emp_id: empId,
           opening: s.opening || 0,
           received: s.received || 0,
           distributed: s.distributed || 0,
@@ -2501,9 +2558,14 @@ window.addEventListener('beforeunload', function (e) {
     // Sync Gifts Inventory
     try {
       const dbGifts = DB.giftsInventory.map(g => {
+        var empId = g.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
         var row = {
           gift_name: g.giftName || '',
-          emp_id: g.empId || '',
+          emp_id: empId,
           opening: g.opening || 0,
           received: g.received || 0,
           distributed: g.distributed || 0,
@@ -2522,9 +2584,14 @@ window.addEventListener('beforeunload', function (e) {
     // Sync Inputs Inventory
     try {
       const dbInputs = DB.inputsInventory.map(i => {
+        var empId = i.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
         var row = {
           input_name: i.inputName || '',
-          emp_id: i.empId || '',
+          emp_id: empId,
           opening: i.opening || 0,
           received: i.received || 0,
           distributed: i.distributed || 0,

@@ -2221,15 +2221,33 @@ function runSupabaseDelete(table, queryFactory) {
 }
 
 function normalizeSfcKey(row) {
+  var m = row.mode || '';
+  if (typeof m === 'string' && m.startsWith('{')) {
+    try { m = JSON.parse(m).mode || ''; } catch(e){}
+  }
+  
+  var extra = {};
+  if (typeof row.mode === 'string' && row.mode.startsWith('{')) {
+    try { extra = JSON.parse(row.mode); } catch(e){}
+  }
+  var empId = row.empId || extra.empId || '';
+  var category = row.category || extra.category || '';
+
   return [
+    empId,
     row.from || row.from_loc || '',
     row.to || row.to_loc || '',
     row.distance || 0,
-    row.mode || '',
+    m,
+    category,
     row.fare || 0,
     row.da || 0,
-    row.lodge || 0,
-    row.other || 0
+    row.workingDays || extra.workingDays || '',
+    row.empName || extra.empName || '',
+    row.hq || extra.hq || '',
+    row.state || extra.state || '',
+    row.doctors || extra.doctors || '',
+    row.business || extra.business || ''
   ].join('|').toLowerCase();
 }
 

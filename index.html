@@ -3342,15 +3342,23 @@ function normalizeSfcKey(row) {
   if (typeof m === 'string' && m.startsWith('{')) {
     try { m = JSON.parse(m).mode || ''; } catch(e){}
   }
+  
+  var extra = {};
+  if (typeof row.mode === 'string' && row.mode.startsWith('{')) {
+    try { extra = JSON.parse(row.mode); } catch(e){}
+  }
+  var empId = row.empId || extra.empId || '';
+  var category = row.category || extra.category || '';
+
   return [
+    empId,
     row.from || row.from_loc || '',
     row.to || row.to_loc || '',
     row.distance || 0,
     m,
+    category,
     row.fare || 0,
-    row.da || 0,
-    row.lodge || 0,
-    row.other || 0
+    row.da || 0
   ].join('|').toLowerCase();
 }
 
@@ -5222,14 +5230,17 @@ function uploadSFC(inp){
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
       if(p.length<7||!p[5]||!p[6])return;
+      var fare = parseFloat(p[10])||0;
+      var da = parseFloat(p[11])||0;
       var existing = DB.sfc.find(function(s){
         return s.from.toLowerCase() === p[5].toLowerCase() && 
                s.to.toLowerCase() === p[6].toLowerCase() && 
                (s.empId || '').toLowerCase() === (p[0] || '').toLowerCase() &&
-               (s.mode || '').toLowerCase() === (p[9] || '').toLowerCase();
+               (s.mode || '').toLowerCase() === (p[9] || '').toLowerCase() &&
+               (s.category || '').toLowerCase() === (p[7] || '').toLowerCase() &&
+               (s.fare || 0) === fare &&
+               (s.da || 0) === da;
       });
-      var fare = parseFloat(p[10])||0;
-      var da = parseFloat(p[11])||0;
       var total = parseFloat(p[12]) || (fare + da);
 
       if(existing){

@@ -8629,10 +8629,6 @@ async function sendBroadcastMessage() {
   
   if (fileInput && fileInput.files && fileInput.files[0]) {
     var file = fileInput.files[0];
-    if (file.size > 2 * 1024 * 1024) {
-      showToast('File is too large. Please select a photo or PDF under 2 MB.');
-      return;
-    }
     
     fileType = file.type.startsWith('image/') ? 'image' : (file.type === 'application/pdf' ? 'pdf' : '');
     if (!fileType) {

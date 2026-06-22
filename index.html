@@ -297,6 +297,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <button class="nav-btn" id="nb-expense" onclick="goTab('expense')"><span class="ni material-symbols-outlined">payments</span>Expense</button>
     <button class="nav-btn" id="nb-leave" onclick="goTab('leave')"><span class="ni material-symbols-outlined">calendar_today</span>Leaves</button>
     <button class="nav-btn" id="nb-doctors" onclick="goTab('doctors')"><span class="ni material-symbols-outlined">group</span>Master</button>
+    <button class="nav-btn" id="nb-announcements" onclick="goTab('announcements')" style="display:none"><span class="ni material-symbols-outlined">campaign</span>Broadcast</button>
   </div>
 
   <!-- MR HOME TAB -->
@@ -587,6 +588,8 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="card"><div id="stockist-list"><div class="empty">No stockists assigned</div></div></div>
     </div>
+    <!-- MR ANNOUNCEMENT TAB -->
+    <div class="body" id="tab-announcements" style="display:none"></div>
   </div>
 
 </div>
@@ -618,10 +621,12 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
       <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
       <div class="admin-tab manager-only" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
+      <div class="admin-tab" id="tab-adm-announcements" onclick="goAdminTab('announcements')" style="display:none">Broadcasts</div>
     </div>
 
     <!-- ADMIN SECTIONS -->
     <div id="sec-adm-visit" style="display:none"></div>
+    <div id="sec-adm-announcements" style="display:none" class="body"></div>
     <!-- ADMIN DASHBOARD PANEL -->
     <div id="sec-adm-dash">
       <div class="stats">
@@ -1125,6 +1130,15 @@ table.tbl tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- BROADCAST ANNOUNCEMENT OVERLAY -->
+<div id="announcement-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.85); z-index:100000; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#fff; border-radius:24px; padding:40px 32px; width:100%; max-width:550px; box-shadow:0 20px 40px rgba(0,0,0,0.3); text-align:center; position:relative;">
+    <h2 style="font-family:'Outfit', 'Segoe UI', sans-serif; font-size:28px; font-weight:800; color:#0f172a; margin-bottom:16px; letter-spacing:-0.5px;" id="announcement-title">Namaskaram!</h2>
+    <div id="announcement-body" style="font-family:'Inter', sans-serif; font-size:15px; line-height:1.6; color:#334155; margin-bottom:32px; text-align:left; max-height:300px; overflow-y:auto; white-space:pre-wrap;"></div>
+    <button class="btn primary" id="btn-announcement-ack" style="width:100%; padding:14px; font-size:16px; font-weight:600; border-radius:12px; background:#001a72; color:#fff; cursor:pointer; border:none; transition: all 0.2s;" onclick="acknowledgeAnnouncement()">Continue to Website</button>
+  </div>
+</div>
+
 <script>
 window.addEventListener('error', function(e) {
   var div = document.createElement('div');
@@ -1558,7 +1572,8 @@ async function initSupabaseData(isSilent) {
       samplesInv,
       giftsInv,
       inputsInv,
-      stockists
+      stockists,
+      announcements
     ] = await Promise.all([
       fetchAllFromSupabase('doctors'),
       fetchAllFromSupabase('chemists'),
@@ -1570,7 +1585,8 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('samples_inventory'),
       fetchAllFromSupabase('gifts_inventory'),
       fetchAllFromSupabase('inputs_inventory'),
-      fetchAllFromSupabase('stockists')
+      fetchAllFromSupabase('stockists'),
+      fetchAllFromSupabase('announcements', { allowMissing: true })
     ]);
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
@@ -1900,7 +1916,17 @@ async function initSupabaseData(isSilent) {
         distributed: i.distributed,
         balance: i.balance
       })),
-      holidays: holidays
+      holidays: holidays,
+      announcements: (announcements || []).map(a => ({
+        id: a.id,
+        senderId: a.sender_id,
+        senderName: a.sender_name,
+        title: a.title || 'Namaskaram!',
+        message: a.message,
+        targetType: a.target_type,
+        targetValue: a.target_value,
+        acknowledgedBy: a.acknowledged_by || []
+      }))
     };
     
     hasInitializedData = true;
@@ -2013,6 +2039,7 @@ async function loadLocalDB() {
   if (!Array.isArray(DB.giftsInventory)) DB.giftsInventory = DEFAULT_DB.giftsInventory || [];
   if (!Array.isArray(DB.inputsInventory)) DB.inputsInventory = DEFAULT_DB.inputsInventory || [];
   if (!Array.isArray(DB.sfc)) DB.sfc = DEFAULT_DB.sfc || [];
+  if (!Array.isArray(DB.announcements)) DB.announcements = [];
 
   if (DB.reports.length === 0) {
     DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports || []));
@@ -2294,6 +2321,26 @@ window.addEventListener('beforeunload', function (e) {
     } catch (e) {
       console.error("Error syncing SFC:", e);
       hasSyncError = true;
+    }
+
+    // Sync Announcements
+    try {
+      const dbAnnouncements = (DB.announcements || []).map(a => ({
+        id: a.id,
+        sender_id: a.senderId || '',
+        sender_name: a.senderName || '',
+        title: a.title || 'Namaskaram!',
+        message: a.message || '',
+        target_type: a.targetType || '',
+        target_value: a.targetValue || '',
+        acknowledged_by: a.acknowledgedBy || []
+      }));
+      await upsertInBatches('announcements', dbAnnouncements);
+      await reconcileSupabaseRows('announcements', DB.announcements, function(row) { return row.id; }, function(row) {
+        return row.id ? supabase.from('announcements').delete().eq('id', row.id) : Promise.resolve();
+      });
+    } catch (e) {
+      console.error("Error syncing announcements:", e);
     }
 
     var dbStatus = document.getElementById('db-status-indicator');
@@ -2822,6 +2869,18 @@ function initEmpApp(){
   var u=SESSION.user;
   document.getElementById('emp-greeting').textContent='Welcome, '+u.name+' ('+u.id+')';
   
+  var isBroadcaster = canSendAnnouncement(u);
+  var bcBtn = document.getElementById('nb-announcements');
+  if (bcBtn) bcBtn.style.display = isBroadcaster ? 'block' : 'none';
+
+  if (currentTab === 'announcements' && !isBroadcaster) {
+    goTab('home');
+  } else if (currentTab === 'announcements') {
+    renderBroadcastPanel('tab-announcements');
+  }
+
+  checkAnnouncements();
+
   var now=new Date();
   document.getElementById('r-date').value=now.toISOString().split('T')[0];
   document.getElementById('r-time').value=now.toTimeString().slice(0,5);
@@ -2849,7 +2908,9 @@ function initEmpApp(){
   renderMyLeaves();
   renderHomeStats();
   
-  goTab('home');
+  if (currentTab !== 'announcements') {
+    goTab('home');
+  }
 }
 
 var _allReportingDocs = [];
@@ -4910,7 +4971,7 @@ function goTab(name){
     return; // Already on this tab, don't wipe state
   }
   currentTab = name;
-  ['home','report','tour','expense','leave','doctors'].forEach(function(t){
+  ['home','report','tour','expense','leave','doctors','announcements'].forEach(function(t){
     var el=document.getElementById('tab-'+t);
     if (el) {
       if (t === 'report') {
@@ -4920,6 +4981,9 @@ function goTab(name){
     }
     var nb=document.getElementById('nb-'+t);if(nb)nb.className='nav-btn'+(t===name?' on':'');
   });
+  if(name==='announcements') {
+    renderBroadcastPanel('tab-announcements');
+  }
   if(name==='report') {
     populateReportingDropdowns();
     populateReportTerritoryDropdowns();
@@ -4994,6 +5058,19 @@ function goMasterSubTab(id) {
 
 function initAdminApp(){
   document.body.classList.toggle('is-admin', SESSION.user.role === 'admin');
+  
+  var isBroadcaster = canSendAnnouncement(SESSION.user);
+  var bcTab = document.getElementById('tab-adm-announcements');
+  if (bcTab) bcTab.style.display = isBroadcaster ? 'block' : 'none';
+
+  if (currentAdminTab === 'announcements' && !isBroadcaster) {
+    goAdminTab('dash');
+  } else if (currentAdminTab === 'announcements') {
+    renderBroadcastPanel('sec-adm-announcements');
+  }
+
+  checkAnnouncements();
+
   renderAdminStats();
   renderAdminDashTeamList();
   renderAdminTPApprovals();
@@ -5011,18 +5088,22 @@ function initAdminApp(){
   populateAdminEmpFilters();
   populateInventoryItemSelect();
   renderAdminInventoryTables();
-  goAdminTab('dash');
+  if (currentAdminTab !== 'announcements') {
+    goAdminTab('dash');
+  }
 }
 
 function goAdminTab(name){
   currentAdminTab=name;
-  ['dash','appr','master','inventory','reports','visit'].forEach(function(t){
+  ['dash','appr','master','inventory','reports','visit','announcements'].forEach(function(t){
     var el=document.getElementById('sec-adm-'+t);
     if(el) el.style.display=t===name?'block':'none';
     var btn=document.getElementById('tab-adm-'+t);
     if(btn) btn.className='admin-tab'+(t===name?' on':'');
   });
-  
+  if(name==='announcements') {
+    renderBroadcastPanel('sec-adm-announcements');
+  }
   if (name === 'visit') {
     var tr = document.getElementById('tab-report');
     if(tr) {
@@ -5433,7 +5514,7 @@ function uploadSFC(inp){
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(p.length<7||!p[5]||!p[6])return;
+      if(p.length<7||!p[5])return;
       var fare = parseFloat(p[10])||0;
       var da = parseFloat(p[11])||0;
       var total = parseFloat(p[12]) || (fare + da);
@@ -8268,6 +8349,334 @@ function beautifyEmojis() {
   }
 
   replaceInNode(document.body);
+}
+
+// BROADCAST ANNOUNCEMENT MODULE
+var currentModalAnnouncement = null;
+
+function checkAnnouncements() {
+  if (!SESSION.user) return;
+  var user = SESSION.user;
+  var userId = String(user.id || '').trim().toUpperCase();
+  var userRole = String(user.role || '').trim().toLowerCase();
+  
+  if (!Array.isArray(DB.announcements)) DB.announcements = [];
+  
+  // Find any announcement targeted to this user that they haven't acknowledged
+  var unread = DB.announcements.find(function(a) {
+    var isTarget = false;
+    var targetType = (a.targetType || '').toLowerCase();
+    var targetVal = (a.targetValue || '').trim().toLowerCase();
+    
+    if (targetType === 'all') {
+      isTarget = true;
+    } else if (targetType === 'role') {
+      isTarget = (userRole === targetVal);
+    } else if (targetType === 'users') {
+      var userList = targetVal.split(',').map(s => s.trim().toUpperCase());
+      isTarget = userList.includes(userId);
+    }
+    
+    var ackBy = Array.isArray(a.acknowledgedBy) ? a.acknowledgedBy : [];
+    var alreadyAcked = ackBy.some(id => String(id).trim().toUpperCase() === userId);
+    
+    return isTarget && !alreadyAcked;
+  });
+  
+  if (unread) {
+    showAnnouncementModal(unread);
+  }
+}
+
+function showAnnouncementModal(ann) {
+  currentModalAnnouncement = ann;
+  var overlay = document.getElementById('announcement-overlay');
+  var titleEl = document.getElementById('announcement-title');
+  var bodyEl = document.getElementById('announcement-body');
+  
+  if (overlay && titleEl && bodyEl) {
+    titleEl.textContent = ann.title || 'Namaskaram!';
+    bodyEl.textContent = ann.message || '';
+    overlay.style.display = 'flex';
+  }
+}
+
+async function acknowledgeAnnouncement() {
+  if (!currentModalAnnouncement || !SESSION.user) return;
+  var user = SESSION.user;
+  var userId = String(user.id || '').trim().toUpperCase();
+  
+  var ann = DB.announcements.find(a => a.id === currentModalAnnouncement.id);
+  if (ann) {
+    if (!Array.isArray(ann.acknowledgedBy)) ann.acknowledgedBy = [];
+    if (!ann.acknowledgedBy.includes(userId)) {
+      ann.acknowledgedBy.push(userId);
+    }
+  }
+  
+  saveDB();
+  if (typeof syncSupabaseDatabase === 'function') {
+    await syncSupabaseDatabase();
+  }
+  
+  var overlay = document.getElementById('announcement-overlay');
+  if (overlay) overlay.style.display = 'none';
+  currentModalAnnouncement = null;
+  
+  // Check if there are more announcements to acknowledge
+  checkAnnouncements();
+}
+
+function canSendAnnouncement(user) {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  var name = (user.name || '').trim().toLowerCase();
+  var id = (user.id || '').trim().toLowerCase();
+  return name === 'milind sarwate' || name === 'jayashree' || name === 'pankaj undwar' || id === 'admin';
+}
+
+function renderBroadcastPanel(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  
+  var activeBroadcaster = canSendAnnouncement(SESSION.user);
+  if (!activeBroadcaster) {
+    container.innerHTML = '<div class="card"><div class="empty">You do not have permission to view this tab.</div></div>';
+    return;
+  }
+  
+  // Build employee list checkbox items for multi-select
+  var empsListHtml = '';
+  var sortedEmps = (DB.employees || []).filter(e => e.id !== 'ADMIN' && e.status === 'Active').sort((a,b) => a.name.localeCompare(b.name));
+  sortedEmps.forEach(function(e) {
+    empsListHtml += `
+      <label style="display:flex; align-items:center; gap:8px; padding:6px 0; font-family:'Inter',sans-serif; font-size:13px; color:#334155; cursor:pointer;">
+        <input type="checkbox" class="announcement-user-chk" value="${e.id}" style="width:16px; height:16px; margin:0;">
+        <span>${e.name} (${e.id}) - ${e.designation || e.role.toUpperCase()}</span>
+      </label>
+    `;
+  });
+  
+  var html = `
+    <div style="padding: 10px 0;">
+      <h2 style="font-family:'Outfit',sans-serif; color:#0f172a; margin-bottom:16px; font-weight:800;">📢 Broadcast Messages & Notices</h2>
+      
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">Create New Broadcast</div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="lbl">Heading / Greeting</label>
+            <input type="text" id="announcement-title-input" value="Namaskaram!" placeholder="e.g. Namaskaram! or Important Notice" style="width:100%;">
+          </div>
+          <div>
+            <label class="lbl">Message Text</label>
+            <textarea id="announcement-msg-input" placeholder="Type your broadcast message here..." style="width:100%; height:120px; padding:12px; border-radius:10px; border:1px solid #cbd5e1; font-family:'Inter',sans-serif; font-size:14px; resize:vertical;"></textarea>
+          </div>
+          
+          <div class="row2">
+            <div>
+              <label class="lbl">Target Type</label>
+              <select id="announcement-target-type" onchange="toggleAnnouncementTargetFields()" style="width:100%;">
+                <option value="all">All Employees</option>
+                <option value="role">By Role/Level</option>
+                <option value="users">Specific People</option>
+              </select>
+            </div>
+            
+            <div id="announcement-role-container" style="display:none;">
+              <label class="lbl">Select Role / Level</label>
+              <select id="announcement-target-role" style="width:100%;">
+                <option value="emp">Medical Representative (MR)</option>
+                <option value="manager">First Line Manager (FLM)</option>
+                <option value="am">Area Manager (AM)</option>
+                <option value="rm">Regional Manager (RM)</option>
+                <option value="zm">Zonal Manager (ZM)</option>
+                <option value="nsm">National Sales Manager (NSM)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div id="announcement-users-container" style="display:none; border:1px solid #cbd5e1; border-radius:12px; padding:16px; max-height:220px; overflow-y:auto; background:#f8fafc;">
+            <label class="lbl" style="margin-bottom:8px; font-weight:600;">Select Recipients</label>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #cbd5e1; padding-bottom:6px;">
+              <button class="btn sm primary" onclick="toggleSelectAllAnnouncemntUsers(true)" style="padding: 2px 8px; font-size:11px; width:auto; height:auto; line-height:1;">Select All</button>
+              <button class="btn sm danger" onclick="toggleSelectAllAnnouncemntUsers(false)" style="padding: 2px 8px; font-size:11px; width:auto; height:auto; line-height:1;">Clear All</button>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:6px 12px;">
+              ${empsListHtml}
+            </div>
+          </div>
+          
+          <div>
+            <button class="btn primary" onclick="sendBroadcastMessage()" style="width:100%; padding:12px; font-size:15px; font-weight:600; margin-top:8px;">🚀 Broadcast Now</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Broadcast History</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Sender</th>
+                <th>Heading</th>
+                <th>Message</th>
+                <th>Target</th>
+                <th>Acks</th>
+                <th style="text-align:center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="announcement-history-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+  renderAnnouncementHistory();
+}
+
+function toggleAnnouncementTargetFields() {
+  var targetType = document.getElementById('announcement-target-type').value;
+  document.getElementById('announcement-role-container').style.display = targetType === 'role' ? 'block' : 'none';
+  document.getElementById('announcement-users-container').style.display = targetType === 'users' ? 'block' : 'none';
+}
+
+function toggleSelectAllAnnouncemntUsers(checked) {
+  document.querySelectorAll('.announcement-user-chk').forEach(function(chk) {
+    chk.checked = checked;
+  });
+}
+
+async function sendBroadcastMessage() {
+  var title = document.getElementById('announcement-title-input').value.trim() || 'Namaskaram!';
+  var msg = document.getElementById('announcement-msg-input').value.trim();
+  if (!msg) {
+    showToast('Please enter a message');
+    return;
+  }
+  
+  var targetType = document.getElementById('announcement-target-type').value;
+  var targetVal = '';
+  
+  if (targetType === 'role') {
+    targetVal = document.getElementById('announcement-target-role').value;
+  } else if (targetType === 'users') {
+    var checked = [];
+    document.querySelectorAll('.announcement-user-chk:checked').forEach(function(chk) {
+      checked.push(chk.value);
+    });
+    if (checked.length === 0) {
+      showToast('Please select at least one person');
+      return;
+    }
+    targetVal = checked.join(',');
+  }
+  
+  var newAnnouncement = {
+    id: 'ann_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    senderId: SESSION.user.id,
+    senderName: SESSION.user.name,
+    title: title,
+    message: msg,
+    targetType: targetType,
+    targetValue: targetVal,
+    acknowledgedBy: []
+  };
+  
+  if (!Array.isArray(DB.announcements)) DB.announcements = [];
+  DB.announcements.push(newAnnouncement);
+  
+  saveDB();
+  if (typeof syncSupabaseDatabase === 'function') {
+    await syncSupabaseDatabase();
+  }
+  showToast('Broadcast sent successfully!');
+  
+  // Reset fields
+  document.getElementById('announcement-msg-input').value = '';
+  document.querySelectorAll('.announcement-user-chk').forEach(chk => chk.checked = false);
+  
+  // Re-render
+  var activeContainer = currentAdminTab === 'announcements' ? 'sec-adm-announcements' : 'tab-announcements';
+  renderBroadcastPanel(activeContainer);
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Are you sure you want to delete this announcement?')) return;
+  DB.announcements = (DB.announcements || []).filter(a => a.id !== id);
+  saveDB();
+  if (typeof syncSupabaseDatabase === 'function') {
+    await syncSupabaseDatabase();
+  }
+  showToast('Announcement deleted.');
+  var activeContainer = currentAdminTab === 'announcements' ? 'sec-adm-announcements' : 'tab-announcements';
+  renderBroadcastPanel(activeContainer);
+}
+
+function renderAnnouncementHistory() {
+  var tbody = document.getElementById('announcement-history-body');
+  if (!tbody) return;
+  
+  var announcements = (DB.announcements || []).sort((a,b) => b.id.localeCompare(a.id));
+  if (announcements.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">No broadcasts sent yet</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = announcements.map(function(a) {
+    var dateStr = '';
+    if (a.id && a.id.startsWith('ann_')) {
+      var ms = parseInt(a.id.split('_')[1]);
+      if (!isNaN(ms)) {
+        dateStr = new Date(ms).toLocaleString();
+      }
+    }
+    if (!dateStr) dateStr = '—';
+    
+    var targetStr = '';
+    if (a.targetType === 'all') {
+      targetStr = 'All Employees';
+    } else if (a.targetType === 'role') {
+      targetStr = 'Role: ' + a.targetValue.toUpperCase();
+    } else if (a.targetType === 'users') {
+      var count = a.targetValue.split(',').length;
+      targetStr = count + ' Specific User' + (count > 1 ? 's' : '');
+    }
+    
+    var acksCount = Array.isArray(a.acknowledgedBy) ? a.acknowledgedBy.length : 0;
+    
+    var totalCount = 0;
+    if (a.targetType === 'all') {
+      totalCount = (DB.employees || []).filter(e => e.id !== 'ADMIN').length;
+    } else if (a.targetType === 'role') {
+      totalCount = (DB.employees || []).filter(e => e.role.toLowerCase() === a.targetValue.toLowerCase() && e.id !== 'ADMIN').length;
+    } else if (a.targetType === 'users') {
+      totalCount = a.targetValue.split(',').length;
+    }
+    
+    var ackInfo = acksCount + ' / ' + totalCount;
+    var msgSnippet = a.message.length > 50 ? a.message.substring(0, 47) + '...' : a.message;
+    
+    return `
+      <tr>
+        <td>${dateStr}</td>
+        <td>${a.senderName}</td>
+        <td>${a.title || 'Namaskaram!'}</td>
+        <td title="${escapeHTML(a.message)}">${escapeHTML(msgSnippet)}</td>
+        <td>${targetStr}</td>
+        <td>
+          <span style="font-weight:600; color:${acksCount === totalCount ? '#16a34a' : '#ea580c'}">${ackInfo}</span>
+        </td>
+        <td style="text-align:center">
+          <button class="btn sm danger" onclick="deleteAnnouncement('${a.id}')" style="padding: 2px 8px; font-size:11px; width:auto; height:auto;">Delete</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // Observe dynamic additions

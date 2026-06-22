@@ -207,3 +207,18 @@ create table if not exists holidays (
 );
 alter table holidays add column if not exists state text not null default 'All';
 alter table holidays disable row level security;
+
+-- 11. Announcements / Broadcast Messages Table
+create table if not exists announcements (
+  id text primary key,
+  sender_id text not null,
+  sender_name text not null,
+  title text not null default 'Namaskaram!',
+  message text not null,
+  target_type text not null, -- 'all', 'role', 'users'
+  target_value text, -- role name, or comma-separated list of employee IDs
+  acknowledged_by text[] not null default '{}', -- array of employee IDs who acknowledged it
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+alter table announcements disable row level security;
+

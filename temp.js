@@ -268,14 +268,14 @@ async function fetchAllFromSupabase(table, options) {
   let page = 0;
   const pageSize = 1000;
   while (true) {
-    const query = supabase
+    let query = supabase
       .from(table)
       .select('*');
       
     if (table === 'holidays') {
-      query.order('date');
+      query = query.order('date');
     } else {
-      query.order('id');
+      query = query.order('id');
     }
     
     const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
@@ -4074,7 +4074,7 @@ function uploadSFC(inp){
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(p.length<7||!p[5]||!p[6])return;
+      if(p.length<7||!p[5])return;
       var existing = DB.sfc.find(function(s){
         return s.from.toLowerCase() === p[5].toLowerCase() && s.to.toLowerCase() === p[6].toLowerCase() && (s.empId || '').toLowerCase() === (p[0] || '').toLowerCase();
       });

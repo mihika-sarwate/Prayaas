@@ -5318,7 +5318,7 @@ function uploadSFC(inp){
     var dataLines = hasHeader ? lines.slice(1) : lines;
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
-      if(p.length<6||!p[4]||!p[5])return;
+      if(p.length<6||!p[4])return;
       var existing = DB.sfc.find(function(s){
         return s.from.toLowerCase() === p[4].toLowerCase() && s.to.toLowerCase() === p[5].toLowerCase();
       });

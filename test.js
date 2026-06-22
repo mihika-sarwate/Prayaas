@@ -1349,9 +1349,7 @@ window.addEventListener('beforeunload', function (e) {
         other: 0
       }));
       await upsertInBatches('sfc', dbSfc);
-      await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
-        return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
-      });
+      // Removed prune step to prevent empty local state from clearing populated cloud database rows.
     } catch (e) {
       console.error("Error syncing SFC:", e);
     }

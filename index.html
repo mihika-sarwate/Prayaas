@@ -1440,14 +1440,17 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
   var updates = deduped.filter(function(r) { return r.id !== undefined && r.id !== null; });
 
   async function processArray(arr, useInsert) {
+    console.log("processArray(" + table + "): processing " + arr.length + " rows in chunks of " + chunkSize + ". useInsert=" + useInsert);
     for (let i = 0; i < arr.length; i += chunkSize) {
       const chunk = arr.slice(i, i + chunkSize);
+      console.log("Sending chunk " + (i/chunkSize + 1) + " of " + Math.ceil(arr.length/chunkSize) + " to table " + table + ". Size: " + chunk.length);
       let res;
       if (useInsert) {
         res = await supabase.from(table).insert(chunk);
       } else {
         res = await supabase.from(table).upsert(chunk);
       }
+      console.log("Response for table " + table + ": status=" + res.status + ", error=" + JSON.stringify(res.error));
       if (res.error) {
         console.error("Batch upsert/insert failed on table " + table + ":", JSON.stringify(res.error));
         console.error("Error message: " + res.error.message + ", details: " + res.error.details + ", hint: " + res.error.hint);

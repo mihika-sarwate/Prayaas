@@ -1439,19 +1439,24 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
   var inserts = deduped.filter(function(r) { return r.id === undefined || r.id === null; });
   var updates = deduped.filter(function(r) { return r.id !== undefined && r.id !== null; });
 
-  async function processArray(arr) {
+  async function processArray(arr, useInsert) {
     for (let i = 0; i < arr.length; i += chunkSize) {
       const chunk = arr.slice(i, i + chunkSize);
-      const { error } = await supabase.from(table).upsert(chunk);
-      if (error) {
-        console.error("Batch upsert failed on table " + table + ":", error);
-        throw error;
+      let res;
+      if (useInsert) {
+        res = await supabase.from(table).insert(chunk);
+      } else {
+        res = await supabase.from(table).upsert(chunk);
+      }
+      if (res.error) {
+        console.error("Batch upsert/insert failed on table " + table + ":", res.error);
+        throw res.error;
       }
     }
   }
 
-  await processArray(inserts);
-  await processArray(updates);
+  await processArray(inserts, true);
+  await processArray(updates, false);
 }
 
 async function initSupabaseData(isSilent) {
@@ -1985,13 +1990,13 @@ async function seedSupabaseDatabase() {
         managerId = null;
       }
       return {
-        id: e.id,
-        name: e.name,
-        pwd: e.pwd,
-        area: e.area,
-        role: e.role,
+        id: e.id || undefined,
+        name: e.name || '',
+        pwd: e.pwd || '',
+        area: e.area || '',
+        role: e.role || '',
         manager_id: managerId,
-        doj: formatDateForPostgres(e.doj),
+        doj: formatDateForPostgres(e.doj) || null,
         state: e.state || null,
         status: normalizeEmployeeStatus(e.status),
         designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
@@ -2182,10 +2187,10 @@ window.addEventListener('beforeunload', function (e) {
 
       const dbSfc = DB.sfc.map(s => ({
         id: s.id || undefined,
-        from_loc: s.from,
-        to_loc: s.to,
+        from_loc: s.from || '',
+        to_loc: s.to || '',
         distance: s.distance || 0,
-        mode: JSON.stringify({ mode: s.mode, empId: s.empId, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
+        mode: JSON.stringify({ mode: s.mode||'', empId: s.empId||'', workingDays: s.workingDays||'', empName: s.empName||'', hq: s.hq||'', state: s.state||'', category: s.category||'', total: s.total||0, doctors: s.doctors||'', business: s.business||'' }),
         fare: s.fare || 0,
         da: s.da || 0,
         lodge: 0,
@@ -2210,13 +2215,13 @@ window.addEventListener('beforeunload', function (e) {
           managerId = null;
         }
         return {
-          id: e.id,
-          name: e.name,
-          pwd: e.pwd,
-          area: e.area,
-          role: e.role,
+          id: e.id || undefined,
+          name: e.name || '',
+          pwd: e.pwd || '',
+          area: e.area || '',
+          role: e.role || '',
           manager_id: managerId,
-          doj: formatDateForPostgres(e.doj),
+          doj: formatDateForPostgres(e.doj) || null,
           state: e.state || null,
           status: normalizeEmployeeStatus(e.status),
           designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
@@ -2241,9 +2246,9 @@ window.addEventListener('beforeunload', function (e) {
           assignTo = null;
         }
         return {
-          id: d.id,
-          code: d.code,
-          name: d.name,
+          id: d.id || undefined,
+          code: d.code || '',
+          name: d.name || '',
           be_name: d.beName || '',
           hq: d.hq || '',
           manager_name: d.managerName || '',
@@ -2256,7 +2261,7 @@ window.addEventListener('beforeunload', function (e) {
           territory_type: d.territoryType || '',
           phone: d.phone || '',
           assign_to: assignTo,
-          status: d.status
+          status: d.status || 'active'
         };
       });
       await upsertInBatches('doctors', dbDocs);
@@ -2281,9 +2286,9 @@ window.addEventListener('beforeunload', function (e) {
           assignTo = null;
         }
         return {
-          id: c.id,
-          name: c.name,
-          area: c.area,
+          id: c.id || undefined,
+          name: c.name || '',
+          area: c.area || '',
           assign_to: assignTo
         };
       });
@@ -2309,9 +2314,9 @@ window.addEventListener('beforeunload', function (e) {
           assignTo = null;
         }
         return {
-          id: s.id,
-          name: s.name,
-          area: s.area,
+          id: s.id || undefined,
+          name: s.name || '',
+          area: s.area || '',
           assign_to: assignTo
         };
       });
@@ -2332,22 +2337,22 @@ window.addEventListener('beforeunload', function (e) {
     // Sync Reports
     try {
       const dbReports = DB.reports.map(r => ({
-        id: r.id,
-        emp_id: r.empId,
-        emp_name: r.empName,
+        id: r.id || undefined,
+        emp_id: r.empId || '',
+        emp_name: r.empName || '',
         date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
-        time: r.time,
-        target_type: r.targetType,
-        classification: r.classification,
-        call_type: r.callType,
+        time: r.time || '',
+        target_type: r.targetType || '',
+        classification: r.classification || '',
+        call_type: r.callType || '',
         doc_id: r.docId || null,
         doc_name: r.docName || null,
         doc_spec: r.docSpec || null,
         doc_area: r.docArea || null,
-        promoted_products: r.promotedProducts || [],
-        samples: r.samples || {},
-        gifts: r.gifts || {},
-        inputs: r.inputs || {},
+        promoted_products: JSON.stringify(r.promotedProducts || []),
+        samples: JSON.stringify(r.samples || {}),
+        gifts: JSON.stringify(r.gifts || {}),
+        inputs: JSON.stringify(r.inputs || {}),
         chem_id: r.chemId || null,
         chem_name: r.chemName || null,
         chem_area: r.chemArea || null,
@@ -2359,7 +2364,7 @@ window.addEventListener('beforeunload', function (e) {
         lat: r.lat || null,
         lng: r.lng || null,
         remarks: r.remarks || null,
-        next_visit: formatDateForPostgres(r.nextVisit)
+        next_visit: formatDateForPostgres(r.nextVisit) || null
       }));
       await upsertInBatches('reports', dbReports);
       await reconcileSupabaseRows('reports', DB.reports, function(row) {
@@ -2374,19 +2379,19 @@ window.addEventListener('beforeunload', function (e) {
     // Sync Tour Plans
     try {
       const dbTourPlans = DB.tourPlans.map(tp => ({
-        id: tp.id,
-        emp_id: tp.empId,
-        emp_name: tp.empName,
-        month: tp.month,
+        id: tp.id || undefined,
+        emp_id: tp.empId || '',
+        emp_name: tp.empName || '',
+        month: tp.month || '',
         manager_id: resolveManagerId(tp.managerId),
         manager_name: tp.managerName || null,
-        days: tp.days,
-        status: tp.status,
+        days: JSON.stringify(tp.days || []),
+        status: tp.status || 'draft',
         remarks: tp.remarks || null,
         submitted_at: tp.submittedAt || null,
-        approved_date: formatDateForPostgres(tp.approvedDate),
+        approved_date: formatDateForPostgres(tp.approvedDate) || null,
         approved_by: tp.approvedBy || null,
-        revision_history: tp.revisionHistory || []
+        revision_history: JSON.stringify(tp.revisionHistory || [])
       }));
       await upsertInBatches('tour_plans', dbTourPlans);
       await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
@@ -2401,15 +2406,15 @@ window.addEventListener('beforeunload', function (e) {
     // Sync Expenses
     try {
       const dbExpenses = DB.expenses.map(ex => ({
-        id: ex.id,
-        emp_id: ex.empId,
-        emp_name: ex.empName,
-        month: ex.month,
+        id: ex.id || undefined,
+        emp_id: ex.empId || '',
+        emp_name: ex.empName || '',
+        month: ex.month || '',
         manager_id: resolveManagerId(ex.managerId),
-        lines: ex.lines,
-        total: ex.total,
+        lines: JSON.stringify(ex.lines || []),
+        total: ex.total || 0,
         receipt_file: ex.receiptFile || null,
-        status: ex.status,
+        status: ex.status || 'draft',
         submitted_at: ex.submittedAt || null,
         remarks: ex.remarks || null
       }));
@@ -2426,16 +2431,16 @@ window.addEventListener('beforeunload', function (e) {
     // Sync Leaves
     try {
       const dbLeaves = DB.leaves.map(lv => ({
-        id: lv.id,
-        emp_id: lv.empId,
-        emp_name: lv.empName,
-        type: lv.type,
-        start: formatDateForPostgres(lv.start),
-        "end": formatDateForPostgres(lv.end),
-        days: lv.days,
+        id: lv.id || undefined,
+        emp_id: lv.empId || '',
+        emp_name: lv.empName || '',
+        type: lv.type || '',
+        start: formatDateForPostgres(lv.start) || null,
+        "end": formatDateForPostgres(lv.end) || null,
+        days: lv.days || 0,
         reason: lv.reason || null,
         manager_id: lv.managerId || null,
-        status: lv.status,
+        status: lv.status || 'pending',
         submitted_at: lv.submittedAt || null,
         remarks: lv.remarks || null
       }));
@@ -2453,12 +2458,12 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbSamples = DB.samplesInventory.map(s => ({
         id: s.id || undefined,
-        prod_name: s.prodName,
-        emp_id: s.empId,
-        opening: s.opening,
-        received: s.received,
-        distributed: s.distributed,
-        balance: s.balance
+        prod_name: s.prodName || '',
+        emp_id: s.empId || '',
+        opening: s.opening || 0,
+        received: s.received || 0,
+        distributed: s.distributed || 0,
+        balance: s.balance || 0
       }));
       await upsertInBatches('samples_inventory', dbSamples);
     } catch (e) {
@@ -2469,12 +2474,12 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbGifts = DB.giftsInventory.map(g => ({
         id: g.id || undefined,
-        gift_name: g.giftName,
-        emp_id: g.empId,
-        opening: g.opening,
-        received: g.received,
-        distributed: g.distributed,
-        balance: g.balance
+        gift_name: g.giftName || '',
+        emp_id: g.empId || '',
+        opening: g.opening || 0,
+        received: g.received || 0,
+        distributed: g.distributed || 0,
+        balance: g.balance || 0
       }));
       await upsertInBatches('gifts_inventory', dbGifts);
     } catch (e) {
@@ -2485,12 +2490,12 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbInputs = DB.inputsInventory.map(i => ({
         id: i.id || undefined,
-        input_name: i.inputName,
-        emp_id: i.empId,
-        opening: i.opening,
-        received: i.received,
-        distributed: i.distributed,
-        balance: i.balance
+        input_name: i.inputName || '',
+        emp_id: i.empId || '',
+        opening: i.opening || 0,
+        received: i.received || 0,
+        distributed: i.distributed || 0,
+        balance: i.balance || 0
       }));
       await upsertInBatches('inputs_inventory', dbInputs);
     } catch (e) {

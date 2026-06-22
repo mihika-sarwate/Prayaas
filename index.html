@@ -3329,11 +3329,15 @@ function runSupabaseDelete(table, queryFactory) {
 }
 
 function normalizeSfcKey(row) {
+  var m = row.mode || '';
+  if (typeof m === 'string' && m.startsWith('{')) {
+    try { m = JSON.parse(m).mode || ''; } catch(e){}
+  }
   return [
     row.from || row.from_loc || '',
     row.to || row.to_loc || '',
     row.distance || 0,
-    row.mode || '',
+    m,
     row.fare || 0,
     row.da || 0,
     row.lodge || 0,
@@ -5184,7 +5188,10 @@ function uploadSFC(inp){
       var p=parseCSVLine(line);
       if(p.length<7||!p[5]||!p[6])return;
       var existing = DB.sfc.find(function(s){
-        return s.from.toLowerCase() === p[5].toLowerCase() && s.to.toLowerCase() === p[6].toLowerCase() && (s.empId || '').toLowerCase() === (p[0] || '').toLowerCase();
+        return s.from.toLowerCase() === p[5].toLowerCase() && 
+               s.to.toLowerCase() === p[6].toLowerCase() && 
+               (s.empId || '').toLowerCase() === (p[0] || '').toLowerCase() &&
+               (s.mode || '').toLowerCase() === (p[9] || '').toLowerCase();
       });
       var fare = parseFloat(p[10])||0;
       var da = parseFloat(p[11])||0;

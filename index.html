@@ -1843,7 +1843,6 @@ async function initSupabaseData(isSilent) {
         dbCopy.tourPlans = [];
         dbCopy.expenses = [];
         dbCopy.leaves = [];
-        dbCopy.sfc = [];
         localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
       } catch (e2) {
         console.warn("Failed to save even truncated DB cache to localStorage:", e2);
@@ -2129,7 +2128,6 @@ function saveDB() {
         dbCopy2.tourPlans = [];
         dbCopy2.expenses = [];
         dbCopy2.leaves = [];
-        dbCopy2.sfc = [];
         localStorage.setItem('adonis_db', JSON.stringify(dbCopy2));
       } catch(e3) {
         console.warn("Still exceeded quota even without large datasets.");
@@ -2159,6 +2157,36 @@ window.addEventListener('beforeunload', function (e) {
     }
     isSyncing = true;
     syncPending = false;
+
+    // Sync SFC
+    try {
+      var sfcKeysLocal = new Set();
+      DB.sfc = DB.sfc.filter(function(s) {
+        var k = normalizeSfcKey(s);
+        if (sfcKeysLocal.has(k)) return false;
+        sfcKeysLocal.add(k);
+        return true;
+      });
+
+      const dbSfc = DB.sfc.map(s => ({
+        id: s.id || undefined,
+        from_loc: s.from,
+        to_loc: s.to,
+        distance: s.distance || 0,
+        mode: JSON.stringify({ mode: s.mode, empId: s.empId, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
+        fare: s.fare || 0,
+        da: s.da || 0,
+        lodge: 0,
+        other: 0
+      }));
+      await upsertInBatches('sfc', dbSfc);
+      await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
+        return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
+      });
+    } catch (e) {
+      console.error("Error syncing SFC:", e);
+    }
+
     var dbStatus = document.getElementById('db-status-indicator');
     if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
     try {
@@ -2457,34 +2485,6 @@ window.addEventListener('beforeunload', function (e) {
       console.error("Error syncing inputs inventory:", e);
     }
 
-    // Sync SFC
-    try {
-      var sfcKeysLocal = new Set();
-      DB.sfc = DB.sfc.filter(function(s) {
-        var k = normalizeSfcKey(s);
-        if (sfcKeysLocal.has(k)) return false;
-        sfcKeysLocal.add(k);
-        return true;
-      });
-
-      const dbSfc = DB.sfc.map(s => ({
-        id: s.id || undefined,
-        from_loc: s.from,
-        to_loc: s.to,
-        distance: s.distance || 0,
-        mode: JSON.stringify({ mode: s.mode, empId: s.empId, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
-        fare: s.fare || 0,
-        da: s.da || 0,
-        lodge: 0,
-        other: 0
-      }));
-      await upsertInBatches('sfc', dbSfc);
-      await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
-        return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
-      });
-    } catch (e) {
-      console.error("Error syncing SFC:", e);
-    }
 
     // Sync Holidays
     try {
@@ -3358,7 +3358,13 @@ function normalizeSfcKey(row) {
     m,
     category,
     row.fare || 0,
-    row.da || 0
+    row.da || 0,
+    row.workingDays || extra.workingDays || '',
+    row.empName || extra.empName || '',
+    row.hq || extra.hq || '',
+    row.state || extra.state || '',
+    row.doctors || extra.doctors || '',
+    row.business || extra.business || ''
   ].join('|').toLowerCase();
 }
 

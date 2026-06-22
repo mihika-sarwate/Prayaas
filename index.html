@@ -1415,15 +1415,18 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
   var deduped = [];
   for (var di = 0; di < dataArray.length; di++) {
     var row = dataArray[di];
-    // Build a unique key for deduplication
-    var rowKey;
+    if (row.id === undefined || row.id === null) {
+      deduped.push(row);
+      continue;
+    }
+    
+    var rowKey = String(row.id);
     if (table === 'holidays') {
       rowKey = (row.date || '') + '|' + (row.state || 'All');
     } else if (table === 'sfc') {
       rowKey = (row.from_loc || '') + '|' + (row.to_loc || '') + '|' + (row.mode || '');
-    } else {
-      rowKey = String(row.id || di);
     }
+    
     if (!seen[rowKey]) {
       seen[rowKey] = true;
       deduped.push(row);
@@ -1432,14 +1435,23 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
   if (deduped.length < dataArray.length) {
     console.warn('upsertInBatches(' + table + '): removed ' + (dataArray.length - deduped.length) + ' duplicate rows before upsert.');
   }
-  for (let i = 0; i < deduped.length; i += chunkSize) {
-    const chunk = deduped.slice(i, i + chunkSize);
-    const { error } = await supabase.from(table).upsert(chunk);
-    if (error) {
-      console.error("Batch upsert failed on table " + table + ":", error);
-      throw error;
+  
+  var inserts = deduped.filter(function(r) { return r.id === undefined || r.id === null; });
+  var updates = deduped.filter(function(r) { return r.id !== undefined && r.id !== null; });
+
+  async function processArray(arr) {
+    for (let i = 0; i < arr.length; i += chunkSize) {
+      const chunk = arr.slice(i, i + chunkSize);
+      const { error } = await supabase.from(table).upsert(chunk);
+      if (error) {
+        console.error("Batch upsert failed on table " + table + ":", error);
+        throw error;
+      }
     }
   }
+
+  await processArray(inserts);
+  await processArray(updates);
 }
 
 async function initSupabaseData(isSilent) {
@@ -5238,16 +5250,30 @@ function uploadSFC(inp){
       if(p.length<7||!p[5]||!p[6])return;
       var fare = parseFloat(p[10])||0;
       var da = parseFloat(p[11])||0;
-      var existing = DB.sfc.find(function(s){
-        return s.from.toLowerCase() === p[5].toLowerCase() && 
-               s.to.toLowerCase() === p[6].toLowerCase() && 
-               (s.empId || '').toLowerCase() === (p[0] || '').toLowerCase() &&
-               (s.mode || '').toLowerCase() === (p[9] || '').toLowerCase() &&
-               (s.category || '').toLowerCase() === (p[7] || '').toLowerCase() &&
-               (s.fare || 0) === fare &&
-               (s.da || 0) === da;
-      });
       var total = parseFloat(p[12]) || (fare + da);
+
+      var newRow = {
+        empId: p[0]||'',
+        workingDays: p[1]||'',
+        empName: p[2]||'',
+        hq: p[3]||'',
+        state: p[4]||'',
+        from: p[5]||'',
+        to: p[6]||'',
+        category: p[7]||'',
+        distance: parseInt(p[8])||0,
+        mode: p[9]||'',
+        fare: fare,
+        da: da,
+        total: total,
+        doctors: p[13]||'',
+        business: p[14]||''
+      };
+
+      var newKey = normalizeSfcKey(newRow);
+      var existing = DB.sfc.find(function(s){
+        return normalizeSfcKey(s) === newKey;
+      });
 
       if(existing){
         existing.empId = p[0]||'';

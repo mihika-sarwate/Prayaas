@@ -1438,6 +1438,10 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
   
   var inserts = deduped.filter(function(r) { return r.id === undefined || r.id === null; });
   var updates = deduped.filter(function(r) { return r.id !== undefined && r.id !== null; });
+  if (table === 'holidays') {
+    inserts = [];
+    updates = deduped;
+  }
 
   async function processArray(arr, useInsert) {
     console.log("processArray(" + table + "): processing " + arr.length + " rows in chunks of " + chunkSize + ". useInsert=" + useInsert);
@@ -2191,17 +2195,22 @@ window.addEventListener('beforeunload', function (e) {
         return true;
       });
 
-      const dbSfc = DB.sfc.map(s => ({
-        id: s.id || undefined,
-        from_loc: s.from || '',
-        to_loc: s.to || '',
-        distance: s.distance || 0,
-        mode: JSON.stringify({ mode: s.mode||'', empId: s.empId||'', workingDays: s.workingDays||'', empName: s.empName||'', hq: s.hq||'', state: s.state||'', category: s.category||'', total: s.total||0, doctors: s.doctors||'', business: s.business||'' }),
-        fare: s.fare || 0,
-        da: s.da || 0,
-        lodge: 0,
-        other: 0
-      }));
+      const dbSfc = DB.sfc.map(s => {
+        var row = {
+          from_loc: s.from || '',
+          to_loc: s.to || '',
+          distance: s.distance || 0,
+          mode: JSON.stringify({ mode: s.mode||'', empId: s.empId||'', workingDays: s.workingDays||'', empName: s.empName||'', hq: s.hq||'', state: s.state||'', category: s.category||'', total: s.total||0, doctors: s.doctors||'', business: s.business||'' }),
+          fare: s.fare || 0,
+          da: s.da || 0,
+          lodge: 0,
+          other: 0
+        };
+        if (s.id !== undefined && s.id !== null) {
+          row.id = s.id;
+        }
+        return row;
+      });
       await upsertInBatches('sfc', dbSfc);
       await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
         return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
@@ -2344,36 +2353,41 @@ window.addEventListener('beforeunload', function (e) {
 
     // Sync Reports
     try {
-      const dbReports = DB.reports.map(r => ({
-        id: r.id || undefined,
-        emp_id: r.empId || '',
-        emp_name: r.empName || '',
-        date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
-        time: r.time || '',
-        target_type: r.targetType || '',
-        classification: r.classification || '',
-        call_type: r.callType || '',
-        doc_id: r.docId || null,
-        doc_name: r.docName || null,
-        doc_spec: r.docSpec || null,
-        doc_area: r.docArea || null,
-        promoted_products: JSON.stringify(r.promotedProducts || []),
-        samples: JSON.stringify(r.samples || {}),
-        gifts: JSON.stringify(r.gifts || {}),
-        inputs: JSON.stringify(r.inputs || {}),
-        chem_id: r.chemId || null,
-        chem_name: r.chemName || null,
-        chem_area: r.chemArea || null,
-        order_amount: r.orderAmount || 0,
-        stock_status: r.stockStatus || null,
-        jfw_mgr_id: r.jfwMgrId || null,
-        jfw_mgr_name: r.jfwMgrName || null,
-        jfw_remarks: r.jfwRemarks || null,
-        lat: r.lat || null,
-        lng: r.lng || null,
-        remarks: r.remarks || null,
-        next_visit: formatDateForPostgres(r.nextVisit) || null
-      }));
+      const dbReports = DB.reports.map(r => {
+        var row = {
+          emp_id: r.empId || '',
+          emp_name: r.empName || '',
+          date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
+          time: r.time || '',
+          target_type: r.targetType || '',
+          classification: r.classification || '',
+          call_type: r.callType || '',
+          doc_id: r.docId || null,
+          doc_name: r.docName || null,
+          doc_spec: r.docSpec || null,
+          doc_area: r.docArea || null,
+          promoted_products: r.promotedProducts || [],
+          samples: JSON.stringify(r.samples || {}),
+          gifts: JSON.stringify(r.gifts || {}),
+          inputs: JSON.stringify(r.inputs || {}),
+          chem_id: r.chemId || null,
+          chem_name: r.chemName || null,
+          chem_area: r.chemArea || null,
+          order_amount: r.orderAmount || 0,
+          stock_status: r.stockStatus || null,
+          jfw_mgr_id: r.jfwMgrId || null,
+          jfw_mgr_name: r.jfwMgrName || null,
+          jfw_remarks: r.jfwRemarks || null,
+          lat: r.lat || null,
+          lng: r.lng || null,
+          remarks: r.remarks || null,
+          next_visit: formatDateForPostgres(r.nextVisit) || null
+        };
+        if (r.id !== undefined && r.id !== null) {
+          row.id = r.id;
+        }
+        return row;
+      });
       await upsertInBatches('reports', dbReports);
       await reconcileSupabaseRows('reports', DB.reports, function(row) {
         return String(row.id || '').toUpperCase();
@@ -2465,15 +2479,20 @@ window.addEventListener('beforeunload', function (e) {
 
     // Sync Samples Inventory
     try {
-      const dbSamples = DB.samplesInventory.map(s => ({
-        id: s.id || undefined,
-        prod_name: s.prodName || '',
-        emp_id: s.empId || '',
-        opening: s.opening || 0,
-        received: s.received || 0,
-        distributed: s.distributed || 0,
-        balance: s.balance || 0
-      }));
+      const dbSamples = DB.samplesInventory.map(s => {
+        var row = {
+          prod_name: s.prodName || '',
+          emp_id: s.empId || '',
+          opening: s.opening || 0,
+          received: s.received || 0,
+          distributed: s.distributed || 0,
+          balance: s.balance || 0
+        };
+        if (s.id !== undefined && s.id !== null) {
+          row.id = s.id;
+        }
+        return row;
+      });
       await upsertInBatches('samples_inventory', dbSamples);
     } catch (e) {
       console.error("Error syncing samples inventory:", e);
@@ -2481,15 +2500,20 @@ window.addEventListener('beforeunload', function (e) {
 
     // Sync Gifts Inventory
     try {
-      const dbGifts = DB.giftsInventory.map(g => ({
-        id: g.id || undefined,
-        gift_name: g.giftName || '',
-        emp_id: g.empId || '',
-        opening: g.opening || 0,
-        received: g.received || 0,
-        distributed: g.distributed || 0,
-        balance: g.balance || 0
-      }));
+      const dbGifts = DB.giftsInventory.map(g => {
+        var row = {
+          gift_name: g.giftName || '',
+          emp_id: g.empId || '',
+          opening: g.opening || 0,
+          received: g.received || 0,
+          distributed: g.distributed || 0,
+          balance: g.balance || 0
+        };
+        if (g.id !== undefined && g.id !== null) {
+          row.id = g.id;
+        }
+        return row;
+      });
       await upsertInBatches('gifts_inventory', dbGifts);
     } catch (e) {
       console.error("Error syncing gifts inventory:", e);
@@ -2497,15 +2521,20 @@ window.addEventListener('beforeunload', function (e) {
 
     // Sync Inputs Inventory
     try {
-      const dbInputs = DB.inputsInventory.map(i => ({
-        id: i.id || undefined,
-        input_name: i.inputName || '',
-        emp_id: i.empId || '',
-        opening: i.opening || 0,
-        received: i.received || 0,
-        distributed: i.distributed || 0,
-        balance: i.balance || 0
-      }));
+      const dbInputs = DB.inputsInventory.map(i => {
+        var row = {
+          input_name: i.inputName || '',
+          emp_id: i.empId || '',
+          opening: i.opening || 0,
+          received: i.received || 0,
+          distributed: i.distributed || 0,
+          balance: i.balance || 0
+        };
+        if (i.id !== undefined && i.id !== null) {
+          row.id = i.id;
+        }
+        return row;
+      });
       await upsertInBatches('inputs_inventory', dbInputs);
     } catch (e) {
       console.error("Error syncing inputs inventory:", e);

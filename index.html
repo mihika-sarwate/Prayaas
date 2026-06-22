@@ -1407,7 +1407,7 @@ async function fetchAllFromSupabase(table, options) {
   return allData;
 }
 
-async function upsertInBatches(table, dataArray, chunkSize = 1000) {
+async function upsertInBatches(table, dataArray, chunkSize = 200) {
   if (!dataArray || dataArray.length === 0) return;
   // Deduplicate by primary key to prevent PostgreSQL error 21000
   // "ON CONFLICT DO UPDATE command cannot affect row a second time"
@@ -1449,7 +1449,8 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
         res = await supabase.from(table).upsert(chunk);
       }
       if (res.error) {
-        console.error("Batch upsert/insert failed on table " + table + ":", res.error);
+        console.error("Batch upsert/insert failed on table " + table + ":", JSON.stringify(res.error));
+        console.error("Error message: " + res.error.message + ", details: " + res.error.details + ", hint: " + res.error.hint);
         throw res.error;
       }
     }
@@ -1616,8 +1617,8 @@ async function initSupabaseData(isSilent) {
     
     // ABORT OVERWRITE IF A SYNC IS CURRENTLY RUNNING OR PENDING
     // Otherwise we will wipe out local changes that haven't been pushed to the cloud yet
-    if (isSyncing || syncPending) {
-      console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending.");
+    if (isSyncing || syncPending || (typeof hasSyncError !== 'undefined' && hasSyncError)) {
+      console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending or has encountered an error.");
       isLoadingData = false;
       return;
     }
@@ -2158,6 +2159,7 @@ function saveDB() {
 
 var isSyncing = false;
 var syncPending = false;
+var hasSyncError = false;
 var hasInitializedData = false;
 window.addEventListener('beforeunload', function (e) {
   if (isSyncing) {
@@ -2174,6 +2176,7 @@ window.addEventListener('beforeunload', function (e) {
     }
     isSyncing = true;
     syncPending = false;
+    hasSyncError = false;
 
     // Sync SFC
     try {
@@ -2202,6 +2205,7 @@ window.addEventListener('beforeunload', function (e) {
       });
     } catch (e) {
       console.error("Error syncing SFC:", e);
+      hasSyncError = true;
     }
 
     var dbStatus = document.getElementById('db-status-indicator');
@@ -2236,6 +2240,7 @@ window.addEventListener('beforeunload', function (e) {
       });
     } catch (e) {
       console.error("Error syncing employees:", e);
+      hasSyncError = true;
     }
 
     // Sync Doctors
@@ -2452,6 +2457,7 @@ window.addEventListener('beforeunload', function (e) {
       });
     } catch (e) {
       console.error("Error syncing leaves:", e);
+      hasSyncError = true;
     }
 
     // Sync Samples Inventory
@@ -2546,9 +2552,9 @@ window.addEventListener('beforeunload', function (e) {
 
   initSupabaseData();
 
-// Poll Supabase database for updates every 15 seconds if Supabase is connected
+// Poll Supabase database for updates every 15 seconds if Supabase is connected and sync hasn't failed
 setInterval(async function() {
-  if (useSupabase && !isSyncing) {
+  if (useSupabase && !isSyncing && !hasSyncError) {
       console.log("Auto-polling Supabase data...");
       await initSupabaseData(true);
     }

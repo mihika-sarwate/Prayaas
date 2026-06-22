@@ -1171,6 +1171,57 @@ var DEFAULT_DB={
 };
 
 var DB = DEFAULT_DB;
+
+// Simple IndexedDB Cache Helper to prevent localStorage 5MB quota errors
+var idb = {
+  dbName: 'adonis_cache_db',
+  storeName: 'cache_store',
+  get: function(key) {
+    return new Promise(function(resolve) {
+      try {
+        var request = indexedDB.open(idb.dbName, 1);
+        request.onupgradeneeded = function(e) {
+          e.target.result.createObjectStore(idb.storeName);
+        };
+        request.onsuccess = function(e) {
+          var db = e.target.result;
+          var tx = db.transaction(idb.storeName, 'readonly');
+          var store = tx.objectStore(idb.storeName);
+          var req = store.get(key);
+          req.onsuccess = function() {
+            resolve(req.result);
+          };
+          req.onerror = function() { resolve(null); };
+        };
+        request.onerror = function() { resolve(null); };
+      } catch(err) {
+        resolve(null);
+      }
+    });
+  },
+  set: function(key, val) {
+    return new Promise(function(resolve) {
+      try {
+        var request = indexedDB.open(idb.dbName, 1);
+        request.onupgradeneeded = function(e) {
+          e.target.result.createObjectStore(idb.storeName);
+        };
+        request.onsuccess = function(e) {
+          var db = e.target.result;
+          var tx = db.transaction(idb.storeName, 'readwrite');
+          var store = tx.objectStore(idb.storeName);
+          var req = store.put(val, key);
+          req.onsuccess = function() { resolve(true); };
+          req.onerror = function() { resolve(false); };
+        };
+        request.onerror = function() { resolve(false); };
+      } catch(err) {
+        resolve(false);
+      }
+    });
+  }
+};
+
 var supabaseUrl = 'https://ajifnoazcvxvpyzlusuy.supabase.co';
 var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDgyMDk5OSwiZXhwIjoyMDk2Mzk2OTk5fQ.ZWKocTrU_DzgXkOpi1M4oOl7oF4WobCIQmM99rzCW2U';
 var supabase = null;
@@ -1449,16 +1500,16 @@ async function initSupabaseData(isSilent) {
   if (!supabase) {
     if (window._hasAttemptedSupabaseLoad) {
       console.warn("Supabase load already attempted. Using local database.");
-      loadLocalDB();
+      await loadLocalDB();
       return;
     }
     window._hasAttemptedSupabaseLoad = true;
-    ensureSupabaseLoaded(function() {
+    ensureSupabaseLoaded(async function() {
       if (supabase) {
-        initSupabaseData(isSilent);
+        await initSupabaseData(isSilent);
       } else {
         console.warn("Supabase library not loaded. Using LocalStorage.");
-        loadLocalDB();
+        await loadLocalDB();
       }
     });
     return;
@@ -1515,7 +1566,7 @@ async function initSupabaseData(isSilent) {
     if (!emps || emps.length === 0) {
       if (window._hasSeededSupabase) {
         console.warn("Seeding already attempted. Bailing out of init recursion.");
-        loadLocalDB();
+        await loadLocalDB();
         isLoadingData = false;
         return;
       }
@@ -1827,11 +1878,15 @@ async function initSupabaseData(isSilent) {
     
     hasInitializedData = true;
 
+    // Save synchronized DB to IndexedDB
+    try {
+      await idb.set('adonis_db', DB);
+    } catch (e) {}
+
     // Save synchronized DB to local storage cache
     try {
       localStorage.setItem('adonis_db', JSON.stringify(DB));
     } catch (e) {
-      console.warn("Failed to cache synchronized DB to localStorage (quota exceeded):", e);
       try {
         var dbCopy = Object.assign({}, DB);
         dbCopy.doctors = [];
@@ -1843,9 +1898,7 @@ async function initSupabaseData(isSilent) {
         dbCopy.leaves = [];
         dbCopy.sfc = [];
         localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
-      } catch (e2) {
-        console.warn("Failed to save even truncated DB cache to localStorage:", e2);
-      }
+      } catch (e2) {}
     }
     
     // Refresh the UI with the fresh data
@@ -1888,18 +1941,30 @@ async function initSupabaseData(isSilent) {
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
     if (isSilent !== true) {
       showToast("Using local database cache.");
-      loadLocalDB();
+      await loadLocalDB();
     }
     isLoadingData = false;
   }
 }
 
-function loadLocalDB() {
+async function loadLocalDB() {
   try {
-    var raw = localStorage.getItem('adonis_db');
-    DB = raw ? JSON.parse(raw) : DEFAULT_DB;
+    var idbData = await idb.get('adonis_db');
+    if (idbData && typeof idbData === 'object') {
+      DB = idbData;
+      console.log("Database loaded from IndexedDB cache.");
+    } else {
+      var raw = localStorage.getItem('adonis_db');
+      DB = raw ? JSON.parse(raw) : DEFAULT_DB;
+      console.log("Database loaded from localStorage cache.");
+    }
   } catch(e) {
-    DB = DEFAULT_DB;
+    try {
+      var raw = localStorage.getItem('adonis_db');
+      DB = raw ? JSON.parse(raw) : DEFAULT_DB;
+    } catch(e2) {
+      DB = DEFAULT_DB;
+    }
   }
   if (!DB || typeof DB !== 'object') {
     DB = DEFAULT_DB;
@@ -1956,9 +2021,20 @@ function loadLocalDB() {
   }
   if (updated || !localStorage.getItem('adonis_db')) {
     try {
+      await idb.set('adonis_db', DB);
       localStorage.setItem('adonis_db', JSON.stringify(DB));
     } catch(e) {
-      console.warn("Failed to save DB in loadLocalDB (quota exceeded):", e);
+      try {
+        var dbCopy = Object.assign({}, DB);
+        dbCopy.doctors = [];
+        dbCopy.chemists = [];
+        dbCopy.stockists = [];
+        dbCopy.reports = [];
+        dbCopy.tourPlans = [];
+        dbCopy.expenses = [];
+        dbCopy.leaves = [];
+        localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
+      } catch (e2) {}
     }
   }
 }
@@ -2099,6 +2175,10 @@ async function seedSupabaseDatabase() {
 }
 
 function saveDB() {
+  idb.set('adonis_db', DB).then(function(success) {
+    if (success) console.log("Database successfully cached to IndexedDB.");
+  });
+
   try {
     localStorage.removeItem('adonis_db');
     localStorage.setItem('adonis_order_emps', JSON.stringify((DB.employees||[]).map(x=>x.id)));
@@ -2109,13 +2189,11 @@ function saveDB() {
   try {
     localStorage.setItem('adonis_db', JSON.stringify(DB));
   } catch (e) {
-    console.warn("localStorage quota exceeded. Attempting to save without reports.");
     try {
       var dbCopy = Object.assign({}, DB);
       dbCopy.reports = [];
       localStorage.setItem('adonis_db', JSON.stringify(dbCopy));
     } catch (e2) {
-      console.warn("Still exceeded quota. Attempting to save without large datasets.");
       try {
         var dbCopy2 = Object.assign({}, DB);
         dbCopy2.doctors = [];
@@ -2127,9 +2205,7 @@ function saveDB() {
         dbCopy2.leaves = [];
         dbCopy2.sfc = [];
         localStorage.setItem('adonis_db', JSON.stringify(dbCopy2));
-      } catch(e3) {
-        console.warn("Still exceeded quota even without large datasets.");
-      }
+      } catch(e3) {}
     }
   }
   if (typeof syncSupabaseDatabase === 'function') {

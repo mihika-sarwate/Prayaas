@@ -669,27 +669,35 @@ async function initSupabaseData(isSilent) {
         remarks: lv.remarks
       })),
       cityRates: DEFAULT_DB.cityRates,
-      sfc: (sfc || []).map(s => {
-        let extra = {};
-        try { if (s.mode && s.mode.startsWith('{')) extra = JSON.parse(s.mode); } catch(e){}
-        return {
-          id: s.id,
-          from: s.from_loc,
-          to: s.to_loc,
-          distance: s.distance,
-          mode: extra.mode || s.mode,
-          fare: s.fare,
-          da: s.da,
-          workingDays: extra.workingDays || '',
-          empName: extra.empName || '',
-          hq: extra.hq || '',
-          state: extra.state || '',
-          category: extra.category || '',
-          total: extra.total || (s.fare + s.da),
-          doctors: extra.doctors || '',
-          business: extra.business || ''
-        };
-      }),
+      sfc: (function() {
+        var cloudSfc = (sfc || []).map(s => {
+          let extra = {};
+          try { if (s.mode && s.mode.startsWith('{')) extra = JSON.parse(s.mode); } catch(e){}
+          return {
+            id: s.id,
+            from: s.from_loc,
+            to: s.to_loc,
+            distance: s.distance,
+            mode: extra.mode || s.mode,
+            fare: s.fare,
+            da: s.da,
+            workingDays: extra.workingDays || '',
+            empName: extra.empName || '',
+            hq: extra.hq || '',
+            state: extra.state || '',
+            category: extra.category || '',
+            total: extra.total || (s.fare + s.da),
+            doctors: extra.doctors || '',
+            business: extra.business || ''
+          };
+        });
+        var localSfc = (typeof DB !== 'undefined' && DB && DB.sfc) ? DB.sfc : [];
+        if (cloudSfc.length === 0 && localSfc.length > 0) {
+          console.warn('Supabase returned 0 SFC rows but local DB has ' + localSfc.length + '. Keeping local data to prevent loss.');
+          return localSfc;
+        }
+        return cloudSfc;
+      })(),
       samplesInventory: (samplesInv || []).map(s => ({
         id: s.id,
         prodName: s.prod_name,

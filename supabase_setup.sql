@@ -218,7 +218,12 @@ create table if not exists announcements (
   target_type text not null, -- 'all', 'role', 'users'
   target_value text, -- role name, or comma-separated list of employee IDs
   acknowledged_by text[] not null default '{}', -- array of employee IDs who acknowledged it
+  file_data text,
+  file_type text,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
+alter table announcements add column if not exists file_data text;
+alter table announcements add column if not exists file_type text;
 alter table announcements disable row level security;
+
 

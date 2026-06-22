@@ -1925,7 +1925,9 @@ async function initSupabaseData(isSilent) {
         message: a.message,
         targetType: a.target_type,
         targetValue: a.target_value,
-        acknowledgedBy: a.acknowledged_by || []
+        acknowledgedBy: a.acknowledged_by || [],
+        fileData: a.file_data || '',
+        fileType: a.file_type || ''
       }))
     };
     
@@ -2333,7 +2335,9 @@ window.addEventListener('beforeunload', function (e) {
         message: a.message || '',
         target_type: a.targetType || '',
         target_value: a.targetValue || '',
-        acknowledged_by: a.acknowledgedBy || []
+        acknowledged_by: a.acknowledgedBy || [],
+        file_data: a.fileData || '',
+        file_type: a.fileType || ''
       }));
       await upsertInBatches('announcements', dbAnnouncements);
       await reconcileSupabaseRows('announcements', DB.announcements, function(row) { return row.id; }, function(row) {
@@ -8396,7 +8400,20 @@ function showAnnouncementModal(ann) {
   
   if (overlay && titleEl && bodyEl) {
     titleEl.textContent = ann.title || 'Namaskaram!';
-    bodyEl.textContent = ann.message || '';
+    
+    var bodyHtml = escapeHTML(ann.message || '');
+    if (ann.fileData) {
+      if (ann.fileType === 'image') {
+        bodyHtml += `<br><br><img src="${ann.fileData}" style="width:100%; max-height:280px; border-radius:12px; border:1px solid #cbd5e1; object-fit:contain; margin-top:8px;">`;
+      } else if (ann.fileType === 'pdf') {
+        bodyHtml += `<br><br><object data="${ann.fileData}" type="application/pdf" style="width:100%; height:320px; border-radius:12px; border:1px solid #cbd5e1; margin-top:8px;">
+          <embed src="${ann.fileData}" type="application/pdf" style="width:100%; height:320px; border-radius:12px;">
+          <p style="font-size:12px; padding:10px 0;">PDF Preview is not supported by your browser. <a href="${ann.fileData}" target="_blank" download="document.pdf" style="color:#001a72; font-weight:bold; text-decoration:underline;">Click here to download/open the PDF</a></p>
+        </object>`;
+      }
+    }
+    
+    bodyEl.innerHTML = bodyHtml;
     overlay.style.display = 'flex';
   }
 }
@@ -8435,6 +8452,31 @@ function canSendAnnouncement(user) {
   return name === 'milind sarwate' || name === 'jayashree' || name === 'pankaj undwar' || id === 'admin';
 }
 
+function previewAnnouncementFile(input) {
+  var previewContainer = document.getElementById('announcement-file-preview');
+  if (!previewContainer) return;
+  previewContainer.innerHTML = '';
+  previewContainer.style.display = 'none';
+  
+  var file = input.files[0];
+  if (!file) return;
+  
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var data = e.target.result;
+    previewContainer.style.display = 'block';
+    if (file.type.startsWith('image/')) {
+      previewContainer.innerHTML = `<img src="${data}" style="max-width:100%; max-height:150px; border-radius:8px; border:1px solid #cbd5e1; object-fit:contain;">`;
+    } else if (file.type === 'application/pdf') {
+      previewContainer.innerHTML = `<div style="padding:10px; background:#e2e8f0; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; color:#475569; display:flex; align-items:center; gap:8px;">
+        <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">picture_as_pdf</span>
+        <span>PDF Selected: <strong>${escapeHTML(file.name)}</strong> (${Math.round(file.size / 1024)} KB)</span>
+      </div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
 function renderBroadcastPanel(containerId) {
   var container = document.getElementById(containerId);
   if (!container) return;
@@ -8471,6 +8513,11 @@ function renderBroadcastPanel(containerId) {
           <div>
             <label class="lbl">Message Text</label>
             <textarea id="announcement-msg-input" placeholder="Type your broadcast message here..." style="width:100%; height:120px; padding:12px; border-radius:10px; border:1px solid #cbd5e1; font-family:'Inter',sans-serif; font-size:14px; resize:vertical;"></textarea>
+          </div>
+          <div>
+            <label class="lbl">Add Photo or PDF (inline display)</label>
+            <input type="file" id="announcement-file-input" accept="image/*,application/pdf" style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; background:#fff;" onchange="previewAnnouncementFile(this)">
+            <div id="announcement-file-preview" style="margin-top:8px; display:none;"></div>
           </div>
           
           <div class="row2">
@@ -8576,6 +8623,32 @@ async function sendBroadcastMessage() {
     targetVal = checked.join(',');
   }
   
+  var fileInput = document.getElementById('announcement-file-input');
+  var fileData = '';
+  var fileType = '';
+  
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    var file = fileInput.files[0];
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('File is too large. Please select a photo or PDF under 2 MB.');
+      return;
+    }
+    
+    fileType = file.type.startsWith('image/') ? 'image' : (file.type === 'application/pdf' ? 'pdf' : '');
+    if (!fileType) {
+      showToast('Invalid file type. Only photos and PDFs are allowed.');
+      return;
+    }
+    
+    showToast('Processing file...');
+    fileData = await new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function(e) { resolve(e.target.result); };
+      reader.onerror = function(err) { reject(err); };
+      reader.readAsDataURL(file);
+    });
+  }
+  
   var newAnnouncement = {
     id: 'ann_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
     senderId: SESSION.user.id,
@@ -8584,7 +8657,9 @@ async function sendBroadcastMessage() {
     message: msg,
     targetType: targetType,
     targetValue: targetVal,
-    acknowledgedBy: []
+    acknowledgedBy: [],
+    fileData: fileData,
+    fileType: fileType
   };
   
   if (!Array.isArray(DB.announcements)) DB.announcements = [];
@@ -8598,6 +8673,12 @@ async function sendBroadcastMessage() {
   
   // Reset fields
   document.getElementById('announcement-msg-input').value = '';
+  if (fileInput) fileInput.value = '';
+  var previewContainer = document.getElementById('announcement-file-preview');
+  if (previewContainer) {
+    previewContainer.innerHTML = '';
+    previewContainer.style.display = 'none';
+  }
   document.querySelectorAll('.announcement-user-chk').forEach(chk => chk.checked = false);
   
   // Re-render

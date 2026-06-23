@@ -1,19 +1,7 @@
 -- Supabase Database Schema Setup for Sankalp
 -- Copy and paste this entire file into the Supabase SQL Editor and click "Run"
 
--- IMPORTANT: Disable Row Level Security (RLS) on all tables so public client credentials can read/write data.
-alter table employees disable row level security;
-alter table doctors disable row level security;
-alter table chemists disable row level security;
-alter table reports disable row level security;
-alter table tour_plans disable row level security;
-alter table expenses disable row level security;
-alter table leaves disable row level security;
-alter table sfc disable row level security;
-alter table samples_inventory disable row level security;
-alter table gifts_inventory disable row level security;
-alter table inputs_inventory disable row level security;
-alter table stockists disable row level security;
+
 
 -- 1. Employees Table
 create table if not exists employees (
@@ -235,4 +223,16 @@ alter table announcements add column if not exists file_data text;
 alter table announcements add column if not exists file_type text;
 alter table announcements disable row level security;
 
-
+-- IMPORTANT: Disable Row Level Security (RLS) on all tables so public client credentials can read/write data.
+alter table employees disable row level security;
+alter table doctors disable row level security;
+alter table chemists disable row level security;
+alter table reports disable row level security;
+alter table tour_plans disable row level security;
+alter table expenses disable row level security;
+alter table leaves disable row level security;
+alter table sfc disable row level security;
+alter table samples_inventory disable row level security;
+alter table gifts_inventory disable row level security;
+alter table inputs_inventory disable row level security;
+alter table stockists disable row level security;

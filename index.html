@@ -9,6 +9,7 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="config.js"></script>
 <script src="supabase.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
@@ -1237,8 +1238,8 @@ var idb = {
   }
 };
 
-var supabaseUrl = 'https://ajifnoazcvxvpyzlusuy.supabase.co';
-var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDgyMDk5OSwiZXhwIjoyMDk2Mzk2OTk5fQ.ZWKocTrU_DzgXkOpi1M4oOl7oF4WobCIQmM99rzCW2U';
+var supabaseUrl = window.SUPABASE_CONFIG ? window.SUPABASE_CONFIG.supabaseUrl : '';
+var supabaseKey = window.SUPABASE_CONFIG ? window.SUPABASE_CONFIG.supabaseKey : '';
 var supabase = null;
 var useSupabase = false;
 var isLoadingData = false;

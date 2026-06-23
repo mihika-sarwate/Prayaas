@@ -1,10 +1,40 @@
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
+
+function loadEnv() {
+  try {
+    const envPath = path.resolve(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      envContent.split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const firstEqual = trimmed.indexOf('=');
+          if (firstEqual !== -1) {
+            const key = trimmed.slice(0, firstEqual).trim();
+            const val = trimmed.slice(firstEqual + 1).trim();
+            process.env[key] = val;
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Warning: Could not load .env file", err);
+  }
+}
+loadEnv();
+
+const supabaseUrl = process.env.SUPABASE_URL || 'https://bydkgooulktqjgojqzod.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+const hostname = new URL(supabaseUrl).hostname;
+
 const options = {
-  hostname: 'ajifnoazcvxvpyzlusuy.supabase.co',
+  hostname: hostname,
   path: '/rest/v1/employees?select=id&id=eq.ADLA33',
   headers: {
-    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDgyMDk5OSwiZXhwIjoyMDk2Mzk2OTk5fQ.ZWKocTrU_DzgXkOpi1M4oOl7oF4WobCIQmM99rzCW2U',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqaWZub2F6Y3Z4dnB5emx1c3V5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDgyMDk5OSwiZXhwIjoyMDk2Mzk2OTk5fQ.ZWKocTrU_DzgXkOpi1M4oOl7oF4WobCIQmM99rzCW2U'
+    'apikey': supabaseKey,
+    'Authorization': 'Bearer ' + supabaseKey
   }
 };
 https.get(options, (res) => {

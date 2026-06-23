@@ -1,0 +1,12 @@
+# Local configuration files containing credentials
+config.js
+.env
+
+# Local database CSVs / data backups
+*.csv
+scratch/
+temp.js
+temp_script.js
+test.js
+db_tables.txt
+*.log

@@ -1827,23 +1827,30 @@ async function initSupabaseData(isSilent) {
       cityRates: DEFAULT_DB.cityRates,
       sfc: (sfc || []).map(s => {
         let extra = {};
-        try { if (s.mode && s.mode.startsWith('{')) extra = JSON.parse(s.mode); } catch(e){}
+        let isJson = false;
+        try {
+          if (s.mode && s.mode.startsWith('{')) {
+            extra = JSON.parse(s.mode);
+            isJson = true;
+          }
+        } catch(e){}
         return {
           id: s.id,
-          from: s.from_loc,
-          to: s.to_loc,
-          distance: s.distance,
-          mode: extra.mode || s.mode,
-          fare: s.fare,
-          da: s.da,
-          workingDays: extra.workingDays || '',
-          empName: extra.empName || '',
-          hq: extra.hq || '',
-          state: extra.state || '',
-          category: extra.category || '',
-          total: extra.total || (s.fare + s.da),
-          doctors: extra.doctors || '',
-          business: extra.business || ''
+          from: s.from_loc || '',
+          to: s.to_loc || '',
+          distance: s.distance || 0,
+          mode: isJson ? (extra.mode !== undefined ? extra.mode : '') : (s.mode || ''),
+          fare: s.fare || 0,
+          da: s.da || 0,
+          empId: s.emp_id !== undefined && s.emp_id !== null ? s.emp_id : (extra.empId || ''),
+          workingDays: s.working_days !== undefined && s.working_days !== null ? s.working_days : (extra.workingDays || ''),
+          empName: s.emp_name !== undefined && s.emp_name !== null ? s.emp_name : (extra.empName || ''),
+          hq: s.hq !== undefined && s.hq !== null ? s.hq : (extra.hq || ''),
+          state: s.state !== undefined && s.state !== null ? s.state : (extra.state || ''),
+          category: s.category !== undefined && s.category !== null ? s.category : (extra.category || ''),
+          total: s.total !== undefined && s.total !== null ? (parseFloat(s.total) || 0) : (extra.total || (s.fare + s.da)),
+          doctors: s.doctors !== undefined && s.doctors !== null ? s.doctors : (extra.doctors || ''),
+          business: s.business !== undefined && s.business !== null ? s.business : (extra.business || '')
         };
       }),
       samplesInventory: (samplesInv || []).map(s => ({
@@ -1985,12 +1992,31 @@ async function loadLocalDB() {
   if (!Array.isArray(DB.giftsInventory)) DB.giftsInventory = DEFAULT_DB.giftsInventory || [];
   if (!Array.isArray(DB.inputsInventory)) DB.inputsInventory = DEFAULT_DB.inputsInventory || [];
   if (!Array.isArray(DB.sfc)) DB.sfc = DEFAULT_DB.sfc || [];
+  var sfcUpdated = false;
+  DB.sfc.forEach(function(s) {
+    if (s && typeof s.mode === 'string' && s.mode.startsWith('{')) {
+      try {
+        var extra = JSON.parse(s.mode);
+        s.mode = extra.mode !== undefined ? extra.mode : '';
+        s.empId = s.empId || extra.empId || '';
+        s.workingDays = s.workingDays || extra.workingDays || '';
+        s.empName = s.empName || extra.empName || '';
+        s.hq = s.hq || extra.hq || '';
+        s.state = s.state || extra.state || '';
+        s.category = s.category || extra.category || '';
+        s.total = s.total || extra.total || (s.fare + s.da);
+        s.doctors = s.doctors || extra.doctors || '';
+        s.business = s.business || extra.business || '';
+        sfcUpdated = true;
+      } catch(e){}
+    }
+  });
 
   if (DB.reports.length === 0) {
     DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports || []));
   }
   
-  var updated = false;
+  var updated = sfcUpdated;
   DB.employees.forEach(function(e) {
     if (!e || !e.id) return;
     var def = DEFAULT_DB.employees.find(function(d){return d.id === e.id;});
@@ -2607,12 +2633,21 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbSfc = DB.sfc.map(s => ({
         id: s.id || undefined,
-        from_loc: s.from,
-        to_loc: s.to,
+        emp_id: s.empId || '',
+        working_days: s.workingDays || '',
+        emp_name: s.empName || '',
+        hq: s.hq || '',
+        state: s.state || '',
+        from_loc: s.from || '',
+        to_loc: s.to || '',
+        category: s.category || '',
         distance: s.distance || 0,
-        mode: JSON.stringify({ mode: s.mode, workingDays: s.workingDays, empName: s.empName, hq: s.hq, state: s.state, category: s.category, total: s.total, doctors: s.doctors, business: s.business }),
+        mode: s.mode || '',
         fare: s.fare || 0,
         da: s.da || 0,
+        total: s.total || (s.fare + s.da),
+        doctors: s.doctors || '',
+        business: s.business || '',
         lodge: 0,
         other: 0
       }));

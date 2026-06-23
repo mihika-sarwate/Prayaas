@@ -672,13 +672,19 @@ async function initSupabaseData(isSilent) {
       sfc: (function() {
         var cloudSfc = (sfc || []).map(s => {
           let extra = {};
-          try { if (s.mode && s.mode.startsWith('{')) extra = JSON.parse(s.mode); } catch(e){}
+          let isJson = false;
+          try {
+            if (s.mode && s.mode.startsWith('{')) {
+              extra = JSON.parse(s.mode);
+              isJson = true;
+            }
+          } catch(e){}
           return {
             id: s.id,
             from: s.from_loc,
             to: s.to_loc,
             distance: s.distance,
-            mode: extra.mode || s.mode,
+            mode: isJson ? (extra.mode !== undefined ? extra.mode : '') : s.mode,
             fare: s.fare,
             da: s.da,
             workingDays: extra.workingDays || '',

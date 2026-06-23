@@ -153,12 +153,21 @@ create table leaves (
 -- 8. SFC (Fare Chart) Table
 create table sfc (
   id serial primary key,
+  emp_id text,
+  working_days text,
+  emp_name text,
+  hq text,
+  state text,
   from_loc text not null,
   to_loc text not null,
+  category text,
   distance numeric,
   mode text,
   fare numeric,
   da numeric,
+  total numeric,
+  doctors text,
+  business text,
   lodge numeric,
   other numeric
 );

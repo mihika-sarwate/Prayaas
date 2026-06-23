@@ -1371,8 +1371,17 @@ async function insertEmployeeRowsToSupabase(rows) {
 
 function initSupabaseClient() {
   if (window.supabase) {
-    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-    return true;
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn("Supabase URL or Key is missing. Skipping client initialization.");
+      return false;
+    }
+    try {
+      supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+      return true;
+    } catch (e) {
+      console.error("Failed to initialize Supabase client:", e);
+      return false;
+    }
   }
   return false;
 }

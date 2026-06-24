@@ -2059,6 +2059,28 @@ async function loadLocalDB() {
     }
   });
 
+  // Automatically fall back to assigned representative's state for doctors, chemists, and stockists if state is blank
+  DB.doctors.forEach(function(d) {
+    if ((!d.state || d.state.trim() === '') && d.assignTo) {
+      var emp = DB.employees.find(function(e) { return String(e.id || '').trim().toUpperCase() === String(d.assignTo).trim().toUpperCase(); });
+      if (emp && emp.state) { d.state = emp.state; updated = true; }
+    }
+  });
+
+  DB.chemists.forEach(function(c) {
+    if ((!c.state || c.state.trim() === '') && c.assignTo) {
+      var emp = DB.employees.find(function(e) { return String(e.id || '').trim().toUpperCase() === String(c.assignTo).trim().toUpperCase(); });
+      if (emp && emp.state) { c.state = emp.state; updated = true; }
+    }
+  });
+
+  DB.stockists.forEach(function(s) {
+    if ((!s.state || s.state.trim() === '') && s.assignTo) {
+      var emp = DB.employees.find(function(e) { return String(e.id || '').trim().toUpperCase() === String(s.assignTo).trim().toUpperCase(); });
+      if (emp && emp.state) { s.state = emp.state; updated = true; }
+    }
+  });
+
   if (getHolidayDeletionFlag()) {
     DB.holidays = [];
     updated = true;

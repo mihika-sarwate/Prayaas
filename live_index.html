@@ -6041,7 +6041,7 @@ function uploadDoctors(inp){
         existing.address = p[addCol]||'';
         existing.city = p[cityCol]||'';
         existing.area = p[areaCol]||'';
-        existing.state = finalState || p[stateCol]||'';
+        existing.state = finalState || existing.state || '';
         existing.territoryType = p[typeCol]||'';
         existing.phone = p[phoneCol]||'';
         existing.status = 'Active';

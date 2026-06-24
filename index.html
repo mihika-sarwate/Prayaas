@@ -6386,7 +6386,7 @@ function uploadDoctors(inp){
       var finalState = (p[stateCol] || '').trim();
       if (!finalState && assignToVal) {
         var emp = DB.employees.find(function(e) {
-          return String(e.id || '').toUpperCase() === assignToVal;
+          return String(e.id || '').trim().toUpperCase() === assignToVal.trim();
         });
         if (emp && emp.state) {
           finalState = emp.state;
@@ -7028,7 +7028,7 @@ function uploadChemists(inp){
       var assignToVal = (p[assignCol]||'').toUpperCase();
       if (!chemState && assignToVal) {
         var emp = DB.employees.find(function(e) {
-          return String(e.id || '').toUpperCase() === assignToVal;
+          return String(e.id || '').trim().toUpperCase() === assignToVal.trim();
         });
         if (emp && emp.state) {
           chemState = emp.state;
@@ -7392,7 +7392,7 @@ function uploadStockists(inp) {
       var assignToVal = (p[assignCol]||'').toUpperCase();
       if (!stkState && assignToVal) {
         var emp = DB.employees.find(function(e) {
-          return String(e.id || '').toUpperCase() === assignToVal;
+          return String(e.id || '').trim().toUpperCase() === assignToVal.trim();
         });
         if (emp && emp.state) {
           stkState = emp.state;

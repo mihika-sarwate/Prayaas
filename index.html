@@ -1786,14 +1786,20 @@ async function initSupabaseData(isSilent) {
         }
         return cloudDocs;
       })(),
-      chemists: (function() {
-        var cloudChems = (chemists || []).map(c => ({
-          id: c.id,
-          name: c.name,
-          area: c.area,
-          assignTo: c.assign_to,
-          state: c.state || ''
-        }));
+        var cloudChems = (chemists || []).map(c => {
+          var stateVal = c.state || '';
+          if ((!stateVal || stateVal.trim() === '') && c.assign_to) {
+            var emp = emps.find(function(e) { return String(e.id || '').trim().toUpperCase() === String(c.assign_to).trim().toUpperCase(); });
+            if (emp && emp.state) stateVal = emp.state;
+          }
+          return {
+            id: c.id,
+            name: c.name,
+            area: c.area,
+            assignTo: c.assign_to,
+            state: stateVal
+          };
+        });
         var localChems = (typeof DB !== 'undefined' && DB && DB.chemists) ? DB.chemists : [];
         if (cloudChems.length === 0 && localChems.length > 0) {
           console.warn('Supabase returned 0 chemists but local DB has ' + localChems.length + '. Keeping local data.');
@@ -1807,13 +1813,20 @@ async function initSupabaseData(isSilent) {
         return cloudChems;
       })(),
       stockists: (function() {
-        var cloudStockists = (stockists || []).map(s => ({
-          id: s.id,
-          name: s.name,
-          area: s.area,
-          assignTo: s.assign_to,
-          state: s.state || ''
-        }));
+        var cloudStockists = (stockists || []).map(s => {
+          var stateVal = s.state || '';
+          if ((!stateVal || stateVal.trim() === '') && s.assign_to) {
+            var emp = emps.find(function(e) { return String(e.id || '').trim().toUpperCase() === String(s.assign_to).trim().toUpperCase(); });
+            if (emp && emp.state) stateVal = emp.state;
+          }
+          return {
+            id: s.id,
+            name: s.name,
+            area: s.area,
+            assignTo: s.assign_to,
+            state: stateVal
+          };
+        });
         var localStockists = (typeof DB !== 'undefined' && DB && DB.stockists) ? DB.stockists : [];
         if (cloudStockists.length === 0 && localStockists.length > 0) {
           console.warn('Supabase returned 0 stockists but local DB has ' + localStockists.length + '. Keeping local data.');

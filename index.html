@@ -7038,7 +7038,7 @@ function uploadChemists(inp){
       if(existing){
         existing.name = p[nameCol];
         existing.area = p[areaCol]||'';
-        existing.state = chemState;
+        existing.state = chemState || existing.state || '';
         existing.assignTo = assignToVal;
         newChem = existing;
       } else {
@@ -7402,7 +7402,7 @@ function uploadStockists(inp) {
       if(existing){
         existing.name = p[nameCol];
         existing.area = p[areaCol]||'';
-        existing.state = stkState;
+        existing.state = stkState || existing.state || '';
         existing.assignTo = assignToVal;
         newStk = existing;
       } else {

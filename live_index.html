@@ -1475,12 +1475,9 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
   var deduped = [];
   for (var di = 0; di < dataArray.length; di++) {
     var row = dataArray[di];
-    // Build a unique key for deduplication
     var rowKey;
     if (table === 'holidays') {
       rowKey = (row.date || '') + '|' + (row.state || 'All');
-    } else if (table === 'sfc') {
-      rowKey = (row.from_loc || '') + '|' + (row.to_loc || '') + '|' + (row.mode || '');
     } else {
       rowKey = String(row.id || di);
     }

@@ -688,6 +688,38 @@ table.tbl tr:last-child td{border-bottom:none}
             <button class="btn sm danger" id="btn-bulk-delete-selected-sfc" class="btn sm danger admin-only" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
           </div>
           <input type="text" id="adm-sfc-search" placeholder="&#128269; Search SFC by from, to, mode, or fare..." oninput="renderSFCTable()" style="margin-bottom:10px;background:#F1F5F9">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:10px;">
+            <div>
+              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">Employee / BE</label>
+              <select id="adm-sfc-filter-emp" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
+                <option value="">All Employees</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">HQ</label>
+              <select id="adm-sfc-filter-hq" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
+                <option value="">All HQs</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">State</label>
+              <select id="adm-sfc-filter-state" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
+                <option value="">All States</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">Category</label>
+              <select id="adm-sfc-filter-category" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
+                <option value="">All Categories</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">Mode</label>
+              <select id="adm-sfc-filter-mode" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
+                <option value="">All Modes</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="card">
           <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
@@ -1076,6 +1108,45 @@ table.tbl tr:last-child td{border-bottom:none}
       <div><label class="lbl">Assign To MR</label><select id="ms-assign"><option value="">-- Assign MR --</option></select></div>
     </div>
     <div class="btn-row"><button class="btn primary" onclick="saveStockist()">Save Stockist Record</button></div>
+  </div>
+</div>
+
+<!-- EDIT SFC MODAL -->
+<div class="modal-bg" id="modal-edit-sfc">
+  <div class="modal" style="max-width: 600px;">
+    <div class="modal-title">Edit SFC Record <button class="modal-close" onclick="closeModal('modal-edit-sfc')">&#215;</button></div>
+    <input type="hidden" id="sfc-edit-index">
+    <div class="row2">
+      <div><label class="lbl">Emp ID</label><input type="text" id="sfc-edit-empid" placeholder="e.g. EMP001"></div>
+      <div><label class="lbl">Name of BE</label><input type="text" id="sfc-edit-empname" placeholder="BE Name"></div>
+    </div>
+    <div class="row2">
+      <div><label class="lbl">Working Days</label><input type="number" id="sfc-edit-workingdays" placeholder="26"></div>
+      <div><label class="lbl">HQ</label><input type="text" id="sfc-edit-hq" placeholder="HQ"></div>
+    </div>
+    <div class="row2">
+      <div><label class="lbl">State</label><input type="text" id="sfc-edit-state" placeholder="State"></div>
+      <div><label class="lbl">Category (HQ/EX/OS)</label><input type="text" id="sfc-edit-category" placeholder="HQ/EX/OS"></div>
+    </div>
+    <div class="row2">
+      <div><label class="lbl">From Town</label><input type="text" id="sfc-edit-from" placeholder="From Town"></div>
+      <div><label class="lbl">To Town</label><input type="text" id="sfc-edit-to" placeholder="To Town"></div>
+    </div>
+    <div class="row3">
+      <div><label class="lbl">Distance (One Way)</label><input type="number" id="sfc-edit-distance" placeholder="Distance" oninput="calcSfcTotal()"></div>
+      <div><label class="lbl">Mode</label><input type="text" id="sfc-edit-mode" placeholder="e.g. Bus/Train"></div>
+      <div><label class="lbl">Fare (Up & Down)</label><input type="number" id="sfc-edit-fare" placeholder="Fare" oninput="calcSfcTotal()"></div>
+    </div>
+    <div class="row3">
+      <div><label class="lbl">DA</label><input type="number" id="sfc-edit-da" placeholder="DA" oninput="calcSfcTotal()"></div>
+      <div><label class="lbl">Total</label><input type="number" id="sfc-edit-total" placeholder="Total" readonly></div>
+      <div><label class="lbl">No. of Doctors</label><input type="number" id="sfc-edit-doctors" placeholder="Doctors"></div>
+    </div>
+    <div class="fw">
+      <label class="lbl">Expected Business / Month</label>
+      <input type="number" id="sfc-edit-business" placeholder="Business">
+    </div>
+    <div class="btn-row" style="margin-top:15px"><button class="btn primary" onclick="saveSFCRow()">Save SFC Record</button></div>
   </div>
 </div>
 
@@ -5437,13 +5508,94 @@ function rejectLeave(){
 
 // ===== MASTER DATA MANAGEMENT =====
 // SFC Upload/Render
+var _sfcFiltersPopulated = false;
+
+function populateSfcFilters() {
+  if (!Array.isArray(DB.sfc)) DB.sfc = [];
+  
+  var emps = {};
+  var hqs = new Set();
+  var states = new Set();
+  var categories = new Set();
+  var modes = new Set();
+  
+  DB.sfc.forEach(function(s) {
+    if (s.empId && s.empName) {
+      emps[s.empId] = s.empName;
+    } else if (s.empName) {
+      emps[s.empName] = s.empName;
+    }
+    if (s.hq) hqs.add(s.hq.trim());
+    if (s.state) states.add(s.state.trim());
+    if (s.category) categories.add(s.category.trim());
+    if (s.mode) modes.add(s.mode.trim());
+  });
+  
+  function populateSelect(id, values, defaultText) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var currentVal = sel.value;
+    
+    var html = '<option value="">' + defaultText + '</option>';
+    values.forEach(function(val) {
+      html += '<option value="' + val + '">' + val + '</option>';
+    });
+    sel.innerHTML = html;
+    if (values.includes(currentVal)) {
+      sel.value = currentVal;
+    } else {
+      sel.value = '';
+    }
+  }
+
+  var empSelect = document.getElementById('adm-sfc-filter-emp');
+  if (empSelect) {
+    var currentEmpVal = empSelect.value;
+    var empHtml = '<option value="">All Employees</option>';
+    var sortedEmpIds = Object.keys(emps).sort(function(a, b) {
+      return emps[a].localeCompare(emps[b]);
+    });
+    sortedEmpIds.forEach(function(id) {
+      empHtml += '<option value="' + id + '">' + emps[id] + ' (' + id + ')</option>';
+    });
+    empSelect.innerHTML = empHtml;
+    if (sortedEmpIds.includes(currentEmpVal)) {
+      empSelect.value = currentEmpVal;
+    } else {
+      empSelect.value = '';
+    }
+  }
+  
+  populateSelect('adm-sfc-filter-hq', Array.from(hqs).sort(), 'All HQs');
+  populateSelect('adm-sfc-filter-state', Array.from(states).sort(), 'All States');
+  populateSelect('adm-sfc-filter-category', Array.from(categories).sort(), 'All Categories');
+  populateSelect('adm-sfc-filter-mode', Array.from(modes).sort(), 'All Modes');
+}
+
 function renderSFCTable(){
+  if (!_sfcFiltersPopulated) {
+    populateSfcFilters();
+    _sfcFiltersPopulated = true;
+  }
+
+  var filterEmp = document.getElementById('adm-sfc-filter-emp') ? document.getElementById('adm-sfc-filter-emp').value : '';
+  var filterHq = document.getElementById('adm-sfc-filter-hq') ? document.getElementById('adm-sfc-filter-hq').value : '';
+  var filterState = document.getElementById('adm-sfc-filter-state') ? document.getElementById('adm-sfc-filter-state').value : '';
+  var filterCategory = document.getElementById('adm-sfc-filter-category') ? document.getElementById('adm-sfc-filter-category').value : '';
+  var filterMode = document.getElementById('adm-sfc-filter-mode') ? document.getElementById('adm-sfc-filter-mode').value : '';
+
   var q = getSearchQuery('adm-sfc-search');
   var filtered = DB.sfc.map(function(s, index) {
     return { s: s, index: index };
   }).filter(function(item){
-    if (!q) return true;
     var s = item.s || {};
+    if (filterEmp && s.empId !== filterEmp && s.empName !== filterEmp) return false;
+    if (filterHq && (s.hq || '').trim() !== filterHq) return false;
+    if (filterState && (s.state || '').trim() !== filterState) return false;
+    if (filterCategory && (s.category || '').trim() !== filterCategory) return false;
+    if (filterMode && (s.mode || '').trim() !== filterMode) return false;
+
+    if (!q) return true;
     var haystack = [
       s.workingDays, s.empName, s.hq, s.state, s.from, s.to, s.category, s.distance, s.mode, s.fare, s.da, s.total
     ].join(' ').toLowerCase();
@@ -5453,7 +5605,7 @@ function renderSFCTable(){
   document.getElementById('sfc-count').textContent=filtered.length;
   var tbody=document.getElementById('sfc-table-body');
   if(!filtered.length){
-    tbody.innerHTML='<tr><td colspan="16" class="empty">'+(q ? 'No matching SFC records found' : 'No SFC records available')+'</td></tr>';
+    tbody.innerHTML='<tr><td colspan="17" class="empty">'+(q || filterEmp || filterHq || filterState || filterCategory || filterMode ? 'No matching SFC records found' : 'No SFC records available')+'</td></tr>';
     return;
   }
   tbody.innerHTML=filtered.map(function(item){
@@ -5474,7 +5626,10 @@ function renderSFCTable(){
            '<td>&#x20B9;'+(s.total||(s.fare+s.da))+'</td>' +
            '<td>'+(s.doctors||'')+'</td>' +
            '<td>'+(s.business||'')+'</td>' +
-           '<td><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeSFC('+item.index+')">Delete</button></td></tr>';
+           '<td>' +
+             '<button class="btn sm primary admin-only" style="width:auto;padding:0 8px;margin-right:4px;display:inline-block" onclick="editSFC('+item.index+')">Edit</button>' +
+             '<button class="btn sm danger admin-only" style="width:auto;padding:0 8px;display:inline-block" onclick="removeSFC('+item.index+')">Delete</button>' +
+           '</td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-sfc');
@@ -5482,10 +5637,71 @@ function renderSFCTable(){
   updateSelectedSFCCount();
 }
 
+function editSFC(i) {
+  var s = DB.sfc[i];
+  if (!s) return;
+  
+  document.getElementById('sfc-edit-index').value = i;
+  document.getElementById('sfc-edit-empid').value = s.empId || '';
+  document.getElementById('sfc-edit-empname').value = s.empName || '';
+  document.getElementById('sfc-edit-workingdays').value = s.workingDays || '';
+  document.getElementById('sfc-edit-hq').value = s.hq || '';
+  document.getElementById('sfc-edit-state').value = s.state || '';
+  document.getElementById('sfc-edit-category').value = s.category || '';
+  document.getElementById('sfc-edit-from').value = s.from || '';
+  document.getElementById('sfc-edit-to').value = s.to || '';
+  document.getElementById('sfc-edit-distance').value = s.distance || 0;
+  document.getElementById('sfc-edit-mode').value = s.mode || '';
+  document.getElementById('sfc-edit-fare').value = s.fare || 0;
+  document.getElementById('sfc-edit-da').value = s.da || 0;
+  document.getElementById('sfc-edit-total').value = s.total || (s.fare + s.da);
+  document.getElementById('sfc-edit-doctors').value = s.doctors || '';
+  document.getElementById('sfc-edit-business').value = s.business || '';
+  
+  document.getElementById('modal-edit-sfc').classList.add('on');
+}
+
+function calcSfcTotal() {
+  var fare = parseFloat(document.getElementById('sfc-edit-fare').value) || 0;
+  var da = parseFloat(document.getElementById('sfc-edit-da').value) || 0;
+  document.getElementById('sfc-edit-total').value = fare + da;
+}
+
+function saveSFCRow() {
+  var idxVal = document.getElementById('sfc-edit-index').value;
+  if (idxVal === '') return;
+  var i = parseInt(idxVal);
+  var s = DB.sfc[i];
+  if (!s) return;
+  
+  s.empId = document.getElementById('sfc-edit-empid').value.trim();
+  s.empName = document.getElementById('sfc-edit-empname').value.trim();
+  s.workingDays = document.getElementById('sfc-edit-workingdays').value ? parseInt(document.getElementById('sfc-edit-workingdays').value) : '';
+  s.hq = document.getElementById('sfc-edit-hq').value.trim();
+  s.state = document.getElementById('sfc-edit-state').value.trim();
+  s.category = document.getElementById('sfc-edit-category').value.trim();
+  s.from = document.getElementById('sfc-edit-from').value.trim();
+  s.to = document.getElementById('sfc-edit-to').value.trim();
+  s.distance = parseFloat(document.getElementById('sfc-edit-distance').value) || 0;
+  s.mode = document.getElementById('sfc-edit-mode').value.trim();
+  s.fare = parseFloat(document.getElementById('sfc-edit-fare').value) || 0;
+  s.da = parseFloat(document.getElementById('sfc-edit-da').value) || 0;
+  s.total = parseFloat(document.getElementById('sfc-edit-total').value) || (s.fare + s.da);
+  s.doctors = document.getElementById('sfc-edit-doctors').value ? parseInt(document.getElementById('sfc-edit-doctors').value) : '';
+  s.business = document.getElementById('sfc-edit-business').value ? parseFloat(document.getElementById('sfc-edit-business').value) : '';
+  
+  _sfcFiltersPopulated = false;
+  saveDB();
+  closeModal('modal-edit-sfc');
+  renderSFCTable();
+  showToast('SFC record updated successfully.');
+}
+
 function removeSFC(i){
   if(!confirm('Delete SFC record?'))return;
   var target = DB.sfc[i];
   DB.sfc.splice(i,1);
+  _sfcFiltersPopulated = false;
   saveDB();
   renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
@@ -5528,6 +5744,7 @@ function bulkDeleteSelectedSFC() {
   });
 
   DB.sfc = DB.sfc.filter(function(s, idx) { return !indicesToDelete.includes(idx); });
+  _sfcFiltersPopulated = false;
   saveDB();
   renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
@@ -5546,6 +5763,7 @@ function bulkDeleteAllSFC() {
   }
   if (!confirm('WARNING: Are you sure you want to delete ALL SFC records (' + DB.sfc.length + ') from the system? This cannot be undone.')) return;
   DB.sfc = [];
+  _sfcFiltersPopulated = false;
   saveDB();
   renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
@@ -5631,6 +5849,7 @@ function uploadSFC(inp){
       }
       added++;
     });
+    _sfcFiltersPopulated = false;
     saveDB();
     showToast(added+' SFC entries processed successfully!');
     renderSFCTable();

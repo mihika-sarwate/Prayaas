@@ -928,6 +928,16 @@ table.tbl tr:last-child td{border-bottom:none}
         <button class="btn success sm admin-only" onclick="issueStockToMR()">Issue / Allocate Stock</button>
       </div>
 
+      <div class="card admin-only" style="margin-top: 15px;">
+        <div class="card-title">&#128228; Bulk Upload Inventory (CSV)</div>
+        <div class="info-box">Upload Inventory CSV. Columns: <strong>EmployeeID, ItemType, ItemName, OpeningQty</strong><br><span style="font-size: 11px; color: #64748B;">ItemType values: <em>sample</em> (or <em>product</em>), <em>gift</em>, <em>input</em></span></div>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn sm primary admin-only" onclick="document.getElementById('inv-bulk-upload').click()">&#8593; Upload Inventory CSV</button>
+          <input type="file" id="inv-bulk-upload" accept=".csv" onchange="uploadInventoryCSV(this)" style="display:none">
+          <button class="btn sm secondary admin-only" onclick="downloadInventoryTemplate()">Template</button>
+        </div>
+      </div>
+
       <div class="sec-hdr">&#128196; Employee Inventory Registers</div>
       <div class="card">
         <div class="row3">
@@ -3227,7 +3237,7 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
           '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
@@ -3251,7 +3261,7 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
           '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
@@ -3275,7 +3285,7 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Initial Qty</span>'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
           '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
@@ -7662,6 +7672,121 @@ function issueStockToMR(){
   showToast('Stock issued successfully to representative!');
   document.getElementById('inv-issue-qty').value='';
   renderAdminInventoryTables();
+}
+
+function downloadInventoryTemplate() {
+  var csv = 'EmployeeID,ItemType,ItemName,OpeningQty\n';
+  csv += 'EMP004,sample,Aminoglobin-XT Susp,50\n';
+  csv += 'EMP004,gift,Arden 250,20\n';
+  csv += 'EMP004,input,Promotional Brochure,100\n';
+  downloadData(csv, 'inventory_bulk_upload_template.csv');
+}
+
+function uploadInventoryCSV(inp) {
+  var file = inp.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var lines = e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+    if (!lines.length) return;
+    var added = 0;
+    var hasHeader = lines[0].toLowerCase().indexOf('employeeid') !== -1;
+    var dataLines = hasHeader ? lines.slice(1) : lines;
+    
+    dataLines.forEach(function(line) {
+      var p = parseCSVLine(line);
+      if (p.length < 4) return;
+      var empId = (p[0] || '').trim();
+      var itemType = (p[1] || '').trim().toLowerCase();
+      var itemName = (p[2] || '').trim();
+      var openingQty = parseInt(p[3]) || 0;
+      
+      if (!empId || !itemType || !itemName) return;
+      
+      // Verify employee exists (case-insensitive search)
+      var matchedEmp = DB.employees.find(function(x) {
+        return String(x.id || '').toUpperCase() === empId.toUpperCase();
+      });
+      if (!matchedEmp) {
+        console.warn("Bulk Upload: Employee ID " + empId + " not found. Skipping line: " + line);
+        return;
+      }
+      empId = matchedEmp.id; // use standard case from DB
+      
+      // Determine collection based on type and register item if new
+      if (itemType === 'sample' || itemType === 'product') {
+        if (DB.products.indexOf(itemName) === -1) {
+          DB.products.push(itemName);
+        }
+        var stock = DB.samplesInventory.find(function(s){return s.empId === empId && s.prodName === itemName;});
+        if (stock) {
+          stock.opening = openingQty;
+          stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+        } else {
+          DB.samplesInventory.push({
+            id: 'SAMPLEINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+            prodName: itemName,
+            empId: empId,
+            opening: openingQty,
+            received: 0,
+            distributed: 0,
+            balance: openingQty
+          });
+        }
+        added++;
+      } else if (itemType === 'gift') {
+        if (DB.gifts.indexOf(itemName) === -1) {
+          DB.gifts.push(itemName);
+        }
+        var stock = DB.giftsInventory.find(function(g){return g.empId === empId && g.giftName === itemName;});
+        if (stock) {
+          stock.opening = openingQty;
+          stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+        } else {
+          DB.giftsInventory.push({
+            id: 'GIFTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+            giftName: itemName,
+            empId: empId,
+            opening: openingQty,
+            received: 0,
+            distributed: 0,
+            balance: openingQty
+          });
+        }
+        added++;
+      } else if (itemType === 'input') {
+        if (DB.inputs.indexOf(itemName) === -1) {
+          DB.inputs.push(itemName);
+        }
+        var stock = DB.inputsInventory.find(function(i){return i.empId === empId && i.inputName === itemName;});
+        if (stock) {
+          stock.opening = openingQty;
+          stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+        } else {
+          DB.inputsInventory.push({
+            id: 'INPUTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+            inputName: itemName,
+            empId: empId,
+            opening: openingQty,
+            received: 0,
+            distributed: 0,
+            balance: openingQty
+          });
+        }
+        added++;
+      }
+    });
+    
+    saveDB();
+    showToast(added + ' inventory records processed successfully!');
+    populateInventoryItemSelect();
+    renderAdminInventoryTables();
+    if (typeof populateReportingDropdowns === 'function') {
+      populateReportingDropdowns();
+    }
+  };
+  reader.readAsText(file);
+  inp.value = '';
 }
 
 function renderAdminInventoryTables(){

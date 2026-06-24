@@ -6018,6 +6018,17 @@ function uploadDoctors(inp){
       seenInBatch[docCode] = true;
       var existing = DB.doctors.find(function(d){ return d.code === docCode; });
       var newDoc;
+      // Determine state from CSV, or fetch/deduce automatically from the assigned employee's state
+      var finalState = (p[stateCol] || '').trim();
+      if (!finalState && newDoc.assignTo) {
+        var emp = DB.employees.find(function(e) {
+          return String(e.id || '').toUpperCase() === newDoc.assignTo.toUpperCase();
+        });
+        if (emp && emp.state) {
+          finalState = emp.state;
+        }
+      }
+
       if(existing){
         existing.name = p[nameCol];
         existing.assignTo = (p[empIdCol]||'').toUpperCase();
@@ -6029,7 +6040,7 @@ function uploadDoctors(inp){
         existing.address = p[addCol]||'';
         existing.city = p[cityCol]||'';
         existing.area = p[areaCol]||'';
-        existing.state = p[stateCol]||'';
+        existing.state = finalState || p[stateCol]||'';
         existing.territoryType = p[typeCol]||'';
         existing.phone = p[phoneCol]||'';
         existing.status = 'Active';
@@ -6048,7 +6059,7 @@ function uploadDoctors(inp){
           address: p[addCol]||'',
           city: p[cityCol]||'',
           area: p[areaCol]||'',
-          state: p[stateCol]||'',
+          state: finalState,
           territoryType: p[typeCol]||'',
           phone: p[phoneCol]||'',
           status: 'Active'
@@ -6627,19 +6638,30 @@ function uploadChemists(inp){
       seenInBatch[chemId] = true;
       var existing = DB.chemists.find(function(c){ return c.id === chemId; });
       var newChem;
+      var chemState = (stateCol !== -1 ? p[stateCol] : '') || '';
+      var assignToVal = (p[assignCol]||'').toUpperCase();
+      if (!chemState && assignToVal) {
+        var emp = DB.employees.find(function(e) {
+          return String(e.id || '').toUpperCase() === assignToVal;
+        });
+        if (emp && emp.state) {
+          chemState = emp.state;
+        }
+      }
+
       if(existing){
         existing.name = p[nameCol];
         existing.area = p[areaCol]||'';
-        existing.state = (stateCol !== -1 ? p[stateCol] : '') || '';
-        existing.assignTo = (p[assignCol]||'').toUpperCase();
+        existing.state = chemState;
+        existing.assignTo = assignToVal;
         newChem = existing;
       } else {
         newChem = {
           id: chemId,
           name: p[nameCol],
           area: p[areaCol]||'',
-          state: (stateCol !== -1 ? p[stateCol] : '') || '',
-          assignTo: (p[assignCol]||'').toUpperCase()
+          state: chemState,
+          assignTo: assignToVal
         };
       }
       
@@ -6981,19 +7003,30 @@ function uploadStockists(inp) {
       seenInBatch[stockistId] = true;
       var existing = DB.stockists.find(function(s){ return s.id === stockistId; });
       var newStk;
+      var stkState = (stateCol !== -1 ? p[stateCol] : '') || '';
+      var assignToVal = (p[assignCol]||'').toUpperCase();
+      if (!stkState && assignToVal) {
+        var emp = DB.employees.find(function(e) {
+          return String(e.id || '').toUpperCase() === assignToVal;
+        });
+        if (emp && emp.state) {
+          stkState = emp.state;
+        }
+      }
+
       if(existing){
         existing.name = p[nameCol];
         existing.area = p[areaCol]||'';
-        existing.state = (stateCol !== -1 ? p[stateCol] : '') || '';
-        existing.assignTo = (p[assignCol]||'').toUpperCase();
+        existing.state = stkState;
+        existing.assignTo = assignToVal;
         newStk = existing;
       } else {
         newStk = {
           id: stockistId,
           name: p[nameCol],
           area: p[areaCol]||'',
-          state: (stateCol !== -1 ? p[stateCol] : '') || '',
-          assignTo: (p[assignCol]||'').toUpperCase()
+          state: stkState,
+          assignTo: assignToVal
         };
       }
       

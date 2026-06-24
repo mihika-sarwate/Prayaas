@@ -6017,12 +6017,13 @@ function uploadDoctors(inp){
       if(seenInBatch[docCode]) return; // skip duplicate codes in the CSV
       seenInBatch[docCode] = true;
       var existing = DB.doctors.find(function(d){ return d.code === docCode; });
-      var newDoc;
+      var assignToVal = (p[empIdCol]||'').toUpperCase();
+      
       // Determine state from CSV, or fetch/deduce automatically from the assigned employee's state
       var finalState = (p[stateCol] || '').trim();
-      if (!finalState && newDoc.assignTo) {
+      if (!finalState && assignToVal) {
         var emp = DB.employees.find(function(e) {
-          return String(e.id || '').toUpperCase() === newDoc.assignTo.toUpperCase();
+          return String(e.id || '').toUpperCase() === assignToVal;
         });
         if (emp && emp.state) {
           finalState = emp.state;
@@ -6031,7 +6032,7 @@ function uploadDoctors(inp){
 
       if(existing){
         existing.name = p[nameCol];
-        existing.assignTo = (p[empIdCol]||'').toUpperCase();
+        existing.assignTo = assignToVal;
         existing.beName = p[beNameCol]||'';
         existing.hq = p[hqCol]||'';
         existing.managerName = p[mgrNameCol]||'';
@@ -6049,7 +6050,7 @@ function uploadDoctors(inp){
         newDoc = {
           id: 'D'+Date.now()+Math.random(),
           code: docCode,
-          assignTo: (p[empIdCol]||'').toUpperCase(),
+          assignTo: assignToVal,
           beName: p[beNameCol]||'',
           hq: p[hqCol]||'',
           managerName: p[mgrNameCol]||'',

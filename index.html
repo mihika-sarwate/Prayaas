@@ -688,70 +688,12 @@ table.tbl tr:last-child td{border-bottom:none}
             <button class="btn sm danger" id="btn-bulk-delete-selected-sfc" class="btn sm danger admin-only" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
           </div>
           <input type="text" id="adm-sfc-search" placeholder="&#128269; Search SFC by from, to, mode, or fare..." oninput="renderSFCTable()" style="margin-bottom:10px;background:#F1F5F9">
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:10px;">
-            <div>
-              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">Employee / BE</label>
-              <select id="adm-sfc-filter-emp" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
-                <option value="">All Employees</option>
-              </select>
-            </div>
-            <div>
-              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">HQ</label>
-              <select id="adm-sfc-filter-hq" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
-                <option value="">All HQs</option>
-              </select>
-            </div>
-            <div>
-              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">State</label>
-              <select id="adm-sfc-filter-state" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
-                <option value="">All States</option>
-              </select>
-            </div>
-            <div>
-              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">Category</label>
-              <select id="adm-sfc-filter-category" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
-                <option value="">All Categories</option>
-              </select>
-            </div>
-            <div>
-              <label class="lbl" style="margin-bottom:4px; display:block; font-size:11px; font-weight:600; color:#475569">Mode</label>
-              <select id="adm-sfc-filter-mode" onchange="renderSFCTable()" style="width:100%; padding:6px; border-radius:4px; border:1px solid #cbd5e1; background:#fff">
-                <option value="">All Modes</option>
-              </select>
-            </div>
-          </div>
         </div>
         <div class="card">
           <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
           <div class="tbl-wrap">
             <table class="tbl">
-              <thead>
-                <tr>
-                  <th rowspan="3"><input type="checkbox" id="check-all-sfc" class="admin-only" onclick="toggleSelectAllSFC(this)"></th>
-                  <th rowspan="3">Emp ID</th>
-                  <th rowspan="3">Working<br>Days</th>
-                  <th rowspan="3">Name of BE</th>
-                  <th rowspan="3">HQ</th>
-                  <th rowspan="3">State</th>
-                  <th colspan="2" style="text-align:center">TOWN</th>
-                  <th rowspan="3">HQ/<br>EX /OS</th>
-                  <th rowspan="3">DIST<br>(One<br>Way)</th>
-                  <th rowspan="3">MODE</th>
-                  <th rowspan="3">Up<br>&amp; Down<br>FARE</th>
-                  <th rowspan="3">DA</th>
-                  <th rowspan="3">TOTAL</th>
-                  <th rowspan="3">No. of<br>Doctors</th>
-                  <th rowspan="3">Expected<br>Business<br>/Month</th>
-                  <th rowspan="3">Actions</th>
-                </tr>
-                <tr>
-                  <th colspan="2" style="text-align:center; font-weight:normal">( Locality / Street / Town )</th>
-                </tr>
-                <tr>
-                  <th>FROM</th>
-                  <th>TO</th>
-                </tr>
-              </thead>
+              <thead id="sfc-table-head"></thead>
               <tbody id="sfc-table-body"></tbody>
             </table>
           </div>
@@ -5508,104 +5450,80 @@ function rejectLeave(){
 
 // ===== MASTER DATA MANAGEMENT =====
 // SFC Upload/Render
-var _sfcFiltersPopulated = false;
-
-function populateSfcFilters() {
-  if (!Array.isArray(DB.sfc)) DB.sfc = [];
-  
-  var emps = {};
-  var hqs = new Set();
-  var states = new Set();
-  var categories = new Set();
-  var modes = new Set();
-  
-  DB.sfc.forEach(function(s) {
-    if (s.empId && s.empName) {
-      emps[s.empId] = s.empName;
-    } else if (s.empName) {
-      emps[s.empName] = s.empName;
-    }
-    if (s.hq) hqs.add(s.hq.trim());
-    if (s.state) states.add(s.state.trim());
-    if (s.category) categories.add(s.category.trim());
-    if (s.mode) modes.add(s.mode.trim());
-  });
-  
-  function populateSelect(id, values, defaultText) {
-    var sel = document.getElementById(id);
-    if (!sel) return;
-    var currentVal = sel.value;
-    
-    var html = '<option value="">' + defaultText + '</option>';
-    values.forEach(function(val) {
-      html += '<option value="' + val + '">' + val + '</option>';
-    });
-    sel.innerHTML = html;
-    if (values.includes(currentVal)) {
-      sel.value = currentVal;
-    } else {
-      sel.value = '';
-    }
-  }
-
-  var empSelect = document.getElementById('adm-sfc-filter-emp');
-  if (empSelect) {
-    var currentEmpVal = empSelect.value;
-    var empHtml = '<option value="">All Employees</option>';
-    var sortedEmpIds = Object.keys(emps).sort(function(a, b) {
-      return emps[a].localeCompare(emps[b]);
-    });
-    sortedEmpIds.forEach(function(id) {
-      empHtml += '<option value="' + id + '">' + emps[id] + ' (' + id + ')</option>';
-    });
-    empSelect.innerHTML = empHtml;
-    if (sortedEmpIds.includes(currentEmpVal)) {
-      empSelect.value = currentEmpVal;
-    } else {
-      empSelect.value = '';
-    }
-  }
-  
-  populateSelect('adm-sfc-filter-hq', Array.from(hqs).sort(), 'All HQs');
-  populateSelect('adm-sfc-filter-state', Array.from(states).sort(), 'All States');
-  populateSelect('adm-sfc-filter-category', Array.from(categories).sort(), 'All Categories');
-  populateSelect('adm-sfc-filter-mode', Array.from(modes).sort(), 'All Modes');
-}
-
 function renderSFCTable(){
-  if (!_sfcFiltersPopulated) {
-    populateSfcFilters();
-    _sfcFiltersPopulated = true;
+  var q = getSearchQuery('adm-sfc-search');
+  var filters = adminTableState.sfc.filters;
+  
+  var thead = document.getElementById('sfc-table-head');
+  if (thead && !thead.innerHTML.includes('<th')) {
+    thead.innerHTML = '<tr><th rowspan="3" style="vertical-align:middle"><input type="checkbox" id="check-all-sfc" class="admin-only" onclick="toggleSelectAllSFC(this)"></th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'empId', 'Emp ID') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'workingDays', 'Working Days') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'empName', 'Name of BE') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'hq', 'HQ') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'state', 'State') + '</th>' +
+      '<th colspan="2" style="text-align:center">TOWN</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'category', 'HQ/EX/OS') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'distance', 'DIST (One Way)') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'mode', 'MODE') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'fare', 'Up & Down FARE') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'da', 'DA') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'total', 'TOTAL') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'doctors', 'No. of Doctors') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">' + renderSortHead('sfc', 'business', 'Expected Business/Month') + '</th>' +
+      '<th rowspan="3" style="vertical-align:middle">Actions</th></tr>' +
+      '<tr><th colspan="2" style="text-align:center; font-weight:normal">( Locality / Street / Town )</th></tr>' +
+      '<tr><th>' + renderSortHead('sfc', 'from', 'FROM') + '</th><th>' + renderSortHead('sfc', 'to', 'TO') + '</th></tr>';
   }
 
-  var filterEmp = document.getElementById('adm-sfc-filter-emp') ? document.getElementById('adm-sfc-filter-emp').value : '';
-  var filterHq = document.getElementById('adm-sfc-filter-hq') ? document.getElementById('adm-sfc-filter-hq').value : '';
-  var filterState = document.getElementById('adm-sfc-filter-state') ? document.getElementById('adm-sfc-filter-state').value : '';
-  var filterCategory = document.getElementById('adm-sfc-filter-category') ? document.getElementById('adm-sfc-filter-category').value : '';
-  var filterMode = document.getElementById('adm-sfc-filter-mode') ? document.getElementById('adm-sfc-filter-mode').value : '';
-
-  var q = getSearchQuery('adm-sfc-search');
+  // Filter items
   var filtered = DB.sfc.map(function(s, index) {
     return { s: s, index: index };
   }).filter(function(item){
     var s = item.s || {};
-    if (filterEmp && s.empId !== filterEmp && s.empName !== filterEmp) return false;
-    if (filterHq && (s.hq || '').trim() !== filterHq) return false;
-    if (filterState && (s.state || '').trim() !== filterState) return false;
-    if (filterCategory && (s.category || '').trim() !== filterCategory) return false;
-    if (filterMode && (s.mode || '').trim() !== filterMode) return false;
+    
+    // Apply Excel-like filters
+    for (var col in filters) {
+      var val = getCellValue('sfc', col, s);
+      if (val === null || val === undefined || val === '') val = '(Blanks)';
+      else val = String(val).trim();
+      if (filters[col] && filters[col].length > 0 && !filters[col].includes(val)) {
+        return false;
+      }
+    }
 
+    // Apply text search query
     if (!q) return true;
     var haystack = [
       s.workingDays, s.empName, s.hq, s.state, s.from, s.to, s.category, s.distance, s.mode, s.fare, s.da, s.total
     ].join(' ').toLowerCase();
     return haystack.indexOf(q) !== -1;
   });
+
+  // Apply sorting
+  var sortCol = adminTableState.sfc.sortCol;
+  if (sortCol) {
+    var sortAsc = adminTableState.sfc.sortAsc ? 1 : -1;
+    filtered.sort(function(a, b) {
+      var valA = getCellValue('sfc', sortCol, a.s);
+      var valB = getCellValue('sfc', sortCol, b.s);
+      if (valA === null || valA === undefined) return 1 * sortAsc;
+      if (valB === null || valB === undefined) return -1 * sortAsc;
+      
+      // Numeric sort check
+      var numA = parseFloat(valA);
+      var numB = parseFloat(valB);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return (numA - numB) * sortAsc;
+      }
+      return String(valA).localeCompare(String(valB)) * sortAsc;
+    });
+  }
   
   document.getElementById('sfc-count').textContent=filtered.length;
   var tbody=document.getElementById('sfc-table-body');
   if(!filtered.length){
-    tbody.innerHTML='<tr><td colspan="17" class="empty">'+(q || filterEmp || filterHq || filterState || filterCategory || filterMode ? 'No matching SFC records found' : 'No SFC records available')+'</td></tr>';
+    tbody.innerHTML='<tr><td colspan="17" class="empty">'+(q || Object.keys(filters).length > 0 ? 'No matching SFC records found' : 'No SFC records available')+'</td></tr>';
     return;
   }
   tbody.innerHTML=filtered.map(function(item){
@@ -5690,7 +5608,6 @@ function saveSFCRow() {
   s.doctors = document.getElementById('sfc-edit-doctors').value ? parseInt(document.getElementById('sfc-edit-doctors').value) : '';
   s.business = document.getElementById('sfc-edit-business').value ? parseFloat(document.getElementById('sfc-edit-business').value) : '';
   
-  _sfcFiltersPopulated = false;
   saveDB();
   closeModal('modal-edit-sfc');
   renderSFCTable();
@@ -5701,7 +5618,6 @@ function removeSFC(i){
   if(!confirm('Delete SFC record?'))return;
   var target = DB.sfc[i];
   DB.sfc.splice(i,1);
-  _sfcFiltersPopulated = false;
   saveDB();
   renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
@@ -5744,7 +5660,6 @@ function bulkDeleteSelectedSFC() {
   });
 
   DB.sfc = DB.sfc.filter(function(s, idx) { return !indicesToDelete.includes(idx); });
-  _sfcFiltersPopulated = false;
   saveDB();
   renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
@@ -5763,7 +5678,6 @@ function bulkDeleteAllSFC() {
   }
   if (!confirm('WARNING: Are you sure you want to delete ALL SFC records (' + DB.sfc.length + ') from the system? This cannot be undone.')) return;
   DB.sfc = [];
-  _sfcFiltersPopulated = false;
   saveDB();
   renderSFCTable();
   runSupabaseDelete('sfc', function(q) {
@@ -5849,7 +5763,6 @@ function uploadSFC(inp){
       }
       added++;
     });
-    _sfcFiltersPopulated = false;
     saveDB();
     showToast(added+' SFC entries processed successfully!');
     renderSFCTable();
@@ -6545,7 +6458,8 @@ var adminTableState = {
   stockists: { sortCol: null, sortAsc: true, filters: {} },
   employees: { sortCol: null, sortAsc: true, filters: {} },
   holidays: { sortCol: null, sortAsc: true, filters: {} },
-  leaves: { sortCol: null, sortAsc: true, filters: {} }
+  leaves: { sortCol: null, sortAsc: true, filters: {} },
+  sfc: { sortCol: null, sortAsc: true, filters: {} }
 };
 
 function handleTableSort(table, col) {
@@ -6560,7 +6474,7 @@ function handleTableSort(table, col) {
     adminTableState[table].sortCol = col;
     adminTableState[table].sortAsc = true;
   }
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : (table === 'employees' ? 'emp-table-head' : (table === 'holidays' ? 'holiday-table-head' : 'leave-bal-table-head'))));
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : (table === 'employees' ? 'emp-table-head' : (table === 'holidays' ? 'holiday-table-head' : (table === 'sfc' ? 'sfc-table-head' : 'leave-bal-table-head')))));
   var thead = document.getElementById(theadId);
   if (thead) thead.innerHTML = ''; // Force header re-render to update sort arrows
   
@@ -6570,6 +6484,7 @@ function handleTableSort(table, col) {
   else if (table === 'employees') renderEmpTable();
   else if (table === 'holidays') renderHolidayTable();
   else if (table === 'leaves') renderLeaveBalanceTable();
+  else if (table === 'sfc') renderSFCTable();
 }
 
 var activeExcelFilter = null; // { table, col }
@@ -6716,7 +6631,7 @@ function applyExcelFilter() {
   
   closeExcelFilter();
   
-  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : (table === 'employees' ? 'emp-table-head' : (table === 'holidays' ? 'holiday-table-head' : 'leave-bal-table-head'))));
+  var theadId = table === 'doctors' ? 'doc-table-head' : (table === 'chemists' ? 'chem-table-head' : (table === 'stockists' ? 'stockist-table-head' : (table === 'employees' ? 'emp-table-head' : (table === 'holidays' ? 'holiday-table-head' : (table === 'sfc' ? 'sfc-table-head' : 'leave-bal-table-head')))));
   var thead = document.getElementById(theadId);
   if (thead) {
     thead.innerHTML = ''; // Force header re-render to update filter icon colors
@@ -6728,6 +6643,7 @@ function applyExcelFilter() {
   else if (table === 'employees') renderEmpTable();
   else if (table === 'holidays') renderHolidayTable();
   else if (table === 'leaves') renderLeaveBalanceTable();
+  else if (table === 'sfc') renderSFCTable();
 }
 
 function closeExcelFilter() {

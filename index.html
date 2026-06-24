@@ -1786,6 +1786,7 @@ async function initSupabaseData(isSilent) {
         }
         return cloudDocs;
       })(),
+      chemists: (function() {
         var cloudChems = (chemists || []).map(c => {
           var stateVal = c.state || '';
           if ((!stateVal || stateVal.trim() === '') && c.assign_to) {

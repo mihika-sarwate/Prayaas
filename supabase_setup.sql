@@ -44,7 +44,8 @@ create table chemists (
   id text primary key,
   name text not null,
   area text,
-  assign_to text references employees(id)
+  assign_to text references employees(id),
+  state text
 );
 
 -- 3b. Stockists Table
@@ -52,7 +53,8 @@ create table stockists (
   id text primary key,
   name text not null,
   area text,
-  assign_to text references employees(id)
+  assign_to text references employees(id),
+  state text
 );
 
 -- 4. Daily Call Reports Table

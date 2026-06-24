@@ -810,7 +810,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div id="adm-chem-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128221; Chemist Master Management</div>
       <div class="card">
-        <div class="info-box">Upload Chemist CSV. Columns: <strong>ChemistID, Name, Area, AssignToEmpID</strong></div>
+        <div class="info-box">Upload Chemist CSV. Columns: <strong>ChemistID, Name, Area, AssignToEmpID, State</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadChemTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary admin-only" onclick="document.getElementById('chem-upload').click()">&#8593; Upload Chemist CSV</button>
@@ -838,7 +838,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <div id="adm-stockist-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128221; Stockist Master Management</div>
       <div class="card">
-        <div class="info-box">Upload Stockist CSV. Columns: <strong>StockistID, Name, Area, AssignToEmpID</strong></div>
+        <div class="info-box">Upload Stockist CSV. Columns: <strong>StockistID, Name, Area, AssignToEmpID, State</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadStockistTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary admin-only" onclick="document.getElementById('stockist-upload').click()">&#8593; Upload Stockist CSV</button>
@@ -1050,8 +1050,9 @@ table.tbl tr:last-child td{border-bottom:none}
     <input type="hidden" id="mc-id">
     <div class="fw"><label class="lbl">Chemist Code / ID</label><input type="text" id="mc-code" placeholder="CHM001"></div>
     <div class="fw"><label class="lbl">Chemist Name</label><input type="text" id="mc-name" placeholder="Chemist shop name"></div>
-    <div class="row2">
+    <div class="row3">
       <div><label class="lbl">Area</label><input type="text" id="mc-area" placeholder="Area"></div>
+      <div><label class="lbl">State</label><input type="text" id="mc-state" placeholder="State"></div>
       <div><label class="lbl">Assign To MR</label><select id="mc-assign"><option value="">-- Assign MR --</option></select></div>
     </div>
     <div class="btn-row"><button class="btn primary" onclick="saveChemist()">Save Chemist Record</button></div>
@@ -1065,8 +1066,9 @@ table.tbl tr:last-child td{border-bottom:none}
     <input type="hidden" id="ms-id">
     <div class="fw"><label class="lbl">Stockist Code / ID</label><input type="text" id="ms-code" placeholder="STK001"></div>
     <div class="fw"><label class="lbl">Stockist Name</label><input type="text" id="ms-name" placeholder="Stockist name"></div>
-    <div class="row2">
+    <div class="row3">
       <div><label class="lbl">Area</label><input type="text" id="ms-area" placeholder="Area"></div>
+      <div><label class="lbl">State</label><input type="text" id="ms-state" placeholder="State"></div>
       <div><label class="lbl">Assign To MR</label><select id="ms-assign"><option value="">-- Assign MR --</option></select></div>
     </div>
     <div class="btn-row"><button class="btn primary" onclick="saveStockist()">Save Stockist Record</button></div>
@@ -1723,7 +1725,8 @@ async function initSupabaseData(isSilent) {
           id: c.id,
           name: c.name,
           area: c.area,
-          assignTo: c.assign_to
+          assignTo: c.assign_to,
+          state: c.state || ''
         }));
         var localChems = (typeof DB !== 'undefined' && DB && DB.chemists) ? DB.chemists : [];
         if (cloudChems.length === 0 && localChems.length > 0) {
@@ -1742,7 +1745,8 @@ async function initSupabaseData(isSilent) {
           id: s.id,
           name: s.name,
           area: s.area,
-          assignTo: s.assign_to
+          assignTo: s.assign_to,
+          state: s.state || ''
         }));
         var localStockists = (typeof DB !== 'undefined' && DB && DB.stockists) ? DB.stockists : [];
         if (cloudStockists.length === 0 && localStockists.length > 0) {
@@ -2349,7 +2353,8 @@ window.addEventListener('beforeunload', function (e) {
           id: c.id,
           name: c.name,
           area: c.area,
-          assign_to: assignTo
+          assign_to: assignTo,
+          state: c.state || ''
         };
       });
       await upsertInBatches('chemists', dbChems);
@@ -2377,7 +2382,8 @@ window.addEventListener('beforeunload', function (e) {
           id: s.id,
           name: s.name,
           area: s.area,
-          assign_to: assignTo
+          assign_to: assignTo,
+          state: s.state || ''
         };
       });
       await upsertInBatches('stockists', dbStockists);
@@ -6507,6 +6513,7 @@ function addChemistManual(){
   document.getElementById('mc-code').value='';
   document.getElementById('mc-name').value='';
   document.getElementById('mc-area').value='';
+  document.getElementById('mc-state').value='';
   
   var sel=document.getElementById('mc-assign');
   sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
@@ -6525,6 +6532,7 @@ function editChemist(id){
   document.getElementById('mc-code').value=chem.id;
   document.getElementById('mc-name').value=chem.name;
   document.getElementById('mc-area').value=chem.area;
+  document.getElementById('mc-state').value=chem.state||'';
   
   var sel=document.getElementById('mc-assign');
   sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
@@ -6539,6 +6547,7 @@ function saveChemist(){
   var code=document.getElementById('mc-code').value.trim();
   var name=document.getElementById('mc-name').value.trim();
   var area=document.getElementById('mc-area').value.trim();
+  var state=document.getElementById('mc-state').value.trim();
   
   if(!code||!name){showToast('Chemist ID and Name required!');return;}
   
@@ -6547,6 +6556,7 @@ function saveChemist(){
       id: code,
       name: name,
       area: area,
+      state: state,
       assignTo: document.getElementById('mc-assign').value
     });
   } else {
@@ -6554,6 +6564,7 @@ function saveChemist(){
     if(chem){
       chem.name=name;
       chem.area=area;
+      chem.state=state;
       chem.assignTo=document.getElementById('mc-assign').value;
     }
   }
@@ -6583,13 +6594,14 @@ function uploadChemists(inp){
       }
     }
     
-    var idCol=0, nameCol=1, areaCol=2, assignCol=3;
+    var idCol=0, nameCol=1, areaCol=2, assignCol=3, stateCol=-1;
     if (headers.length > 0) {
       headers.forEach(function(h, idx) {
         if (h === 'code' || h === 'id' || h === 'chemist code') idCol = idx;
         else if (h.indexOf('name') !== -1) nameCol = idx;
         else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
         else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
+        else if (h.indexOf('state') !== -1) stateCol = idx;
       });
     }
     
@@ -6608,6 +6620,7 @@ function uploadChemists(inp){
       if(existing){
         existing.name = p[nameCol];
         existing.area = p[areaCol]||'';
+        existing.state = (stateCol !== -1 ? p[stateCol] : '') || '';
         existing.assignTo = (p[assignCol]||'').toUpperCase();
         newChem = existing;
       } else {
@@ -6615,6 +6628,7 @@ function uploadChemists(inp){
           id: chemId,
           name: p[nameCol],
           area: p[areaCol]||'',
+          state: (stateCol !== -1 ? p[stateCol] : '') || '',
           assignTo: (p[assignCol]||'').toUpperCase()
         };
       }
@@ -6633,7 +6647,7 @@ function uploadChemists(inp){
 }
 
 function downloadChemTemplate(){
-  var csv='ChemistID,Name,Area,AssignToEmpID\n';
+  var csv='ChemistID,Name,Area,AssignToEmpID,State\n';
   var checked = document.querySelectorAll('.chem-row-check:checked');
   var chemsToExport = [];
   if (checked.length > 0) {
@@ -6649,12 +6663,13 @@ function downloadChemTemplate(){
         c.id || '',
         c.name || '',
         c.area || '',
-        c.assignTo || ''
+        c.assignTo || '',
+        c.state || ''
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'chemist_master.csv');
   } else {
-    csv += 'CHM009,Vikas Pharma,Dadar,EMP001\n';
+    csv += 'CHM009,Vikas Pharma,Dadar,EMP001,Maharashtra\n';
     downloadData(csv,'chemist_master_template.csv');
   }
 }
@@ -6671,6 +6686,7 @@ function renderAdminChemistList(page = 1) {
       '<th style="vertical-align:top">' + renderSortHead('chemists', 'id', 'Chemist ID') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('chemists', 'name', 'Name') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('chemists', 'area', 'Area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('chemists', 'state', 'State') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('chemists', 'assignTo', 'Assigned MR') + '</th>' +
       '<th style="vertical-align:top">Actions</th></tr>';
   }
@@ -6684,13 +6700,13 @@ function renderAdminChemistList(page = 1) {
       var mr = DB.employees.find(function(e){return e.id===c.assignTo;});
       var mrName = mr && mr.name ? mr.name : '';
       var haystack = [
-        c.id, c.name, c.area, c.assignTo, mrName
+        c.id, c.name, c.area, c.state || '', c.assignTo, mrName
       ].join(' ').toLowerCase();
       if (haystack.indexOf(q) === -1) return false;
     }
     
     // Column filters
-    var cols = ['id', 'name', 'address', 'area', 'phone', 'assignTo', 'status'];
+    var cols = ['id', 'name', 'address', 'area', 'state', 'phone', 'assignTo', 'status'];
     for (var i = 0; i < cols.length; i++) {
       var colName = cols[i];
       if (filters[colName]) {
@@ -6735,7 +6751,7 @@ function renderAdminChemistList(page = 1) {
   
   tbody.innerHTML=pagedChems.map(function(c){
     var emp=DB.employees.find(function(e){return e.id===c.assignTo;});
-    return '<tr><td><input type="checkbox" class="chem-row-check admin-only" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="chem-row-check admin-only" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(c.state||'')+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-chems');
@@ -6846,6 +6862,7 @@ function addStockistManual() {
   document.getElementById('ms-code').disabled = false;
   document.getElementById('ms-name').value = '';
   document.getElementById('ms-area').value = '';
+  document.getElementById('ms-state').value = '';
   
   var sel = document.getElementById('ms-assign');
   sel.innerHTML = '<option value="">-- Assign MR --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
@@ -6865,6 +6882,7 @@ function editStockist(id) {
   document.getElementById('ms-code').disabled = true;
   document.getElementById('ms-name').value = stockist.name;
   document.getElementById('ms-area').value = stockist.area;
+  document.getElementById('ms-state').value = stockist.state||'';
   
   var sel = document.getElementById('ms-assign');
   sel.innerHTML = '<option value="">-- Unassigned --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
@@ -6879,6 +6897,7 @@ function saveStockist() {
   var code = document.getElementById('ms-code').value.trim();
   var name = document.getElementById('ms-name').value.trim();
   var area = document.getElementById('ms-area').value.trim();
+  var state = document.getElementById('ms-state').value.trim();
   
   if(!code || !name){showToast('Stockist ID and Name required!');return;}
   
@@ -6891,6 +6910,7 @@ function saveStockist() {
       id: code,
       name: name,
       area: area,
+      state: state,
       assignTo: document.getElementById('ms-assign').value
     });
   } else {
@@ -6898,6 +6918,7 @@ function saveStockist() {
     if(stockist){
       stockist.name = name;
       stockist.area = area;
+      stockist.state = state;
       stockist.assignTo = document.getElementById('ms-assign').value;
     }
   }
@@ -6927,13 +6948,14 @@ function uploadStockists(inp) {
       }
     }
     
-    var idCol = 0, nameCol = 1, areaCol = 2, assignCol = 3;
+    var idCol = 0, nameCol = 1, areaCol = 2, assignCol = 3, stateCol = -1;
     if (headers.length > 0) {
       headers.forEach(function(h, idx) {
         if (h === 'code' || h === 'id' || h === 'stockist code' || h === 'stockistid') idCol = idx;
         else if (h.indexOf('name') !== -1) nameCol = idx;
         else if (h.indexOf('area') !== -1 || h.indexOf('territory') !== -1) areaCol = idx;
         else if (h.indexOf('assign') !== -1 || h.indexOf('allocated') !== -1 || h.indexOf('rep') !== -1) assignCol = idx;
+        else if (h.indexOf('state') !== -1) stateCol = idx;
       });
     }
     
@@ -6952,6 +6974,7 @@ function uploadStockists(inp) {
       if(existing){
         existing.name = p[nameCol];
         existing.area = p[areaCol]||'';
+        existing.state = (stateCol !== -1 ? p[stateCol] : '') || '';
         existing.assignTo = (p[assignCol]||'').toUpperCase();
         newStk = existing;
       } else {
@@ -6959,6 +6982,7 @@ function uploadStockists(inp) {
           id: stockistId,
           name: p[nameCol],
           area: p[areaCol]||'',
+          state: (stateCol !== -1 ? p[stateCol] : '') || '',
           assignTo: (p[assignCol]||'').toUpperCase()
         };
       }
@@ -6977,7 +7001,7 @@ function uploadStockists(inp) {
 }
 
 function downloadStockistTemplate() {
-  var csv = 'StockistID,Name,Area,AssignToEmpID\n';
+  var csv = 'StockistID,Name,Area,AssignToEmpID,State\n';
   var checked = document.querySelectorAll('.stockist-row-check:checked');
   var stkToExport = [];
   if (checked.length > 0) {
@@ -6993,12 +7017,13 @@ function downloadStockistTemplate() {
         s.id || '',
         s.name || '',
         s.area || '',
-        s.assignTo || ''
+        s.assignTo || '',
+        s.state || ''
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'stockist_master.csv');
   } else {
-    csv += 'STK009,Vikas Stockist,Dadar,EMP001\n';
+    csv += 'STK009,Vikas Stockist,Dadar,EMP001,Maharashtra\n';
     downloadData(csv,'stockist_master_template.csv');
   }
 }
@@ -7015,6 +7040,7 @@ function renderAdminStockistList(page = 1) {
       '<th style="vertical-align:top">' + renderSortHead('stockists', 'id', 'Stockist ID') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('stockists', 'name', 'Name') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('stockists', 'area', 'Area') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('stockists', 'state', 'State') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('stockists', 'assignTo', 'Assigned MR') + '</th>' +
       '<th style="vertical-align:top">Actions</th></tr>';
   }
@@ -7028,13 +7054,13 @@ function renderAdminStockistList(page = 1) {
       var mr = DB.employees.find(function(e){return e.id===s.assignTo;});
       var mrName = mr && mr.name ? mr.name : '';
       var haystack = [
-        s.id, s.name, s.area, s.assignTo, mrName
+        s.id, s.name, s.area, s.state || '', s.assignTo, mrName
       ].join(' ').toLowerCase();
       if (haystack.indexOf(q) === -1) return false;
     }
     
     // Column filters
-    var cols = ['id', 'name', 'area', 'assignTo'];
+    var cols = ['id', 'name', 'area', 'state', 'assignTo'];
     for (var i = 0; i < cols.length; i++) {
       var colName = cols[i];
       if (filters[colName]) {
@@ -7080,7 +7106,7 @@ function renderAdminStockistList(page = 1) {
   
   tbody.innerHTML = pagedStockists.map(function(s){
     var emp = DB.employees.find(function(e){return e.id===s.assignTo;});
-    return '<tr><td><input type="checkbox" class="stockist-row-check admin-only" value="'+s.id+'" onchange="updateSelectedStockistsCount()"></td><td>'+s.id+'</td><td class="tbl-name">'+s.name+'</td><td>'+s.area+'</td><td>'+(emp?emp.name+' ('+s.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editStockist(\''+s.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeStockist(\''+s.id+'\')">Del</button></td></tr>';
+    return '<tr><td><input type="checkbox" class="stockist-row-check admin-only" value="'+s.id+'" onchange="updateSelectedStockistsCount()"></td><td>'+s.id+'</td><td class="tbl-name">'+s.name+'</td><td>'+s.area+'</td><td>'+(s.state||'')+'</td><td>'+(emp?emp.name+' ('+s.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editStockist(\''+s.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeStockist(\''+s.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-stockists');
@@ -7188,8 +7214,8 @@ function renderLeaveBalanceTable(){
   var thead = document.getElementById('leave-bal-table-head');
   if(thead) {
     var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-    thead.innerHTML = '<tr><th colspan="7" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th><th style="border:none"></th></tr>' +
-      '<tr><th rowspan="2"><input type="checkbox" id="check-all-leaves" class="admin-only" onclick="toggleSelectAllLeaves(this)"></th><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2">Designation</th><th rowspan="2">HQ</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th><th rowspan="2">Action</th></tr>' +
+    thead.innerHTML = '<tr><th colspan="8" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th><th style="border:none"></th></tr>' +
+      '<tr><th rowspan="2"><input type="checkbox" id="check-all-leaves" class="admin-only" onclick="toggleSelectAllLeaves(this)"></th><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2">Designation</th><th rowspan="2">HQ</th><th rowspan="2">State</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th><th rowspan="2">Action</th></tr>' +
       '<tr><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th></tr>';
   }
   var tbody=document.getElementById('leave-bal-table-body');
@@ -7260,6 +7286,7 @@ function renderLeaveBalanceTable(){
       '<td class="tbl-name">'+(e.name||'')+'</td>'+
       '<td>'+desig+'</td>'+
       '<td>'+hq+'</td>'+
+      '<td>'+(e.state || '')+'</td>'+
       '<td>'+joinDate+'</td>'+
       '<td>'+cl+'</td><td>'+pl+'</td><td>'+sl+'</td><td>'+lop+'</td>'+
       '<td>'+cl_used+'</td><td>'+pl_used+'</td><td>'+sl_used+'</td><td>'+lop_used+'</td>'+
@@ -7335,8 +7362,8 @@ function deleteLeaveBalance(id) {
 
 function downloadLeaveBalanceData(){
   var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-  var csv = ',,,,,,' + monthYear + ',,,,,,,,,,,\n';
-  csv += 'S.No,Employee id,FieldForce Name,Designation,HQ,Joining Date,Leave Eligibilty,,,Leave Taken,,,Leave Balance,,\n';
+  var csv = ',,,,,,,' + monthYear + ',,,,,,,,,,,\n';
+  csv += 'S.No,Employee id,FieldForce Name,Designation,HQ,State,Joining Date,Leave Eligibilty,,,Leave Taken,,,Leave Balance,,\n';
   csv += ',,,,,,CL,PL,SL,LOP,CL,PL,SL,LOP,CL,PL,SL,LOP\n';
   
   var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
@@ -7352,8 +7379,8 @@ function downloadLeaveBalanceData(){
       var lop_used = e.leaves ? (e.leaves.LWP_used || 0) : 0;
 
       var desig = e.role === 'admin' ? 'Admin' : (e.managerId ? 'Medical Representative' : 'Manager');
-      var hq = e.headquarter || 'HQ';
-      var joinDate = e.joiningDate || '01-Jan-2023';
+      var hq = e.area || 'HQ';
+      var joinDate = e.doj || '01-Jan-2023';
 
       csv += [
         idx + 1,
@@ -7361,6 +7388,7 @@ function downloadLeaveBalanceData(){
         e.name || '',
         desig,
         hq,
+        e.state || '',
         joinDate,
         cl, pl, sl, lop,
         cl_used, pl_used, sl_used, lop_used,
@@ -7401,11 +7429,12 @@ function uploadLeaveBalances(inp){
     headers = combinedHeaders;
     
     // Find column indices
-    var idCol = -1, clCol = -1, plCol = -1, slCol = -1, lopCol = -1;
+    var idCol = -1, clCol = -1, plCol = -1, slCol = -1, lopCol = -1, stateCol = -1;
     var clUsedCol = -1, plUsedCol = -1, slUsedCol = -1, lopUsedCol = -1;
     
     headers.forEach(function(h, i) {
       if (h.indexOf('employeeid') !== -1 || h.indexOf('empid') !== -1 || h === 'id' || h === 'employee') idCol = i;
+      else if (h.indexOf('state') !== -1 || h === 'region') stateCol = i;
       else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('cl') !== -1 || h.indexOf('casualleave') !== -1)) clCol = i;
       else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('pl') !== -1 || h.indexOf('el') !== -1 || h.indexOf('privilege') !== -1)) plCol = i;
       else if (h.indexOf('leavetaken') === -1 && h.indexOf('leavebalance') === -1 && (h.indexOf('sl') !== -1 || h.indexOf('sick') !== -1)) slCol = i;
@@ -7420,14 +7449,15 @@ function uploadLeaveBalances(inp){
     // (where Leave Eligibility is at col 6 and Taken is at col 10), we force the default known positions.
     if (idCol === -1 || clCol === -1 || clUsedCol === -1 || idCol <= 1) {
       if (idCol === -1) idCol = 1; 
-      clCol = idCol + 5; 
-      plCol = idCol + 6; 
-      slCol = idCol + 7; 
-      lopCol = idCol + 8;
-      clUsedCol = idCol + 9; 
-      plUsedCol = idCol + 10; 
-      slUsedCol = idCol + 11; 
-      lopUsedCol = idCol + 12;
+      stateCol = idCol + 4;
+      clCol = idCol + 6; 
+      plCol = idCol + 7; 
+      slCol = idCol + 8; 
+      lopCol = idCol + 9;
+      clUsedCol = idCol + 10; 
+      plUsedCol = idCol + 11; 
+      slUsedCol = idCol + 12; 
+      lopUsedCol = idCol + 13;
     }
     
     var updated=0;
@@ -7442,6 +7472,7 @@ function uploadLeaveBalances(inp){
       if(emp){
         if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
         
+        if (stateCol !== -1 && p[stateCol]) emp.state = String(p[stateCol]).trim();
         if (clCol !== -1 && p[clCol]) emp.leaves.CL = parseInt(p[clCol]) || 0;
         if (plCol !== -1 && p[plCol]) emp.leaves.EL = parseInt(p[plCol]) || 0; // PL mapped to EL
         if (slCol !== -1 && p[slCol]) emp.leaves.SL = parseInt(p[slCol]) || 0;

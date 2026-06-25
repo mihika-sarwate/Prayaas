@@ -2621,6 +2621,8 @@ async function pushEmployeeToSupabase(emp) {
       role: emp.role || 'emp',
       manager_id: emp.managerId || null,
       state: emp.state || null,
+      designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role),
+      doj: formatDateForPostgres(emp.doj) || null,
       leaves: emp.leaves || {}
     };
     var res = await supabase.from('employees').upsert([row], { onConflict: 'id' });
@@ -2630,6 +2632,7 @@ async function pushEmployeeToSupabase(emp) {
       // Cloud confirmed — remove from pending set
       _pendingLocalEmpIds.delete(String(emp.id).toUpperCase());
       console.log('Employee ' + emp.id + ' pushed to Supabase successfully.');
+      showToast('Cloud Sync Complete!', 3000);
     }
   } catch (e) {
     console.error('pushEmployeeToSupabase exception:', e);
@@ -7537,6 +7540,7 @@ function setEmployeeStatus(empId, status) {
 function setEmployeeAccountStatus(empId, status, preventModalOpen) {
   var emp = DB.employees.find(function(e) { return e && e.id === empId; });
   if (!emp) return;
+  var oldBlockedDate = emp.blockedDate;
   emp.accountStatus = normalizeAccountStatus(status);
   if (emp.accountStatus === 'BLOCKED') {
     emp.blockedDate = getTodayDateString();
@@ -7545,6 +7549,35 @@ function setEmployeeAccountStatus(empId, status, preventModalOpen) {
     emp.blockedDate = '';
     emp.blockedReason = '';
   }
+
+  if (status === 'ACTIVE' && oldBlockedDate) {
+    var attRecord = upsertAttendanceRecord({
+      employeeId: emp.id,
+      date: oldBlockedDate,
+      loginTime: '',
+      attendanceStatus: 'P',
+      remarks: 'Present (Manually Unblocked by Admin)'
+    });
+    // Push attendance override to Supabase immediately
+    if (useSupabase && supabase) {
+      supabase.from('attendance').upsert([{
+        id: attRecord.id,
+        employee_id: attRecord.employeeId,
+        date: formatDateForPostgres(attRecord.date) || attRecord.date,
+        login_time: attRecord.loginTime || null,
+        attendance_status: attRecord.attendanceStatus || '',
+        remarks: attRecord.remarks || null,
+        created_at: attRecord.createdAt || null
+      }], { onConflict: 'id' }).then(function(res) {
+        if (res && res.error) {
+          console.error('Error pushing attendance to Supabase:', res.error);
+        } else {
+          console.log('Attendance pushed to Supabase successfully.');
+        }
+      });
+    }
+  }
+
   // Mark pending so the poller does not revert the change before the cloud write finishes.
   _pendingLocalEmpIds.add(String(empId).toUpperCase());
   // Persist locally first (no cloud sync triggered by saveDB debounce — we do it directly below)
@@ -7590,7 +7623,7 @@ function removeEmp(id){
       // Deletion confirmed in cloud — clear tombstone
       _pendingDeletedEmpIds.delete(idUpper);
       _saveTombstonesToStorage();
-      showToast(id + ' deleted from cloud successfully.');
+      showToast('Cloud Sync Complete!', 3000);
     } else {
       console.error('Failed to delete employee from Supabase:', res.error);
       showToast('⚠️ Delete from cloud failed — will retry on next sync.', 5000);
@@ -7638,7 +7671,7 @@ function bulkDeleteSelectedEmployees() {
     if (!res || !res.error) {
       idsToDelete.forEach(function(id) { _pendingDeletedEmpIds.delete(String(id).toUpperCase()); });
       _saveTombstonesToStorage();
-      showToast(idsToDelete.length + ' employees deleted from cloud successfully!');
+      showToast('Cloud Sync Complete!', 3000);
     } else {
       console.error('Failed to bulk delete employees from Supabase:', res.error);
       showToast('⚠️ Bulk delete from cloud failed — will retry on next sync.', 5000);
@@ -7670,7 +7703,7 @@ function bulkDeleteAllEmployees() {
     if (!res || !res.error) {
       empsToDelete.forEach(function(e) { _pendingDeletedEmpIds.delete(String(e.id).toUpperCase()); });
       _saveTombstonesToStorage();
-      showToast('All employees deleted from cloud successfully!');
+      showToast('Cloud Sync Complete!', 3000);
     } else {
       showToast('⚠️ Delete from cloud failed — will retry on next sync.', 5000);
     }

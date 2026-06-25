@@ -1657,6 +1657,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
     updates = deduped;
   }
 
+  let allUpdatedRows = [];
   async function processArray(arr, useInsert) {
     if (_missingSupabaseTables[table]) return; // Skip sync for known-missing tables
     console.log("processArray(" + table + "): processing " + arr.length + " rows in chunks of " + chunkSize + ". useInsert=" + useInsert);
@@ -1665,9 +1666,9 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
       console.log("Sending chunk " + (i/chunkSize + 1) + " of " + Math.ceil(arr.length/chunkSize) + " to table " + table + ". Size: " + chunk.length);
       let res;
       if (useInsert) {
-        res = await supabase.from(table).insert(chunk);
+        res = await supabase.from(table).insert(chunk).select();
       } else {
-        res = await supabase.from(table).upsert(chunk);
+        res = await supabase.from(table).upsert(chunk).select();
       }
       console.log("Response for table " + table + ": status=" + res.status + ", error=" + JSON.stringify(res.error));
       if (res.error) {
@@ -1680,11 +1681,15 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
         console.error("Error message: " + res.error.message + ", details: " + res.error.details + ", hint: " + res.error.hint);
         throw res.error;
       }
+      if (res.data) {
+        allUpdatedRows = allUpdatedRows.concat(res.data);
+      }
     }
   }
 
   await processArray(inserts, true);
   await processArray(updates, false);
+  return allUpdatedRows;
 }
 
 async function initSupabaseData(isSilent) {
@@ -2994,12 +2999,20 @@ window.addEventListener('beforeunload', function (e) {
           distributed: s.distributed || 0,
           balance: s.balance || 0
         };
-        if (s.id !== undefined && s.id !== null) {
+        if (s.id !== undefined && s.id !== null && !String(s.id).startsWith('SAMPLEINV')) {
           row.id = s.id;
         }
         return row;
       });
-      await upsertInBatches('samples_inventory', dbSamples);
+      const syncedSamples = await upsertInBatches('samples_inventory', dbSamples);
+      if (syncedSamples && syncedSamples.length > 0) {
+        syncedSamples.forEach(row => {
+          var local = DB.samplesInventory.find(x => x.prodName === row.prod_name && x.empId === row.emp_id);
+          if (local) {
+            local.id = row.id;
+          }
+        });
+      }
     } catch (e) {
       console.error("Error syncing samples inventory:", e);
     }
@@ -3020,12 +3033,20 @@ window.addEventListener('beforeunload', function (e) {
           distributed: g.distributed || 0,
           balance: g.balance || 0
         };
-        if (g.id !== undefined && g.id !== null) {
+        if (g.id !== undefined && g.id !== null && !String(g.id).startsWith('GIFTINV')) {
           row.id = g.id;
         }
         return row;
       });
-      await upsertInBatches('gifts_inventory', dbGifts);
+      const syncedGifts = await upsertInBatches('gifts_inventory', dbGifts);
+      if (syncedGifts && syncedGifts.length > 0) {
+        syncedGifts.forEach(row => {
+          var local = DB.giftsInventory.find(x => x.giftName === row.gift_name && x.empId === row.emp_id);
+          if (local) {
+            local.id = row.id;
+          }
+        });
+      }
     } catch (e) {
       console.error("Error syncing gifts inventory:", e);
     }
@@ -3046,15 +3067,29 @@ window.addEventListener('beforeunload', function (e) {
           distributed: i.distributed || 0,
           balance: i.balance || 0
         };
-        if (i.id !== undefined && i.id !== null) {
+        if (i.id !== undefined && i.id !== null && !String(i.id).startsWith('INPUTINV')) {
           row.id = i.id;
         }
         return row;
       });
-      await upsertInBatches('inputs_inventory', dbInputs);
+      const syncedInputs = await upsertInBatches('inputs_inventory', dbInputs);
+      if (syncedInputs && syncedInputs.length > 0) {
+        syncedInputs.forEach(row => {
+          var local = DB.inputsInventory.find(x => x.inputName === row.input_name && x.empId === row.emp_id);
+          if (local) {
+            local.id = row.id;
+          }
+        });
+      }
     } catch (e) {
       console.error("Error syncing inputs inventory:", e);
     }
+
+    // Save newly updated integer IDs to local storage & IndexedDB
+    try {
+      idb.set('adonis_db', DB);
+      localStorage.setItem('adonis_db', JSON.stringify(DB));
+    } catch (e) {}
 
     // Sync Attendance
     try {

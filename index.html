@@ -5849,7 +5849,10 @@ function goAdminTab(name){
   }
   
   if(name==='dash') renderAdminDashTeamList();
-  if(name==='attendance') renderAttendanceDashboard();
+  if(name==='attendance') {
+    ensureAttendanceSchedulerUpToDate();
+    renderAttendanceDashboard();
+  }
   if(name==='reports') updateReportHeadersAndFilters();
   if(name==='inventory') renderAdminInventoryTables();
   if(name==='master') {
@@ -9407,7 +9410,7 @@ function populateAdminEmpFilters(){
   selectList.forEach(function(selId){
     var sel=document.getElementById(selId);
     if(sel){
-      sel.innerHTML = selId==='rep-filter-emp'?'<option value="">All Employees</option>':'';
+      sel.innerHTML = '<option value="">All Employees</option>';
         DB.employees.filter(function(e){return e.role==='emp' && (!teamIds || teamIds.includes(e.id));}).forEach(function(e){
         var o=document.createElement('option');o.value=e.id;o.textContent=e.name+' ('+e.id+')';sel.appendChild(o);
       });

@@ -1154,6 +1154,24 @@ window.addEventListener('error', function(e) {
   div.textContent = 'JS Error: ' + e.message + ' at ' + e.filename + ':' + e.lineno;
   document.body.appendChild(div);
 });
+function parseJSONField(val) {
+  if (!val) return {};
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string') {
+    val = val.trim();
+    if (!val || val === 'null' || val === 'undefined') return {};
+    try {
+      var p = JSON.parse(val);
+      if (typeof p === 'string') {
+        return parseJSONField(p);
+      }
+      return p && typeof p === 'object' ? p : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  return {};
+}
 // Master Data Store
 var DEFAULT_DB={
   employees:[
@@ -4005,12 +4023,15 @@ function repRow(r){
   if (r.targetType==='Doctor') {
     var details = [];
     if (r.promotedProducts && r.promotedProducts.length) details.push('Promoted: ' + r.promotedProducts.join(', '));
-    var sKeys = r.samples ? Object.keys(r.samples) : [];
-    if (sKeys.length) details.push('Samples: ' + sKeys.map(function(k){return k+' ('+r.samples[k]+')';}).join(', '));
-    var gKeys = r.gifts ? Object.keys(r.gifts) : [];
-    if (gKeys.length) details.push('Gifts: ' + gKeys.map(function(k){return k+' ('+r.gifts[k]+')';}).join(', '));
-    var iKeys = r.inputs ? Object.keys(r.inputs) : [];
-    if (iKeys.length) details.push('Inputs: ' + iKeys.map(function(k){return k+' ('+r.inputs[k]+')';}).join(', '));
+    var parsedSamples = parseJSONField(r.samples);
+    var sKeys = Object.keys(parsedSamples);
+    if (sKeys.length) details.push('Samples: ' + sKeys.map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', '));
+    var parsedGifts = parseJSONField(r.gifts);
+    var gKeys = Object.keys(parsedGifts);
+    if (gKeys.length) details.push('Gifts: ' + gKeys.map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', '));
+    var parsedInputs = parseJSONField(r.inputs);
+    var iKeys = Object.keys(parsedInputs);
+    if (iKeys.length) details.push('Inputs: ' + iKeys.map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', '));
     val = details.length ? details.join('<br>') : 'No promotional items distributed';
   } else {
     val = 'Order Claim: \u20B9' + r.orderAmount;
@@ -8295,9 +8316,12 @@ function runMISReport(){
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
     currentMISData=docCalls.map(function(r){
       var promoted = r.promotedProducts && r.promotedProducts.length ? r.promotedProducts.join(', ') : 'None';
-      var samples = r.samples ? Object.keys(r.samples).map(function(k){return k+' ('+r.samples[k]+')';}).join(', ') : 'None';
-      var gifts = r.gifts ? Object.keys(r.gifts).map(function(k){return k+' ('+r.gifts[k]+')';}).join(', ') : 'None';
-      var inputs = r.inputs ? Object.keys(r.inputs).map(function(k){return k+' ('+r.inputs[k]+')';}).join(', ') : 'None';
+      var parsedSamples = parseJSONField(r.samples);
+      var parsedGifts = parseJSONField(r.gifts);
+      var parsedInputs = parseJSONField(r.inputs);
+      var samples = Object.keys(parsedSamples).map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', ') || 'None';
+      var gifts = Object.keys(parsedGifts).map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', ') || 'None';
+      var inputs = Object.keys(parsedInputs).map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', ') || 'None';
       return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
     
@@ -8422,11 +8446,10 @@ function runMISReport(){
         return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
-        if (r.samples) {
-          for (var p in r.samples) {
-            if (!itemsMap[p]) itemsMap[p] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-            itemsMap[p].distributed += r.samples[p];
-          }
+        var parsedSamples = parseJSONField(r.samples);
+        for (var p in parsedSamples) {
+          if (!itemsMap[p]) itemsMap[p] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+          itemsMap[p].distributed += parsedSamples[p];
         }
       });
       
@@ -8456,11 +8479,10 @@ function runMISReport(){
         return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
-        if (r.gifts) {
-          for (var g in r.gifts) {
-            if (!itemsMap[g]) itemsMap[g] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-            itemsMap[g].distributed += r.gifts[g];
-          }
+        var parsedGifts = parseJSONField(r.gifts);
+        for (var g in parsedGifts) {
+          if (!itemsMap[g]) itemsMap[g] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+          itemsMap[g].distributed += parsedGifts[g];
         }
       });
       

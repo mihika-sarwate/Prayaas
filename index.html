@@ -4749,6 +4749,12 @@ function ensureAttendanceSchedulerUpToDate() {
   var lastRun = localStorage.getItem('adonis_attendance_last_validated_date') || '';
   var targetEnd = getYesterdayDateString();
   if (!targetEnd || targetEnd < '2000-01-01') return;
+  // If DB.attendance is empty but scheduler thinks it already ran,
+  // reset to force full regeneration (handles missing Supabase table / fresh deploy)
+  if ((!DB.attendance || DB.attendance.length === 0) && lastRun) {
+    lastRun = '';
+    localStorage.removeItem('adonis_attendance_last_validated_date');
+  }
   var start = lastRun ? offsetDate(lastRun, 1) : offsetDate(targetEnd, -29);
   if (start > targetEnd) return;
   var cursor = start;

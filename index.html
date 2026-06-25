@@ -77,6 +77,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .badge.orange{background:#fef3c7;color:#92400e}
 .badge.red{background:#fee2e2;color:#991b1b}
 .badge.grey{background:#f1f5f9;color:#475569}
+.badge.purple{background:#ede9fe;color:#5b21b6}
+.badge.teal{background:#ccfbf1;color:#115e59}
 .nav{display:flex;background:#ffffff;border-bottom:1.5px solid var(--border);flex-shrink:0;box-shadow:0 4px 20px rgba(15,23,42,0.04)}
 .nav-btn{flex:1;background:none;border:none;padding:14px 2px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;font-size:10px;font-weight:600;color:var(--text-muted);transition:all 0.2s}
 .nav-btn.on{color:var(--primary);position:relative}
@@ -618,6 +620,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <div class="admin-tabs">
       <div class="admin-tab on" id="tab-adm-dash" onclick="goAdminTab('dash')">Dashboard</div>
       <div class="admin-tab" id="tab-adm-appr" onclick="goAdminTab('appr')">Approvals</div>
+      <div class="admin-tab admin-only" id="tab-adm-attendance" onclick="goAdminTab('attendance')">Attendance</div>
       <div class="admin-tab" id="tab-adm-master" onclick="goAdminTab('master')">Master Data</div>
       <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
       <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
@@ -661,6 +664,57 @@ table.tbl tr:last-child td{border-bottom:none}
 
       <div class="sec-hdr">&#127915; Leave Application Submissions</div>
       <div id="adm-leave-approvals"><div class="empty">No leave requests pending your approval</div></div>
+    </div>
+
+    <!-- ADMIN ATTENDANCE PANEL -->
+    <div id="sec-adm-attendance" style="display:none">
+      <div class="info-box">
+        Attendance is auto-generated from first login, approved leave, holidays, and weekly offs. Daily attendance validation runs for the previous day and blocks non-exempt employees only when attendance is not submitted for a working day.
+      </div>
+      <div class="card">
+        <div class="row3">
+          <div><label class="lbl">Employee</label><select id="attendance-employee-filter" onchange="renderAttendanceDashboard()"><option value="">All Employees</option></select></div>
+          <div><label class="lbl">Status</label><select id="attendance-status-filter" onchange="renderAttendanceDashboard()"><option value="">All Statuses</option><option value="P">Present</option><option value="SL">Sick Leave</option><option value="CL">Casual Leave</option><option value="H">Holiday</option><option value="WO">Weekly Off</option><option value="NS">Not Submitted</option></select></div>
+          <div><label class="lbl">Search</label><input type="text" id="attendance-search" placeholder="Search employee, date, status, remarks..." oninput="renderAttendanceDashboard()"></div>
+        </div>
+        <div class="btn-row" style="margin-top:0">
+          <button class="btn sm success admin-only" onclick="runAttendanceValidationNow()">Run Validation Now</button>
+          <button class="btn sm admin-only" onclick="exportAttendanceReport()">Export Attendance CSV</button>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-l">Total Working Days</div><div class="stat-v" id="attendance-stat-working">0</div></div>
+        <div class="stat"><div class="stat-l">Total Present</div><div class="stat-v green" id="attendance-stat-present">0</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-l">Not Submitted Days</div><div class="stat-v orange" id="attendance-stat-ns">0</div></div>
+        <div class="stat"><div class="stat-l">Approved Leaves</div><div class="stat-v" id="attendance-stat-leaves">0</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat" style="grid-column: span 2"><div class="stat-l">Attendance Percentage</div><div class="stat-v" id="attendance-stat-percent">0.00%</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Attendance History - Latest 30 Days</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr><th>Employee</th><th>Date</th><th>Status</th><th>Login Time</th><th>Remarks</th></tr>
+            </thead>
+            <tbody id="attendance-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Blocked Employees</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr><th>Employee</th><th>Blocked Date</th><th>Reason</th><th>Weekly Off</th><th>Action</th></tr>
+            </thead>
+            <tbody id="attendance-blocked-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- ADMIN MASTER DATA PANEL -->
@@ -1225,6 +1279,8 @@ var DEFAULT_DB={
   samplesInventory:[],
   giftsInventory:[],
   inputsInventory:[],
+  attendance:[],
+  weeklyOffConfig:[],
   holidays:[
     {date: '2026-01-01', name: 'New Year Day'},
     {date: '2026-01-26', name: 'Republic Day'},
@@ -1352,11 +1408,18 @@ function normalizeEmployeeStatus(status) {
   return match || 'Active';
 }
 
+function normalizeAccountStatus(status) {
+  return String(status || 'ACTIVE').trim().toUpperCase() === 'BLOCKED' ? 'BLOCKED' : 'ACTIVE';
+}
+
 function normalizeEmployeeRecord(emp) {
   if (!emp) return emp;
   emp.role = (emp.role || 'emp').trim().toLowerCase();
   emp.designation = (typeof emp.designation === 'undefined') ? getDefaultEmployeeDesignation(emp.role) : emp.designation.trim();
   emp.status = normalizeEmployeeStatus(emp.status);
+  emp.accountStatus = normalizeAccountStatus(emp.accountStatus);
+  emp.blockedDate = emp.blockedDate || '';
+  emp.blockedReason = emp.blockedReason || '';
   return emp;
 }
 
@@ -1371,6 +1434,9 @@ function buildEmployeeSupabaseRow(emp, includeDesignation) {
     doj: formatDateForPostgres(emp.doj),
     state: emp.state || null,
     status: normalizeEmployeeStatus(emp.status),
+    account_status: normalizeAccountStatus(emp.accountStatus),
+    blocked_date: formatDateForPostgres(emp.blockedDate) || null,
+    blocked_reason: emp.blockedReason || null,
     leaves: emp.leaves
   };
   if (includeDesignation !== false) {
@@ -1629,7 +1695,9 @@ async function initSupabaseData(isSilent) {
       giftsInv,
       inputsInv,
       stockists,
-      announcements
+      announcements,
+      attendanceData,
+      weeklyOffData
     ] = await Promise.all([
       fetchAllFromSupabase('doctors'),
       fetchAllFromSupabase('chemists'),
@@ -1642,7 +1710,9 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('gifts_inventory'),
       fetchAllFromSupabase('inputs_inventory'),
       fetchAllFromSupabase('stockists'),
-      fetchAllFromSupabase('announcements', { allowMissing: true })
+      fetchAllFromSupabase('announcements', { allowMissing: true }),
+      fetchAllFromSupabase('attendance', { allowMissing: true }),
+      fetchAllFromSupabase('weekly_off_config', { allowMissing: true })
     ]);
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
@@ -1774,6 +1844,9 @@ async function initSupabaseData(isSilent) {
           doj: e.doj || '',
           state: e.state || '',
           status: e.status || 'Active',
+          accountStatus: normalizeAccountStatus(e.account_status),
+          blockedDate: e.blocked_date || '',
+          blockedReason: e.blocked_reason || '',
           designation: (typeof cloudDesig !== 'undefined' && cloudDesig !== null && cloudDesig !== '') ? cloudDesig : (typeof localDesig !== 'undefined' && localDesig !== '' ? localDesig : ''),
           leaves: e.leaves
         };
@@ -2003,6 +2076,24 @@ async function initSupabaseData(isSilent) {
         distributed: i.distributed,
         balance: i.balance
       })),
+      attendance: (attendanceData || []).map(function(a) {
+        return {
+          id: a.id,
+          employeeId: a.employee_id,
+          date: a.date,
+          loginTime: a.login_time || '',
+          attendanceStatus: a.attendance_status || '',
+          remarks: a.remarks || '',
+          createdAt: a.created_at || ''
+        };
+      }),
+      weeklyOffConfig: (weeklyOffData || []).map(function(w) {
+        return {
+          id: w.id,
+          employeeId: w.employee_id || '',
+          weekday: typeof w.weekday === 'number' ? w.weekday : parseInt(w.weekday || '0', 10) || 0
+        };
+      }),
       holidays: holidays,
       announcements: (announcements || []).map(a => ({
         id: a.id,
@@ -2019,6 +2110,8 @@ async function initSupabaseData(isSilent) {
     };
     
     hasInitializedData = true;
+    ensureAttendanceSchedulerUpToDate();
+    scheduleNextAttendanceValidation();
 
     // Save synchronized DB to IndexedDB
     try {
@@ -2046,6 +2139,10 @@ async function initSupabaseData(isSilent) {
     if (SESSION.user) {
       if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
         renderAdminStats();
+        if (SESSION.user.role === 'admin') {
+          populateAttendanceEmployeeFilter();
+          renderAttendanceDashboard();
+        }
         if (isSilent !== true) {
           populateReportTerritoryDropdowns();
           renderAdminDashTeamList();
@@ -2128,6 +2225,8 @@ async function loadLocalDB() {
   if (!Array.isArray(DB.giftsInventory)) DB.giftsInventory = DEFAULT_DB.giftsInventory || [];
   if (!Array.isArray(DB.inputsInventory)) DB.inputsInventory = DEFAULT_DB.inputsInventory || [];
   if (!Array.isArray(DB.sfc)) DB.sfc = DEFAULT_DB.sfc || [];
+  if (!Array.isArray(DB.attendance)) DB.attendance = DEFAULT_DB.attendance || [];
+  if (!Array.isArray(DB.weeklyOffConfig)) DB.weeklyOffConfig = DEFAULT_DB.weeklyOffConfig || [];
   var sfcUpdated = false;
   DB.sfc.forEach(function(s) {
     if (s && typeof s.mode === 'string' && s.mode.startsWith('{')) {
@@ -2167,6 +2266,9 @@ async function loadLocalDB() {
     if (!e.state) { e.state = def ? def.state : 'Maharashtra'; updated = true; }
     if (!e.status) { e.status = def ? def.status : 'Active'; updated = true; }
     if (!e.pwd) { e.pwd = def ? def.pwd : 'pass123'; updated = true; }
+    if (!e.accountStatus) { e.accountStatus = 'ACTIVE'; updated = true; }
+    if (typeof e.blockedDate === 'undefined') { e.blockedDate = ''; updated = true; }
+    if (typeof e.blockedReason === 'undefined') { e.blockedReason = ''; updated = true; }
     var normalizedRole = (e.role || 'emp').trim().toLowerCase();
     if (e.role !== normalizedRole) {
       e.role = normalizedRole;
@@ -2177,6 +2279,11 @@ async function loadLocalDB() {
     var normalizedStatus = normalizeEmployeeStatus(e.status);
     if (e.status !== normalizedStatus) {
       e.status = normalizedStatus;
+      updated = true;
+    }
+    var normalizedAccountStatus = normalizeAccountStatus(e.accountStatus);
+    if (e.accountStatus !== normalizedAccountStatus) {
+      e.accountStatus = normalizedAccountStatus;
       updated = true;
     }
   });
@@ -2228,6 +2335,9 @@ async function loadLocalDB() {
       } catch (e2) {}
     }
   }
+  hasInitializedData = true;
+  ensureAttendanceSchedulerUpToDate();
+  scheduleNextAttendanceValidation();
 }
 async function seedSupabaseDatabase() {
   try {
@@ -2246,6 +2356,9 @@ async function seedSupabaseDatabase() {
         doj: formatDateForPostgres(e.doj) || null,
         state: e.state || null,
         status: normalizeEmployeeStatus(e.status),
+        account_status: normalizeAccountStatus(e.accountStatus),
+        blocked_date: formatDateForPostgres(e.blockedDate) || null,
+        blocked_reason: e.blockedReason || null,
         designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
         leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
       };
@@ -2508,6 +2621,9 @@ window.addEventListener('beforeunload', function (e) {
           doj: formatDateForPostgres(e.doj) || null,
           state: e.state || null,
           status: normalizeEmployeeStatus(e.status),
+          account_status: normalizeAccountStatus(e.accountStatus),
+          blocked_date: formatDateForPostgres(e.blockedDate) || null,
+          blocked_reason: e.blockedReason || null,
           designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
           leaves: e.leaves ? Object.assign({}, e.leaves, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) }) : {}
         };
@@ -2907,6 +3023,55 @@ window.addEventListener('beforeunload', function (e) {
       console.error("Error syncing inputs inventory:", e);
     }
 
+    // Sync Attendance
+    try {
+      const dbAttendance = (DB.attendance || []).map(function(a) {
+        return {
+          id: a.id || undefined,
+          employee_id: a.employeeId || '',
+          date: formatDateForPostgres(a.date) || a.date,
+          login_time: a.loginTime || null,
+          attendance_status: a.attendanceStatus || '',
+          remarks: a.remarks || null,
+          created_at: a.createdAt || null
+        };
+      });
+      await upsertInBatches('attendance', dbAttendance);
+      await reconcileSupabaseRows('attendance', DB.attendance || [], function(row) {
+        return String((row.employeeId || '') + '|' + (formatDateForPostgres(row.date) || row.date)).toUpperCase();
+      }, function(row) {
+        return supabase.from('attendance').delete()
+          .eq('employee_id', row.employeeId)
+          .eq('date', formatDateForPostgres(row.date) || row.date);
+      });
+    } catch (e) {
+      console.error("Error syncing attendance:", e);
+      hasSyncError = true;
+    }
+
+    // Sync Weekly Off Configuration
+    try {
+      const dbWeeklyOff = (DB.weeklyOffConfig || []).map(function(w) {
+        var row = {
+          employee_id: w.employeeId || null,
+          weekday: typeof w.weekday === 'number' ? w.weekday : parseInt(w.weekday || '0', 10) || 0
+        };
+        if (w.id !== undefined && w.id !== null && w.id !== '') row.id = w.id;
+        return row;
+      });
+      await upsertInBatches('weekly_off_config', dbWeeklyOff);
+      await reconcileSupabaseRows('weekly_off_config', DB.weeklyOffConfig || [], function(row) {
+        return String((row.employeeId || '') + '|' + row.weekday).toUpperCase();
+      }, function(row) {
+        return supabase.from('weekly_off_config').delete()
+          .eq('employee_id', row.employeeId || null)
+          .eq('weekday', typeof row.weekday === 'number' ? row.weekday : parseInt(row.weekday || '0', 10) || 0);
+      });
+    } catch (e) {
+      console.error("Error syncing weekly off configuration:", e);
+      hasSyncError = true;
+    }
+
 
     // Sync Holidays
     try {
@@ -2999,6 +3164,7 @@ function togglePasswordVisibility() {
 function doLogin(){
   var id=document.getElementById('login-id').value.trim().toUpperCase();
   var pwd=document.getElementById('login-pwd').value.trim();
+  ensureAttendanceSchedulerUpToDate();
   console.log("=== Sankalp Login Attempt ===");
   console.log("Input Employee ID/Name:", id);
   console.log("Input Password:", pwd);
@@ -3013,6 +3179,12 @@ function doLogin(){
     showToast('Invalid Employee ID/Name or Password');
     return;
   }
+  normalizeEmployeeRecord(emp);
+  if (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
+    showToast('Your account has been temporarily blocked because attendance was not submitted for the previous working day. Please contact the administrator.');
+    return;
+  }
+  recordAttendanceOnSuccessfulLogin(emp);
   SESSION.user=emp;
   localStorage.setItem('adonis_session', JSON.stringify(SESSION));
   document.getElementById('scr-login').style.display='none';
@@ -4333,6 +4505,394 @@ function getHolidayForDateAndState(dateStr, state) {
   });
 }
 
+var ATTENDANCE_EXECUTIVE_EXEMPT_NAMES = ['MILIND SARWATE', 'PANKAJ UNDWAR'];
+var ATTENDANCE_STATUS_LABELS = { P: 'Present', SL: 'Sick Leave', CL: 'Casual Leave', H: 'Holiday', WO: 'Weekly Off', NS: 'Not Submitted' };
+var ATTENDANCE_WEEKDAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+var attendanceSchedulerTimer = null;
+
+function getTodayDateString() {
+  var now = new Date();
+  return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+}
+
+function formatLocalDate(dateObj) {
+  return dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0');
+}
+
+function parseDateAtLocalMidnight(dateStr) {
+  var safe = formatDateForPostgres(dateStr) || dateStr;
+  var parts = String(safe || '').split('-');
+  if (parts.length !== 3) return new Date(safe);
+  return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+}
+
+function offsetDate(dateStr, offsetDays) {
+  var d = parseDateAtLocalMidnight(dateStr);
+  d.setDate(d.getDate() + offsetDays);
+  return formatLocalDate(d);
+}
+
+function getYesterdayDateString() {
+  return offsetDate(getTodayDateString(), -1);
+}
+
+function getAttendanceLoginTimeValue(dateObj) {
+  return String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
+}
+
+function isAttendanceTrackedEmployee(emp) {
+  return !!(emp && emp.id && String(emp.role || '').toLowerCase() !== 'admin');
+}
+
+function isExecutiveAttendanceExempt(emp) {
+  if (!emp) return false;
+  return ATTENDANCE_EXECUTIVE_EXEMPT_NAMES.indexOf(String(emp.name || '').trim().toUpperCase()) !== -1;
+}
+
+function ensureAttendanceArrays() {
+  if (!Array.isArray(DB.attendance)) DB.attendance = [];
+  if (!Array.isArray(DB.weeklyOffConfig)) DB.weeklyOffConfig = [];
+}
+
+function getAttendanceRecord(employeeId, dateStr) {
+  ensureAttendanceArrays();
+  var targetId = String(employeeId || '').trim().toUpperCase();
+  var targetDate = formatDateForPostgres(dateStr) || dateStr;
+  return DB.attendance.find(function(a) {
+    return String(a.employeeId || '').trim().toUpperCase() === targetId && (formatDateForPostgres(a.date) || a.date) === targetDate;
+  }) || null;
+}
+
+function upsertAttendanceRecord(record) {
+  ensureAttendanceArrays();
+  var dateStr = formatDateForPostgres(record.date) || record.date;
+  var existing = getAttendanceRecord(record.employeeId, dateStr);
+  if (existing) {
+    existing.loginTime = record.loginTime !== undefined ? record.loginTime : existing.loginTime;
+    existing.attendanceStatus = record.attendanceStatus || existing.attendanceStatus;
+    existing.remarks = record.remarks !== undefined ? record.remarks : existing.remarks;
+    existing.createdAt = record.createdAt || existing.createdAt || new Date().toISOString();
+    return existing;
+  }
+  var entry = {
+    id: record.id || ('ATT-' + String(record.employeeId || '').toUpperCase() + '-' + dateStr),
+    employeeId: record.employeeId,
+    date: dateStr,
+    loginTime: record.loginTime || '',
+    attendanceStatus: record.attendanceStatus || '',
+    remarks: record.remarks || '',
+    createdAt: record.createdAt || new Date().toISOString()
+  };
+  DB.attendance.push(entry);
+  return entry;
+}
+
+function getEmployeeWeeklyOffWeekdays(emp) {
+  ensureAttendanceArrays();
+  var empId = String((emp && emp.id) || '').trim().toUpperCase();
+  var rows = (DB.weeklyOffConfig || []).filter(function(w) {
+    return String(w.employeeId || '').trim().toUpperCase() === empId;
+  }).map(function(w) {
+    return typeof w.weekday === 'number' ? w.weekday : parseInt(w.weekday || '0', 10) || 0;
+  });
+  return rows.length ? rows : [0];
+}
+
+function getEmployeeWeeklyOffLabel(emp) {
+  return ATTENDANCE_WEEKDAY_LABELS[getEmployeeWeeklyOffWeekdays(emp)[0]] || 'Sunday';
+}
+
+function setEmployeeWeeklyOff(empId, weekday) {
+  ensureAttendanceArrays();
+  var targetId = String(empId || '').trim().toUpperCase();
+  var existing = (DB.weeklyOffConfig || []).find(function(w) {
+    return String(w.employeeId || '').trim().toUpperCase() === targetId;
+  });
+  DB.weeklyOffConfig = (DB.weeklyOffConfig || []).filter(function(w) {
+    return String(w.employeeId || '').trim().toUpperCase() !== targetId;
+  });
+  DB.weeklyOffConfig.push({
+    id: existing ? existing.id : undefined,
+    employeeId: empId,
+    weekday: weekday
+  });
+  saveDB();
+  populateAttendanceEmployeeFilter();
+  renderAttendanceDashboard();
+}
+
+function isWeeklyOffForEmployee(emp, dateStr) {
+  var day = parseDateAtLocalMidnight(dateStr).getDay();
+  return getEmployeeWeeklyOffWeekdays(emp).indexOf(day) !== -1;
+}
+
+function getApprovedLeaveStatusForDate(emp, dateStr) {
+  var targetId = String((emp && emp.id) || '').trim().toUpperCase();
+  return (DB.leaves || []).find(function(l) {
+    var status = String(l.status || '').trim().toUpperCase();
+    if (String(l.empId || '').trim().toUpperCase() !== targetId) return false;
+    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN') return false;
+    var start = formatDateForPostgres(l.start) || l.start;
+    var end = formatDateForPostgres(l.end) || l.end;
+    return start <= dateStr && end >= dateStr;
+  }) || null;
+}
+
+function getAttendanceStatusBadgeClass(status) {
+  if (status === 'P') return 'green';
+  if (status === 'SL') return 'blue';
+  if (status === 'CL') return 'purple';
+  if (status === 'H') return 'orange';
+  if (status === 'WO') return 'grey';
+  if (status === 'NS') return 'red';
+  return 'grey';
+}
+
+function getAttendanceStatusMeta(emp, dateStr) {
+  var holiday = getHolidayForDateAndState(dateStr, emp ? emp.state : '');
+  if (holiday) return { status: 'H', remarks: 'Holiday' + (holiday.name ? ': ' + holiday.name : '') };
+  if (isWeeklyOffForEmployee(emp, dateStr)) return { status: 'WO', remarks: 'Weekly Off' };
+  var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
+  if (approvedLeave) {
+    var leaveType = String(approvedLeave.type || '').toLowerCase();
+    if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: 'Approved Sick Leave' };
+    if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
+  }
+  var existing = getAttendanceRecord(emp.id, dateStr);
+  if (existing && existing.attendanceStatus === 'P') return { status: 'P', remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
+  return { status: 'NS', remarks: 'Attendance Not Submitted' };
+}
+
+function recordAttendanceOnSuccessfulLogin(emp) {
+  if (!isAttendanceTrackedEmployee(emp)) return;
+  var today = getTodayDateString();
+  var existing = getAttendanceRecord(emp.id, today);
+  if (existing && existing.attendanceStatus === 'P') return;
+  var statusMeta = getAttendanceStatusMeta(emp, today);
+  if (statusMeta.status === 'NS' || statusMeta.status === 'P') {
+    upsertAttendanceRecord({
+      employeeId: emp.id,
+      date: today,
+      loginTime: getAttendanceLoginTimeValue(new Date()),
+      attendanceStatus: 'P',
+      remarks: 'Present via first successful login'
+    });
+    saveDB();
+    return;
+  }
+  if (!existing) {
+    upsertAttendanceRecord({
+      employeeId: emp.id,
+      date: today,
+      loginTime: '',
+      attendanceStatus: statusMeta.status,
+      remarks: statusMeta.remarks
+    });
+    saveDB();
+  }
+}
+
+function validateAttendanceForDate(dateStr) {
+  if (!dateStr) return false;
+  ensureAttendanceArrays();
+  var changed = false;
+  (DB.employees || []).forEach(function(emp) {
+    if (!isAttendanceTrackedEmployee(emp)) return;
+    normalizeEmployeeRecord(emp);
+    if (normalizeEmployeeStatus(emp.status) !== 'Active') return;
+    var doj = formatDateForPostgres(emp.doj) || '';
+    if (doj && dateStr < doj) return;
+    if (isExecutiveAttendanceExempt(emp)) {
+      if (emp.accountStatus !== 'ACTIVE') {
+        emp.accountStatus = 'ACTIVE';
+        emp.blockedDate = '';
+        emp.blockedReason = '';
+        changed = true;
+      }
+      return;
+    }
+    var statusMeta = getAttendanceStatusMeta(emp, dateStr);
+    var before = getAttendanceRecord(emp.id, dateStr);
+    var beforeStatus = before ? before.attendanceStatus : '';
+    var beforeRemarks = before ? before.remarks : '';
+    var beforeLoginTime = before ? before.loginTime : '';
+    var attendance = upsertAttendanceRecord({
+      employeeId: emp.id,
+      date: dateStr,
+      loginTime: statusMeta.status === 'P' ? beforeLoginTime : '',
+      attendanceStatus: statusMeta.status,
+      remarks: statusMeta.remarks
+    });
+    if (beforeStatus !== statusMeta.status || beforeRemarks !== statusMeta.remarks || (statusMeta.status !== 'P' && beforeLoginTime !== '')) changed = true;
+    attendance.attendanceStatus = statusMeta.status;
+    attendance.remarks = statusMeta.remarks;
+    if (statusMeta.status !== 'P') attendance.loginTime = '';
+    if (statusMeta.status === 'NS') {
+      if (emp.accountStatus !== 'BLOCKED' || emp.blockedDate !== dateStr || emp.blockedReason !== 'Attendance Not Submitted') {
+        emp.accountStatus = 'BLOCKED';
+        emp.blockedDate = dateStr;
+        emp.blockedReason = 'Attendance Not Submitted';
+        changed = true;
+      }
+    } else if (emp.accountStatus === 'BLOCKED' && emp.blockedReason === 'Attendance Not Submitted') {
+      emp.accountStatus = 'ACTIVE';
+      emp.blockedDate = '';
+      emp.blockedReason = '';
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+function ensureAttendanceSchedulerUpToDate() {
+  if (!DB || !Array.isArray(DB.employees)) return;
+  var lastRun = localStorage.getItem('adonis_attendance_last_validated_date') || '';
+  var targetEnd = getYesterdayDateString();
+  if (!targetEnd || targetEnd < '2000-01-01') return;
+  var start = lastRun ? offsetDate(lastRun, 1) : offsetDate(targetEnd, -29);
+  if (start > targetEnd) return;
+  var cursor = start;
+  var changed = false;
+  while (cursor <= targetEnd) {
+    if (validateAttendanceForDate(cursor)) changed = true;
+    localStorage.setItem('adonis_attendance_last_validated_date', cursor);
+    cursor = offsetDate(cursor, 1);
+  }
+  if (changed) saveDB();
+}
+
+function scheduleNextAttendanceValidation() {
+  if (attendanceSchedulerTimer) {
+    clearTimeout(attendanceSchedulerTimer);
+    attendanceSchedulerTimer = null;
+  }
+  var now = new Date();
+  var next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5, 0);
+  attendanceSchedulerTimer = setTimeout(function() {
+    ensureAttendanceSchedulerUpToDate();
+    scheduleNextAttendanceValidation();
+  }, Math.max(1000, next.getTime() - now.getTime()));
+}
+
+function populateAttendanceEmployeeFilter() {
+  var el = document.getElementById('attendance-employee-filter');
+  if (!el) return;
+  var current = el.value || '';
+  var options = ['<option value="">All Employees</option>'];
+  (DB.employees || []).filter(function(e) {
+    return isAttendanceTrackedEmployee(e);
+  }).sort(function(a, b) {
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  }).forEach(function(emp) {
+    options.push('<option value="' + escapeHTML(String(emp.id || '')) + '">' + escapeHTML((emp.name || emp.id) + ' (' + (emp.id || '') + ')') + '</option>');
+  });
+  el.innerHTML = options.join('');
+  if ((DB.employees || []).some(function(emp) { return String(emp.id || '') === current; })) el.value = current;
+}
+
+function getAttendanceDashboardRows() {
+  var employeeFilter = (document.getElementById('attendance-employee-filter') || {}).value || '';
+  var statusFilter = (document.getElementById('attendance-status-filter') || {}).value || '';
+  var q = String((document.getElementById('attendance-search') || {}).value || '').trim().toLowerCase();
+  var since = offsetDate(getTodayDateString(), -29);
+  return (DB.attendance || []).filter(function(row) {
+    var dateStr = formatDateForPostgres(row.date) || row.date;
+    if (dateStr < since) return false;
+    if (employeeFilter && String(row.employeeId || '').toUpperCase() !== String(employeeFilter).toUpperCase()) return false;
+    if (statusFilter && row.attendanceStatus !== statusFilter) return false;
+    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(row.employeeId || '').toUpperCase(); });
+    var haystack = [
+      row.employeeId || '',
+      emp ? emp.name || '' : '',
+      row.date || '',
+      row.attendanceStatus || '',
+      row.remarks || ''
+    ].join(' ').toLowerCase();
+    return !q || haystack.indexOf(q) !== -1;
+  }).slice().sort(function(a, b) {
+    var aKey = (a.date || '') + '|' + (a.employeeId || '');
+    var bKey = (b.date || '') + '|' + (b.employeeId || '');
+    return aKey < bKey ? 1 : -1;
+  });
+}
+
+function renderAttendanceDashboard() {
+  if (!SESSION.user || SESSION.user.role !== 'admin') return;
+  populateAttendanceEmployeeFilter();
+  var rows = getAttendanceDashboardRows();
+  var tbody = document.getElementById('attendance-table-body');
+  var blockedBody = document.getElementById('attendance-blocked-body');
+  if (tbody) {
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No attendance records found for the latest 30 days.</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function(row) {
+        var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(row.employeeId || '').toUpperCase(); });
+        var label = ATTENDANCE_STATUS_LABELS[row.attendanceStatus] || row.attendanceStatus || '-';
+        return '<tr><td class="tbl-name">' + escapeHTML((emp ? emp.name : row.employeeId) || '-') + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(row.employeeId || '') + '</div></td><td>' + escapeHTML(row.date || '') + '</td><td><span class="badge ' + getAttendanceStatusBadgeClass(row.attendanceStatus) + '">' + escapeHTML(label) + '</span></td><td>' + escapeHTML(row.loginTime || '-') + '</td><td>' + escapeHTML(row.remarks || '-') + '</td></tr>';
+      }).join('');
+    }
+  }
+  var workingDays = rows.filter(function(r) { return r.attendanceStatus !== 'H' && r.attendanceStatus !== 'WO'; }).length;
+  var presentDays = rows.filter(function(r) { return r.attendanceStatus === 'P'; }).length;
+  var nsDays = rows.filter(function(r) { return r.attendanceStatus === 'NS'; }).length;
+  var leaveDays = rows.filter(function(r) { return r.attendanceStatus === 'SL' || r.attendanceStatus === 'CL'; }).length;
+  var percent = workingDays ? ((presentDays / workingDays) * 100).toFixed(2) : '0.00';
+  var workingEl = document.getElementById('attendance-stat-working');
+  var presentEl = document.getElementById('attendance-stat-present');
+  var nsEl = document.getElementById('attendance-stat-ns');
+  var leaveEl = document.getElementById('attendance-stat-leaves');
+  var pctEl = document.getElementById('attendance-stat-percent');
+  if (workingEl) workingEl.textContent = workingDays;
+  if (presentEl) presentEl.textContent = presentDays;
+  if (nsEl) nsEl.textContent = nsDays;
+  if (leaveEl) leaveEl.textContent = leaveDays;
+  if (pctEl) pctEl.textContent = percent + '%';
+  if (blockedBody) {
+    var blockedRows = (DB.employees || []).filter(function(emp) {
+      return isAttendanceTrackedEmployee(emp) && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED';
+    });
+    if (!blockedRows.length) {
+      blockedBody.innerHTML = '<tr><td colspan="5" class="empty">No blocked employees.</td></tr>';
+    } else {
+      blockedBody.innerHTML = blockedRows.map(function(emp) {
+        return '<tr><td class="tbl-name">' + escapeHTML(emp.name || emp.id) + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(emp.id || '') + '</div></td><td>' + escapeHTML(emp.blockedDate || '-') + '</td><td>' + escapeHTML(emp.blockedReason || '-') + '</td><td>' + escapeHTML(getEmployeeWeeklyOffLabel(emp)) + '</td><td><button class="btn sm success" style="width:auto;display:inline-block" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('ACTIVE')) + ')">Unblock</button></td></tr>';
+      }).join('');
+    }
+  }
+}
+
+function runAttendanceValidationNow() {
+  if (!SESSION.user || SESSION.user.role !== 'admin') {
+    showToast('403 Forbidden: Attendance is available only to administrators.');
+    return;
+  }
+  var dateStr = getYesterdayDateString();
+  if (validateAttendanceForDate(dateStr)) {
+    saveDB();
+  }
+  localStorage.setItem('adonis_attendance_last_validated_date', dateStr);
+  renderAttendanceDashboard();
+  renderEmpTable();
+  showToast('Attendance validation completed for ' + dateStr + '.');
+}
+
+function exportAttendanceReport() {
+  if (!SESSION.user || SESSION.user.role !== 'admin') {
+    showToast('403 Forbidden: Attendance is available only to administrators.');
+    return;
+  }
+  var rows = getAttendanceDashboardRows();
+  var csv = 'Employee ID,Employee Name,Date,Status,Login Time,Remarks\n';
+  rows.forEach(function(row) {
+    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(row.employeeId || '').toUpperCase(); });
+    csv += [row.employeeId || '', emp ? emp.name || '' : '', row.date || '', row.attendanceStatus || '', row.loginTime || '', row.remarks || ''].map(function(val) {
+      return '"' + String(val).replace(/"/g, '""') + '"';
+    }).join(',') + '\n';
+  });
+  downloadData(csv, 'attendance_report_latest_30_days.csv');
+}
+
 function renderMTPDaysUI(isReadOnly, existing){
   var c=document.getElementById('tp-days-container');
   var readOnlyAttr = isReadOnly ? 'disabled' : '';
@@ -5222,6 +5782,8 @@ function goMasterSubTab(id) {
 
 function initAdminApp(){
   document.body.classList.toggle('is-admin', SESSION.user.role === 'admin');
+  var attendanceTab = document.getElementById('tab-adm-attendance');
+  if (attendanceTab) attendanceTab.style.display = SESSION.user.role === 'admin' ? 'block' : 'none';
   
   var isBroadcaster = canSendAnnouncement(SESSION.user);
   var bcTab = document.getElementById('tab-adm-announcements');
@@ -5240,6 +5802,8 @@ function initAdminApp(){
   renderAdminTPApprovals();
   renderAdminExpApprovals();
   renderAdminLeaveApprovals();
+  populateAttendanceEmployeeFilter();
+  renderAttendanceDashboard();
   renderEmpTable();
   renderAdminDocList();
   renderAdminChemistList();
@@ -5252,14 +5816,19 @@ function initAdminApp(){
   populateAdminEmpFilters();
   populateInventoryItemSelect();
   renderAdminInventoryTables();
-  if (currentAdminTab !== 'announcements') {
-    goAdminTab('dash');
+  if (currentAdminTab === 'attendance' && SESSION.user.role !== 'admin') {
+    currentAdminTab = 'dash';
   }
+  goAdminTab(currentAdminTab || 'dash');
 }
 
 function goAdminTab(name){
+  if (name === 'attendance' && (!SESSION.user || SESSION.user.role !== 'admin')) {
+    showToast('403 Forbidden: Attendance is available only to administrators.');
+    name = 'dash';
+  }
   currentAdminTab=name;
-  ['dash','appr','master','inventory','reports','visit','announcements'].forEach(function(t){
+  ['dash','appr','attendance','master','inventory','reports','visit','announcements'].forEach(function(t){
     var el=document.getElementById('sec-adm-'+t);
     if(el) el.style.display=t===name?'block':'none';
     var btn=document.getElementById('tab-adm-'+t);
@@ -5280,6 +5849,7 @@ function goAdminTab(name){
   }
   
   if(name==='dash') renderAdminDashTeamList();
+  if(name==='attendance') renderAttendanceDashboard();
   if(name==='reports') updateReportHeadersAndFilters();
   if(name==='inventory') renderAdminInventoryTables();
   if(name==='master') {
@@ -6377,15 +6947,25 @@ function openEmployeeStatusModal(empId) {
       'ID: ' + (emp.id || '-') + '<br>',
       'Designation: ' + (typeof emp.designation !== "undefined" ? emp.designation : getDefaultEmployeeDesignation(emp.role)) + '<br>',
       'Current Status: ' + normalizeEmployeeStatus(emp.status) + '<br>',
-      'Reporting Manager: ' + (mgr && mgr.name ? mgr.name : 'None'),
+      'Account Status: ' + normalizeAccountStatus(emp.accountStatus) + '<br>',
+      'Reporting Manager: ' + (mgr && mgr.name ? mgr.name : 'None') + '<br>' +
+      (emp.blockedDate ? ('Blocked Date: ' + emp.blockedDate + '<br>') : '') +
+      (emp.blockedReason ? ('Blocked Reason: ' + emp.blockedReason) : ''),
+    '</div>',
+    '<div class="row2" style="margin-bottom:12px">',
+      '<div><label class="lbl">Weekly Off</label><select id="emp-weekly-off"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>',
+      '<div style="display:flex;align-items:flex-end"><button class="btn sm" onclick="saveEmployeeWeeklyOff(' + escapeHTML(JSON.stringify(emp.id)) + ')">Save Weekly Off</button></div>',
     '</div>',
     '<div class="btn-row" style="flex-wrap:wrap">',
       '<button class="btn warn sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Hold')) + ')">Hold</button>',
       '<button class="btn danger sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Resign')) + ')">Resign</button>',
       '<button class="btn gold sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Replace')) + ')">Replace</button>',
       '<button class="btn success sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Active')) + ')">Active</button>',
+      '<button class="btn ' + (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'success' : 'warn') + ' sm" style="flex:1 1 100%" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify(normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED')) + ')">' + (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'Unblock Account' : 'Block Account') + '</button>',
     '</div>'
   ].join('');
+  var weeklyOffSelect = document.getElementById('emp-weekly-off');
+  if (weeklyOffSelect) weeklyOffSelect.value = String(getEmployeeWeeklyOffWeekdays(emp)[0]);
   document.getElementById('modal-emp-status').classList.add('on');
 }
 
@@ -6397,6 +6977,32 @@ function setEmployeeStatus(empId, status) {
   renderEmpTable();
   closeModal('modal-emp-status');
   showToast((emp.name || emp.id) + ' marked as ' + emp.status);
+}
+
+function setEmployeeAccountStatus(empId, status) {
+  var emp = DB.employees.find(function(e) { return e && e.id === empId; });
+  if (!emp) return;
+  emp.accountStatus = normalizeAccountStatus(status);
+  if (emp.accountStatus === 'BLOCKED') {
+    emp.blockedDate = getTodayDateString();
+    emp.blockedReason = emp.blockedReason || 'Blocked by administrator';
+  } else {
+    emp.blockedDate = '';
+    emp.blockedReason = '';
+  }
+  saveDB();
+  renderEmpTable();
+  renderAttendanceDashboard();
+  openEmployeeStatusModal(empId);
+  showToast((emp.name || emp.id) + ' account is now ' + emp.accountStatus);
+}
+
+function saveEmployeeWeeklyOff(empId) {
+  var weekdayEl = document.getElementById('emp-weekly-off');
+  if (!weekdayEl) return;
+  setEmployeeWeeklyOff(empId, parseInt(weekdayEl.value || '0', 10) || 0);
+  openEmployeeStatusModal(empId);
+  showToast('Weekly off updated successfully.');
 }
 
 function removeEmp(id){

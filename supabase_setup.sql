@@ -15,9 +15,15 @@ create table if not exists employees (
   doj date,
   state text,
   status text not null default 'Active',
-  leaves jsonb not null default '{"CL": 12, "SL": 10, "EL": 15, "LWP": 99, "CL_used": 0, "SL_used": 0, "EL_used": 0, "LWP_used": 0}'::jsonb
+  leaves jsonb not null default '{"CL": 12, "SL": 10, "EL": 15, "LWP": 99, "CL_used": 0, "SL_used": 0, "EL_used": 0, "LWP_used": 0}'::jsonb,
+  account_status text not null default 'ACTIVE',
+  blocked_date date,
+  blocked_reason text
 );
 alter table employees add column if not exists designation text;
+alter table employees add column if not exists account_status text not null default 'ACTIVE';
+alter table employees add column if not exists blocked_date date;
+alter table employees add column if not exists blocked_reason text;
 
 -- 2. Doctors Table
 create table doctors (
@@ -238,3 +244,24 @@ alter table samples_inventory disable row level security;
 alter table gifts_inventory disable row level security;
 alter table inputs_inventory disable row level security;
 alter table stockists disable row level security;
+
+-- 12. Attendance Table
+create table if not exists attendance (
+  id text primary key,
+  employee_id text references employees(id) on delete cascade,
+  date date not null,
+  login_time text,
+  attendance_status text not null,
+  remarks text,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  unique(employee_id, date)
+);
+alter table attendance disable row level security;
+
+-- 13. Weekly Off Configuration Table
+create table if not exists weekly_off_config (
+  id serial primary key,
+  employee_id text unique references employees(id) on delete cascade,
+  weekday integer not null default 0
+);
+alter table weekly_off_config disable row level security;

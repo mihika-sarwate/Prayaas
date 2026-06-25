@@ -2580,6 +2580,17 @@ window.addEventListener('beforeunload', function (e) {
     var dbStatus = document.getElementById('db-status-indicator');
     if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
 
+    // Watchdog: forcefully release sync lock after 45s so UI never stays stuck
+    var syncWatchdog = setTimeout(function() {
+      if (isSyncing) {
+        console.warn('Sync watchdog triggered — releasing stuck sync lock.');
+        isSyncing = false;
+        syncPending = false;
+        var el = document.getElementById('db-status-indicator');
+        if (el) el.textContent = 'Database Connection: Supabase Cloud';
+      }
+    }, 45000);
+
     try { // outer try — all individual syncs handle their own errors internally
 
     // Sync SFC
@@ -3179,13 +3190,18 @@ window.addEventListener('beforeunload', function (e) {
     } catch (err) {
       console.error("Supabase sync failed:", err);
     } finally {
+      clearTimeout(syncWatchdog);
       var dbStatus = document.getElementById('db-status-indicator');
       if (dbStatus) dbStatus.textContent = 'Database Connection: Supabase Cloud';
       showToast("Cloud Sync Complete!", 3000);
       isSyncing = false;
-      syncPending = false;
       // Silently pull latest data from cloud so UI reflects the persisted state
       setTimeout(function() { if (typeof initSupabaseData === 'function') initSupabaseData(true); }, 1500);
+      // Re-trigger sync if changes were queued while this sync was running
+      if (syncPending) {
+        syncPending = false;
+        setTimeout(syncSupabaseDatabase, 1000);
+      }
     }
   }
 

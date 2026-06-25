@@ -3720,13 +3720,22 @@ function populateReportingDropdowns(){
   if (stockSearchInp) stockSearchInp.value = '';
   
   // Product checklist grid
+  // Dynamically obtain the list of products from user's samples inventory, falling back to DB.products if empty
+  var userSamples = (DB.samplesInventory || []).filter(function(s){ return s.empId === SESSION.user.id; });
+  var activeProducts = userSamples.map(function(s){ return s.prodName; }).filter(Boolean);
+  if (activeProducts.length === 0) {
+    activeProducts = DB.products || [];
+  }
+  // Ensure unique values
+  activeProducts = activeProducts.filter(function(v, i, self) { return self.indexOf(v) === i; });
+
   var promoProductsGrid=document.getElementById('r-promo-products');
-  promoProductsGrid.innerHTML=DB.products.map(function(p, i){
+  promoProductsGrid.innerHTML=activeProducts.map(function(p, i){
     return '<label class="checklist-item"><input type="checkbox" class="promo-prod-check" value="'+p+'"> '+p+'</label>';
   }).join('');
   
   // Samples
-  document.getElementById('samples-list').innerHTML=DB.products.map(function(p,i){
+  document.getElementById('samples-list').innerHTML=activeProducts.map(function(p,i){
     var myStock=(DB.samplesInventory || []).find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
     var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
@@ -3750,7 +3759,15 @@ function populateReportingDropdowns(){
   }).join('');
 
   // Gifts
-  document.getElementById('gifts-list').innerHTML=DB.gifts.map(function(g,i){
+  // Dynamically obtain the list of gifts from user's gifts inventory, falling back to DB.gifts if empty
+  var userGifts = (DB.giftsInventory || []).filter(function(g){ return g.empId === SESSION.user.id; });
+  var activeGifts = userGifts.map(function(g){ return g.giftName; }).filter(Boolean);
+  if (activeGifts.length === 0) {
+    activeGifts = DB.gifts || [];
+  }
+  activeGifts = activeGifts.filter(function(v, i, self) { return self.indexOf(v) === i; });
+
+  document.getElementById('gifts-list').innerHTML=activeGifts.map(function(g,i){
     var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
     var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
@@ -3774,7 +3791,15 @@ function populateReportingDropdowns(){
   }).join('');
 
   // Inputs
-  document.getElementById('inputs-list').innerHTML=DB.inputs.map(function(ip,i){
+  // Dynamically obtain the list of inputs from user's inputs inventory, falling back to DB.inputs if empty
+  var userInputs = (DB.inputsInventory || []).filter(function(ip){ return ip.empId === SESSION.user.id; });
+  var activeInputs = userInputs.map(function(ip){ return ip.inputName; }).filter(Boolean);
+  if (activeInputs.length === 0) {
+    activeInputs = DB.inputs || [];
+  }
+  activeInputs = activeInputs.filter(function(v, i, self) { return self.indexOf(v) === i; });
+
+  document.getElementById('inputs-list').innerHTML=activeInputs.map(function(ip,i){
     var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
     var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
     var bal=myStock ? myStock.balance : 0;
@@ -4295,9 +4320,15 @@ function submitReport(){
     repObj.promotedProducts=promoted;
     
     // Samples issued deduction
+    var userSamples = (DB.samplesInventory || []).filter(function(s){ return s.empId === SESSION.user.id; });
+    var activeProducts = userSamples.map(function(s){ return s.prodName; }).filter(Boolean);
+    if (activeProducts.length === 0) activeProducts = DB.products || [];
+    activeProducts = activeProducts.filter(function(v, i, self) { return self.indexOf(v) === i; });
+
     var samples={};
-    DB.products.forEach(function(p, i){
-      var v=parseInt(document.getElementById('smp-'+i).value)||0;
+    activeProducts.forEach(function(p, i){
+      var el = document.getElementById('smp-'+i);
+      var v = el ? (parseInt(el.value)||0) : 0;
       if(v>0){
         samples[p]=v;
         // Deduct inventory
@@ -4311,9 +4342,15 @@ function submitReport(){
     repObj.samples = samples;
 
     // Gifts deduction
+    var userGifts = (DB.giftsInventory || []).filter(function(g){ return g.empId === SESSION.user.id; });
+    var activeGifts = userGifts.map(function(g){ return g.giftName; }).filter(Boolean);
+    if (activeGifts.length === 0) activeGifts = DB.gifts || [];
+    activeGifts = activeGifts.filter(function(v, i, self) { return self.indexOf(v) === i; });
+
     var gifts={};
-    DB.gifts.forEach(function(g, i){
-      var v=parseInt(document.getElementById('gft-'+i).value)||0;
+    activeGifts.forEach(function(g, i){
+      var el = document.getElementById('gft-'+i);
+      var v = el ? (parseInt(el.value)||0) : 0;
       if(v>0){
         gifts[g]=v;
         var inv=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
@@ -4326,9 +4363,15 @@ function submitReport(){
     repObj.gifts = gifts;
 
     // Inputs deduction
+    var userInputs = (DB.inputsInventory || []).filter(function(ip){ return ip.empId === SESSION.user.id; });
+    var activeInputs = userInputs.map(function(ip){ return ip.inputName; }).filter(Boolean);
+    if (activeInputs.length === 0) activeInputs = DB.inputs || [];
+    activeInputs = activeInputs.filter(function(v, i, self) { return self.indexOf(v) === i; });
+
     var inputs={};
-    DB.inputs.forEach(function(ip, i){
-      var v=parseInt(document.getElementById('inp-'+i).value)||0;
+    activeInputs.forEach(function(ip, i){
+      var el = document.getElementById('inp-'+i);
+      var v = el ? (parseInt(el.value)||0) : 0;
       if(v>0){
         inputs[ip]=v;
         var inv=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});

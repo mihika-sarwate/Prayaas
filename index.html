@@ -4721,9 +4721,11 @@ function getAttendanceStatusMeta(emp, dateStr) {
   if (emp && dateStr) {
     var monthStr = dateStr.slice(0, 7);
     var tp = (DB.tourPlans || []).find(function(t) {
+      var statusUpper = String(t.status || '').toUpperCase();
+      var approved = (statusUpper === 'APPROVED' || statusUpper === 'APPROVED BY MANAGER' || statusUpper === 'APPROVED BY ADMIN');
       return String(t.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
              t.month === monthStr && 
-             String(t.status || '').toUpperCase() === 'APPROVED';
+             approved;
     });
     
     if (tp && Array.isArray(tp.days)) {

@@ -5020,7 +5020,7 @@ function renderAttendanceDashboard() {
       blockedBody.innerHTML = '<tr><td colspan="5" class="empty">No blocked employees.</td></tr>';
     } else {
       blockedBody.innerHTML = blockedRows.map(function(emp) {
-        return '<tr><td class="tbl-name">' + escapeHTML(emp.name || emp.id) + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(emp.id || '') + '</div></td><td>' + escapeHTML(emp.blockedDate || '-') + '</td><td>' + escapeHTML(emp.blockedReason || '-') + '</td><td>' + escapeHTML(getEmployeeWeeklyOffLabel(emp)) + '</td><td><button class="btn sm success" style="width:auto;display:inline-block" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('ACTIVE')) + ')">Unblock</button></td></tr>';
+        return '<tr><td class="tbl-name">' + escapeHTML(emp.name || emp.id) + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(emp.id || '') + '</div></td><td>' + escapeHTML(emp.blockedDate || '-') + '</td><td>' + escapeHTML(emp.blockedReason || '-') + '</td><td>' + escapeHTML(getEmployeeWeeklyOffLabel(emp)) + '</td><td><button class="btn sm success" style="width:auto;display:inline-block" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('ACTIVE') + ', true') + ')">Unblock</button></td></tr>';
       }).join('');
     }
   }
@@ -7153,7 +7153,7 @@ function setEmployeeStatus(empId, status) {
   showToast((emp.name || emp.id) + ' marked as ' + emp.status);
 }
 
-function setEmployeeAccountStatus(empId, status) {
+function setEmployeeAccountStatus(empId, status, preventModalOpen) {
   var emp = DB.employees.find(function(e) { return e && e.id === empId; });
   if (!emp) return;
   emp.accountStatus = normalizeAccountStatus(status);
@@ -7167,7 +7167,9 @@ function setEmployeeAccountStatus(empId, status) {
   saveDB();
   renderEmpTable();
   renderAttendanceDashboard();
-  openEmployeeStatusModal(empId);
+  if (!preventModalOpen) {
+    openEmployeeStatusModal(empId);
+  }
   showToast((emp.name || emp.id) + ' account is now ' + emp.accountStatus);
 }
 

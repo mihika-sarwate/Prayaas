@@ -1662,13 +1662,22 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
     for (let i = 0; i < arr.length; i += chunkSize) {
       const chunk = arr.slice(i, i + chunkSize);
       console.log("Sending chunk " + (i/chunkSize + 1) + " of " + Math.ceil(arr.length/chunkSize) + " to table " + table + ". Size: " + chunk.length);
+      
+      // Perform upsert with custom option onConflict to guarantee compatibility with custom text primary keys (like employees.id, doctors.id)
       let res;
-      if (useInsert) {
-        res = await supabase.from(table).insert(chunk).select();
+      if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists') {
+        res = await supabase.from(table).upsert(chunk, { onConflict: 'id' }).select();
+      } else if (table === 'attendance') {
+        res = await supabase.from(table).upsert(chunk, { onConflict: 'employee_id,date' }).select();
+      } else if (table === 'weekly_off_config') {
+        res = await supabase.from(table).upsert(chunk, { onConflict: 'employee_id,weekday' }).select();
+      } else if (table === 'holidays') {
+        res = await supabase.from(table).upsert(chunk, { onConflict: 'date,state' }).select();
       } else {
         res = await supabase.from(table).upsert(chunk).select();
       }
-      console.log("Response for table " + table + ": status=" + res.status + ", error=" + JSON.stringify(res.error));
+
+      console.log("Response for table " + table + ": status=" + res.status + ", error=" + (res.error ? JSON.stringify(res.error) : 'none'));
       if (res.error) {
         var isMissingTable = res.error.code === 'PGRST205' || /could not find the table/i.test(res.error.message || '');
         if (isMissingTable) {

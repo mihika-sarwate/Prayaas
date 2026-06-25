@@ -5106,11 +5106,23 @@ function renderMTPDaysUI(isReadOnly, existing){
     });
   }
 
+  var targetEmpObj = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(targetEmpId || '').toUpperCase(); });
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);
     var area=d.areaTerritory||'';
     var city=d.stayCity||'';
-    var workType=d.workType||'FIELD WORK';
+    var workType=d.workType;
+    if (!workType) {
+      if (getHolidayForDateAndState(d.date, targetEmpObj ? targetEmpObj.state : '')) {
+        workType = 'HOLIDAY';
+      } else if (isWeeklyOffForEmployee(targetEmpObj, d.date)) {
+        workType = 'WEEKLY OFF';
+      } else if (getApprovedLeaveStatusForDate(targetEmpObj, d.date)) {
+        workType = 'LEAVE';
+      } else {
+        workType = area ? 'FIELD WORK' : 'FIELD WORK';
+      }
+    }
     var territory=d.territory||'HQ';
     
     var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
@@ -6134,9 +6146,22 @@ function viewTP(id){
   var plannedWorkingDays=tp.days.filter(function(d){return !!(d.areaTerritory||d.toLocation||'').trim();}).length;
   var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+tp.empName+' - '+tp.month+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Status: '+tp.status+' | Planned working days: '+plannedWorkingDays+'</div></div>';
   html+='<div class="tbl-wrap"><table class="tbl" style="min-width:760px"><thead><tr><th>Date</th><th>Area / Territory</th></tr></thead><tbody>';
+  var empObj = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(tp.empId || '').toUpperCase(); });
   tp.days.forEach(function(d){
     var area=d.areaTerritory||d.toLocation||'';
-    var workType=d.workType||'FIELD WORK';
+    var workType=d.workType;
+    if (!workType) {
+      if (getHolidayForDateAndState(d.date, empObj ? empObj.state : '')) {
+        workType = 'HOLIDAY';
+      } else if (isWeeklyOffForEmployee(empObj, d.date)) {
+        workType = 'WEEKLY OFF';
+      } else if (getApprovedLeaveStatusForDate(empObj, d.date)) {
+        workType = 'LEAVE';
+      } else {
+        workType = area ? 'FIELD WORK' : 'FIELD WORK'; // Default fallback
+      }
+    }
+    
     var displayText = '';
     if (workType !== 'FIELD WORK') {
       displayText = '<strong>' + workType + '</strong>';

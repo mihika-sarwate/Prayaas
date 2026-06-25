@@ -2008,39 +2008,55 @@ async function initSupabaseData(isSilent) {
       products: DEFAULT_DB.products,
       gifts: DEFAULT_DB.gifts,
       inputs: DEFAULT_DB.inputs,
-      reports: (reports || []).map(r => ({
-        id: r.id,
-        empId: r.emp_id,
-        empName: r.emp_name,
-        date: r.date,
-        time: r.time,
-        targetType: r.target_type,
-        classification: r.classification,
-        callType: r.call_type,
-        docId: r.doc_id,
-        docName: r.doc_name,
-        docSpec: r.doc_spec,
-        docArea: r.doc_area,
-        promotedProducts: r.promoted_products || [],
-        samples: parseJSONField(r.samples),
-        gifts: parseJSONField(r.gifts),
-        inputs: parseJSONField(r.inputs),
-        chemId: r.chem_id,
-        chemName: r.chem_name,
-        chemArea: r.chem_area,
-        stockId: r.stock_id,
-        stockName: r.stock_name,
-        stockArea: r.stock_area,
-        orderAmount: parseFloat(r.order_amount) || 0,
-        stockStatus: r.stock_status,
-        jfwMgrId: r.jfw_mgr_id,
-        jfwMgrName: r.jfw_mgr_name,
-        jfwRemarks: r.jfw_remarks,
-        lat: r.lat,
-        lng: r.lng,
-        remarks: r.remarks,
-        nextVisit: r.next_visit
-      })),
+      // Merge cloud reports with any locally pending reports that haven't been confirmed yet.
+      // Without this, the 30-second poller would wipe out newly submitted reports that
+      // are still in-flight to Supabase.
+      reports: (function() {
+        var cloudReports = (reports || []).map(r => ({
+          id: r.id,
+          empId: r.emp_id,
+          empName: r.emp_name,
+          date: r.date,
+          time: r.time,
+          targetType: r.target_type,
+          classification: r.classification,
+          callType: r.call_type,
+          docId: r.doc_id,
+          docName: r.doc_name,
+          docSpec: r.doc_spec,
+          docArea: r.doc_area,
+          promotedProducts: r.promoted_products || [],
+          samples: parseJSONField(r.samples),
+          gifts: parseJSONField(r.gifts),
+          inputs: parseJSONField(r.inputs),
+          chemId: r.chem_id,
+          chemName: r.chem_name,
+          chemArea: r.chem_area,
+          stockId: r.stock_id,
+          stockName: r.stock_name,
+          stockArea: r.stock_area,
+          orderAmount: parseFloat(r.order_amount) || 0,
+          stockStatus: r.stock_status,
+          jfwMgrId: r.jfw_mgr_id,
+          jfwMgrName: r.jfw_mgr_name,
+          jfwRemarks: r.jfw_remarks,
+          lat: r.lat,
+          lng: r.lng,
+          remarks: r.remarks,
+          nextVisit: r.next_visit
+        }));
+        // Keep any locally pending reports not yet confirmed in cloud
+        if (_pendingLocalReportIds.size > 0 && typeof DB !== 'undefined' && DB && Array.isArray(DB.reports)) {
+          var cloudIds = new Set(cloudReports.map(function(r) { return String(r.id); }));
+          DB.reports.forEach(function(localRep) {
+            if (_pendingLocalReportIds.has(String(localRep.id)) && !cloudIds.has(String(localRep.id))) {
+              cloudReports.unshift(localRep);
+            }
+          });
+        }
+        return cloudReports;
+      })(),
+
       tourPlans: (tourPlans || []).map(tp => ({
         id: tp.id,
         empId: tp.emp_id,
@@ -2606,6 +2622,7 @@ var hasInitializedData = false;
 // The poller must NOT overwrite these with stale cloud data.
 var _pendingDeletedEmpIds = new Set(); // IDs that were deleted locally
 var _pendingLocalEmpIds = new Set();   // IDs whose data was changed locally (block/unblock/edit)
+var _pendingLocalReportIds = new Set(); // Report IDs submitted locally but not yet confirmed in cloud
 
 // Push a single employee record directly to Supabase without triggering a full sync.
 // Used by block/unblock to make changes visible in the cloud immediately.
@@ -2639,6 +2656,79 @@ async function pushEmployeeToSupabase(emp) {
     }
   } catch (e) {
     console.error('pushEmployeeToSupabase exception:', e);
+  }
+}
+
+// Push a single report directly to Supabase immediately after submission.
+// Prevents reports from vanishing when the 30-second poller overwrites local data
+// before the debounced full sync has had a chance to run.
+async function pushReportToSupabase(rep) {
+  if (!useSupabase || !supabase || !rep || !rep.id) return;
+  try {
+    var empId = rep.empId || null;
+    if (empId) {
+      var mEmp = DB.employees.find(function(x) { return String(x.id||'').toUpperCase() === String(empId).toUpperCase(); });
+      empId = mEmp ? mEmp.id : empId;
+    }
+    var docId = rep.docId || null;
+    if (docId) {
+      var mDoc = DB.doctors.find(function(x) { return String(x.id||'').toUpperCase() === String(docId).toUpperCase(); });
+      docId = mDoc ? mDoc.id : docId;
+    }
+    var chemId = rep.chemId || null;
+    if (chemId) {
+      var mChem = DB.chemists.find(function(x) { return String(x.id||'').toUpperCase() === String(chemId).toUpperCase(); });
+      chemId = mChem ? mChem.id : chemId;
+    }
+    var jfwMgrId = rep.jfwMgrId || null;
+    if (jfwMgrId) {
+      var mMgr = DB.employees.find(function(x) { return String(x.id||'').toUpperCase() === String(jfwMgrId).toUpperCase(); });
+      jfwMgrId = mMgr ? mMgr.id : jfwMgrId;
+    }
+    var row = {
+      id: rep.id,
+      emp_id: empId,
+      emp_name: rep.empName || '',
+      date: formatDateForPostgres(rep.date) || new Date().toISOString().split('T')[0],
+      time: rep.time || '',
+      target_type: rep.targetType || '',
+      classification: rep.classification || '',
+      call_type: rep.callType || '',
+      doc_id: docId,
+      doc_name: rep.docName || null,
+      doc_spec: rep.docSpec || null,
+      doc_area: rep.docArea || null,
+      promoted_products: rep.promotedProducts || [],
+      samples: JSON.stringify(parseJSONField(rep.samples)),
+      gifts: JSON.stringify(parseJSONField(rep.gifts)),
+      inputs: JSON.stringify(parseJSONField(rep.inputs)),
+      chem_id: chemId,
+      chem_name: rep.chemName || null,
+      chem_area: rep.chemArea || null,
+      stock_id: rep.stockId || null,
+      stock_name: rep.stockName || null,
+      stock_area: rep.stockArea || null,
+      order_amount: rep.orderAmount || 0,
+      stock_status: rep.stockStatus || null,
+      jfw_mgr_id: jfwMgrId,
+      jfw_mgr_name: rep.jfwMgrName || null,
+      jfw_remarks: rep.jfwRemarks || null,
+      lat: rep.lat || null,
+      lng: rep.lng || null,
+      remarks: rep.remarks || null,
+      next_visit: formatDateForPostgres(rep.nextVisit) || null
+    };
+    var res = await supabase.from('reports').upsert([row], { onConflict: 'id' });
+    if (res && res.error) {
+      console.error('pushReportToSupabase error:', res.error);
+      // Keep it in pending so full sync can retry
+    } else {
+      _pendingLocalReportIds.delete(String(rep.id));
+      console.log('Report ' + rep.id + ' pushed to Supabase successfully.');
+      showToast('Cloud Sync Complete!', 3000);
+    }
+  } catch (e) {
+    console.error('pushReportToSupabase exception:', e);
   }
 }
 
@@ -4665,8 +4755,14 @@ function submitReport(){
   }
   
   DB.reports.unshift(repObj);
-  saveDB();
-  showToast('Daily Call Report Submitted successfully!');
+  // Mark this report as pending so the 30-second poller does not erase it before cloud confirms.
+  _pendingLocalReportIds.add(String(repObj.id));
+  // Persist locally immediately
+  idb.set('adonis_db', DB);
+  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
+  // Push directly to Supabase now — do NOT wait for the debounced full sync
+  pushReportToSupabase(repObj);
+  showToast('Report submitted! Syncing to cloud...');
   
   // Clear inputs
   document.getElementById('r-remarks').value='';
@@ -5932,33 +6028,55 @@ function generateExpenseFromReports(){
       if(area && !distinctAreas.includes(area)) distinctAreas.push(area);
     });
     
-    // Simple SFC Matcher
+    // SFC Matcher — tries progressively looser matches
     var startLocation = (SESSION.user && (SESSION.user.area || SESSION.user.hq)) ? (SESSION.user.area || SESSION.user.hq) : '';
     var endLocation = distinctAreas.length ? distinctAreas[0] : startLocation;
-    
+    var myEmpIdUpper = String(SESSION.user && SESSION.user.id || '').toUpperCase().trim();
+
+    function locIncludes(a, b) {
+      // True if either string contains the other (case-insensitive, trimmed)
+      a = (a || '').toLowerCase().trim();
+      b = (b || '').toLowerCase().trim();
+      return a && b && (a.includes(b) || b.includes(a));
+    }
+
     var sfcEntry = null;
     if (startLocation && endLocation) {
-      // First try to match by employee ID and locations
+      var startLow = startLocation.toLowerCase().trim();
+      var endLow = endLocation.toLowerCase().trim();
+
+      // 1) Exact match: same emp + exact from/to
       sfcEntry = DB.sfc.find(function(s){
-        var sEmpId = String(s.empId || '').toUpperCase().trim();
-        var myEmpId = String(SESSION.user.id || '').toUpperCase().trim();
-        if (sEmpId !== myEmpId) return false;
-        var fromLoc = (s.from || '').toLowerCase().trim();
-        var toLoc = (s.to || '').toLowerCase().trim();
-        var startLoc = startLocation.toLowerCase().trim();
-        var endLoc = endLocation.toLowerCase().trim();
-        return (fromLoc === startLoc && toLoc === endLoc) ||
-               (fromLoc === endLoc && toLoc === startLoc);
+        if (String(s.empId||'').toUpperCase().trim() !== myEmpIdUpper) return false;
+        var f = (s.from||'').toLowerCase().trim(), t = (s.to||'').toLowerCase().trim();
+        return (f===startLow&&t===endLow)||(f===endLow&&t===startLow);
       });
-      // Fallback: match by locations only (general route)
+      // 2) Partial match: same emp + partial from/to
       if (!sfcEntry) {
         sfcEntry = DB.sfc.find(function(s){
-          var fromLoc = (s.from || '').toLowerCase().trim();
-          var toLoc = (s.to || '').toLowerCase().trim();
-          var startLoc = startLocation.toLowerCase().trim();
-          var endLoc = endLocation.toLowerCase().trim();
-          return (fromLoc === startLoc && toLoc === endLoc) ||
-                 (fromLoc === endLoc && toLoc === startLoc);
+          if (String(s.empId||'').toUpperCase().trim() !== myEmpIdUpper) return false;
+          return (locIncludes(s.from,startLocation)&&locIncludes(s.to,endLocation))||
+                 (locIncludes(s.from,endLocation)&&locIncludes(s.to,startLocation));
+        });
+      }
+      // 3) Exact match on route regardless of emp (general SFC table)
+      if (!sfcEntry) {
+        sfcEntry = DB.sfc.find(function(s){
+          var f = (s.from||'').toLowerCase().trim(), t = (s.to||'').toLowerCase().trim();
+          return (f===startLow&&t===endLow)||(f===endLow&&t===startLow);
+        });
+      }
+      // 4) Partial route match regardless of emp
+      if (!sfcEntry) {
+        sfcEntry = DB.sfc.find(function(s){
+          return (locIncludes(s.from,startLocation)&&locIncludes(s.to,endLocation))||
+                 (locIncludes(s.from,endLocation)&&locIncludes(s.to,startLocation));
+        });
+      }
+      // 5) Any SFC entry for this employee (uses their standard daily allowance)
+      if (!sfcEntry && myEmpIdUpper) {
+        sfcEntry = DB.sfc.find(function(s){
+          return String(s.empId||'').toUpperCase().trim() === myEmpIdUpper;
         });
       }
     }

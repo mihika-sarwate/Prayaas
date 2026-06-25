@@ -4718,6 +4718,44 @@ function getAttendanceStatusBadgeClass(status) {
 }
 
 function getAttendanceStatusMeta(emp, dateStr) {
+  if (emp && dateStr) {
+    var monthStr = dateStr.slice(0, 7);
+    var tp = (DB.tourPlans || []).find(function(t) {
+      return String(t.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
+             t.month === monthStr && 
+             String(t.status || '').toUpperCase() === 'APPROVED';
+    });
+    
+    if (tp && Array.isArray(tp.days)) {
+      var dayInfo = tp.days.find(function(d) { return d.date === dateStr; });
+      if (dayInfo) {
+        var wt = String(dayInfo.workType || '').toUpperCase();
+        if (wt === 'WEEKLY OFF') {
+          return { status: 'WO', remarks: 'Weekly Off (from Tour Plan)' };
+        }
+        if (wt === 'HOLIDAY') {
+          return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
+        }
+        if (wt === 'LEAVE') {
+          var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
+          var leaveTypeLabel = 'Approved Leave';
+          var statusVal = 'CL'; // Default fallback
+          if (approvedLeave) {
+            var leaveType = String(approvedLeave.type || '').toLowerCase();
+            if (leaveType.indexOf('sick') !== -1) {
+              statusVal = 'SL';
+              leaveTypeLabel = 'Approved Sick Leave';
+            } else {
+              statusVal = 'CL';
+              leaveTypeLabel = 'Approved Casual Leave';
+            }
+          }
+          return { status: statusVal, remarks: leaveTypeLabel + ' (from Tour Plan)' };
+        }
+      }
+    }
+  }
+
   var holiday = getHolidayForDateAndState(dateStr, emp ? emp.state : '');
   if (holiday) return { status: 'H', remarks: 'Holiday' + (holiday.name ? ': ' + holiday.name : '') };
   if (isWeeklyOffForEmployee(emp, dateStr)) return { status: 'WO', remarks: 'Weekly Off' };

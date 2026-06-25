@@ -4898,13 +4898,64 @@ function renderAttendanceDashboard() {
   var tbody = document.getElementById('attendance-table-body');
   var blockedBody = document.getElementById('attendance-blocked-body');
   if (tbody) {
+    var tableEl = tbody.closest('table');
+    var theadEl = tableEl ? tableEl.querySelector('thead') : null;
+    
     if (!rows.length) {
+      if (theadEl) {
+        theadEl.innerHTML = '<tr><th>Employee</th><th>Date</th><th>Status</th><th>Login Time</th><th>Remarks</th></tr>';
+      }
       tbody.innerHTML = '<tr><td colspan="5" class="empty">No attendance records found for the latest 30 days.</td></tr>';
     } else {
-      tbody.innerHTML = rows.map(function(row) {
-        var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(row.employeeId || '').toUpperCase(); });
-        var label = ATTENDANCE_STATUS_LABELS[row.attendanceStatus] || row.attendanceStatus || '-';
-        return '<tr><td class="tbl-name">' + escapeHTML((emp ? emp.name : row.employeeId) || '-') + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(row.employeeId || '') + '</div></td><td>' + escapeHTML(row.date || '') + '</td><td><span class="badge ' + getAttendanceStatusBadgeClass(row.attendanceStatus) + '">' + escapeHTML(label) + '</span></td><td>' + escapeHTML(row.loginTime || '-') + '</td><td>' + escapeHTML(row.remarks || '-') + '</td></tr>';
+      // Find all unique dates present in the filtered rows, sorted chronologically ascending
+      var datesSet = {};
+      rows.forEach(function(r) { if (r.date) datesSet[r.date] = true; });
+      var dates = Object.keys(datesSet).sort();
+      
+      // Find all unique employee IDs in the filtered rows
+      var empsSet = {};
+      rows.forEach(function(r) { if (r.employeeId) empsSet[r.employeeId] = true; });
+      var empIds = Object.keys(empsSet).sort(function(a, b) {
+        var empA = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === a.toUpperCase(); });
+        var empB = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === b.toUpperCase(); });
+        var nameA = empA ? (empA.name || '') : a;
+        var nameB = empB ? (empB.name || '') : b;
+        return nameA.localeCompare(nameB);
+      });
+      
+      // Update header
+      if (theadEl) {
+        var headerHtml = '<tr><th>Employee</th>';
+        dates.forEach(function(d) {
+          var parts = d.split('-');
+          var shortDate = parts[2] + '/' + parts[1];
+          headerHtml += '<th style="text-align:center; min-width:60px;">' + escapeHTML(shortDate) + '</th>';
+        });
+        headerHtml += '</tr>';
+        theadEl.innerHTML = headerHtml;
+      }
+      
+      // Update body
+      tbody.innerHTML = empIds.map(function(empId) {
+        var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
+        var rowHtml = '<tr><td class="tbl-name">' + escapeHTML((emp ? emp.name : empId) || '-') + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(empId || '') + '</div></td>';
+        
+        dates.forEach(function(d) {
+          var record = DB.attendance.find(function(r) {
+            return String(r.employeeId || '').toUpperCase() === empId.toUpperCase() && (formatDateForPostgres(r.date) || r.date) === d;
+          });
+          
+          if (record) {
+            var label = record.attendanceStatus || '-';
+            var badgeClass = getAttendanceStatusBadgeClass(record.attendanceStatus);
+            rowHtml += '<td style="text-align:center;"><span class="badge ' + badgeClass + '" title="' + escapeHTML(record.remarks || '') + '" style="cursor:pointer; padding: 4px 8px; font-size:11px;">' + escapeHTML(label) + '</span></td>';
+          } else {
+            rowHtml += '<td style="text-align:center; color:var(--text-muted)">-</td>';
+          }
+        });
+        
+        rowHtml += '</tr>';
+        return rowHtml;
       }).join('');
     }
   }

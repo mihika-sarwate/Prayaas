@@ -2575,6 +2575,9 @@ window.addEventListener('beforeunload', function (e) {
     syncPending = false;
     hasSyncError = false;
 
+    var dbStatus = document.getElementById('db-status-indicator');
+    if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
+
     // Sync SFC
     try {
       var sfcKeysLocal = new Set();
@@ -2639,9 +2642,6 @@ window.addEventListener('beforeunload', function (e) {
       console.error("Error syncing announcements:", e);
     }
 
-    var dbStatus = document.getElementById('db-status-indicator');
-    if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
-    try {
     // Sync Employees
     try {
       const dbEmps = DB.employees.map(function(e) {
@@ -3163,6 +3163,10 @@ window.addEventListener('beforeunload', function (e) {
     } catch (holErr) {
       if (holErr && (holErr.code === 'PGRST205' || /could not find the table/i.test(holErr.message || ''))) {
         setHolidayTableMissingFlag(true);
+        // Clear sync locks so UI does not freeze when holiday table is missing
+        isSyncing = false;
+        var dbStatus = document.getElementById('db-status-indicator');
+        if (dbStatus) dbStatus.textContent = 'Database Connection: Supabase Cloud';
         return;
       }
       console.warn("Could not sync holidays to Supabase (table may not exist):", holErr);

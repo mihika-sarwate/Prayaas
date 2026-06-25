@@ -5327,7 +5327,7 @@ function sanitizeMTPDaysForAssignedMasters(){
     day.plannedDocs=getAssignedDoctorsForArea(day.areaTerritory).map(function(doc){return doc.id;});
     day.plannedChems=getAssignedChemistsForArea(day.areaTerritory).map(function(chem){return chem.id;});
   });
-  return currentMTPDays.filter(function(day){return !!day.areaTerritory;});
+  return currentMTPDays;
 }
 
 function saveOrSubmitTourPlan(status){
@@ -5336,7 +5336,8 @@ function saveOrSubmitTourPlan(status){
   if(!month){showToast('Please select Month');return;}
   if(!currentMTPDays.length){showToast('No days generated for this month');return;}
   var plannedDays=sanitizeMTPDaysForAssignedMasters();
-  if(!plannedDays.length){showToast('Please enter Area/Territory for at least one working day');return;}
+  var hasAnyConfig = plannedDays.some(function(d){ return d.workType !== 'FIELD WORK' || !!d.areaTerritory; });
+  if(!hasAnyConfig){showToast('Please configure at least one working or non-working day');return;}
   
   var mgrObj=DB.employees.find(function(e){return e.id===mgr;});
   
@@ -6147,7 +6148,39 @@ function viewTP(id){
   var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+tp.empName+' - '+tp.month+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Status: '+tp.status+' | Planned working days: '+plannedWorkingDays+'</div></div>';
   html+='<div class="tbl-wrap"><table class="tbl" style="min-width:760px"><thead><tr><th>Date</th><th>Area / Territory</th></tr></thead><tbody>';
   var empObj = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(tp.empId || '').toUpperCase(); });
-  tp.days.forEach(function(d){
+  
+  var year=parseInt(tp.month.split('-')[0]);
+  var mIndex=parseInt(tp.month.split('-')[1])-1;
+  var date = new Date(year, mIndex, 1);
+  var daysToRender = [];
+  var i=1;
+  while (date.getMonth() === mIndex) {
+    var dayStr = i < 10 ? '0'+i : i;
+    var fullDateStr = tp.month+'-'+dayStr;
+    var existingDay = tp.days.find(function(d){return d.date===fullDateStr;});
+    var dayObj = existingDay ? JSON.parse(JSON.stringify(existingDay)) : {
+      date: fullDateStr,
+      dayNum: i,
+      category: 'HQ',
+      workType: '',
+      territory: 'HQ',
+      fromLocation: empObj ? empObj.area : '',
+      toLocation: '',
+      areaTerritory: '',
+      stayCity: '',
+      objective: '',
+      plannedDocs: [],
+      plannedChems: []
+    };
+    if (existingDay && !dayObj.workType) {
+      dayObj.workType = (['Weekly Off', 'Leave', 'Transit', 'Holiday', 'Meeting'].includes(existingDay.areaTerritory) ? existingDay.areaTerritory.toUpperCase() : '');
+    }
+    daysToRender.push(dayObj);
+    i++;
+    date.setDate(date.getDate() + 1);
+  }
+
+  daysToRender.forEach(function(d){
     var area=d.areaTerritory||d.toLocation||'';
     var workType=d.workType;
     if (!workType) {
@@ -6165,9 +6198,9 @@ function viewTP(id){
     var displayText = '';
     if (workType !== 'FIELD WORK') {
       displayText = '<strong>' + workType + '</strong>';
+      if (area) displayText += ': ' + area;
     } else {
-      if (!area) return; // Skip unplanned field work days
-      displayText = area;
+      displayText = area || '--';
     }
     html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+displayText+'</td></tr>';
   });

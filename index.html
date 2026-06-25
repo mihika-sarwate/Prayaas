@@ -1869,8 +1869,8 @@ async function initSupabaseData(isSilent) {
     
     // ABORT OVERWRITE IF A SYNC IS CURRENTLY RUNNING OR PENDING
     // Otherwise we will wipe out local changes that haven't been pushed to the cloud yet
-    if (isSyncing || syncPending || (typeof hasSyncError !== 'undefined' && hasSyncError)) {
-      console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending or has encountered an error.");
+    if (isSyncing || syncPending) {
+      console.warn("initSupabaseData aborting DB overwrite because a sync is running/pending.");
       isLoadingData = false;
       return;
     }

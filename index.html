@@ -3925,11 +3925,8 @@ function isPendingForUser(status, managerId, u) {
   var isAdmin = u.role === 'admin';
   var statusUpper = String(status || '').toUpperCase();
   
-  if (isMgr) {
-    if (statusUpper === 'SUBMITTED' || statusUpper === 'APPROVED BY ADMIN') return true;
-  }
-  if (isAdmin) {
-    if (statusUpper === 'SUBMITTED' || statusUpper === 'APPROVED BY MANAGER') return true;
+  if (statusUpper === 'SUBMITTED') {
+    return isMgr || isAdmin;
   }
   return false;
 }

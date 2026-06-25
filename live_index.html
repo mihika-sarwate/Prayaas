@@ -4102,9 +4102,15 @@ function renderMTPDaysUI(isReadOnly, existing){
   var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   
-  if (SESSION.user) {
+  var targetEmpId = (existing && existing.empId) ? existing.empId : (SESSION.user ? SESSION.user.id : '');
+  var teamIds = targetEmpId ? [String(targetEmpId).toUpperCase()] : null;
+  
+  if (targetEmpId) {
     DB.doctors.forEach(function(d) {
-      if (String(d.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && d.status === 'Active') {
+      var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
+
+      if (isAssignedToTeam && d.status === 'Active') {
         var tType = (d.territoryType || '').trim().toUpperCase();
         if (tType) {
           if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
@@ -4124,7 +4130,10 @@ function renderMTPDaysUI(isReadOnly, existing){
     });
 
     DB.chemists.forEach(function(c) {
-      if (String(c.assignTo||'').toUpperCase() === String(SESSION.user.id||'').toUpperCase() && c.area) {
+      var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
+
+      if (isAssignedToTeam && c.area) {
         var cArea = c.area.trim();
         var tTypes = areaToTType[cArea];
         if (tTypes && tTypes.length > 0) {

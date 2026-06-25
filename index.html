@@ -4289,12 +4289,10 @@ function renderMTPDaysUI(isReadOnly, existing){
   var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   
-  if (SESSION.user) {
-    var teamIds = (SESSION.user.role === 'emp') ? [] : null;
-    if (teamIds) {
-      teamIds.push(SESSION.user.id);
-    }
-
+  var targetEmpId = (existing && existing.empId) ? existing.empId : (SESSION.user ? SESSION.user.id : '');
+  var teamIds = targetEmpId ? [String(targetEmpId).toUpperCase()] : null;
+  
+  if (targetEmpId) {
     DB.doctors.forEach(function(d) {
       var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
       var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;

@@ -4171,14 +4171,11 @@ function renderMTPDaysUI(isReadOnly, existing){
   
   var targetEmpId = (existing && existing.empId) ? existing.empId : (SESSION.user ? SESSION.user.id : '');
   var teamIds = targetEmpId ? [String(targetEmpId).toUpperCase()] : null;
-  
-  var targetEmp = DB.employees.find(function(e){ return String(e.id || '').toUpperCase() === String(targetEmpId).toUpperCase(); });
-  var empHQ = targetEmp ? (targetEmp.area || '').trim() : '';
 
   if (targetEmpId) {
     var upperTargetId = String(targetEmpId).toUpperCase();
     
-    // Populate directly from doctor and chemist assignments
+    // Populate directly from doctor assignments ONLY
     DB.doctors.forEach(function(d) {
       var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
       var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
@@ -4186,59 +4183,8 @@ function renderMTPDaysUI(isReadOnly, existing){
       if (isAssignedToTeam && d.status === 'Active') {
         var tType = (d.territoryType || '').trim().toUpperCase();
         if (tType) {
-          if (tType === 'HQ') {
-            if (empHQ) {
-              mrTownsByTerritory['HQ'].add(empHQ);
-            } else if (d.city) {
-              mrTownsByTerritory['HQ'].add(d.city.trim());
-            }
-          } else {
-            if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
-          }
+          if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
           if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
-        }
-      }
-    });
-
-    var areaToTType = {};
-    Object.keys(mrAreasByTerritory).forEach(function(tt) {
-      mrAreasByTerritory[tt].forEach(function(a) {
-        if (!areaToTType[a]) areaToTType[a] = [];
-        areaToTType[a].push(tt);
-      });
-    });
-
-    DB.chemists.forEach(function(c) {
-      var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-
-      if (isAssignedToTeam && c.area) {
-        var cArea = c.area.trim();
-        var tTypes = areaToTType[cArea];
-        if (tTypes && tTypes.length > 0) {
-          tTypes.forEach(function(tt) {
-            mrAreasByTerritory[tt].add(cArea);
-            if (c.city) {
-              if (tt === 'HQ') {
-                if (empHQ) {
-                  mrTownsByTerritory['HQ'].add(empHQ);
-                } else {
-                  mrTownsByTerritory['HQ'].add(c.city.trim());
-                }
-              } else {
-                mrTownsByTerritory[tt].add(c.city.trim());
-              }
-            }
-          });
-        } else {
-          mrAreasByTerritory['HQ'].add(cArea);
-          if (c.city) {
-            if (empHQ) {
-              mrTownsByTerritory['HQ'].add(empHQ);
-            } else {
-              mrTownsByTerritory['HQ'].add(c.city.trim());
-            }
-          }
         }
       }
     });

@@ -1650,12 +1650,10 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
     console.warn('upsertInBatches(' + table + '): removed ' + (dataArray.length - deduped.length) + ' duplicate rows before upsert.');
   }
   
-  var inserts = deduped.filter(function(r) { return r.id === undefined || r.id === null; });
-  var updates = deduped.filter(function(r) { return r.id !== undefined && r.id !== null; });
-  if (table === 'holidays') {
-    inserts = [];
-    updates = deduped;
-  }
+  // Treat all rows as upserts unless it's a specific table, because tables like employees use custom string IDs (e.g. "EMP001") instead of serial integers. 
+  // If we try to split by 'id === undefined' as inserts and 'id !== undefined' as updates, new records with custom string IDs are sent to updates and fail or don't trigger creation.
+  var inserts = [];
+  var updates = deduped;
 
   let allUpdatedRows = [];
   async function processArray(arr, useInsert) {
@@ -1687,7 +1685,6 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
     }
   }
 
-  await processArray(inserts, true);
   await processArray(updates, false);
   return allUpdatedRows;
 }

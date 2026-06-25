@@ -4410,20 +4410,30 @@ function submitReport(){
     
   } else if (targetType === 'Chemist') {
     var chemId=document.getElementById('r-chemist').value;
-    if(!chemId){showToast('Please select chemist');return;}
-    var chem=DB.chemists.find(function(c){return c.id===chemId;});
-    repObj.chemId=chemId;
-    repObj.chemName=chem?chem.name:'';
-    repObj.chemArea=chem?chem.area:'';
+    if(!chemId){
+      repObj.chemId = null;
+      repObj.chemName = null;
+      repObj.chemArea = null;
+    } else {
+      var chem=DB.chemists.find(function(c){return c.id===chemId;});
+      repObj.chemId=chemId;
+      repObj.chemName=chem?chem.name:'';
+      repObj.chemArea=chem?chem.area:'';
+    }
     repObj.orderAmount=parseFloat(document.getElementById('r-chem-order').value)||0;
     repObj.stockStatus=document.getElementById('r-chem-stock').value;
   } else if (targetType === 'Stockist') {
     var stockId=document.getElementById('r-stockist').value;
-    if(!stockId){showToast('Please select stockist');return;}
-    var stock=DB.stockists.find(function(s){return s.id===stockId;});
-    repObj.stockId=stockId;
-    repObj.stockName=stock?stock.name:'';
-    repObj.stockArea=stock?stock.area:'';
+    if(!stockId){
+      repObj.stockId = null;
+      repObj.stockName = null;
+      repObj.stockArea = null;
+    } else {
+      var stock=DB.stockists.find(function(s){return s.id===stockId;});
+      repObj.stockId=stockId;
+      repObj.stockName=stock?stock.name:'';
+      repObj.stockArea=stock?stock.area:'';
+    }
     repObj.orderAmount=parseFloat(document.getElementById('r-stockist-order').value)||0;
     repObj.stockStatus=document.getElementById('r-stockist-stock').value;
   }

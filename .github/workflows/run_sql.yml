@@ -8,6 +8,8 @@ permissions:
 jobs:
   run-sql:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,10 +24,17 @@ jobs:
           pip install psycopg2-binary
 
       - name: Run SQL Script
+        if: ${{ env.DATABASE_URL != '' }}
         run: |
           python run_sql.py
 
+      - name: Skip when database URL is unavailable
+        if: ${{ env.DATABASE_URL == '' }}
+        run: |
+          echo "Skipping SQL DDL run because DATABASE_URL secret is not configured."
+
       - name: Commit and Push output
+        if: ${{ env.DATABASE_URL != '' }}
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"

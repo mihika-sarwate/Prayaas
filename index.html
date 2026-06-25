@@ -4765,6 +4765,15 @@ function getAttendanceStatusMeta(emp, dateStr) {
     if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: 'Approved Sick Leave' };
     if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
   }
+  
+  // Check if they have submitted any daily call reports (DCR) for this date
+  var hasReport = (DB.reports || []).some(function(r) {
+    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+  });
+  if (hasReport) {
+    return { status: 'P', remarks: 'Present via DCR Submission' };
+  }
+  
   var existing = getAttendanceRecord(emp.id, dateStr);
   if (existing && existing.attendanceStatus === 'P') return { status: 'P', remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
   return { status: 'NS', remarks: 'Attendance Not Submitted' };

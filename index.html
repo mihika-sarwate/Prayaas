@@ -5688,12 +5688,16 @@ function generateExpenseFromReports(){
       if (r.targetType === 'Doctor') area = r.docArea;
       else if (r.targetType === 'Chemist') area = r.chemArea;
       else if (r.targetType === 'Stockist') area = r.stockArea;
-      else area = r.patch || '';
+      
+      // If area not found from targetType details, fallback to the report's patch and city fields
+      if (!area) {
+        area = r.patch || r.city || '';
+      }
       if(area && !distinctAreas.includes(area)) distinctAreas.push(area);
     });
     
     // Simple SFC Matcher
-    var startLocation = (SESSION.user && SESSION.user.area) ? SESSION.user.area : '';
+    var startLocation = (SESSION.user && (SESSION.user.area || SESSION.user.hq)) ? (SESSION.user.area || SESSION.user.hq) : '';
     var endLocation = distinctAreas.length ? distinctAreas[0] : startLocation;
     
     var sfcEntry = null;

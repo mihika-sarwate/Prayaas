@@ -341,7 +341,7 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="row2">
         <div><label class="lbl">Time</label><input type="time" id="r-time"></div>
-        <div><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option><option>Stockist</option></select></div>
+        <div id="r-target-type-wrap"><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option><option>Stockist</option></select></div>
       </div>
       
       <!-- Doctor Selection -->
@@ -3625,12 +3625,21 @@ function toggleReportWorkTypeFields() {
   var w1 = document.getElementById('r-doctor-wrap');
   var w2 = document.getElementById('r-chemist-wrap');
   var w3 = document.getElementById('r-stockist-wrap');
+  var ttw = document.getElementById('r-target-type-wrap');
+  var ddetails = document.getElementById('r-doctor-details-wrap');
+  var cdetails = document.getElementById('r-chemist-details-wrap');
+  var sdetails = document.getElementById('r-stockist-details-wrap');
   
   if (!isFieldWork) {
     if(w1) w1.style.display = 'none';
     if(w2) w2.style.display = 'none';
     if(w3) w3.style.display = 'none';
+    if(ttw) ttw.style.display = 'none';
+    if(ddetails) ddetails.style.display = 'none';
+    if(cdetails) cdetails.style.display = 'none';
+    if(sdetails) sdetails.style.display = 'none';
   } else {
+    if(ttw) ttw.style.display = 'block';
     toggleReportTargetFields();
   }
 }
@@ -4303,7 +4312,18 @@ function submitReport(){
     repObj.jfwMgrName=mgrObj ? mgrObj.name : '';
   }
 
-  if(targetType==='Doctor'){
+  // Non-Field Work working types do not require targets (Doctors/Chemists/Stockists)
+  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT'];
+  if (nonFieldWorkTypes.indexOf(repObj.workType) !== -1) {
+    // Skip doctor/chemist/stockist validation and clean targets
+    repObj.targetType = '';
+    repObj.docId = '';
+    repObj.docName = '';
+    repObj.chemId = '';
+    repObj.chemName = '';
+    repObj.stockId = '';
+    repObj.stockName = '';
+  } else if(targetType==='Doctor'){
     var docId=document.getElementById('r-doctor').value;
     if(!docId){showToast('Please select doctor');return;}
     var doc=DB.doctors.find(function(d){return d.id===docId;});

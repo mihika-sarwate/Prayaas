@@ -3941,17 +3941,11 @@ function processApproval(currentStatus, managerId, u) {
   var statusUpper = String(currentStatus || '').toUpperCase();
   
   if (statusUpper === 'SUBMITTED') {
-    if (isMgr && isAdmin) {
+    if (isMgr || isAdmin) {
       return 'Approved';
-    } else if (isMgr) {
-      return 'Approved by Manager';
-    } else if (isAdmin) {
-      return mgrId ? 'Approved by Admin' : 'Approved';
     }
-  } else if (statusUpper === 'APPROVED BY MANAGER') {
-    if (isAdmin) return 'Approved';
-  } else if (statusUpper === 'APPROVED BY ADMIN') {
-    if (isMgr) return 'Approved';
+  } else if (statusUpper === 'APPROVED BY MANAGER' || statusUpper === 'APPROVED BY ADMIN') {
+    return 'Approved';
   }
   return currentStatus;
 }

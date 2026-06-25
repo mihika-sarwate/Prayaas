@@ -8199,10 +8199,80 @@ function issueStockToMR(){
 }
 
 function downloadInventoryTemplate() {
-  var csv = 'EmployeeID,ItemType,ItemName,OpeningQty\n';
-  csv += 'EMP004,sample,Aminoglobin-XT Susp,50\n';
-  csv += 'EMP004,gift,Arden 250,20\n';
-  csv += 'EMP004,input,Promotional Brochure,100\n';
+  var samples = [
+    'ARDEN 325', 'ARDEN 650', 'ARDEN MF SUSP', 'COLDAID', 'COLDAID SUSP',
+    'MV30 SYRUP', 'MV30 TAB', 'ORT+', 'SERVIL JUNIOR', 'SERVIL-D',
+    'SERVIL-LS JUNIOR', 'SERVIL-LS SYRUP'
+  ];
+  var gifts = [
+    'Servil Elite (BAG)', 'Servil Class (WIPES)', 'Servil Mass    (La-Adis Soap)',
+    'MV30 Elite (Bag)', 'MV30 Class (Wipes)'
+  ];
+  var inputs = [
+    'LBL All Products', 'LBL - Arden', 'LBL -    MV30', 'LBL - Servil GP',
+    'LBL - Servil Paedia', 'LBL - Arden MF', 'Arden MF Colour Cards'
+  ];
+
+  var row0 = [
+    '', '', '',
+    'Samples', '', '', '', '', '', '', '', '', '', '', '',
+    'Gifts', '', '', '', '',
+    'Inputs', '', '', '', '', '', ''
+  ];
+  var row1 = ['Emp Id', 'H.Q.', 'STATE'].concat(samples, gifts, inputs);
+  
+  var csv = row0.join(',') + '\n' + row1.join(',') + '\n';
+  var emps = DB.employees.filter(function(e) { return e && e.id !== 'ADMIN'; });
+  
+  if (emps.length > 0) {
+    emps.forEach(function(e) {
+      var row = [
+        e.id || '',
+        e.area || '',
+        e.state || ''
+      ];
+      
+      samples.forEach(function(pName) {
+        var stock = DB.samplesInventory.find(function(s) {
+          return s.empId === e.id && s.prodName.toLowerCase().trim() === pName.toLowerCase().trim();
+        });
+        row.push(stock ? stock.opening : 0);
+      });
+      
+      gifts.forEach(function(gName) {
+        var stock = DB.giftsInventory.find(function(g) {
+          return g.empId === e.id && g.giftName.toLowerCase().trim() === gName.toLowerCase().trim();
+        });
+        row.push(stock ? stock.opening : 0);
+      });
+      
+      inputs.forEach(function(iName) {
+        var stock = DB.inputsInventory.find(function(i) {
+          return i.empId === e.id && i.inputName.toLowerCase().trim() === iName.toLowerCase().trim();
+        });
+        row.push(stock ? stock.opening : 0);
+      });
+      
+      csv += row.map(function(val) {
+        var s = String(val);
+        if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      }).join(',') + '\n';
+    });
+  } else {
+    var dummyRow = ['EMP004', 'Pune', 'Maharashtra'].concat(
+      Array(samples.length).fill(0),
+      Array(gifts.length).fill(0),
+      Array(inputs.length).fill(0)
+    );
+    dummyRow[3] = 50;
+    dummyRow[3 + samples.length] = 20;
+    dummyRow[3 + samples.length + gifts.length] = 100;
+    csv += dummyRow.join(',') + '\n';
+  }
+  
   downloadData(csv, 'inventory_bulk_upload_template.csv');
 }
 
@@ -8214,92 +8284,265 @@ function uploadInventoryCSV(inp) {
     var lines = e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if (!lines.length) return;
     var added = 0;
-    var hasHeader = lines[0].toLowerCase().indexOf('employeeid') !== -1;
-    var dataLines = hasHeader ? lines.slice(1) : lines;
     
-    dataLines.forEach(function(line) {
-      var p = parseCSVLine(line);
-      if (p.length < 4) return;
-      var empId = (p[0] || '').trim();
-      var itemType = (p[1] || '').trim().toLowerCase();
-      var itemName = (p[2] || '').trim();
-      var openingQty = parseInt(p[3]) || 0;
+    function classifyItem(itemName) {
+      var nameLower = itemName.toLowerCase().trim();
+      var matchedProd = DB.products.find(function(p) { return p.toLowerCase().trim() === nameLower; });
+      if (matchedProd) return { type: 'sample', name: matchedProd };
+      var matchedGift = DB.gifts.find(function(g) { return g.toLowerCase().trim() === nameLower; });
+      if (matchedGift) return { type: 'gift', name: matchedGift };
+      var matchedInput = DB.inputs.find(function(i) { return i.toLowerCase().trim() === nameLower; });
+      if (matchedInput) return { type: 'input', name: matchedInput };
+      return null;
+    }
+
+    var categories = [];
+    var dataStartIdx = 1;
+    var isMultiColumn = false;
+    
+    var row0 = parseCSVLine(lines[0]);
+    var row0Lower = lines[0].toLowerCase();
+    var hasCategoryRow = row0Lower.indexOf('sample') !== -1 || row0Lower.indexOf('gift') !== -1 || row0Lower.indexOf('input') !== -1;
+    
+    if (hasCategoryRow && lines[1]) {
+      isMultiColumn = true;
+      dataStartIdx = 2;
+      var row1 = parseCSVLine(lines[1]);
+      var currentCategory = '';
+      for (var i = 3; i < row1.length; i++) {
+        if (row0[i] && row0[i].trim()) {
+          var cat = row0[i].trim().toLowerCase();
+          if (cat.indexOf('sample') !== -1 || cat.indexOf('product') !== -1) {
+            currentCategory = 'sample';
+          } else if (cat.indexOf('gift') !== -1) {
+            currentCategory = 'gift';
+          } else if (cat.indexOf('input') !== -1) {
+            currentCategory = 'input';
+          }
+        }
+        var itemName = row1[i] ? row1[i].trim() : '';
+        if (currentCategory && itemName) {
+          categories.push({
+            index: i,
+            type: currentCategory,
+            name: itemName
+          });
+        }
+      }
+    } else if (row0.length > 4 && (row0[0].toLowerCase().indexOf('emp') !== -1 || row0[0].toLowerCase().indexOf('employee') !== -1)) {
+      isMultiColumn = true;
+      dataStartIdx = 1;
+      for (var i = 3; i < row0.length; i++) {
+        var itemName = row0[i] ? row0[i].trim() : '';
+        if (itemName) {
+          var info = classifyItem(itemName);
+          if (info) {
+            categories.push({
+              index: i,
+              type: info.type,
+              name: info.name
+            });
+          } else {
+            categories.push({
+              index: i,
+              type: 'sample',
+              name: itemName
+            });
+          }
+        }
+      }
+    }
+    
+    if (!isMultiColumn) {
+      var hasHeader = lines[0].toLowerCase().indexOf('employeeid') !== -1;
+      var dataLines = hasHeader ? lines.slice(1) : lines;
       
-      if (!empId || !itemType || !itemName) return;
-      
-      // Verify employee exists (case-insensitive search)
-      var matchedEmp = DB.employees.find(function(x) {
-        return String(x.id || '').toUpperCase() === empId.toUpperCase();
+      dataLines.forEach(function(line) {
+        var p = parseCSVLine(line);
+        if (p.length < 4) return;
+        var empId = (p[0] || '').trim();
+        var itemType = (p[1] || '').trim().toLowerCase();
+        var itemName = (p[2] || '').trim();
+        var openingQty = parseInt(p[3]) || 0;
+        
+        if (!empId || !itemType || !itemName) return;
+        
+        var matchedEmp = DB.employees.find(function(x) {
+          return String(x.id || '').toUpperCase() === empId.toUpperCase();
+        });
+        if (!matchedEmp) return;
+        empId = matchedEmp.id;
+        
+        if (itemType === 'sample' || itemType === 'product') {
+          var matchedProd = DB.products.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+          if (matchedProd) {
+            itemName = matchedProd;
+          } else {
+            DB.products.push(itemName);
+          }
+          var stock = DB.samplesInventory.find(function(s){return s.empId === empId && s.prodName === itemName;});
+          if (stock) {
+            stock.opening = openingQty;
+            stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+          } else {
+            DB.samplesInventory.push({
+              id: 'SAMPLEINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+              prodName: itemName,
+              empId: empId,
+              opening: openingQty,
+              received: 0,
+              distributed: 0,
+              balance: openingQty
+            });
+          }
+          added++;
+        } else if (itemType === 'gift') {
+          var matchedGift = DB.gifts.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+          if (matchedGift) {
+            itemName = matchedGift;
+          } else {
+            DB.gifts.push(itemName);
+          }
+          var stock = DB.giftsInventory.find(function(g){return g.empId === empId && g.giftName === itemName;});
+          if (stock) {
+            stock.opening = openingQty;
+            stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+          } else {
+            DB.giftsInventory.push({
+              id: 'GIFTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+              giftName: itemName,
+              empId: empId,
+              opening: openingQty,
+              received: 0,
+              distributed: 0,
+              balance: openingQty
+            });
+          }
+          added++;
+        } else if (itemType === 'input') {
+          var matchedInput = DB.inputs.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+          if (matchedInput) {
+            itemName = matchedInput;
+          } else {
+            DB.inputs.push(itemName);
+          }
+          var stock = DB.inputsInventory.find(function(i){return i.empId === empId && i.inputName === itemName;});
+          if (stock) {
+            stock.opening = openingQty;
+            stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+          } else {
+            DB.inputsInventory.push({
+              id: 'INPUTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+              inputName: itemName,
+              empId: empId,
+              opening: openingQty,
+              received: 0,
+              distributed: 0,
+              balance: openingQty
+            });
+          }
+          added++;
+        }
       });
-      if (!matchedEmp) {
-        console.warn("Bulk Upload: Employee ID " + empId + " not found. Skipping line: " + line);
-        return;
-      }
-      empId = matchedEmp.id; // use standard case from DB
-      
-      // Determine collection based on type and register item if new
-      if (itemType === 'sample' || itemType === 'product') {
-        if (DB.products.indexOf(itemName) === -1) {
-          DB.products.push(itemName);
+    } else {
+      var dataLines = lines.slice(dataStartIdx);
+      dataLines.forEach(function(line) {
+        var p = parseCSVLine(line);
+        if (p.length < 3) return;
+        var empId = (p[0] || '').trim();
+        if (!empId) return;
+        
+        var matchedEmp = DB.employees.find(function(x) {
+          return String(x.id || '').toUpperCase() === empId.toUpperCase();
+        });
+        if (!matchedEmp) {
+          console.warn("Bulk Upload: Employee ID " + empId + " not found. Skipping line.");
+          return;
         }
-        var stock = DB.samplesInventory.find(function(s){return s.empId === empId && s.prodName === itemName;});
-        if (stock) {
-          stock.opening = openingQty;
-          stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
-        } else {
-          DB.samplesInventory.push({
-            id: 'SAMPLEINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
-            prodName: itemName,
-            empId: empId,
-            opening: openingQty,
-            received: 0,
-            distributed: 0,
-            balance: openingQty
-          });
-        }
-        added++;
-      } else if (itemType === 'gift') {
-        if (DB.gifts.indexOf(itemName) === -1) {
-          DB.gifts.push(itemName);
-        }
-        var stock = DB.giftsInventory.find(function(g){return g.empId === empId && g.giftName === itemName;});
-        if (stock) {
-          stock.opening = openingQty;
-          stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
-        } else {
-          DB.giftsInventory.push({
-            id: 'GIFTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
-            giftName: itemName,
-            empId: empId,
-            opening: openingQty,
-            received: 0,
-            distributed: 0,
-            balance: openingQty
-          });
-        }
-        added++;
-      } else if (itemType === 'input') {
-        if (DB.inputs.indexOf(itemName) === -1) {
-          DB.inputs.push(itemName);
-        }
-        var stock = DB.inputsInventory.find(function(i){return i.empId === empId && i.inputName === itemName;});
-        if (stock) {
-          stock.opening = openingQty;
-          stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
-        } else {
-          DB.inputsInventory.push({
-            id: 'INPUTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
-            inputName: itemName,
-            empId: empId,
-            opening: openingQty,
-            received: 0,
-            distributed: 0,
-            balance: openingQty
-          });
-        }
-        added++;
-      }
-    });
+        empId = matchedEmp.id;
+        
+        categories.forEach(function(catInfo) {
+          var qtyStr = p[catInfo.index];
+          if (qtyStr === undefined || qtyStr.trim() === '') return;
+          var openingQty = parseInt(qtyStr);
+          if (isNaN(openingQty)) return;
+          
+          var itemName = catInfo.name;
+          var itemType = catInfo.type;
+          
+          if (itemType === 'sample') {
+            var matchedProd = DB.products.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+            if (matchedProd) {
+              itemName = matchedProd;
+            } else {
+              DB.products.push(itemName);
+            }
+            var stock = DB.samplesInventory.find(function(s){return s.empId === empId && s.prodName === itemName;});
+            if (stock) {
+              stock.opening = openingQty;
+              stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+            } else {
+              DB.samplesInventory.push({
+                id: 'SAMPLEINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+                prodName: itemName,
+                empId: empId,
+                opening: openingQty,
+                received: 0,
+                distributed: 0,
+                balance: openingQty
+              });
+            }
+            added++;
+          } else if (itemType === 'gift') {
+            var matchedGift = DB.gifts.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+            if (matchedGift) {
+              itemName = matchedGift;
+            } else {
+              DB.gifts.push(itemName);
+            }
+            var stock = DB.giftsInventory.find(function(g){return g.empId === empId && g.giftName === itemName;});
+            if (stock) {
+              stock.opening = openingQty;
+              stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+            } else {
+              DB.giftsInventory.push({
+                id: 'GIFTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+                giftName: itemName,
+                empId: empId,
+                opening: openingQty,
+                received: 0,
+                distributed: 0,
+                balance: openingQty
+              });
+            }
+            added++;
+          } else if (itemType === 'input') {
+            var matchedInput = DB.inputs.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+            if (matchedInput) {
+              itemName = matchedInput;
+            } else {
+              DB.inputs.push(itemName);
+            }
+            var stock = DB.inputsInventory.find(function(i){return i.empId === empId && i.inputName === itemName;});
+            if (stock) {
+              stock.opening = openingQty;
+              stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
+            } else {
+              DB.inputsInventory.push({
+                id: 'INPUTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+                inputName: itemName,
+                empId: empId,
+                opening: openingQty,
+                received: 0,
+                distributed: 0,
+                balance: openingQty
+              });
+            }
+            added++;
+          }
+        });
+      });
+    }
     
     saveDB();
     showToast(added + ' inventory records processed successfully!');

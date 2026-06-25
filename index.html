@@ -3871,26 +3871,8 @@ function getApprovedMTPDay(dateStr){
 function renderPlannedTargetsForReport(plannedDay){
   var wrap=document.getElementById('r-planned-targets-wrap');
   if(!wrap)return;
-  var plannedDocIds = (plannedDay && plannedDay.plannedDocs && plannedDay.plannedDocs.length) ? plannedDay.plannedDocs : [];
-  var plannedChemIds = (plannedDay && plannedDay.plannedChems && plannedDay.plannedChems.length) ? plannedDay.plannedChems : [];
-  if(!plannedDay || (!plannedDocIds.length && !plannedChemIds.length)){
-    wrap.style.display='none';
-    wrap.innerHTML='';
-    return;
-  }
-  var docBtns=plannedDocIds.map(function(docId){
-    var doc=DB.doctors.find(function(d){return d.id===docId && d.assignTo===SESSION.user.id && d.status==='Active';});
-    return doc ? '<button type="button" class="btn sm" style="width:auto;margin:3px;display:inline-flex" onclick="selectPlannedReportTarget(\'Doctor\', \''+doc.id+'\')">'+doc.name+'</button>' : '';
-  }).join('');
-  var chemBtns=plannedChemIds.map(function(chemId){
-    var chem=DB.chemists.find(function(c){return c.id===chemId && c.assignTo===SESSION.user.id;});
-    return chem ? '<button type="button" class="btn sm" style="width:auto;margin:3px;display:inline-flex" onclick="selectPlannedReportTarget(\'Chemist\', \''+chem.id+'\')">'+chem.name+'</button>' : '';
-  }).join('');
-  wrap.style.display='block';
-  wrap.innerHTML='<label class="lbl">Approved MTP Targets for this Date</label><div class="info-box green" style="margin-bottom:0">'+
-    (docBtns ? '<div style="margin-bottom:6px"><strong>Doctors:</strong><br>'+docBtns+'</div>' : '')+
-    (chemBtns ? '<div><strong>Chemists:</strong><br>'+chemBtns+'</div>' : '')+
-    '<div style="font-size:11px;margin-top:8px;color:#005c3a">You can also choose any assigned master-list doctor, chemist, or stockist as an unplanned call.</div></div>';
+  wrap.style.display='none';
+  wrap.innerHTML='';
 }
 
 

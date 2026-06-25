@@ -1710,7 +1710,7 @@ async function initSupabaseData(isSilent) {
           spec: d.spec,
           qual: d.qual,
           address: d.address,
-          city: d.city,
+          city: (d.city || '').trim() || (d.area || '').trim() || '',
           area: d.area,
           state: d.state,
           territoryType: d.territory_type,
@@ -1742,7 +1742,8 @@ async function initSupabaseData(isSilent) {
             name: c.name,
             area: c.area,
             assignTo: c.assign_to,
-            state: stateVal
+            state: stateVal,
+            city: c.area || ''
           };
         });
         var localChems = (typeof DB !== 'undefined' && DB && DB.chemists) ? DB.chemists : [];
@@ -6049,7 +6050,7 @@ function uploadDoctors(inp){
         if (h.indexOf('doctorcode') !== -1 || h === 'code' || h === 'id') idCol = idx;
         else if (h.indexOf('emp id') !== -1 || h === 'emp id' || h.indexOf('assign') !== -1) empIdCol = idx;
         else if (h.indexOf('name of be') !== -1 || h.indexOf('be name') !== -1) beNameCol = idx;
-        else if (h === 'hq' || h.indexOf('hq') !== -1) hqCol = idx;
+        else if (h === 'hq' || (h.indexOf('hq') !== -1 && h.indexOf('territory') === -1)) hqCol = idx;
         else if (h.indexOf('reporting manager') !== -1 || h.indexOf('manager') !== -1) mgrNameCol = idx;
         else if (h.indexOf('name of doctor') !== -1 || h === 'name' || h.indexOf('doctor') !== -1) nameCol = idx;
         else if (h.indexOf('speciality') !== -1 || h === 'spec') specCol = idx;
@@ -6096,7 +6097,7 @@ function uploadDoctors(inp){
         existing.spec = p[specCol]||'';
         existing.qual = p[qualCol]||'';
         existing.address = p[addCol]||'';
-        existing.city = p[cityCol]||'';
+        existing.city = (p[cityCol]||'').trim() || (p[areaCol]||'').trim() || '';
         existing.area = p[areaCol]||'';
         existing.state = finalState || existing.state || '';
         existing.territoryType = p[typeCol]||'';
@@ -6115,7 +6116,7 @@ function uploadDoctors(inp){
           spec: p[specCol]||'',
           qual: p[qualCol]||'',
           address: p[addCol]||'',
-          city: p[cityCol]||'',
+          city: (p[cityCol]||'').trim() || (p[areaCol]||'').trim() || '',
           area: p[areaCol]||'',
           state: finalState,
           territoryType: p[typeCol]||'',
@@ -6712,6 +6713,7 @@ function uploadChemists(inp){
         existing.area = p[areaCol]||'';
         existing.state = chemState || existing.state || '';
         existing.assignTo = assignToVal;
+        existing.city = p[areaCol]||'';
         newChem = existing;
       } else {
         newChem = {
@@ -6719,7 +6721,8 @@ function uploadChemists(inp){
           name: p[nameCol],
           area: p[areaCol]||'',
           state: chemState,
-          assignTo: assignToVal
+          assignTo: assignToVal,
+          city: p[areaCol]||''
         };
       }
       

@@ -2028,6 +2028,9 @@ async function initSupabaseData(isSilent) {
         chemId: r.chem_id,
         chemName: r.chem_name,
         chemArea: r.chem_area,
+        stockId: r.stock_id,
+        stockName: r.stock_name,
+        stockArea: r.stock_area,
         orderAmount: parseFloat(r.order_amount) || 0,
         stockStatus: r.stock_status,
         jfwMgrId: r.jfw_mgr_id,
@@ -2965,6 +2968,9 @@ window.addEventListener('beforeunload', function (e) {
           chem_id: chemId,
           chem_name: r.chemName || null,
           chem_area: r.chemArea || null,
+          stock_id: r.stockId || null,
+          stock_name: r.stockName || null,
+          stock_area: r.stockArea || null,
           order_amount: r.orderAmount || 0,
           stock_status: r.stockStatus || null,
           jfw_mgr_id: jfwMgrId,
@@ -4460,12 +4466,29 @@ function updateReportClassificationFromTarget(){
   var dateStr=document.getElementById('r-date').value;
   var plannedDay=getApprovedMTPDay(dateStr);
   var targetType=document.getElementById('r-target-type').value;
-  var targetId=targetType==='Doctor' ? document.getElementById('r-doctor').value : document.getElementById('r-chemist').value;
+  var targetId='';
+  if(targetType==='Doctor') {
+    targetId = document.getElementById('r-doctor').value;
+  } else if(targetType==='Chemist') {
+    targetId = document.getElementById('r-chemist').value;
+  } else if(targetType==='Stockist') {
+    targetId = document.getElementById('r-stockist') ? document.getElementById('r-stockist').value : '';
+  }
   var planned=false;
   if(plannedDay){
     var plannedDocIds=(plannedDay.plannedDocs&&plannedDay.plannedDocs.length) ? plannedDay.plannedDocs : getAssignedDoctorsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(doc){return doc.id;});
     var plannedChemIds=(plannedDay.plannedChems&&plannedDay.plannedChems.length) ? plannedDay.plannedChems : getAssignedChemistsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(chem){return chem.id;});
-    planned = targetType==='Doctor' ? plannedDocIds.includes(targetId) : plannedChemIds.includes(targetId);
+    if (targetType === 'Doctor') {
+      planned = plannedDocIds.includes(targetId);
+    } else if (targetType === 'Chemist') {
+      planned = plannedChemIds.includes(targetId);
+    } else if (targetType === 'Stockist') {
+      var stock = DB.stockists.find(function(s){return s.id===targetId;});
+      if (stock && stock.area && (plannedDay.areaTerritory || plannedDay.toLocation)) {
+        var plannedArea = String(plannedDay.areaTerritory || plannedDay.toLocation).toLowerCase().trim();
+        planned = (stock.area.toLowerCase().trim() === plannedArea);
+      }
+    }
     if(!targetId) planned=true;
   }
   document.getElementById('r-classification').value=planned ? 'Planned Call' : 'Unplanned Call';
@@ -5915,7 +5938,11 @@ function generateExpenseFromReports(){
     
     var sfcEntry = null;
     if (startLocation && endLocation) {
+      // First try to match by employee ID and locations
       sfcEntry = DB.sfc.find(function(s){
+        var sEmpId = String(s.empId || '').toUpperCase().trim();
+        var myEmpId = String(SESSION.user.id || '').toUpperCase().trim();
+        if (sEmpId !== myEmpId) return false;
         var fromLoc = (s.from || '').toLowerCase().trim();
         var toLoc = (s.to || '').toLowerCase().trim();
         var startLoc = startLocation.toLowerCase().trim();
@@ -5923,6 +5950,17 @@ function generateExpenseFromReports(){
         return (fromLoc === startLoc && toLoc === endLoc) ||
                (fromLoc === endLoc && toLoc === startLoc);
       });
+      // Fallback: match by locations only (general route)
+      if (!sfcEntry) {
+        sfcEntry = DB.sfc.find(function(s){
+          var fromLoc = (s.from || '').toLowerCase().trim();
+          var toLoc = (s.to || '').toLowerCase().trim();
+          var startLoc = startLocation.toLowerCase().trim();
+          var endLoc = endLocation.toLowerCase().trim();
+          return (fromLoc === startLoc && toLoc === endLoc) ||
+                 (fromLoc === endLoc && toLoc === startLoc);
+        });
+      }
     }
     
     if(sfcEntry){

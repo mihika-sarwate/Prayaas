@@ -33,6 +33,15 @@ try:
     """)
     print("Updated employees table columns.")
 
+    # 1b. Update reports table for Stockists support
+    cur.execute("""
+        ALTER TABLE reports
+        ADD COLUMN IF NOT EXISTS stock_id text REFERENCES stockists(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS stock_name text,
+        ADD COLUMN IF NOT EXISTS stock_area text;
+    """)
+    print("Updated reports table columns with stockist support.")
+
     # 2. Create attendance table
     cur.execute("""
         CREATE TABLE IF NOT EXISTS attendance (

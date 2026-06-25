@@ -5164,17 +5164,22 @@ function renderMTPDaysUI(isReadOnly, existing){
         '</select>';
     }
 
-    var lookupTerritory = (territory || 'HQ').trim().toUpperCase();
-    var availableTowns = mrTownsByTerritory[lookupTerritory] ? Array.from(mrTownsByTerritory[lookupTerritory]).sort() : [];
-    if (city && !availableTowns.includes(city)) {
-      availableTowns.push(city);
+    var cityInput = '';
+    if (isReadOnly) {
+      cityInput = '<span>' + escapeHTML(city || '--') + '</span>';
+    } else {
+      var lookupTerritory = (territory || 'HQ').trim().toUpperCase();
+      var availableTowns = mrTownsByTerritory[lookupTerritory] ? Array.from(mrTownsByTerritory[lookupTerritory]).sort() : [];
+      if (city && !availableTowns.includes(city)) {
+        availableTowns.push(city);
+      }
+      cityInput = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPCity('+originalIdx+', this.value)">' +
+        '<option value="">-- Town/City --</option>' +
+        availableTowns.map(function(t) {
+          return '<option value="' + escapeHTML(t) + '"' + (city === t ? ' selected' : '') + '>' + escapeHTML(t) + '</option>';
+        }).join('') +
+        '</select>';
     }
-    var cityInput = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPCity('+originalIdx+', this.value)">' +
-      '<option value="">-- Town/City --</option>' +
-      availableTowns.map(function(t) {
-        return '<option value="' + escapeHTML(t) + '"' + (city === t ? ' selected' : '') + '>' + escapeHTML(t) + '</option>';
-      }).join('') +
-      '</select>';
 
     return '<tr class="mtp-area-row"'+holidayRowStyle+'>'+
       '<td class="tbl-name">'+d.date+holidayText+'</td>'+

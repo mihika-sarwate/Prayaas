@@ -5,6 +5,7 @@ config.js
 # Local database CSVs / data backups
 *.csv
 !inventory_bulk_upload_template.csv
+!employees_template_Master_MPCG.csv
 scratch/
 temp.js
 temp_script.js

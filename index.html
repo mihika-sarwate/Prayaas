@@ -704,7 +704,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div id="adm-emp-section" class="master-sub-sec" style="display:none">
       <div class="sec-hdr">&#128101; Hierarchy &amp; Employee Management</div>
       <div class="card admin-only">
-        <div class="card-title">Add New Employee Record</div>
+        <div class="card-title" id="adm-emp-form-title">Add New Employee Record</div>
         <div class="row2">
           <div><label class="lbl">Employee ID</label><input type="text" id="adm-emp-id" placeholder="e.g. EMP004"></div>
           <div><label class="lbl">Name</label><input type="text" id="adm-emp-name" placeholder="Full Name"></div>
@@ -738,7 +738,10 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">State</label><input type="text" id="adm-emp-state" placeholder="State"></div>
           <div></div>
         </div>
-        <button class="btn primary sm admin-only" onclick="addEmployee()">+ Save Employee Record</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn primary sm admin-only" id="btn-save-emp" onclick="addEmployee()">+ Save Employee Record</button>
+          <button class="btn sm admin-only" id="btn-cancel-edit-emp" onclick="cancelEditEmployee()" style="display:none; background-color: #64748B; color: white;">Cancel Edit</button>
+        </div>
       </div>
       <div class="card admin-only">
         <div class="card-title">Bulk Import Employees</div>
@@ -747,6 +750,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary admin-only" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
           <input type="file" id="emp-upload" accept=".csv" onchange="uploadEmployees(this)" style="display:none">
+          <button class="btn sm primary admin-only" onclick="pushEmployeesToGitHub()">&#65039; Push to GitHub</button>
           <button class="btn sm danger admin-only" onclick="bulkDeleteAllEmployees()">&#128465; Delete All</button>
           <button class="btn sm danger" id="btn-bulk-delete-selected-emps" class="btn sm danger admin-only" onclick="bulkDeleteSelectedEmployees()" style="display:none">&#128465; Delete Selected (0)</button>
         </div>
@@ -5930,6 +5934,52 @@ function populateAdminEmpMgr(){
   sel.innerHTML='<option value="">-- None / Root --</option>'+DB.employees.map(function(m){return '<option value="'+m.id+'">'+m.name+' ('+m.role.toUpperCase()+')</option>';}).join('');
 }
 
+var editingEmpId = null;
+
+function editEmployee(empId) {
+  var emp = DB.employees.find(function(e) { return e && e.id === empId; });
+  if (!emp) return;
+  editingEmpId = empId;
+  
+  document.getElementById('adm-emp-id').value = emp.id;
+  document.getElementById('adm-emp-id').disabled = true;
+  document.getElementById('adm-emp-name').value = emp.name || '';
+  document.getElementById('adm-emp-pwd').value = emp.pwd || '';
+  document.getElementById('adm-emp-area').value = emp.area || '';
+  document.getElementById('adm-emp-designation').value = typeof emp.designation !== "undefined" ? emp.designation : getDefaultEmployeeDesignation(emp.role);
+  document.getElementById('adm-emp-role').value = emp.role || 'emp';
+  document.getElementById('adm-emp-mgr').value = emp.managerId || '';
+  document.getElementById('adm-emp-doj').value = emp.doj || '';
+  document.getElementById('adm-emp-state').value = emp.state || '';
+  document.getElementById('adm-emp-status').value = normalizeEmployeeStatus(emp.status);
+  
+  document.getElementById('adm-emp-form-title').textContent = 'Edit Employee Record (ID: ' + emp.id + ')';
+  document.getElementById('btn-save-emp').textContent = 'Update Employee Record';
+  document.getElementById('btn-cancel-edit-emp').style.display = 'inline-block';
+  
+  document.getElementById('adm-emp-form-title').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelEditEmployee() {
+  editingEmpId = null;
+  
+  document.getElementById('adm-emp-id').value = '';
+  document.getElementById('adm-emp-id').disabled = false;
+  document.getElementById('adm-emp-name').value = '';
+  document.getElementById('adm-emp-pwd').value = '';
+  document.getElementById('adm-emp-area').value = '';
+  document.getElementById('adm-emp-designation').value = '';
+  document.getElementById('adm-emp-role').value = 'EMP';
+  document.getElementById('adm-emp-mgr').value = '';
+  document.getElementById('adm-emp-doj').value = '';
+  document.getElementById('adm-emp-state').value = '';
+  document.getElementById('adm-emp-status').value = 'Active';
+  
+  document.getElementById('adm-emp-form-title').textContent = 'Add New Employee Record';
+  document.getElementById('btn-save-emp').textContent = '+ Save Employee Record';
+  document.getElementById('btn-cancel-edit-emp').style.display = 'none';
+}
+
 function addEmployee(){
   var id=document.getElementById('adm-emp-id').value.trim().toUpperCase();
   var name=document.getElementById('adm-emp-name').value.trim();
@@ -5943,6 +5993,29 @@ function addEmployee(){
   var status=document.getElementById('adm-emp-status').value;
   
   if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
+  
+  if (editingEmpId) {
+    var emp = DB.employees.find(function(e) { return e && e.id === editingEmpId; });
+    if (!emp) { showToast('Employee not found'); return; }
+    
+    emp.name = name;
+    emp.pwd = pwd;
+    emp.area = area;
+    emp.designation = designation;
+    emp.role = role;
+    emp.managerId = mgr;
+    emp.doj = doj;
+    emp.state = state;
+    emp.status = normalizeEmployeeStatus(status);
+    
+    saveDB();
+    cancelEditEmployee();
+    showToast('Employee record updated!');
+    renderEmpTable();
+    populateAdminEmpMgr();
+    return;
+  }
+  
   if(DB.employees.find(function(e){return e.id===id;})){showToast('Employee ID already exists');return;}
   
   DB.employees.push({
@@ -5971,6 +6044,98 @@ function addEmployee(){
   showToast('Employee record added!');
   renderEmpTable();
   populateAdminEmpMgr();
+}
+
+async function pushEmployeesToGitHub() {
+  var token = localStorage.getItem('github_token');
+  if (!token) {
+    token = prompt('Please enter your GitHub Personal Access Token (PAT) with write access to repository:');
+    if (!token) {
+      showToast('Push cancelled. GitHub token is required.');
+      return;
+    }
+    localStorage.setItem('github_token', token);
+  }
+
+  showToast('Connecting to GitHub...');
+
+  try {
+    var owner = 'mihika-sarwate';
+    var repo = 'Prayaas';
+    var path = 'employees_template_Master_MPCG.csv';
+    var branch = 'main';
+
+    var csv = 'EmployeeID,Name,Password,Territory,Desig,Role,ManagerID,DOJ,State,Status\n';
+    var list = DB.employees.filter(function(e) { return e && e.id !== 'ADMIN'; });
+    list.forEach(function(e) {
+      var des = typeof e.designation !== 'undefined' ? e.designation : getDefaultEmployeeDesignation(e.role);
+      csv += [
+        e.id || '',
+        e.name || '',
+        e.pwd || '',
+        e.area || '',
+        des,
+        e.role || '',
+        e.managerId || '',
+        e.doj || '',
+        e.state || '',
+        normalizeEmployeeStatus(e.status)
+      ].map(function(val) {
+        return '"' + String(val).replace(/"/g, '""') + '"';
+      }).join(',') + '\n';
+    });
+
+    var fileUrl = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path + '?ref=' + branch;
+    var getRes = await fetch(fileUrl, {
+      headers: {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    var sha = null;
+    if (getRes.status === 200) {
+      var data = await getRes.json();
+      sha = data.sha;
+    } else if (getRes.status !== 404) {
+      var errData = await getRes.json();
+      throw new Error(errData.message || 'Error fetching file from GitHub');
+    }
+
+    var putUrl = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path;
+    var base64Content = btoa(unescape(encodeURIComponent(csv)));
+    var body = {
+      message: 'Update employee records via Prayaas App [skip ci]',
+      content: base64Content,
+      branch: branch
+    };
+    if (sha) {
+      body.sha = sha;
+    }
+
+    var putRes = await fetch(putUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (putRes.status === 200 || putRes.status === 201) {
+      showToast('Successfully pushed employee records to GitHub!');
+    } else {
+      var errData = await putRes.json();
+      if (putRes.status === 401 || putRes.status === 403) {
+        localStorage.removeItem('github_token');
+      }
+      throw new Error(errData.message || 'Error uploading file to GitHub');
+    }
+  } catch (err) {
+    console.error('GitHub Push Error:', err);
+    alert('Failed to push to GitHub: ' + err.message);
+  }
 }
 
 function uploadEmployees(inp){
@@ -6188,7 +6353,7 @@ function renderEmpTable(){
       if (!e) return '';
       var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
       var roleName = (e.role || 'emp').toUpperCase();
-      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px;background-color:#0284c7;color:white" onclick="editEmployee(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
     }).join('');
   } catch (err) {
     console.error("Error rendering employee table:", err);

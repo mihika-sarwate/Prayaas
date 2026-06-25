@@ -4748,10 +4748,27 @@ function getAttendanceStatusMeta(emp, dateStr) {
           }
           return { status: statusVal, remarks: leaveTypeLabel + ' (from Tour Plan)' };
         }
+        
+        // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
+        // Check DCR report submission or login attendance record.
+        var hasReport = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+        });
+        if (hasReport) {
+          return { status: 'P', remarks: 'Present via DCR Submission' };
+        }
+        
+        var existing = getAttendanceRecord(emp.id, dateStr);
+        if (existing && existing.attendanceStatus === 'P') {
+          return { status: 'P', remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
+        }
+        
+        return { status: 'NS', remarks: 'Attendance Not Submitted' };
       }
     }
   }
 
+  // Only fall back to default configurations if no approved Tour Plan exists for the month
   var holiday = getHolidayForDateAndState(dateStr, emp ? emp.state : '');
   if (holiday) return { status: 'H', remarks: 'Holiday' + (holiday.name ? ': ' + holiday.name : '') };
   if (isWeeklyOffForEmployee(emp, dateStr)) return { status: 'WO', remarks: 'Weekly Off' };

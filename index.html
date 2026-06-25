@@ -1697,22 +1697,28 @@ async function initSupabaseData(isSilent) {
     console.log("initSupabaseData ignored because load is already in progress.");
     return;
   }
+  isLoadingData = true; // Set immediately so restoreSessionWhenReady always waits
+
   if (!supabase) {
     if (window._hasAttemptedSupabaseLoad) {
       console.warn("Supabase load already attempted. Using local database.");
       await loadLocalDB();
+      isLoadingData = false;
       return;
     }
     window._hasAttemptedSupabaseLoad = true;
     ensureSupabaseLoaded(async function() {
+      isLoadingData = false; // release so the next initSupabaseData call can proceed
       if (supabase) {
         await initSupabaseData(isSilent);
       } else {
         console.warn("Supabase library not loaded. Using LocalStorage.");
+        isLoadingData = true;
         await loadLocalDB();
+        isLoadingData = false;
       }
     });
-    return;
+    return; // isLoadingData stays true while Supabase JS is loading
   }
   
   isLoadingData = true;
@@ -2150,8 +2156,9 @@ async function initSupabaseData(isSilent) {
     };
     
     hasInitializedData = true;
-    ensureAttendanceSchedulerUpToDate();
-    scheduleNextAttendanceValidation();
+    // Wrap in try/catch so a crash here doesn't overwrite fresh Supabase data with stale local cache
+    try { ensureAttendanceSchedulerUpToDate(); } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
+    try { scheduleNextAttendanceValidation(); } catch(e) {}
 
     // Save synchronized DB to IndexedDB
     try {
@@ -2219,8 +2226,11 @@ async function initSupabaseData(isSilent) {
     
   } catch (err) {
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
-    if (isSilent !== true) {
-      showToast("Using local database cache.");
+    // Only fall back to local cache if Supabase data was NOT already loaded
+    if (!hasInitializedData) {
+      if (isSilent !== true) {
+        showToast("Using local database cache.");
+      }
       await loadLocalDB();
     }
     isLoadingData = false;
@@ -4784,7 +4794,7 @@ function isAttendanceTrackedEmployee(emp) {
 }
 
 function isExecutiveAttendanceExempt(emp) {
-  if (!emp) return false;
+  if (!emp || !Array.isArray(ATTENDANCE_EXECUTIVE_EXEMPT_NAMES)) return false;
   return ATTENDANCE_EXECUTIVE_EXEMPT_NAMES.indexOf(String(emp.name || '').trim().toUpperCase()) !== -1;
 }
 

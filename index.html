@@ -5080,7 +5080,7 @@ function renderMTPDaysUI(isReadOnly, existing){
   html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
     '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Type of Working</th><th>Territory</th><th>Town / City</th><th>Patch</th></tr></thead><tbody>';
 
-  var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return day.workType === 'FIELD WORK' && !!(day.areaTerritory||'').trim();}) : currentMTPDays;
+  var daysToRender = currentMTPDays;
 
   var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
@@ -6131,10 +6131,15 @@ function viewTP(id){
   html+='<div class="tbl-wrap"><table class="tbl" style="min-width:760px"><thead><tr><th>Date</th><th>Area / Territory</th></tr></thead><tbody>';
   tp.days.forEach(function(d){
     var area=d.areaTerritory||d.toLocation||'';
-    if(!area)return;
-    var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase() === String(tp.empId || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
-    var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase() === String(tp.empId || '').toUpperCase() && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
-    html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+area+'</td></tr>';
+    var workType=d.workType||'FIELD WORK';
+    var displayText = '';
+    if (workType !== 'FIELD WORK') {
+      displayText = '<strong>' + workType + '</strong>';
+    } else {
+      if (!area) return; // Skip unplanned field work days
+      displayText = area;
+    }
+    html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+displayText+'</td></tr>';
   });
   html+='</tbody></table></div>';
   

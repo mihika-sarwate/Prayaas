@@ -5533,9 +5533,9 @@ function generateExpenseFromReports(){
   var detail=document.getElementById('expense-detail');
   if(!month){detail.style.display='none';return;}
   
-  // Fetch approved visits reports in this month
+  // Fetch approved visits reports in this month safely
   var myReports=DB.reports.filter(function(r){
-    return r.empId===SESSION.user.id && r.date.slice(0,7)===month;
+    return r.empId===SESSION.user.id && r.date && typeof r.date === 'string' && r.date.slice(0,7)===month;
   });
   
   if(!myReports.length){
@@ -5547,7 +5547,7 @@ function generateExpenseFromReports(){
   // Calculate expenses day-wise
   var uniqueDates=[];
   myReports.forEach(function(r){
-    if(!uniqueDates.includes(r.date)) uniqueDates.push(r.date);
+    if(r.date && !uniqueDates.includes(r.date)) uniqueDates.push(r.date);
   });
   
   var lines=[];
@@ -5568,30 +5568,41 @@ function generateExpenseFromReports(){
     // We assume travel happened if they reported a doctor/chemist in a distinct area
     var distinctAreas=[];
     dayReps.forEach(function(r){
-      var area=r.targetType==='Doctor'?r.docArea:r.chemArea;
+      var area = '';
+      if (r.targetType === 'Doctor') area = r.docArea;
+      else if (r.targetType === 'Chemist') area = r.chemArea;
+      else if (r.targetType === 'Stockist') area = r.stockArea;
+      else area = r.patch || '';
       if(area && !distinctAreas.includes(area)) distinctAreas.push(area);
     });
     
     // Simple SFC Matcher
-    var startLocation=SESSION.user.area;
-    var endLocation = distinctAreas.length ? distinctAreas[0] : SESSION.user.area;
+    var startLocation = (SESSION.user && SESSION.user.area) ? SESSION.user.area : '';
+    var endLocation = distinctAreas.length ? distinctAreas[0] : startLocation;
     
-    var sfcEntry=DB.sfc.find(function(s){
-      return (s.from.toLowerCase()===startLocation.toLowerCase() && s.to.toLowerCase()===endLocation.toLowerCase()) ||
-             (s.from.toLowerCase()===endLocation.toLowerCase() && s.to.toLowerCase()===startLocation.toLowerCase());
-    });
+    var sfcEntry = null;
+    if (startLocation && endLocation) {
+      sfcEntry = DB.sfc.find(function(s){
+        var fromLoc = (s.from || '').toLowerCase().trim();
+        var toLoc = (s.to || '').toLowerCase().trim();
+        var startLoc = startLocation.toLowerCase().trim();
+        var endLoc = endLocation.toLowerCase().trim();
+        return (fromLoc === startLoc && toLoc === endLoc) ||
+               (fromLoc === endLoc && toLoc === startLoc);
+      });
+    }
     
     if(sfcEntry){
-      travelFare=sfcEntry.fare;
-      distKM=sfcEntry.distance;
-      da=sfcEntry.da;
-      lodging=sfcEntry.lodge;
-      other=sfcEntry.other;
-      routeMode=sfcEntry.mode;
+      travelFare = parseFloat(sfcEntry.fare) || 0;
+      distKM = parseFloat(sfcEntry.distance) || 0;
+      da = parseFloat(sfcEntry.da) || 0;
+      lodging = parseFloat(sfcEntry.lodge) || 0;
+      other = parseFloat(sfcEntry.other) || 0;
+      routeMode = sfcEntry.mode || 'N/A';
     } else {
       // Default local work allowances
-      da = DB.cityRates.daC;
-      other = DB.cityRates.localConv;
+      da = (DB.cityRates && DB.cityRates.daC) ? parseFloat(DB.cityRates.daC) : 300;
+      other = (DB.cityRates && DB.cityRates.localConv) ? parseFloat(DB.cityRates.localConv) : 120;
     }
     
     var dayTotal = travelFare + da + lodging + other;
@@ -5599,7 +5610,7 @@ function generateExpenseFromReports(){
     
     lines.push({
       date: dt,
-      route: startLocation+' &rarr; '+endLocation,
+      route: (startLocation || 'HQ')+' &rarr; '+(endLocation || 'HQ'),
       mode: routeMode,
       distance: distKM,
       fare: travelFare,
@@ -5613,12 +5624,12 @@ function generateExpenseFromReports(){
   var html=lines.map(function(l){
     return '<div class="exp-row">'+
       '<div><div class="exp-label">'+l.date+' | '+l.route+' ('+l.mode+' - '+l.distance+' KM)</div>'+
-      '<div class="exp-sub">Travel: &#x20B9;'+l.fare+' | DA: &#x20B9;'+l.da+' | Lodge: &#x20B9;'+l.lodging+' | Local/Other: &#x20B9;'+l.other+'</div></div>'+
-      '<div class="exp-amt">&#x20B9;'+l.total+'</div></div>';
+      '<div class="exp-sub">Travel: ₹'+l.fare+' | DA: ₹'+l.da+' | Lodge: ₹'+l.lodge+' | Local/Other: ₹'+l.other+'</div></div>'+
+      '<div class="exp-amt">₹'+l.total+'</div></div>';
   }).join('');
   
   document.getElementById('exp-breakdown').innerHTML=html;
-  document.getElementById('exp-grand-total').textContent='&#x20B9;'+grandTotal;
+  document.getElementById('exp-grand-total').textContent='₹'+grandTotal;
   detail.style.display='block';
   
   detail.dataset.month=month;

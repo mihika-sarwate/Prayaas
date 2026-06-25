@@ -2635,10 +2635,31 @@ async function pushEmployeeToSupabase(emp) {
     console.error('pushEmployeeToSupabase exception:', e);
   }
 }
+
+// Persist deleted employee IDs to localStorage so they survive a page reload.
+// Without this, if the user reloads before Supabase confirms the delete,
+// initSupabaseData fetches the old row and the employee comes back.
+function _saveTombstonesToStorage() {
+  try {
+    localStorage.setItem('adonis_deleted_emp_tombstones', JSON.stringify([..._pendingDeletedEmpIds]));
+  } catch(e) {}
+}
+
+// Load tombstones from previous session (runs once at page load, before initSupabaseData)
+(function _loadTombstonesFromStorage() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('adonis_deleted_emp_tombstones') || '[]');
+    saved.forEach(function(id) { _pendingDeletedEmpIds.add(String(id).toUpperCase()); });
+    if (saved.length > 0) console.log('Loaded ' + saved.length + ' deleted-employee tombstone(s) from previous session.');
+  } catch(e) {}
+})();
+
 window.addEventListener('beforeunload', function (e) {
-  if (isSyncing) {
+  // Only warn if there are UNCONFIRMED critical writes (deletes/blocks not yet pushed to Supabase).
+  // Do NOT warn for background full-sync - direct writes handle the important stuff immediately.
+  if (_pendingDeletedEmpIds.size > 0 || _pendingLocalEmpIds.size > 0) {
     e.preventDefault();
-    e.returnValue = 'Data is currently syncing to the cloud. If you leave now, recent changes may be lost.';
+    e.returnValue = 'Employee changes are still being saved to the cloud. Please wait a moment before leaving.';
   }
 });
 
@@ -7551,13 +7572,14 @@ function removeEmp(id){
   if(!confirm('Delete employee '+id+'?'))return;
   var idUpper = String(id).toUpperCase();
   // Register deletion BEFORE saving so the poller never resurrects this employee.
+  // Also persist to localStorage so it survives a page reload.
   _pendingDeletedEmpIds.add(idUpper);
+  _saveTombstonesToStorage();
   DB.employees = DB.employees.filter(function(e){ return e.id !== id; });
   // Persist locally immediately
   idb.set('adonis_db', DB);
   try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
-  // Cancel any pending debounced sync — the employee row is already gone locally,
-  // and we're directly deleting from Supabase below, so we don't need a full sync right now.
+  // Cancel any pending debounced sync
   if (_saveDBSyncTimer) { clearTimeout(_saveDBSyncTimer); _saveDBSyncTimer = null; }
   renderEmpTable();
   // Direct-delete from Supabase immediately
@@ -7565,8 +7587,9 @@ function removeEmp(id){
     return q.eq('id', id);
   }).then(function(res) {
     if (!res || !res.error) {
-      // Deletion confirmed in cloud — clear from pending set
+      // Deletion confirmed in cloud — clear tombstone
       _pendingDeletedEmpIds.delete(idUpper);
+      _saveTombstonesToStorage();
       showToast(id + ' deleted from cloud successfully.');
     } else {
       console.error('Failed to delete employee from Supabase:', res.error);
@@ -7601,15 +7624,26 @@ function bulkDeleteSelectedEmployees() {
   if (!checked.length) return;
   if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected employee records?')) return;
   var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
-  // Register all deletions before saving so the poller never resurrects them
+  // Register all deletions and persist tombstones so they survive a reload
   idsToDelete.forEach(function(id) { _pendingDeletedEmpIds.add(String(id).toUpperCase()); });
+  _saveTombstonesToStorage();
   DB.employees = DB.employees.filter(function(e) { return !idsToDelete.includes(e.id); });
-  saveDB();
+  idb.set('adonis_db', DB);
+  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
+  if (_saveDBSyncTimer) { clearTimeout(_saveDBSyncTimer); _saveDBSyncTimer = null; }
   renderEmpTable();
   runSupabaseDelete('employees', function(q) {
     return q.in('id', idsToDelete);
+  }).then(function(res) {
+    if (!res || !res.error) {
+      idsToDelete.forEach(function(id) { _pendingDeletedEmpIds.delete(String(id).toUpperCase()); });
+      _saveTombstonesToStorage();
+      showToast(idsToDelete.length + ' employees deleted from cloud successfully!');
+    } else {
+      console.error('Failed to bulk delete employees from Supabase:', res.error);
+      showToast('⚠️ Bulk delete from cloud failed — will retry on next sync.', 5000);
+    }
   });
-  showToast(checked.length + ' employees deleted successfully!');
   var masterCheck = document.getElementById('check-all-emps');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedEmpsCount();
@@ -7622,15 +7656,25 @@ function bulkDeleteAllEmployees() {
     return;
   }
   if (!confirm('WARNING: Are you sure you want to delete ALL employee records (' + empsToDelete.length + ') from the system? This cannot be undone.')) return;
-  // Register all deletions so the poller never resurrects them
+  // Register all deletions and persist tombstones so they survive a reload
   empsToDelete.forEach(function(e) { _pendingDeletedEmpIds.add(String(e.id).toUpperCase()); });
+  _saveTombstonesToStorage();
   DB.employees = DB.employees.filter(function(e){return e.id==='ADMIN';});
-  saveDB();
+  idb.set('adonis_db', DB);
+  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
+  if (_saveDBSyncTimer) { clearTimeout(_saveDBSyncTimer); _saveDBSyncTimer = null; }
   renderEmpTable();
   runSupabaseDelete('employees', function(q) {
     return q.neq('id', 'ADMIN');
+  }).then(function(res) {
+    if (!res || !res.error) {
+      empsToDelete.forEach(function(e) { _pendingDeletedEmpIds.delete(String(e.id).toUpperCase()); });
+      _saveTombstonesToStorage();
+      showToast('All employees deleted from cloud successfully!');
+    } else {
+      showToast('⚠️ Delete from cloud failed — will retry on next sync.', 5000);
+    }
   });
-  showToast('All employee records (excluding ADMIN) deleted successfully!');
   var masterCheck = document.getElementById('check-all-emps');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedEmpsCount();

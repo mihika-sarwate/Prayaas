@@ -1716,6 +1716,8 @@ async function initSupabaseData(isSilent) {
   }
   
   isLoadingData = true;
+  var statusEl = document.getElementById('db-status-indicator');
+  if (statusEl && isSilent !== true) statusEl.textContent = 'Connecting to server, please wait...';
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
@@ -3180,9 +3182,9 @@ window.addEventListener('beforeunload', function (e) {
       showToast("Cloud Sync Complete!", 3000);
 
       isSyncing = false;
-      if (syncPending) {
-        setTimeout(syncSupabaseDatabase, 1000);
-      }
+      syncPending = false;
+      // Silently pull latest data from cloud so UI reflects the persisted state
+      setTimeout(function() { if (typeof initSupabaseData === 'function') initSupabaseData(true); }, 1500);
     }
   }
 
@@ -3197,8 +3199,20 @@ setInterval(async function() {
 }, 15000);
 
 var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};
-setTimeout(function() {
+
+// Wait for data to be initialized before restoring session (Supabase may take time)
+(function restoreSessionWhenReady() {
+  if (isLoadingData) {
+    setTimeout(restoreSessionWhenReady, 300);
+    return;
+  }
   if (SESSION.user) {
+    // Re-validate the user against the freshly loaded DB to pick up any changes
+    var freshEmp = DB.employees && DB.employees.find(function(e) {
+      return String(e.id || '').trim().toUpperCase() === String(SESSION.user.id || '').trim().toUpperCase();
+    });
+    if (freshEmp) SESSION.user = freshEmp;
+
     document.getElementById('scr-login').style.display = 'none';
     if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
       document.getElementById('scr-admin').classList.add('on');
@@ -3213,7 +3227,7 @@ setTimeout(function() {
       initEmpApp();
     }
   }
-}, 50);
+})();
 var currentTPId=null;
 var currentExpId=null;
 var currentLeaveId=null;
@@ -3236,6 +3250,25 @@ function togglePasswordVisibility() {
 function doLogin(){
   var id=document.getElementById('login-id').value.trim().toUpperCase();
   var pwd=document.getElementById('login-pwd').value.trim();
+  if (!id || !pwd) { showToast('Please enter Employee ID and Password'); return; }
+
+  // If data is still loading from Supabase, wait and retry automatically
+  if (isLoadingData) {
+    showToast('Connecting to server, please wait...');
+    var retryCount = 0;
+    var retryInterval = setInterval(function() {
+      retryCount++;
+      if (!isLoadingData) {
+        clearInterval(retryInterval);
+        doLogin();
+      } else if (retryCount >= 30) {
+        clearInterval(retryInterval);
+        showToast('Server connection timed out. Please try again.');
+      }
+    }, 500);
+    return;
+  }
+
   ensureAttendanceSchedulerUpToDate();
   console.log("=== Sankalp Login Attempt ===");
   console.log("Input Employee ID/Name:", id);

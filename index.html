@@ -2550,6 +2550,7 @@ async function seedSupabaseDatabase() {
   } catch (e) { console.error("Error seeding reports:", e); }
 }
 
+var _saveDBSyncTimer = null;
 function saveDB() {
   idb.set('adonis_db', DB).then(function(success) {
     if (success) console.log("Database successfully cached to IndexedDB.");
@@ -2583,8 +2584,14 @@ function saveDB() {
       } catch(e3) {}
     }
   }
+  // Debounce full sync: wait 5 seconds after last saveDB before triggering a full cloud sync.
+  // This prevents hammering Supabase with a full sync on every tiny change.
   if (typeof syncSupabaseDatabase === 'function') {
-    syncSupabaseDatabase();
+    if (_saveDBSyncTimer) clearTimeout(_saveDBSyncTimer);
+    _saveDBSyncTimer = setTimeout(function() {
+      _saveDBSyncTimer = null;
+      syncSupabaseDatabase();
+    }, 5000);
   }
 }
 
@@ -2593,9 +2600,41 @@ var syncPending = false;
 var hasSyncError = false;
 var hasInitializedData = false;
 // Track employee IDs that have pending local changes not yet confirmed in Supabase.
-// The 15-second poller must NOT overwrite these with stale cloud data.
+// The poller must NOT overwrite these with stale cloud data.
 var _pendingDeletedEmpIds = new Set(); // IDs that were deleted locally
 var _pendingLocalEmpIds = new Set();   // IDs whose data was changed locally (block/unblock/edit)
+
+// Push a single employee record directly to Supabase without triggering a full sync.
+// Used by block/unblock to make changes visible in the cloud immediately.
+async function pushEmployeeToSupabase(emp) {
+  if (!useSupabase || !supabase || !emp || !emp.id) return;
+  try {
+    var row = {
+      id: emp.id,
+      account_status: normalizeAccountStatus(emp.accountStatus),
+      blocked_date: formatDateForPostgres(emp.blockedDate) || null,
+      blocked_reason: emp.blockedReason || null,
+      status: normalizeEmployeeStatus(emp.status),
+      name: emp.name,
+      pwd: emp.pwd,
+      area: emp.area || '',
+      role: emp.role || 'emp',
+      manager_id: emp.managerId || null,
+      state: emp.state || null,
+      leaves: emp.leaves || {}
+    };
+    var res = await supabase.from('employees').upsert([row], { onConflict: 'id' });
+    if (res && res.error) {
+      console.error('pushEmployeeToSupabase error:', res.error);
+    } else {
+      // Cloud confirmed — remove from pending set
+      _pendingLocalEmpIds.delete(String(emp.id).toUpperCase());
+      console.log('Employee ' + emp.id + ' pushed to Supabase successfully.');
+    }
+  } catch (e) {
+    console.error('pushEmployeeToSupabase exception:', e);
+  }
+}
 window.addEventListener('beforeunload', function (e) {
   if (isSyncing) {
     e.preventDefault();
@@ -2613,8 +2652,8 @@ window.addEventListener('beforeunload', function (e) {
     syncPending = false;
     hasSyncError = false;
 
-    var dbStatus = document.getElementById('db-status-indicator');
-    if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
+    // Note: do NOT set 'Syncing to Cloud...' here — this sync fires in the background
+    // after a debounce and should not interrupt the user's workflow.
 
     // Watchdog: forcefully release sync lock after 20s so UI never stays stuck
     var syncWatchdog = setTimeout(function() {
@@ -2625,7 +2664,7 @@ window.addEventListener('beforeunload', function (e) {
         var el = document.getElementById('db-status-indicator');
         if (el) el.textContent = 'Database Connection: Supabase Cloud';
       }
-    }, 20000);
+    }, 120000);
 
     try { // outer try — all individual syncs handle their own errors internally
 
@@ -7485,10 +7524,13 @@ function setEmployeeAccountStatus(empId, status, preventModalOpen) {
     emp.blockedDate = '';
     emp.blockedReason = '';
   }
-  // Mark this employee as having a pending local change so the poller does not
-  // overwrite the new accountStatus with the stale cloud value before sync completes.
+  // Mark pending so the poller does not revert the change before the cloud write finishes.
   _pendingLocalEmpIds.add(String(empId).toUpperCase());
-  saveDB();
+  // Persist locally first (no cloud sync triggered by saveDB debounce — we do it directly below)
+  idb.set('adonis_db', DB);
+  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
+  // Push directly to Supabase NOW — no waiting for a full sync
+  pushEmployeeToSupabase(emp);
   renderEmpTable();
   renderAttendanceDashboard();
   if (!preventModalOpen) {
@@ -7510,12 +7552,26 @@ function removeEmp(id){
   var idUpper = String(id).toUpperCase();
   // Register deletion BEFORE saving so the poller never resurrects this employee.
   _pendingDeletedEmpIds.add(idUpper);
-  DB.employees=DB.employees.filter(function(e){return e.id!==id;});
-  saveDB();
+  DB.employees = DB.employees.filter(function(e){ return e.id !== id; });
+  // Persist locally immediately
+  idb.set('adonis_db', DB);
+  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
+  // Cancel any pending debounced sync — the employee row is already gone locally,
+  // and we're directly deleting from Supabase below, so we don't need a full sync right now.
+  if (_saveDBSyncTimer) { clearTimeout(_saveDBSyncTimer); _saveDBSyncTimer = null; }
   renderEmpTable();
-  // Direct-delete from Supabase immediately (in addition to sync reconciliation)
+  // Direct-delete from Supabase immediately
   runSupabaseDelete('employees', function(q) {
     return q.eq('id', id);
+  }).then(function(res) {
+    if (!res || !res.error) {
+      // Deletion confirmed in cloud — clear from pending set
+      _pendingDeletedEmpIds.delete(idUpper);
+      showToast(id + ' deleted from cloud successfully.');
+    } else {
+      console.error('Failed to delete employee from Supabase:', res.error);
+      showToast('⚠️ Delete from cloud failed — will retry on next sync.', 5000);
+    }
   });
 }
 

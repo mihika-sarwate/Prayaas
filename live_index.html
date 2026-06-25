@@ -1824,13 +1824,13 @@ async function initSupabaseData(isSilent) {
         month: tp.month,
         managerId: tp.manager_id,
         managerName: tp.manager_name,
-        days: tp.days,
+        days: typeof tp.days === 'string' ? JSON.parse(tp.days) : (tp.days || []),
         status: tp.status,
         remarks: tp.remarks,
         submittedAt: tp.submitted_at,
         approvedDate: tp.approved_date,
         approvedBy: tp.approved_by,
-        revisionHistory: tp.revision_history || []
+        revisionHistory: typeof tp.revision_history === 'string' ? JSON.parse(tp.revision_history) : (tp.revision_history || [])
       })),
       expenses: (expenses || []).map(ex => ({
         id: ex.id,
@@ -2530,13 +2530,13 @@ window.addEventListener('beforeunload', function (e) {
           month: tp.month,
           manager_id: resolveManagerId(tp.managerId),
           manager_name: tp.managerName || null,
-          days: tp.days,
+          days: Array.isArray(tp.days) ? tp.days : (typeof tp.days === 'string' ? JSON.parse(tp.days) : []),
           status: tp.status,
           remarks: tp.remarks || null,
           submitted_at: tp.submittedAt || null,
           approved_date: formatDateForPostgres(tp.approvedDate),
           approved_by: approvedBy,
-          revision_history: tp.revisionHistory || []
+          revision_history: Array.isArray(tp.revisionHistory) ? tp.revisionHistory : (typeof tp.revisionHistory === 'string' ? JSON.parse(tp.revisionHistory) : [])
         };
       });
       await upsertInBatches('tour_plans', dbTourPlans);

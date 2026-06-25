@@ -4175,102 +4175,48 @@ function renderMTPDaysUI(isReadOnly, existing){
   if (targetEmpId) {
     var upperTargetId = String(targetEmpId).toUpperCase();
     
-    // 1. Try to populate from SFC records first
-    DB.sfc.forEach(function(s) {
-      if (String(s.empId || '').toUpperCase() === upperTargetId) {
-        var cat = (s.category || '').trim().toUpperCase().replace(/\./g, '');
-        var tType = 'HQ';
-        if (cat.indexOf('OS') !== -1) {
-          tType = 'OS';
-        } else if (cat.indexOf('EX') !== -1) {
-          tType = 'EX';
-        } else if (cat.indexOf('HQ') !== -1) {
-          tType = 'HQ';
-        } else {
-          tType = 'HQ';
-        }
-        
-        if (s.to) {
-          mrTownsByTerritory[tType].add(s.to.trim());
-        }
-        if (s.hq) {
-          mrTownsByTerritory['HQ'].add(s.hq.trim());
+    // Populate directly from doctor and chemist assignments
+    DB.doctors.forEach(function(d) {
+      var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
+
+      if (isAssignedToTeam && d.status === 'Active') {
+        var tType = (d.territoryType || '').trim().toUpperCase();
+        if (tType) {
+          if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
+          if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
+          if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
+          if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
         }
       }
     });
-    
-    // If SFC records populated some towns, map areas/patches based on doctor/chemist city matching
-    var hasSfcTowns = mrTownsByTerritory['HQ'].size > 0 || mrTownsByTerritory['EX'].size > 0 || mrTownsByTerritory['OS'].size > 0;
-    if (hasSfcTowns) {
-      DB.doctors.forEach(function(d) {
-        var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-        if (assignedList.includes(upperTargetId) && d.status === 'Active') {
-          var docCity = (d.city || '').trim();
-          var docArea = (d.area || '').trim();
-          ['HQ', 'EX', 'OS'].forEach(function(tType) {
-            if (mrTownsByTerritory[tType].has(docCity)) {
-              if (docArea) mrAreasByTerritory[tType].add(docArea);
-            }
+
+    var areaToTType = {};
+    Object.keys(mrAreasByTerritory).forEach(function(tt) {
+      mrAreasByTerritory[tt].forEach(function(a) {
+        if (!areaToTType[a]) areaToTType[a] = [];
+        areaToTType[a].push(tt);
+      });
+    });
+
+    DB.chemists.forEach(function(c) {
+      var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
+
+      if (isAssignedToTeam && c.area) {
+        var cArea = c.area.trim();
+        var tTypes = areaToTType[cArea];
+        if (tTypes && tTypes.length > 0) {
+          tTypes.forEach(function(tt) {
+            mrAreasByTerritory[tt].add(cArea);
+            if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
           });
+        } else {
+          mrAreasByTerritory['HQ'].add(cArea);
+          if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
         }
-      });
-      
-      DB.chemists.forEach(function(c) {
-        var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-        if (assignedList.includes(upperTargetId)) {
-          var chemCity = (c.city || '').trim();
-          var chemArea = (c.area || '').trim();
-          ['HQ', 'EX', 'OS'].forEach(function(tType) {
-            if (mrTownsByTerritory[tType].has(chemCity)) {
-              if (chemArea) mrAreasByTerritory[tType].add(chemArea);
-            }
-          });
-        }
-      });
-    } else {
-      // Fallback: Populate directly from doctor and chemist assignments
-      DB.doctors.forEach(function(d) {
-        var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-        var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-
-        if (isAssignedToTeam && d.status === 'Active') {
-          var tType = (d.territoryType || '').trim().toUpperCase();
-          if (tType) {
-            if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
-            if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
-            if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
-            if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
-          }
-        }
-      });
-
-      var areaToTType = {};
-      Object.keys(mrAreasByTerritory).forEach(function(tt) {
-        mrAreasByTerritory[tt].forEach(function(a) {
-          if (!areaToTType[a]) areaToTType[a] = [];
-          areaToTType[a].push(tt);
-        });
-      });
-
-      DB.chemists.forEach(function(c) {
-        var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-        var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-
-        if (isAssignedToTeam && c.area) {
-          var cArea = c.area.trim();
-          var tTypes = areaToTType[cArea];
-          if (tTypes && tTypes.length > 0) {
-            tTypes.forEach(function(tt) {
-              mrAreasByTerritory[tt].add(cArea);
-              if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
-            });
-          } else {
-            mrAreasByTerritory['HQ'].add(cArea);
-            if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
-          }
-        }
-      });
-    }
+      }
+    });
   }
 
   html += daysToRender.map(function(d){

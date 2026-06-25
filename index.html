@@ -2580,6 +2580,8 @@ window.addEventListener('beforeunload', function (e) {
     var dbStatus = document.getElementById('db-status-indicator');
     if (dbStatus) dbStatus.textContent = 'Syncing to Cloud... Please wait';
 
+    try { // outer try — all individual syncs handle their own errors internally
+
     // Sync SFC
     try {
       var sfcKeysLocal = new Set();
@@ -3174,13 +3176,12 @@ window.addEventListener('beforeunload', function (e) {
       console.warn("Could not sync holidays to Supabase (table may not exist):", holErr);
     }
 
-  } catch (err) {
+    } catch (err) {
       console.error("Supabase sync failed:", err);
     } finally {
       var dbStatus = document.getElementById('db-status-indicator');
       if (dbStatus) dbStatus.textContent = 'Database Connection: Supabase Cloud';
       showToast("Cloud Sync Complete!", 3000);
-
       isSyncing = false;
       syncPending = false;
       // Silently pull latest data from cloud so UI reflects the persisted state

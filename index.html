@@ -2552,7 +2552,7 @@ window.addEventListener('beforeunload', function (e) {
       try {
         await upsertInBatches('chemists', dbChems);
       } catch (upsertErr) {
-        var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || '')).toLowerCase();
+        var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
         if (errMsg.indexOf('state') !== -1) {
           console.warn("Chemist sync failed with state column error. Retrying without state column...");
           const fallbackChems = dbChems.map(function(c) {
@@ -2596,7 +2596,7 @@ window.addEventListener('beforeunload', function (e) {
       try {
         await upsertInBatches('stockists', dbStockists);
       } catch (upsertErr) {
-        var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || '')).toLowerCase();
+        var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
         if (errMsg.indexOf('state') !== -1) {
           console.warn("Stockist sync failed with state column error. Retrying without state column...");
           const fallbackStockists = dbStockists.map(function(stk) {

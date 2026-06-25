@@ -2429,26 +2429,10 @@ window.addEventListener('beforeunload', function (e) {
           id: s.id,
           name: s.name,
           area: s.area,
-          assign_to: assignTo,
-          state: s.state || ''
+          assign_to: assignTo
         };
       });
-      try {
-        await upsertInBatches('stockists', dbStockists);
-      } catch (upsertErr) {
-        var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || '')).toLowerCase();
-        if (errMsg.indexOf('state') !== -1) {
-          console.warn("Stockist sync failed with state column error. Retrying without state column...");
-          const fallbackStockists = dbStockists.map(function(stk) {
-            var copy = Object.assign({}, stk);
-            delete copy.state;
-            return copy;
-          });
-          await upsertInBatches('stockists', fallbackStockists);
-        } else {
-          throw upsertErr;
-        }
-      }
+      await upsertInBatches('stockists', dbStockists);
       // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
       /*
       await reconcileSupabaseRows('stockists', DB.stockists, function(row) {

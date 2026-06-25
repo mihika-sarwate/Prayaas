@@ -3516,6 +3516,7 @@ function populateReportTerritoryDropdowns() {
     teamIds.push(SESSION.user.id);
   }
   
+  var userHq = (SESSION.user.area || SESSION.user.hq || '').trim().toLowerCase();
   var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   
@@ -3526,6 +3527,13 @@ function populateReportTerritoryDropdowns() {
     
     if (isAssignedToTeam && d.status === 'Active') {
       var tType = (d.territoryType || '').trim().toUpperCase();
+      var docCity = (d.city || '').trim().toLowerCase();
+      
+      // Enforce business rule: HQ category strictly matches employee's home headquarter town
+      if (tType === 'HQ' && userHq && docCity !== userHq) {
+        tType = 'EX';
+      }
+      
       if (tType) {
         if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
         if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
@@ -3553,12 +3561,22 @@ function populateReportTerritoryDropdowns() {
       var tTypes = areaToTType[cArea];
       if (tTypes && tTypes.length > 0) {
         tTypes.forEach(function(tt) {
-          mrAreasByTerritory[tt].add(cArea);
-          if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
+          var chemCity = (c.city || '').trim().toLowerCase();
+          var actualTt = tt;
+          if (actualTt === 'HQ' && userHq && chemCity && chemCity !== userHq) {
+            actualTt = 'EX';
+          }
+          mrAreasByTerritory[actualTt].add(cArea);
+          if (c.city) mrTownsByTerritory[actualTt].add(c.city.trim());
         });
       } else {
-        mrAreasByTerritory['HQ'].add(cArea);
-        if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
+        var chemCity = (c.city || '').trim().toLowerCase();
+        var defaultTt = 'HQ';
+        if (userHq && chemCity && chemCity !== userHq) {
+          defaultTt = 'EX';
+        }
+        mrAreasByTerritory[defaultTt].add(cArea);
+        if (c.city) mrTownsByTerritory[defaultTt].add(c.city.trim());
       }
     }
   });
@@ -5069,6 +5087,8 @@ function renderMTPDaysUI(isReadOnly, existing){
   
   var targetEmpId = (existing && existing.empId) ? existing.empId : (SESSION.user ? SESSION.user.id : '');
   var teamIds = targetEmpId ? [String(targetEmpId).toUpperCase()] : null;
+  var targetEmpObj = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(targetEmpId || '').toUpperCase(); });
+  var targetHq = (targetEmpObj ? (targetEmpObj.area || targetEmpObj.hq || '') : '').trim().toLowerCase();
 
   if (targetEmpId) {
     var upperTargetId = String(targetEmpId).toUpperCase();
@@ -5080,6 +5100,13 @@ function renderMTPDaysUI(isReadOnly, existing){
 
       if (isAssignedToTeam && d.status === 'Active') {
         var tType = (d.territoryType || '').trim().toUpperCase();
+        var docCity = (d.city || '').trim().toLowerCase();
+        
+        // Enforce business rule: HQ category strictly matches target employee's home headquarter town
+        if (tType === 'HQ' && targetHq && docCity !== targetHq) {
+          tType = 'EX';
+        }
+        
         if (tType) {
           if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
           if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
@@ -5087,8 +5114,6 @@ function renderMTPDaysUI(isReadOnly, existing){
       }
     });
   }
-
-  var targetEmpObj = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(targetEmpId || '').toUpperCase(); });
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);
     var area=d.areaTerritory||'';

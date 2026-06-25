@@ -3616,11 +3616,16 @@ function populateReportCityPatch() {
 function toggleReportWorkTypeFields() {
   var wt = document.getElementById('r-work-type');
   var isFieldWork = wt && wt.value === 'FIELD WORK';
+  var isTransit = wt && wt.value === 'TRANSIT';
+  var needsLocation = isFieldWork || isTransit;
   
-  ['r-territory', 'r-city', 'r-patch', 'r-target-type', 'r-classification', 'r-calltype'].forEach(function(id) {
+  ['r-territory', 'r-city', 'r-patch', 'r-classification', 'r-calltype'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.disabled = !isFieldWork;
+    if (el) el.disabled = !needsLocation;
   });
+  
+  var targetSel = document.getElementById('r-target-type');
+  if (targetSel) targetSel.disabled = !isFieldWork;
   
   var w1 = document.getElementById('r-doctor-wrap');
   var w2 = document.getElementById('r-chemist-wrap');
@@ -4509,25 +4514,35 @@ function renderHomeStats(){
 }
 
 function repRow(r){
-  var title = r.targetType==='Doctor' ? r.docName : r.chemName;
-  var sub = r.targetType==='Doctor' ? r.docSpec+' | '+r.docArea : 'Chemist | '+r.chemArea;
-  
+  var title = '';
+  var sub = '';
   var val = '';
-  if (r.targetType==='Doctor') {
-    var details = [];
-    if (r.promotedProducts && r.promotedProducts.length) details.push('Promoted: ' + r.promotedProducts.join(', '));
-    var parsedSamples = parseJSONField(r.samples);
-    var sKeys = Object.keys(parsedSamples);
-    if (sKeys.length) details.push('Samples: ' + sKeys.map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', '));
-    var parsedGifts = parseJSONField(r.gifts);
-    var gKeys = Object.keys(parsedGifts);
-    if (gKeys.length) details.push('Gifts: ' + gKeys.map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', '));
-    var parsedInputs = parseJSONField(r.inputs);
-    var iKeys = Object.keys(parsedInputs);
-    if (iKeys.length) details.push('Inputs: ' + iKeys.map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', '));
-    val = details.length ? details.join('<br>') : 'No promotional items distributed';
+  
+  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT'];
+  if (nonFieldWorkTypes.indexOf(String(r.workType || '').toUpperCase()) !== -1) {
+    title = String(r.workType || '').toUpperCase();
+    sub = (r.city || r.patch) ? (r.city + (r.patch ? ' | ' + r.patch : '')) : 'Administrative / Non-Field Work';
+    val = r.remarks ? 'Remarks: ' + r.remarks : 'No remarks provided';
   } else {
-    val = 'Order Claim: \u20B9' + r.orderAmount;
+    title = r.targetType==='Doctor' ? r.docName : (r.targetType==='Stockist' ? r.stockName : r.chemName);
+    sub = r.targetType==='Doctor' ? r.docSpec+' | '+r.docArea : (r.targetType==='Stockist' ? 'Stockist | '+r.stockArea : 'Chemist | '+r.chemArea);
+    
+    if (r.targetType==='Doctor') {
+      var details = [];
+      if (r.promotedProducts && r.promotedProducts.length) details.push('Promoted: ' + r.promotedProducts.join(', '));
+      var parsedSamples = parseJSONField(r.samples);
+      var sKeys = Object.keys(parsedSamples);
+      if (sKeys.length) details.push('Samples: ' + sKeys.map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', '));
+      var parsedGifts = parseJSONField(r.gifts);
+      var gKeys = Object.keys(parsedGifts);
+      if (gKeys.length) details.push('Gifts: ' + gKeys.map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', '));
+      var parsedInputs = parseJSONField(r.inputs);
+      var iKeys = Object.keys(parsedInputs);
+      if (iKeys.length) details.push('Inputs: ' + iKeys.map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', '));
+      val = details.length ? details.join('<br>') : 'No promotional items distributed';
+    } else {
+      val = 'Order Claim: ₹' + (r.orderAmount !== undefined ? r.orderAmount : '0');
+    }
   }
   
   var badgeClass=r.classification==='Planned Call' ? 'green' : 'orange';

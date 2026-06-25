@@ -3199,12 +3199,22 @@ window.addEventListener('beforeunload', function (e) {
 
     } catch (err) {
       console.error("Supabase sync failed:", err);
+      hasSyncError = true;
     } finally {
       clearTimeout(syncWatchdog);
       var dbStatus = document.getElementById('db-status-indicator');
       if (dbStatus) dbStatus.textContent = 'Database Connection: Supabase Cloud';
       showToast("Cloud Sync Complete!", 3000);
       isSyncing = false;
+      
+      // Update our local IndexedDB/localStorage with current DB state (including IDs mapped from Supabase)
+      idb.set('adonis_db', DB).then(function(success) {
+        if (success) console.log("Database successfully cached to IndexedDB post-sync.");
+      });
+      try {
+        localStorage.setItem('adonis_db', JSON.stringify(DB));
+      } catch(e){}
+
       // Re-trigger sync if changes were queued while this sync was running
       if (syncPending) {
         syncPending = false;
@@ -3215,9 +3225,9 @@ window.addEventListener('beforeunload', function (e) {
 
   initSupabaseData();
 
-// Poll Supabase database for updates every 15 seconds if Supabase is connected and sync hasn't failed
+// Poll Supabase database for updates every 15 seconds if Supabase is connected, sync hasn't failed, and no sync is in progress or pending
 setInterval(async function() {
-  if (useSupabase && !isSyncing && !hasSyncError) {
+  if (useSupabase && !isSyncing && !syncPending && !hasSyncError) {
       console.log("Auto-polling Supabase data...");
       await initSupabaseData(true);
     }

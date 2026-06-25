@@ -2404,7 +2404,22 @@ window.addEventListener('beforeunload', function (e) {
           state: c.state || ''
         };
       });
-      await upsertInBatches('chemists', dbChems);
+      try {
+        await upsertInBatches('chemists', dbChems);
+      } catch (upsertErr) {
+        var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || '')).toLowerCase();
+        if (errMsg.indexOf('state') !== -1) {
+          console.warn("Chemist sync failed with state column error. Retrying without state column...");
+          const fallbackChems = dbChems.map(function(c) {
+            var copy = Object.assign({}, c);
+            delete copy.state;
+            return copy;
+          });
+          await upsertInBatches('chemists', fallbackChems);
+        } else {
+          throw upsertErr;
+        }
+      }
       // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
       /*
       await reconcileSupabaseRows('chemists', DB.chemists, function(row) {

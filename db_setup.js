@@ -46,6 +46,13 @@ async function setup() {
     `);
     console.log("Updated doctors table schema.");
 
+    // Update chemists table
+    await client.query(`
+      ALTER TABLE chemists
+      ADD COLUMN IF NOT EXISTS state text;
+    `);
+    console.log("Updated chemists table schema.");
+
     // Create stockists table if not exists
     await client.query(`
       CREATE TABLE IF NOT EXISTS stockists (

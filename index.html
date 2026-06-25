@@ -3871,8 +3871,8 @@ function getApprovedMTPDay(dateStr){
 function renderPlannedTargetsForReport(plannedDay){
   var wrap=document.getElementById('r-planned-targets-wrap');
   if(!wrap)return;
-  var plannedDocIds = plannedDay ? ((plannedDay.plannedDocs&&plannedDay.plannedDocs.length) ? plannedDay.plannedDocs : getAssignedDoctorsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(doc){return doc.id;})) : [];
-  var plannedChemIds = plannedDay ? ((plannedDay.plannedChems&&plannedDay.plannedChems.length) ? plannedDay.plannedChems : getAssignedChemistsForArea(plannedDay.areaTerritory||plannedDay.toLocation).map(function(chem){return chem.id;})) : [];
+  var plannedDocIds = (plannedDay && plannedDay.plannedDocs && plannedDay.plannedDocs.length) ? plannedDay.plannedDocs : [];
+  var plannedChemIds = (plannedDay && plannedDay.plannedChems && plannedDay.plannedChems.length) ? plannedDay.plannedChems : [];
   if(!plannedDay || (!plannedDocIds.length && !plannedChemIds.length)){
     wrap.style.display='none';
     wrap.innerHTML='';

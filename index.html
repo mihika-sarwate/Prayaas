@@ -1875,34 +1875,50 @@ async function initSupabaseData(isSilent) {
       return;
     }
     
-    DB = {
-      employees: emps.map(e => {
-        var safeRole = (e.role || 'emp').trim().toLowerCase();
-        var cloudDesigRaw = e.designation;
-        if ((typeof cloudDesigRaw === 'undefined' || cloudDesigRaw === null || cloudDesigRaw === '') && e.leaves && e.leaves._designation) {
-          cloudDesigRaw = e.leaves._designation;
-        }
-        var cloudDesig = cloudDesigRaw;
-        var existing = (typeof DB !== 'undefined' && DB && DB.employees) ? DB.employees.find(em => em.id === e.id) : null;
-        var localDesig = existing ? existing.designation : undefined;
+    // Build a map of current local employees for pending-changes protection
+    var _existingLocalEmpsMap = {};
+    if (typeof DB !== 'undefined' && DB && Array.isArray(DB.employees)) {
+      DB.employees.forEach(function(em) { if (em && em.id) _existingLocalEmpsMap[String(em.id).toUpperCase()] = em; });
+    }
 
-        return {
-          id: e.id,
-          name: e.name,
-          pwd: e.pwd,
-          area: e.area || '',
-          role: safeRole,
-          managerId: e.manager_id || '',
-          doj: e.doj || '',
-          state: e.state || '',
-          status: e.status || 'Active',
-          accountStatus: normalizeAccountStatus(e.account_status),
-          blockedDate: e.blocked_date || '',
-          blockedReason: e.blocked_reason || '',
-          designation: (typeof cloudDesig !== 'undefined' && cloudDesig !== null && cloudDesig !== '') ? cloudDesig : (typeof localDesig !== 'undefined' && localDesig !== '' ? localDesig : ''),
-          leaves: e.leaves
-        };
-      }),
+    DB = {
+      employees: emps
+        // Filter out any employee that was locally deleted but not yet confirmed deleted in Supabase
+        .filter(function(e) { return !_pendingDeletedEmpIds.has(String(e.id || '').toUpperCase()); })
+        .map(function(e) {
+          var empIdUpper = String(e.id || '').toUpperCase();
+          var safeRole = (e.role || 'emp').trim().toLowerCase();
+          var cloudDesigRaw = e.designation;
+          if ((typeof cloudDesigRaw === 'undefined' || cloudDesigRaw === null || cloudDesigRaw === '') && e.leaves && e.leaves._designation) {
+            cloudDesigRaw = e.leaves._designation;
+          }
+          var cloudDesig = cloudDesigRaw;
+          var existing = _existingLocalEmpsMap[empIdUpper] || null;
+          var localDesig = existing ? existing.designation : undefined;
+
+          // If this employee has a pending local change (e.g. block/unblock not yet confirmed in cloud),
+          // keep ALL local fields for this record to prevent the poller from reverting the change.
+          if (_pendingLocalEmpIds.has(empIdUpper) && existing) {
+            return Object.assign({}, existing);
+          }
+
+          return {
+            id: e.id,
+            name: e.name,
+            pwd: e.pwd,
+            area: e.area || '',
+            role: safeRole,
+            managerId: e.manager_id || '',
+            doj: e.doj || '',
+            state: e.state || '',
+            status: e.status || 'Active',
+            accountStatus: normalizeAccountStatus(e.account_status),
+            blockedDate: e.blocked_date || '',
+            blockedReason: e.blocked_reason || '',
+            designation: (typeof cloudDesig !== 'undefined' && cloudDesig !== null && cloudDesig !== '') ? cloudDesig : (typeof localDesig !== 'undefined' && localDesig !== '' ? localDesig : ''),
+            leaves: e.leaves
+          };
+        }),
       doctors: (function() {
         var cloudDocs = (doctors || []).map(d => ({
           id: d.id,
@@ -2576,6 +2592,10 @@ var isSyncing = false;
 var syncPending = false;
 var hasSyncError = false;
 var hasInitializedData = false;
+// Track employee IDs that have pending local changes not yet confirmed in Supabase.
+// The 15-second poller must NOT overwrite these with stale cloud data.
+var _pendingDeletedEmpIds = new Set(); // IDs that were deleted locally
+var _pendingLocalEmpIds = new Set();   // IDs whose data was changed locally (block/unblock/edit)
 window.addEventListener('beforeunload', function (e) {
   if (isSyncing) {
     e.preventDefault();
@@ -2703,6 +2723,9 @@ window.addEventListener('beforeunload', function (e) {
       }, function(row) {
         return supabase.from('employees').delete().eq('id', row.id);
       });
+      // Employee sync confirmed — clear pending change markers so poller can resume normal updates
+      _pendingLocalEmpIds.clear();
+      _pendingDeletedEmpIds.clear();
     } catch (e) {
       console.error("Error syncing employees:", e);
       hasSyncError = true;
@@ -3231,13 +3254,13 @@ window.addEventListener('beforeunload', function (e) {
 
   initSupabaseData();
 
-// Poll Supabase database for updates every 15 seconds if Supabase is connected, sync hasn't failed, and no sync is in progress or pending
+// Poll Supabase database for updates every 30 seconds if Supabase is connected, sync hasn't failed, and no sync is in progress or pending
 setInterval(async function() {
   if (useSupabase && !isSyncing && !syncPending && !hasSyncError) {
       console.log("Auto-polling Supabase data...");
       await initSupabaseData(true);
     }
-}, 15000);
+}, 30000);
 
 var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};
 
@@ -7462,6 +7485,9 @@ function setEmployeeAccountStatus(empId, status, preventModalOpen) {
     emp.blockedDate = '';
     emp.blockedReason = '';
   }
+  // Mark this employee as having a pending local change so the poller does not
+  // overwrite the new accountStatus with the stale cloud value before sync completes.
+  _pendingLocalEmpIds.add(String(empId).toUpperCase());
   saveDB();
   renderEmpTable();
   renderAttendanceDashboard();
@@ -7481,9 +7507,13 @@ function saveEmployeeWeeklyOff(empId) {
 
 function removeEmp(id){
   if(!confirm('Delete employee '+id+'?'))return;
+  var idUpper = String(id).toUpperCase();
+  // Register deletion BEFORE saving so the poller never resurrects this employee.
+  _pendingDeletedEmpIds.add(idUpper);
   DB.employees=DB.employees.filter(function(e){return e.id!==id;});
   saveDB();
   renderEmpTable();
+  // Direct-delete from Supabase immediately (in addition to sync reconciliation)
   runSupabaseDelete('employees', function(q) {
     return q.eq('id', id);
   });
@@ -7515,6 +7545,8 @@ function bulkDeleteSelectedEmployees() {
   if (!checked.length) return;
   if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected employee records?')) return;
   var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  // Register all deletions before saving so the poller never resurrects them
+  idsToDelete.forEach(function(id) { _pendingDeletedEmpIds.add(String(id).toUpperCase()); });
   DB.employees = DB.employees.filter(function(e) { return !idsToDelete.includes(e.id); });
   saveDB();
   renderEmpTable();
@@ -7534,6 +7566,8 @@ function bulkDeleteAllEmployees() {
     return;
   }
   if (!confirm('WARNING: Are you sure you want to delete ALL employee records (' + empsToDelete.length + ') from the system? This cannot be undone.')) return;
+  // Register all deletions so the poller never resurrects them
+  empsToDelete.forEach(function(e) { _pendingDeletedEmpIds.add(String(e.id).toUpperCase()); });
   DB.employees = DB.employees.filter(function(e){return e.id==='ADMIN';});
   saveDB();
   renderEmpTable();

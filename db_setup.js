@@ -52,11 +52,13 @@ async function setup() {
         id text primary key,
         name text not null,
         area text,
-        assign_to text references employees(id)
+        assign_to text references employees(id),
+        state text
       );
+      ALTER TABLE stockists ADD COLUMN IF NOT EXISTS state text;
       ALTER TABLE stockists DISABLE ROW LEVEL SECURITY;
     `);
-    console.log("Created stockists table and disabled RLS.");
+    console.log("Created stockists table, added state column, and disabled RLS.");
 
   } catch (err) {
     console.error("Error:", err);

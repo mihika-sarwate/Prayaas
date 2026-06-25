@@ -3562,7 +3562,8 @@ function getApprovedMTPDay(dateStr){
   if(!dateStr || !SESSION.user)return null;
   var monthStr=dateStr.slice(0, 7);
   var mtp=DB.tourPlans.find(function(tp){
-    return tp.empId===SESSION.user.id && tp.month===monthStr && (tp.status==='Approved' || tp.status==='Submitted' || tp.status==='Approved by Manager' || tp.status==='Approved by Admin');
+    var statusUpper = String(tp.status || '').toUpperCase();
+    return String(tp.empId || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase() && tp.month===monthStr && (statusUpper==='APPROVED' || statusUpper==='SUBMITTED' || statusUpper==='APPROVED BY MANAGER' || statusUpper==='APPROVED BY ADMIN');
   });
   return mtp ? mtp.days.find(function(d){return d.date===dateStr;}) : null;
 }
@@ -3620,29 +3621,37 @@ function resolveManagerId(rawMgr) {
 
 function isPendingForUser(status, managerId, u) {
   var mgrId = resolveManagerId(managerId);
-  if (mgrId === u.id) {
-    if (status === 'Submitted' || status === 'Approved by Admin') return true;
+  var isMgr = mgrId && String(mgrId).toUpperCase() === String(u.id).toUpperCase();
+  var isAdmin = u.role === 'admin';
+  var statusUpper = String(status || '').toUpperCase();
+  
+  if (isMgr) {
+    if (statusUpper === 'SUBMITTED' || statusUpper === 'APPROVED BY ADMIN') return true;
   }
-  if (u.role === 'admin') {
-    if (status === 'Submitted' || status === 'Approved by Manager') return true;
+  if (isAdmin) {
+    if (statusUpper === 'SUBMITTED' || statusUpper === 'APPROVED BY MANAGER') return true;
   }
   return false;
 }
 
 function processApproval(currentStatus, managerId, u) {
   var mgrId = resolveManagerId(managerId);
-  if (currentStatus === 'Submitted') {
-    if (mgrId === u.id && u.role === 'admin') {
+  var isMgr = mgrId && String(mgrId).toUpperCase() === String(u.id).toUpperCase();
+  var isAdmin = u.role === 'admin';
+  var statusUpper = String(currentStatus || '').toUpperCase();
+  
+  if (statusUpper === 'SUBMITTED') {
+    if (isMgr && isAdmin) {
       return 'Approved';
-    } else if (mgrId === u.id) {
+    } else if (isMgr) {
       return 'Approved by Manager';
-    } else if (u.role === 'admin') {
+    } else if (isAdmin) {
       return mgrId ? 'Approved by Admin' : 'Approved';
     }
-  } else if (currentStatus === 'Approved by Manager') {
-    if (u.role === 'admin') return 'Approved';
-  } else if (currentStatus === 'Approved by Admin') {
-    if (mgrId === u.id) return 'Approved';
+  } else if (statusUpper === 'APPROVED BY MANAGER') {
+    if (isAdmin) return 'Approved';
+  } else if (statusUpper === 'APPROVED BY ADMIN') {
+    if (isMgr) return 'Approved';
   }
   return currentStatus;
 }
@@ -4124,7 +4133,7 @@ function renderHomeStats(){
   
   document.getElementById('stat-today').textContent=todayR.length;
   
-  var totalDocsAssigned=DB.doctors.filter(function(d){return d.assignTo===u.id && d.status==='Active';}).length;
+  var totalDocsAssigned=DB.doctors.filter(function(d){return String(d.assignTo || '').toUpperCase() === String(u.id || '').toUpperCase() && d.status==='Active';}).length;
   var visitedDocIds=[];
   myR.forEach(function(r){
     if(r.targetType==='Doctor' && !visitedDocIds.includes(r.docId)){
@@ -4135,7 +4144,7 @@ function renderHomeStats(){
   var cov=totalDocsAssigned ? Math.round((visitedDocIds.length / totalDocsAssigned)*100) : 0;
   document.getElementById('stat-coverage').textContent=cov+'%';
   
-  var activeMTP=DB.tourPlans.filter(function(t){return t.empId===u.id && t.month===today.slice(0,7);});
+  var activeMTP=DB.tourPlans.filter(function(t){return String(t.empId || '').toUpperCase() === String(u.id || '').toUpperCase() && t.month===today.slice(0,7);});
   document.getElementById('stat-tp').textContent=activeMTP.length ? activeMTP[activeMTP.length-1].status : 'No MTP';
   
   document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
@@ -4180,7 +4189,7 @@ function renderTPDaysForMonth(){
   }
   
   var existing=DB.tourPlans.find(function(t){
-    return t.empId===SESSION.user.id && t.month===month;
+    return String(t.empId || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase() && t.month===month;
   });
   
   var isReadOnly = false; // Always editable for MR resubmissions
@@ -4271,7 +4280,7 @@ function renderMTPDaysUI(isReadOnly, existing){
     var month = document.getElementById('tp-month').value;
     if (month && SESSION.user) {
       existing = DB.tourPlans.find(function(t){
-        return t.empId===SESSION.user.id && t.month===month;
+        return String(t.empId || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase() && t.month===month;
       });
     }
   }
@@ -4554,7 +4563,7 @@ function saveOrSubmitTourPlan(status){
   var mgrObj=DB.employees.find(function(e){return e.id===mgr;});
   
   var existingIndex = DB.tourPlans.findIndex(function(t){
-    return t.empId===SESSION.user.id && t.month===month;
+    return String(t.empId || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase() && t.month===month;
   });
   
   var tpObj;
@@ -4675,7 +4684,9 @@ function updateMTPAnalytics(month){
   if(!month){card.style.display='none';return;}
   
   var tp=DB.tourPlans.find(function(t){
-    return t.empId===SESSION.user.id && t.month===month && t.status==='Approved';
+    var statusUpper = String(t.status || '').toUpperCase();
+    var empMatch = String(t.empId || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    return empMatch && t.month===month && (statusUpper==='APPROVED' || statusUpper==='APPROVED BY MANAGER' || statusUpper==='APPROVED BY ADMIN');
   });
   
   if(!tp){
@@ -4738,11 +4749,12 @@ function updateMTPAnalytics(month){
 }
 function renderMyTourPlans(){
   var el=document.getElementById('my-tp-list');
-  var myTPs=DB.tourPlans.filter(function(t){return t.empId===SESSION.user.id;}).slice().reverse();
+  var myTPs=DB.tourPlans.filter(function(t){return String(t.empId || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();}).slice().reverse();
   if(!myTPs.length){el.innerHTML='<div class="empty">No Tour Plans submitted yet.</div>';return;}
   el.innerHTML=myTPs.map(function(tp){
-    var sc=tp.status==='Approved'?'approved':tp.status==='Rejected'?'rejected':'pending';
-    var bc=tp.status==='Approved'?'green':tp.status==='Rejected'?'red':'orange';
+    var statusUpper = String(tp.status || '').toUpperCase();
+    var sc=statusUpper==='APPROVED'?'approved':statusUpper==='REJECTED'?'rejected':'pending';
+    var bc=statusUpper==='APPROVED'?'green':statusUpper==='REJECTED'?'red':'orange';
     var plannedDays=tp.days.filter(function(d){return !!(d.areaTerritory||d.toLocation||'').trim();}).length;
     return '<div class="appr-card '+sc+'" onclick="loadMTPFromHistory(\''+tp.month+'\')"><div class="appr-hdr"><div class="appr-name">'+tp.month+' Tour Plan</div><span class="badge '+bc+'">'+tp.status+'</span></div><div class="appr-meta">Submitted to: '+tp.managerName+' | '+plannedDays+' planned working days</div>'+(tp.remarks?'<div class="appr-meta" style="color:var(--danger);margin-top:4px"><strong>Rejection Remarks:</strong> '+tp.remarks+'</div>':'')+'</div>';
   }).join('');
@@ -5349,8 +5361,8 @@ function viewTP(id){
   tp.days.forEach(function(d){
     var area=d.areaTerritory||d.toLocation||'';
     if(!area)return;
-    var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
-    var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===tp.empId && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+    var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase() === String(tp.empId || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+    var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase() === String(tp.empId || '').toUpperCase() && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
     html+='<tr><td class="tbl-name">'+d.date+'</td><td>'+area+'</td></tr>';
   });
   html+='</tbody></table></div>';
@@ -8668,18 +8680,19 @@ function runMISReport(){
   } else if(currentReportType==='missed_calls'){
     thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
     var myTPs=DB.tourPlans.filter(function(tp){
-      return (tp.status==='Approved' || tp.status==='Submitted') && (!empId||tp.empId===empId);
+      var statusUpper = String(tp.status || '').toUpperCase();
+      return (statusUpper==='APPROVED' || statusUpper==='SUBMITTED') && (!empId||String(tp.empId || '').toUpperCase()===String(empId).toUpperCase());
     });
     myTPs.forEach(function(tp){
       tp.days.forEach(function(d){
         if(from && d.date < from) return;
         if(to && d.date > to) return;
         var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===tp.empId && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
         plannedDocIds.forEach(function(docId){
           // Check if MR reported visit on this date to this doc
           var visited = DB.reports.find(function(r){
-            return r.empId===tp.empId && r.date===d.date && r.docId===docId;
+            return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && r.docId===docId;
           });
           if(!visited){
             var doc=DB.doctors.find(function(dc){return dc.id===docId;});
@@ -8704,13 +8717,16 @@ function runMISReport(){
     DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);}).forEach(function(e){
       var plannedDocs = 0;
       var plannedChems = 0;
-      DB.tourPlans.filter(function(tp){return tp.empId===e.id && (tp.status==='Approved' || tp.status==='Submitted');}).forEach(function(tp){
+      DB.tourPlans.filter(function(tp){
+        var statusUpper = String(tp.status || '').toUpperCase();
+        return String(tp.empId || '').toUpperCase()===String(e.id || '').toUpperCase() && (statusUpper==='APPROVED' || statusUpper==='SUBMITTED');
+      }).forEach(function(tp){
         tp.days.forEach(function(d){
           if(from && d.date < from) return;
           if(to && d.date > to) return;
           var area=d.areaTerritory||d.toLocation||'';
-          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return doc.assignTo===e.id && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
-          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return chem.assignTo===e.id && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
           plannedDocs += docIds.length;
           plannedChems += chemIds.length;
         });

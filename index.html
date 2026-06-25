@@ -5862,9 +5862,6 @@ function goTab(name){
   ['home','report','tour','expense','leave','doctors','announcements'].forEach(function(t){
     var el=document.getElementById('tab-'+t);
     if (el) {
-      if (t === 'report') {
-        document.getElementById('scr-emp').insertBefore(el, document.querySelector('.nav'));
-      }
       el.style.display=t===name?'block':'none';
     }
     var nb=document.getElementById('nb-'+t);if(nb)nb.className='nav-btn'+(t===name?' on':'');

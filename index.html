@@ -331,17 +331,27 @@ table.tbl tr:last-child td{border-bottom:none}
         <div><label class="lbl">Date</label><input type="date" id="r-date" onchange="checkMTPForSelectedDate()"></div>
         <div><label class="lbl">Type of Working</label><select id="r-work-type" onchange="toggleReportWorkTypeFields()"><option value="FIELD WORK">FIELD WORK</option><option value="WEEKLY OFF">WEEKLY OFF</option><option value="LEAVE">LEAVE</option><option value="HOLIDAY">HOLIDAY</option><option value="MEETING">MEETING</option><option value="TRANSIT">TRANSIT</option></select></div>
       </div>
-      <div class="row2">
-        <div><label class="lbl">Territory</label><select id="r-territory" onchange="populateReportCityPatch()"><option value="HQ">HQ</option><option value="Ex">Ex</option><option value="OS">OS</option></select></div>
-        <div><label class="lbl">Town / City</label><select id="r-city" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Town --</option></select></div>
+      <div id="r-standard-loc-fields">
+        <div class="row2">
+          <div><label class="lbl">Territory</label><select id="r-territory" onchange="populateReportCityPatch()"><option value="HQ">HQ</option><option value="Ex">Ex</option><option value="OS">OS</option></select></div>
+          <div><label class="lbl">Town / City</label><select id="r-city" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Town --</option></select></div>
+        </div>
+        <div class="row2">
+          <div style="grid-column: span 2"><label class="lbl">Patch</label><select id="r-patch" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Patch --</option></select></div>
+        </div>
+      </div>
+      <div id="r-transit-loc-fields" style="display:none">
+        <div class="row2">
+          <div><label class="lbl">From Town</label><select id="r-transit-from"></select></div>
+          <div><label class="lbl">To Town</label><select id="r-transit-to"></select></div>
+        </div>
       </div>
       <div class="row2">
-        <div><label class="lbl">Patch</label><select id="r-patch" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Patch --</option></select></div>
         <div><label class="lbl">Call Classification</label><select id="r-classification"><option>Planned Call</option><option>Unplanned Call</option></select></div>
-      </div>
-      <div class="row2">
         <div><label class="lbl">Time</label><input type="time" id="r-time"></div>
-        <div id="r-target-type-wrap"><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option><option>Stockist</option></select></div>
+      </div>
+      <div class="row2" style="margin-bottom:0">
+        <div id="r-target-type-wrap" style="grid-column: span 2"><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option><option>Stockist</option></select></div>
       </div>
       
       <!-- Doctor Selection -->
@@ -3987,6 +3997,18 @@ function toggleReportWorkTypeFields() {
     if (el) el.disabled = !needsLocation;
   });
   
+  if (isTransit) {
+    if(document.getElementById('r-standard-loc-fields')) document.getElementById('r-standard-loc-fields').style.display = 'none';
+    if(document.getElementById('r-transit-loc-fields')) document.getElementById('r-transit-loc-fields').style.display = 'block';
+    populateTransitRouteDropdowns();
+  } else if (isFieldWork) {
+    if(document.getElementById('r-standard-loc-fields')) document.getElementById('r-standard-loc-fields').style.display = 'block';
+    if(document.getElementById('r-transit-loc-fields')) document.getElementById('r-transit-loc-fields').style.display = 'none';
+  } else {
+    if(document.getElementById('r-standard-loc-fields')) document.getElementById('r-standard-loc-fields').style.display = 'none';
+    if(document.getElementById('r-transit-loc-fields')) document.getElementById('r-transit-loc-fields').style.display = 'none';
+  }
+
   var targetSel = document.getElementById('r-target-type');
   if (targetSel) targetSel.disabled = !isFieldWork;
   
@@ -4009,6 +4031,37 @@ function toggleReportWorkTypeFields() {
   } else {
     if(ttw) ttw.style.display = 'block';
     toggleReportTargetFields();
+  }
+}
+
+function populateTransitRouteDropdowns() {
+  var fromSel = document.getElementById('r-transit-from');
+  var toSel = document.getElementById('r-transit-to');
+  if (!fromSel || !toSel) return;
+  
+  var locations = new Set();
+  if (SESSION.user && SESSION.user.hq) locations.add(SESSION.user.hq.trim());
+  if (SESSION.user && SESSION.user.area) locations.add(SESSION.user.area.trim());
+  
+  (DB.sfc || []).forEach(function(s) {
+    if (s.from) locations.add(s.from.trim());
+    if (s.to) locations.add(s.to.trim());
+  });
+  
+  var sortedLocs = Array.from(locations).sort();
+  
+  var html = '<option value="">-- Select Location --</option>';
+  sortedLocs.forEach(function(loc) {
+    html += '<option value="' + escapeHTML(loc) + '">' + escapeHTML(loc) + '</option>';
+  });
+  
+  fromSel.innerHTML = html;
+  toSel.innerHTML = html;
+  
+  if (SESSION.user && SESSION.user.hq && locations.has(SESSION.user.hq.trim())) {
+    fromSel.value = SESSION.user.hq.trim();
+  } else if (SESSION.user && SESSION.user.area && locations.has(SESSION.user.area.trim())) {
+    fromSel.value = SESSION.user.area.trim();
   }
 }
 
@@ -4671,15 +4724,34 @@ function submitReport(){
   
   if(!date){showToast('Please set report date');return;}
   
+  var workType = document.getElementById('r-work-type') ? document.getElementById('r-work-type').value : 'FIELD WORK';
+  var territory = '';
+  var city = '';
+  var patch = '';
+  
+  if (workType === 'TRANSIT') {
+    city = document.getElementById('r-transit-from').value;
+    patch = document.getElementById('r-transit-to').value;
+    territory = 'Transit';
+    if (!city || !patch) {
+      showToast('Please select From and To locations for transit');
+      return;
+    }
+  } else {
+    territory = document.getElementById('r-territory') ? document.getElementById('r-territory').value : '';
+    city = document.getElementById('r-city') ? document.getElementById('r-city').value : '';
+    patch = document.getElementById('r-patch') ? document.getElementById('r-patch').value : '';
+  }
+
   var repObj={
     id:'REP'+Date.now(),
     empId:SESSION.user.id,
     empName:SESSION.user.name,
     date:date,
-    workType: document.getElementById('r-work-type') ? document.getElementById('r-work-type').value : 'FIELD WORK',
-    territory: document.getElementById('r-territory') ? document.getElementById('r-territory').value : '',
-    city: document.getElementById('r-city') ? document.getElementById('r-city').value : '',
-    patch: document.getElementById('r-patch') ? document.getElementById('r-patch').value : '',
+    workType: workType,
+    territory: territory,
+    city: city,
+    patch: patch,
     time:time,
     targetType:targetType,
     classification:classification,
@@ -6094,6 +6166,9 @@ function generateExpenseFromReports(){
     
     // SFC Matcher — tries progressively looser matches
     var startLocation = (SESSION.user && (SESSION.user.area || SESSION.user.hq)) ? (SESSION.user.area || SESSION.user.hq) : '';
+    if (dayReps.length === 1 && dayReps[0].workType === 'TRANSIT' && dayReps[0].city) {
+      startLocation = dayReps[0].city;
+    }
     var endLocation = distinctAreas.length ? distinctAreas[0] : startLocation;
     var myEmpIdUpper = String(SESSION.user && SESSION.user.id || '').toUpperCase().trim();
 

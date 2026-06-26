@@ -4009,7 +4009,18 @@ function submitReport(){
     repObj.jfwMgrName=mgrObj ? mgrObj.name : '';
   }
 
-  if(targetType==='Doctor'){
+  // Non-Field Work working types do not require targets (Doctors/Chemists/Stockists)
+  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT'];
+  if (nonFieldWorkTypes.indexOf(repObj.workType) !== -1) {
+    // Skip doctor/chemist/stockist validation and clean targets
+    repObj.targetType = '';
+    repObj.docId = '';
+    repObj.docName = '';
+    repObj.chemId = '';
+    repObj.chemName = '';
+    repObj.stockId = '';
+    repObj.stockName = '';
+  } else if(targetType==='Doctor'){
     var docId=document.getElementById('r-doctor').value;
     if(!docId){showToast('Please select doctor');return;}
     var doc=DB.doctors.find(function(d){return d.id===docId;});

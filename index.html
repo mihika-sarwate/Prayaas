@@ -6206,10 +6206,12 @@ function generateExpenseFromReports(){
     var myEmpIdUpper = String(SESSION.user && SESSION.user.id || '').toUpperCase().trim();
 
     function locIncludes(a, b) {
-      // True if either string contains the other (case-insensitive, trimmed)
       a = (a || '').toLowerCase().trim();
       b = (b || '').toLowerCase().trim();
-      return a && b && (a.includes(b) || b.includes(a));
+      if (!a || !b) return false;
+      if (a.includes(b) || b.includes(a)) return true;
+      if (a.length >= 5 && b.length >= 5 && a.slice(0, 5) === b.slice(0, 5)) return true;
+      return false;
     }
 
     var sfcEntry = null;

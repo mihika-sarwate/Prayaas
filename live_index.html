@@ -1808,36 +1808,58 @@ async function initSupabaseData(isSilent) {
       products: DEFAULT_DB.products,
       gifts: DEFAULT_DB.gifts,
       inputs: DEFAULT_DB.inputs,
-      reports: (reports || []).map(r => ({
-        id: r.id,
-        empId: r.emp_id,
-        empName: r.emp_name,
-        date: r.date,
-        time: r.time,
-        targetType: r.target_type,
-        classification: r.classification,
-        callType: r.call_type,
-        docId: r.doc_id,
-        docName: r.doc_name,
-        docSpec: r.doc_spec,
-        docArea: r.doc_area,
-        promotedProducts: r.promoted_products || [],
-        samples: parseJSONField(r.samples),
-        gifts: parseJSONField(r.gifts),
-        inputs: parseJSONField(r.inputs),
-        chemId: r.chem_id,
-        chemName: r.chem_name,
-        chemArea: r.chem_area,
-        orderAmount: parseFloat(r.order_amount) || 0,
-        stockStatus: r.stock_status,
-        jfwMgrId: r.jfw_mgr_id,
-        jfwMgrName: r.jfw_mgr_name,
-        jfwRemarks: r.jfw_remarks,
-        lat: r.lat,
-        lng: r.lng,
-        remarks: r.remarks,
-        nextVisit: r.next_visit
-      })),
+      reports: (reports || []).map(r => {
+        var cleanRemarks = r.remarks || '';
+        var workType = 'FIELD WORK';
+        var territory = '';
+        var city = '';
+        var patch = '';
+        if (cleanRemarks.indexOf('\n===METADATA===\n') !== -1) {
+          var parts = cleanRemarks.split('\n===METADATA===\n');
+          cleanRemarks = parts[0];
+          try {
+            var meta = JSON.parse(parts[1]);
+            workType = meta.workType || 'FIELD WORK';
+            territory = meta.territory || '';
+            city = meta.city || '';
+            patch = meta.patch || '';
+          } catch(e){}
+        }
+        return {
+          id: r.id,
+          empId: r.emp_id,
+          empName: r.emp_name,
+          date: r.date,
+          time: r.time,
+          targetType: r.target_type,
+          classification: r.classification,
+          callType: r.call_type,
+          docId: r.doc_id,
+          docName: r.doc_name,
+          docSpec: r.doc_spec,
+          docArea: r.doc_area,
+          promotedProducts: r.promoted_products || [],
+          samples: parseJSONField(r.samples),
+          gifts: parseJSONField(r.gifts),
+          inputs: parseJSONField(r.inputs),
+          chemId: r.chem_id,
+          chemName: r.chem_name,
+          chemArea: r.chem_area,
+          orderAmount: parseFloat(r.order_amount) || 0,
+          stockStatus: r.stock_status,
+          jfwMgrId: r.jfw_mgr_id,
+          jfwMgrName: r.jfw_mgr_name,
+          jfwRemarks: r.jfw_remarks,
+          lat: r.lat,
+          lng: r.lng,
+          remarks: cleanRemarks,
+          workType: workType,
+          territory: territory,
+          city: city,
+          patch: patch,
+          nextVisit: r.next_visit
+        };
+      }),
       tourPlans: (tourPlans || []).map(tp => ({
         id: tp.id,
         empId: tp.emp_id,
@@ -2536,6 +2558,12 @@ window.addEventListener('beforeunload', function (e) {
           var matchedMgr = DB.employees.find(x => String(x.id || '').toUpperCase() === String(jfwMgrId).toUpperCase());
           jfwMgrId = matchedMgr ? matchedMgr.id : null;
         }
+        var meta = {
+          workType: r.workType || 'FIELD WORK',
+          territory: r.territory || '',
+          city: r.city || '',
+          patch: r.patch || ''
+        };
         return {
           id: r.id,
           emp_id: empId,
@@ -2563,7 +2591,7 @@ window.addEventListener('beforeunload', function (e) {
           jfw_remarks: r.jfwRemarks || null,
           lat: r.lat || null,
           lng: r.lng || null,
-          remarks: r.remarks || null,
+          remarks: (r.remarks || '') + '\n===METADATA===\n' + JSON.stringify(meta),
           next_visit: formatDateForPostgres(r.nextVisit)
         };
       });

@@ -6113,13 +6113,41 @@ function loadMTPFromHistory(month){
 
 // ===== EXPENSE CLAIM FUNCTIONS =====
 function generateExpenseFromReports(){
-  var month=document.getElementById('exp-month').value;
+  var rawMonth=document.getElementById('exp-month').value;
   var detail=document.getElementById('expense-detail');
-  if(!month){detail.style.display='none';return;}
+  if(!rawMonth){detail.style.display='none';return;}
+  
+  // Normalize month value to YYYY-MM
+  var month = rawMonth.trim();
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    // Attempt to parse text format like "June, 2026", "June 2026", "2026-06-26"
+    if (/^\d{4}-\d{2}-\d{2}$/.test(month)) {
+      month = month.slice(0,7);
+    } else {
+      var months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+      var shortMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      var yearMatch = month.match(/\d{4}/);
+      if (yearMatch) {
+        var year = yearMatch[0];
+        var monthLower = month.toLowerCase();
+        var monthIdx = -1;
+        for (var i = 0; i < 12; i++) {
+          if (monthLower.indexOf(months[i]) !== -1 || monthLower.indexOf(shortMonths[i]) !== -1) {
+            monthIdx = i + 1;
+            break;
+          }
+        }
+        if (monthIdx !== -1) {
+          month = year + '-' + (monthIdx < 10 ? '0' + monthIdx : '' + monthIdx);
+        }
+      }
+    }
+  }
   
   // Fetch approved visits reports in this month safely
   var myReports=DB.reports.filter(function(r){
-    return r.empId===SESSION.user.id && r.date && typeof r.date === 'string' && r.date.slice(0,7)===month;
+    var matchedEmp = String(r.empId || '').toUpperCase().trim() === String(SESSION.user && SESSION.user.id || '').toUpperCase().trim();
+    return matchedEmp && r.date && typeof r.date === 'string' && r.date.slice(0,7)===month;
   });
   
   if(!myReports.length){
@@ -6166,10 +6194,15 @@ function generateExpenseFromReports(){
     
     // SFC Matcher — tries progressively looser matches
     var startLocation = (SESSION.user && (SESSION.user.area || SESSION.user.hq)) ? (SESSION.user.area || SESSION.user.hq) : '';
-    if (dayReps.length === 1 && dayReps[0].workType === 'TRANSIT' && dayReps[0].city) {
-      startLocation = dayReps[0].city;
-    }
     var endLocation = distinctAreas.length ? distinctAreas[0] : startLocation;
+    
+    var transitRep = dayReps.find(function(r) { return r.workType === 'TRANSIT' && r.city; });
+    if (transitRep) {
+      startLocation = transitRep.city;
+      if (transitRep.patch) {
+        endLocation = transitRep.patch;
+      }
+    }
     var myEmpIdUpper = String(SESSION.user && SESSION.user.id || '').toUpperCase().trim();
 
     function locIncludes(a, b) {

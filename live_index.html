@@ -1891,7 +1891,14 @@ async function initSupabaseData(isSilent) {
         empName: ex.emp_name,
         month: ex.month,
         managerId: ex.manager_id,
-        lines: ex.lines,
+        lines: typeof ex.lines === 'string' ? (function() {
+          try {
+            var parsed = JSON.parse(ex.lines);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch(e) {
+            return [];
+          }
+        })() : (Array.isArray(ex.lines) ? ex.lines : []),
         total: parseFloat(ex.total) || 0,
         receiptFile: ex.receipt_file,
         status: ex.status,
@@ -2086,6 +2093,18 @@ async function loadLocalDB() {
   if (!Array.isArray(DB.reports)) DB.reports = DEFAULT_DB.reports || [];
   if (!Array.isArray(DB.tourPlans)) DB.tourPlans = DEFAULT_DB.tourPlans || [];
   if (!Array.isArray(DB.expenses)) DB.expenses = DEFAULT_DB.expenses || [];
+  DB.expenses.forEach(function(ex) {
+    if (ex && typeof ex.lines === 'string') {
+      try {
+        var parsed = JSON.parse(ex.lines);
+        ex.lines = Array.isArray(parsed) ? parsed : [];
+      } catch(e) {
+        ex.lines = [];
+      }
+    } else if (ex && !Array.isArray(ex.lines)) {
+      ex.lines = [];
+    }
+  });
   if (!Array.isArray(DB.leaves)) DB.leaves = DEFAULT_DB.leaves || [];
   if (!Array.isArray(DB.holidays)) DB.holidays = DEFAULT_DB.holidays || [];
   if (!Array.isArray(DB.samplesInventory)) DB.samplesInventory = DEFAULT_DB.samplesInventory || [];
@@ -5502,7 +5521,17 @@ function viewExp(id){
   
   var html='<div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">'+ex.empName+' — '+ex.month+' Expense</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Supporting Bill: <strong>'+ex.receiptFile+'</strong></div></div>';
   html+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Route/Work</th><th>Travel Mode</th><th>Travel</th><th>DA</th><th>Lodge</th><th>Local/Other</th><th>Day Total</th></tr></thead><tbody>';
-  ex.lines.forEach(function(l){
+  
+  var lines = Array.isArray(ex.lines) ? ex.lines : (typeof ex.lines === 'string' ? (function() {
+    try {
+      var p = JSON.parse(ex.lines);
+      return Array.isArray(p) ? p : [];
+    } catch(e) {
+      return [];
+    }
+  })() : []);
+
+  lines.forEach(function(l){
     html+='<tr><td>'+l.date+'</td><td>'+l.route+'</td><td>'+l.mode+'</td><td>&#x20B9;'+l.fare+'</td><td>&#x20B9;'+l.da+'</td><td>&#x20B9;'+l.lodge+'</td><td>&#x20B9;'+l.other+'</td><td style="font-weight:700">&#x20B9;'+l.total+'</td></tr>';
   });
   html+='<tr style="background:#F8FAFC"><td colspan="7" style="font-weight:700">GRAND CLAIM TOTAL</td><td style="font-weight:700;color:var(--success)">&#x20B9;'+ex.total+'</td></tr>';

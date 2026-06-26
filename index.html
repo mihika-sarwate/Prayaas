@@ -739,7 +739,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <button class="btn sm primary admin-only" onclick="document.getElementById('sfc-upload').click()">&#8593; Upload SFC CSV</button>
             <input type="file" id="sfc-upload" accept=".csv" onchange="uploadSFC(this)" style="display:none">
             <button class="btn sm danger admin-only" onclick="bulkDeleteAllSFC()">&#128465; Delete All</button>
-            <button class="btn sm danger" id="btn-bulk-delete-selected-sfc" class="btn sm danger admin-only" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
+            <button id="btn-bulk-delete-selected-sfc" class="btn sm danger admin-only" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
           </div>
           <input type="text" id="adm-sfc-search" placeholder="&#128269; Search SFC by from, to, mode, or fare..." oninput="renderSFCTable()" style="margin-bottom:10px;background:#F1F5F9">
         </div>
@@ -1025,6 +1025,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="expenses_rep">11. Expense Summary Report</option>
             <option value="leaves_rep">12. Leave Utilisation Report</option>
             <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
+            <option value="transit_rep">14. Transit Report</option>
           </select>
         </div>
         <div class="row3">
@@ -2101,7 +2102,9 @@ async function initSupabaseData(isSilent) {
       })),
       cityRates: DEFAULT_DB.cityRates,
       sfc: (function() {
-        var cloudSfc = (sfc || []).map(s => {
+        var cloudSfc = [];
+        var seenKeys = new Set();
+        (sfc || []).forEach(s => {
           let extra = {};
           let isJson = false;
           try {
@@ -2110,7 +2113,7 @@ async function initSupabaseData(isSilent) {
               isJson = true;
             }
           } catch(e){}
-          return {
+          var item = {
             id: s.id,
             from: s.from_loc || '',
             to: s.to_loc || '',
@@ -2128,6 +2131,11 @@ async function initSupabaseData(isSilent) {
             doctors: s.doctors !== undefined && s.doctors !== null ? s.doctors : (extra.doctors || ''),
             business: s.business !== undefined && s.business !== null ? s.business : (extra.business || '')
           };
+          var k = normalizeSfcKey(item);
+          if (!seenKeys.has(k)) {
+            seenKeys.add(k);
+            cloudSfc.push(item);
+          }
         });
         var localSfc = (typeof DB !== 'undefined' && DB && DB.sfc) ? DB.sfc : [];
         if (cloudSfc.length === 0 && localSfc.length > 0) {
@@ -2820,7 +2828,36 @@ window.addEventListener('beforeunload', function (e) {
         }
         return row;
       });
-      await upsertInBatches('sfc', dbSfc);
+      var resRows = await upsertInBatches('sfc', dbSfc);
+      if (resRows && resRows.length > 0) {
+        var resMap = {};
+        resRows.forEach(function(row) {
+          var key = normalizeSfcKey({
+            empId: row.emp_id,
+            from: row.from_loc,
+            to: row.to_loc,
+            distance: row.distance,
+            mode: row.mode,
+            category: row.category,
+            fare: row.fare,
+            da: row.da,
+            workingDays: row.working_days,
+            empName: row.emp_name,
+            hq: row.hq,
+            state: row.state,
+            doctors: row.doctors,
+            business: row.business
+          });
+          resMap[key] = row.id;
+        });
+        DB.sfc.forEach(function(s) {
+          var k = normalizeSfcKey(s);
+          if (resMap[k] !== undefined) {
+            s.id = resMap[k];
+          }
+        });
+        saveDB();
+      }
       // Removed prune step to prevent empty local state from clearing populated cloud database rows.
     } catch (e) {
       console.error("Error syncing SFC:", e);
@@ -10459,6 +10496,12 @@ function runMISReport(){
       var missed = Math.max(0, assigned - visitedIds.length);
       var pct = assigned ? Math.round((visitedIds.length / assigned)*100) : 0;
       currentMISData.push([e.id, e.name, assigned, visitedIds.length, missed, pct+'%']);
+    });
+  } else if(currentReportType==='transit_rep'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Work Type</th><th>Territory</th><th>City/HQ</th><th>Patch</th><th>Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
+    var transitReps=baseReports.filter(function(r){return r.workType==='TRANSIT';});
+    currentMISData=transitReps.map(function(r){
+      return [r.date, r.empId, r.empName, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||'', '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
   }
   

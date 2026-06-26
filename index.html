@@ -4508,6 +4508,7 @@ function normalizeHolidayKey(row) {
 
 async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn) {
   if (_missingSupabaseTables[table]) return; // Skip for known-missing tables
+  var isPruningAllowed = SESSION && SESSION.user && SESSION.user.role === 'admin';
   try {
     const remoteRows = await fetchAllFromSupabase(table);
     const localRowsMap = new Map();
@@ -4541,10 +4542,12 @@ async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn) 
       saveDB();
     }
 
-    for (const row of staleRows) {
-      const res = await deleteRowFn(row);
-      if (res && res.error) {
-        console.error('Error pruning stale ' + table + ' row from Supabase:', res.error);
+    if (isPruningAllowed) {
+      for (const row of staleRows) {
+        const res = await deleteRowFn(row);
+        if (res && res.error) {
+          console.error('Error pruning stale ' + table + ' row from Supabase:', res.error);
+        }
       }
     }
   } catch (err) {

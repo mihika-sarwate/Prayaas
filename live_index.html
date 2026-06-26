@@ -4658,9 +4658,9 @@ function generateExpenseFromReports(){
   var detail=document.getElementById('expense-detail');
   if(!month){detail.style.display='none';return;}
   
-  // Fetch approved visits reports in this month
+  // Fetch approved visits reports in this month safely
   var myReports=DB.reports.filter(function(r){
-    return r.empId===SESSION.user.id && r.date.slice(0,7)===month;
+    return r.empId===SESSION.user.id && r.date && typeof r.date === 'string' && r.date.slice(0,7)===month;
   });
   
   if(!myReports.length){
@@ -4672,7 +4672,7 @@ function generateExpenseFromReports(){
   // Calculate expenses day-wise
   var uniqueDates=[];
   myReports.forEach(function(r){
-    if(!uniqueDates.includes(r.date)) uniqueDates.push(r.date);
+    if(r.date && !uniqueDates.includes(r.date)) uniqueDates.push(r.date);
   });
   
   var lines=[];
@@ -4693,30 +4693,82 @@ function generateExpenseFromReports(){
     // We assume travel happened if they reported a doctor/chemist in a distinct area
     var distinctAreas=[];
     dayReps.forEach(function(r){
-      var area=r.targetType==='Doctor'?r.docArea:r.chemArea;
+      var area = '';
+      if (r.targetType === 'Doctor') area = r.docArea;
+      else if (r.targetType === 'Chemist') area = r.chemArea;
+      else if (r.targetType === 'Stockist') area = r.stockArea;
+      
+      // If area not found from targetType details, fallback to the report's patch and city fields
+      if (!area) {
+        area = r.patch || r.city || '';
+      }
       if(area && !distinctAreas.includes(area)) distinctAreas.push(area);
     });
     
-    // Simple SFC Matcher
-    var startLocation=SESSION.user.area;
-    var endLocation = distinctAreas.length ? distinctAreas[0] : SESSION.user.area;
-    
-    var sfcEntry=DB.sfc.find(function(s){
-      return (s.from.toLowerCase()===startLocation.toLowerCase() && s.to.toLowerCase()===endLocation.toLowerCase()) ||
-             (s.from.toLowerCase()===endLocation.toLowerCase() && s.to.toLowerCase()===startLocation.toLowerCase());
-    });
+    // SFC Matcher — tries progressively looser matches
+    var startLocation = (SESSION.user && (SESSION.user.area || SESSION.user.hq)) ? (SESSION.user.area || SESSION.user.hq) : '';
+    var endLocation = distinctAreas.length ? distinctAreas[0] : startLocation;
+    var myEmpIdUpper = String(SESSION.user && SESSION.user.id || '').toUpperCase().trim();
+
+    function locIncludes(a, b) {
+      // True if either string contains the other (case-insensitive, trimmed)
+      a = (a || '').toLowerCase().trim();
+      b = (b || '').toLowerCase().trim();
+      return a && b && (a.includes(b) || b.includes(a));
+    }
+
+    var sfcEntry = null;
+    if (startLocation && endLocation) {
+      var startLow = startLocation.toLowerCase().trim();
+      var endLow = endLocation.toLowerCase().trim();
+
+      // 1) Exact match: same emp + exact from/to
+      sfcEntry = DB.sfc.find(function(s){
+        if (String(s.empId||'').toUpperCase().trim() !== myEmpIdUpper) return false;
+        var f = (s.from||'').toLowerCase().trim(), t = (s.to||'').toLowerCase().trim();
+        return (f===startLow&&t===endLow)||(f===endLow&&t===startLow);
+      });
+      // 2) Partial match: same emp + partial from/to
+      if (!sfcEntry) {
+        sfcEntry = DB.sfc.find(function(s){
+          if (String(s.empId||'').toUpperCase().trim() !== myEmpIdUpper) return false;
+          return (locIncludes(s.from,startLocation)&&locIncludes(s.to,endLocation))||
+                 (locIncludes(s.from,endLocation)&&locIncludes(s.to,startLocation));
+        });
+      }
+      // 3) Exact match on route regardless of emp (general SFC table)
+      if (!sfcEntry) {
+        sfcEntry = DB.sfc.find(function(s){
+          var f = (s.from||'').toLowerCase().trim(), t = (s.to||'').toLowerCase().trim();
+          return (f===startLow&&t===endLow)||(f===endLow&&t===startLow);
+        });
+      }
+      // 4) Partial route match regardless of emp
+      if (!sfcEntry) {
+        sfcEntry = DB.sfc.find(function(s){
+          return (locIncludes(s.from,startLocation)&&locIncludes(s.to,endLocation))||
+                 (locIncludes(s.from,endLocation)&&locIncludes(s.to,startLocation));
+        });
+      }
+      // 5) Any SFC entry for this employee (uses their standard daily allowance)
+      if (!sfcEntry && myEmpIdUpper) {
+        sfcEntry = DB.sfc.find(function(s){
+          return String(s.empId||'').toUpperCase().trim() === myEmpIdUpper;
+        });
+      }
+    }
     
     if(sfcEntry){
-      travelFare=sfcEntry.fare;
-      distKM=sfcEntry.distance;
-      da=sfcEntry.da;
-      lodging=sfcEntry.lodge;
-      other=sfcEntry.other;
-      routeMode=sfcEntry.mode;
+      travelFare = parseFloat(sfcEntry.fare) || 0;
+      distKM = parseFloat(sfcEntry.distance) || 0;
+      da = parseFloat(sfcEntry.da) || 0;
+      lodging = parseFloat(sfcEntry.lodge) || 0;
+      other = parseFloat(sfcEntry.other) || 0;
+      routeMode = sfcEntry.mode || 'N/A';
     } else {
       // Default local work allowances
-      da = DB.cityRates.daC;
-      other = DB.cityRates.localConv;
+      da = (DB.cityRates && DB.cityRates.daC) ? parseFloat(DB.cityRates.daC) : 300;
+      other = (DB.cityRates && DB.cityRates.localConv) ? parseFloat(DB.cityRates.localConv) : 120;
     }
     
     var dayTotal = travelFare + da + lodging + other;
@@ -4724,7 +4776,7 @@ function generateExpenseFromReports(){
     
     lines.push({
       date: dt,
-      route: startLocation+' &rarr; '+endLocation,
+      route: (startLocation || 'HQ')+' &rarr; '+(endLocation || 'HQ'),
       mode: routeMode,
       distance: distKM,
       fare: travelFare,
@@ -4738,12 +4790,12 @@ function generateExpenseFromReports(){
   var html=lines.map(function(l){
     return '<div class="exp-row">'+
       '<div><div class="exp-label">'+l.date+' | '+l.route+' ('+l.mode+' - '+l.distance+' KM)</div>'+
-      '<div class="exp-sub">Travel: &#x20B9;'+l.fare+' | DA: &#x20B9;'+l.da+' | Lodge: &#x20B9;'+l.lodging+' | Local/Other: &#x20B9;'+l.other+'</div></div>'+
-      '<div class="exp-amt">&#x20B9;'+l.total+'</div></div>';
+      '<div class="exp-sub">Travel: ₹'+l.fare+' | DA: ₹'+l.da+' | Lodge: ₹'+l.lodge+' | Local/Other: ₹'+l.other+'</div></div>'+
+      '<div class="exp-amt">₹'+l.total+'</div></div>';
   }).join('');
   
   document.getElementById('exp-breakdown').innerHTML=html;
-  document.getElementById('exp-grand-total').textContent='&#x20B9;'+grandTotal;
+  document.getElementById('exp-grand-total').textContent='₹'+grandTotal;
   detail.style.display='block';
   
   detail.dataset.month=month;

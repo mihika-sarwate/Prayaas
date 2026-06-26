@@ -1941,7 +1941,9 @@ async function initSupabaseData(isSilent) {
             category: s.category !== undefined && s.category !== null ? s.category : (extra.category || ''),
             total: s.total !== undefined && s.total !== null ? (parseFloat(s.total) || 0) : (extra.total || (s.fare + s.da)),
             doctors: s.doctors !== undefined && s.doctors !== null ? s.doctors : (extra.doctors || ''),
-            business: s.business !== undefined && s.business !== null ? s.business : (extra.business || '')
+            business: s.business !== undefined && s.business !== null ? s.business : (extra.business || ''),
+            lodge: s.lodge !== undefined && s.lodge !== null ? s.lodge : 0,
+            other: s.other !== undefined && s.other !== null ? s.other : 0
           };
           var k = normalizeSfcKey(item);
           if (!seenKeys.has(k)) {
@@ -2812,8 +2814,8 @@ window.addEventListener('beforeunload', function (e) {
         total: s.total || (s.fare + s.da),
         doctors: s.doctors || '',
         business: s.business || '',
-        lodge: 0,
-        other: 0
+        lodge: s.lodge || 0,
+        other: s.other || 0
       }));
       var resRows = await upsertInBatches('sfc', dbSfc);
       if (resRows && resRows.length > 0) {

@@ -248,6 +248,26 @@ table.tbl tr:last-child td{border-bottom:none}
   font-size: 11px;
   border-radius: 4px;
 }
+.inv-filter-trigger {
+  color: #94a3b8;
+  cursor: pointer;
+  margin-left: 4px;
+  font-size: 10px;
+  transition: color 0.2s;
+  display: inline-block;
+}
+.inv-filter-trigger:hover {
+  color: #3b82f6;
+}
+.inv-filter-trigger.active {
+  color: #10b981 !important;
+}
+.inv-filter-dropdown label {
+  user-select: none;
+}
+.inv-filter-dropdown input[type="checkbox"] {
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -1040,8 +1060,9 @@ table.tbl tr:last-child td{border-bottom:none}
 
       <div class="sec-hdr">&#128196; Employee Inventory Registers</div>
       <div class="card">
-        <div class="row3">
-          <div><label class="lbl">Filter MR</label><select id="inv-filter-emp" onchange="renderAdminInventoryTables()"><option value="">All Employees</option></select></div>
+        <div class="row2" style="display:flex; gap:15px; align-items:flex-end;">
+          <div style="flex:1;"><label class="lbl">Filter MR</label><select id="inv-filter-emp" onchange="renderAdminInventoryTables()"><option value="">All Employees</option></select></div>
+          <div style="flex:2;"><label class="lbl">&#128269; Search Inventory</label><input type="text" id="inv-search-global" placeholder="Search by Employee, Product, Qty..." oninput="renderAdminInventoryTables()" class="txt" style="width:100%;"></div>
         </div>
         <div class="btn-row" style="margin-top:10px; margin-bottom:10px;">
           <button class="btn sm success" onclick="exportInventoryBalancesCSV()">Export Inventory Registers</button>
@@ -1051,24 +1072,58 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title" style="margin-top:10px">Sample Inventory balances</div>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-samples" onclick="toggleSelectAllInv('sample', this)"></th><th>Employee</th><th>Product Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="check-all-samples" onclick="toggleSelectAllInv('sample', this)"></th>
+                <th>Employee <span class="inv-filter-trigger" id="inv-trig-sample-employee" onclick="toggleInvFilterDropdown('sample', 'employee', this)">▼</span></th>
+                <th>Product Name <span class="inv-filter-trigger" id="inv-trig-sample-name" onclick="toggleInvFilterDropdown('sample', 'name', this)">▼</span></th>
+                <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-sample-opening" onclick="toggleInvFilterDropdown('sample', 'opening', this)">▼</span></th>
+                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-sample-allocated" onclick="toggleInvFilterDropdown('sample', 'allocated', this)">▼</span></th>
+                <th>Distributed <span class="inv-filter-trigger" id="inv-trig-sample-distributed" onclick="toggleInvFilterDropdown('sample', 'distributed', this)">▼</span></th>
+                <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-sample-balance" onclick="toggleInvFilterDropdown('sample', 'balance', this)">▼</span></th>
+                <th>Actions</th>
+              </tr>
+            </thead>
             <tbody id="tbl-inv-samples"></tbody>
           </table>
         </div>
         <div class="card-title" style="margin-top:20px">Promotional Gift balances</div>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-gifts" onclick="toggleSelectAllInv('gift', this)"></th><th>Employee</th><th>Gift Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="check-all-gifts" onclick="toggleSelectAllInv('gift', this)"></th>
+                <th>Employee <span class="inv-filter-trigger" id="inv-trig-gift-employee" onclick="toggleInvFilterDropdown('gift', 'employee', this)">▼</span></th>
+                <th>Gift Name <span class="inv-filter-trigger" id="inv-trig-gift-name" onclick="toggleInvFilterDropdown('gift', 'name', this)">▼</span></th>
+                <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-gift-opening" onclick="toggleInvFilterDropdown('gift', 'opening', this)">▼</span></th>
+                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-gift-allocated" onclick="toggleInvFilterDropdown('gift', 'allocated', this)">▼</span></th>
+                <th>Distributed <span class="inv-filter-trigger" id="inv-trig-gift-distributed" onclick="toggleInvFilterDropdown('gift', 'distributed', this)">▼</span></th>
+                <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-gift-balance" onclick="toggleInvFilterDropdown('gift', 'balance', this)">▼</span></th>
+                <th>Actions</th>
+              </tr>
+            </thead>
             <tbody id="tbl-inv-gifts"></tbody>
           </table>
         </div>
         <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs)</div>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th><input type="checkbox" id="check-all-inputs" onclick="toggleSelectAllInv('input', this)"></th><th>Employee</th><th>Input Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="check-all-inputs" onclick="toggleSelectAllInv('input', this)"></th>
+                <th>Employee <span class="inv-filter-trigger" id="inv-trig-input-employee" onclick="toggleInvFilterDropdown('input', 'employee', this)">▼</span></th>
+                <th>Input Name <span class="inv-filter-trigger" id="inv-trig-input-name" onclick="toggleInvFilterDropdown('input', 'name', this)">▼</span></th>
+                <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-input-opening" onclick="toggleInvFilterDropdown('input', 'opening', this)">▼</span></th>
+                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-input-allocated" onclick="toggleInvFilterDropdown('input', 'allocated', this)">▼</span></th>
+                <th>Distributed <span class="inv-filter-trigger" id="inv-trig-input-distributed" onclick="toggleInvFilterDropdown('input', 'distributed', this)">▼</span></th>
+                <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-input-balance" onclick="toggleInvFilterDropdown('input', 'balance', this)">▼</span></th>
+                <th>Actions</th>
+              </tr>
+            </thead>
             <tbody id="tbl-inv-inputs"></tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
 
@@ -10818,13 +10873,58 @@ function uploadInventoryCSV(inp) {
         var p = parseCSVLine(line);
         if (p.length < 3) return;
         var empId = (p[0] || '').trim();
-        if (!empId) return;
+        var hq = (p[1] || '').trim();
+        var state = (p[2] || '').trim();
         
-        var matchedEmp = DB.employees.find(function(x) {
-          return String(x.id || '').toUpperCase() === empId.toUpperCase();
-        });
+        var matchedEmp = null;
+        if (empId) {
+          matchedEmp = DB.employees.find(function(x) {
+            return String(x.id || '').toUpperCase().trim() === empId.toUpperCase().trim();
+          });
+        }
+        
+        if (!matchedEmp && hq) {
+          var hqUpper = hq.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+          matchedEmp = DB.employees.find(function(x) {
+            var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+            return areaClean === hqUpper;
+          });
+          
+          if (!matchedEmp) {
+            matchedEmp = DB.employees.find(function(x) {
+              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+              return areaClean.replace(/PORE$/, 'PUR') === hqUpper.replace(/PORE$/, 'PUR') ||
+                     areaClean.replace(/PUR$/, 'PORE') === hqUpper.replace(/PUR$/, 'PORE') ||
+                     areaClean.indexOf(hqUpper) !== -1 ||
+                     hqUpper.indexOf(areaClean) !== -1;
+            });
+          }
+        }
+        
+        if (!matchedEmp && hq) {
+          var tempId = 'TEMP_' + hq.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+          matchedEmp = DB.employees.find(function(x) {
+            return String(x.id || '').toUpperCase() === tempId;
+          });
+          if (!matchedEmp) {
+            matchedEmp = {
+              id: tempId,
+              name: hq.trim() + ' Representative',
+              pwd: 'pass' + Math.floor(1000 + Math.random() * 9000),
+              area: hq.trim(),
+              role: 'emp',
+              state: state || 'Maharashtra',
+              status: 'Active',
+              accountStatus: 'ACTIVE',
+              designation: 'Medical Representative',
+              leaves: {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+            };
+            DB.employees.push(matchedEmp);
+          }
+        }
+        
         if (!matchedEmp) {
-          console.warn("Bulk Upload: Employee ID " + empId + " not found. Skipping line.");
+          console.warn("Bulk Upload: Employee/HQ " + (empId || hq) + " not found. Skipping line.");
           return;
         }
         empId = matchedEmp.id;
@@ -10924,13 +11024,307 @@ function uploadInventoryCSV(inp) {
   inp.value = '';
 }
 
+var activeInvFilters = { sample: {}, gift: {}, input: {} };
+
+function updateFilterTriggerStyles(tableType) {
+  var columns = ['employee', 'name', 'opening', 'allocated', 'distributed', 'balance'];
+  columns.forEach(function(col) {
+    var elem = document.getElementById('inv-trig-' + tableType + '-' + col);
+    if (elem) {
+      var filters = activeInvFilters[tableType] || {};
+      if (filters[col] && filters[col].length > 0) {
+        elem.classList.add('active');
+        elem.innerText = '▼'; // Could use a highlighted style
+      } else {
+        elem.classList.remove('active');
+        elem.innerText = '▼';
+      }
+    }
+  });
+}
+
+function getFilteredInventoryList(list, type) {
+  var search = (document.getElementById('inv-search-global') ? document.getElementById('inv-search-global').value : '').toLowerCase().trim();
+  
+  return list.filter(function(item) {
+    var emp = DB.employees.find(function(e){return e.id === item.empId;});
+    var empName = emp ? emp.name : '';
+    var empId = item.empId || '';
+    var itemName = item.prodName || item.giftName || item.inputName || '';
+    var opening = String(item.opening || 0);
+    var received = String(item.received || 0);
+    var distributed = String(item.distributed || 0);
+    var balance = String(item.balance || 0);
+    
+    if (search) {
+      var matchesSearch = empName.toLowerCase().indexOf(search) !== -1 ||
+                          empId.toLowerCase().indexOf(search) !== -1 ||
+                          itemName.toLowerCase().indexOf(search) !== -1 ||
+                          opening.indexOf(search) !== -1 ||
+                          received.indexOf(search) !== -1 ||
+                          distributed.indexOf(search) !== -1 ||
+                          balance.indexOf(search) !== -1;
+      if (!matchesSearch) return false;
+    }
+    
+    var colFilters = activeInvFilters[type] || {};
+    for (var col in colFilters) {
+      var selectedValues = colFilters[col];
+      if (selectedValues && selectedValues.length > 0) {
+        var val = '';
+        if (col === 'employee') val = empName + ' (' + empId + ')';
+        else if (col === 'name') val = itemName;
+        else if (col === 'opening') val = opening;
+        else if (col === 'allocated') val = received;
+        else if (col === 'distributed') val = distributed;
+        else if (col === 'balance') val = balance;
+        
+        if (selectedValues.indexOf(val) === -1) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  });
+}
+
+function toggleInvFilterDropdown(tableType, colName, element) {
+  // Close any already open dropdowns
+  var openDropdowns = document.querySelectorAll('.inv-filter-dropdown');
+  openDropdowns.forEach(function(d) {
+    if (d.id !== 'inv-fd-' + tableType + '-' + colName) {
+      d.remove();
+    }
+  });
+
+  var existing = document.getElementById('inv-fd-' + tableType + '-' + colName);
+  if (existing) {
+    existing.remove();
+    return;
+  }
+
+  var u = SESSION.user;
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+  var mrFilter = document.getElementById('inv-filter-emp').value;
+  var fullList = [];
+  if (tableType === 'sample') {
+    fullList = DB.samplesInventory.filter(function(s){return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId));});
+  } else if (tableType === 'gift') {
+    fullList = DB.giftsInventory.filter(function(g){return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId));});
+  } else if (tableType === 'input') {
+    fullList = DB.inputsInventory.filter(function(i){return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId));});
+  }
+
+  var uniqueValues = new Set();
+  fullList.forEach(function(item) {
+    var emp = DB.employees.find(function(e){return e.id === item.empId;});
+    var empName = emp ? emp.name : '';
+    var empId = item.empId || '';
+    var itemName = item.prodName || item.giftName || item.inputName || '';
+    
+    if (colName === 'employee') uniqueValues.add(empName + ' (' + empId + ')');
+    else if (colName === 'name') uniqueValues.add(itemName);
+    else if (colName === 'opening') uniqueValues.add(String(item.opening || 0));
+    else if (colName === 'allocated') uniqueValues.add(String(item.received || 0));
+    else if (colName === 'distributed') uniqueValues.add(String(item.distributed || 0));
+    else if (colName === 'balance') uniqueValues.add(String(item.balance || 0));
+  });
+
+  var sortedValues = Array.from(uniqueValues).sort(function(a, b) {
+    if (!isNaN(a) && !isNaN(b)) return Number(a) - Number(b);
+    return a.localeCompare(b);
+  });
+
+  var rect = element.getBoundingClientRect();
+  var div = document.createElement('div');
+  div.id = 'inv-fd-' + tableType + '-' + colName;
+  div.className = 'inv-filter-dropdown';
+  div.style.position = 'absolute';
+  div.style.top = (window.scrollY + rect.bottom + 5) + 'px';
+  div.style.left = (window.scrollX + rect.left) + 'px';
+  div.style.backgroundColor = 'var(--card-bg, #ffffff)';
+  div.style.color = 'var(--text-color, #0f172a)';
+  div.style.border = '1px solid var(--border-color, #cbd5e1)';
+  div.style.borderRadius = '8px';
+  div.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+  div.style.padding = '12px';
+  div.style.zIndex = '9999';
+  div.style.maxHeight = '280px';
+  div.style.width = '240px';
+  div.style.display = 'flex';
+  div.style.flexDirection = 'column';
+  div.style.gap = '8px';
+
+  var header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.justifyContent = 'space-between';
+  header.style.alignItems = 'center';
+  header.style.borderBottom = '1px solid var(--border-color, #e2e8f0)';
+  header.style.paddingBottom = '6px';
+  header.style.fontWeight = '600';
+  header.style.fontSize = '12px';
+  header.innerHTML = '<span>Filter ' + colName.charAt(0).toUpperCase() + colName.slice(1) + '</span>';
+  
+  var closeBtn = document.createElement('span');
+  closeBtn.innerHTML = '&times;';
+  closeBtn.style.cursor = 'pointer';
+  closeBtn.style.fontSize = '16px';
+  closeBtn.onclick = function() { div.remove(); };
+  header.appendChild(closeBtn);
+  div.appendChild(header);
+
+  var searchInp = document.createElement('input');
+  searchInp.type = 'text';
+  searchInp.placeholder = 'Search values...';
+  searchInp.style.width = '100%';
+  searchInp.style.padding = '4px 8px';
+  searchInp.style.fontSize = '12px';
+  searchInp.style.borderRadius = '4px';
+  searchInp.style.border = '1px solid var(--border-color, #cbd5e1)';
+  searchInp.style.backgroundColor = 'var(--card-bg, #ffffff)';
+  searchInp.style.color = 'var(--text-color, #0f172a)';
+  div.appendChild(searchInp);
+
+  var listCont = document.createElement('div');
+  listCont.style.overflowY = 'auto';
+  listCont.style.flexGrow = '1';
+  listCont.style.display = 'flex';
+  listCont.style.flexDirection = 'column';
+  listCont.style.gap = '4px';
+  listCont.style.maxHeight = '150px';
+
+  var selected = activeInvFilters[tableType][colName] || [];
+
+  var selectAllLabel = document.createElement('label');
+  selectAllLabel.style.display = 'flex';
+  selectAllLabel.style.alignItems = 'center';
+  selectAllLabel.style.gap = '6px';
+  selectAllLabel.style.fontSize = '12px';
+  selectAllLabel.style.cursor = 'pointer';
+  var selectAllCheck = document.createElement('input');
+  selectAllCheck.type = 'checkbox';
+  selectAllCheck.checked = selected.length === 0;
+  selectAllLabel.appendChild(selectAllCheck);
+  selectAllLabel.appendChild(document.createTextNode('(Select All)'));
+  listCont.appendChild(selectAllLabel);
+
+  var optionChecks = [];
+  sortedValues.forEach(function(val) {
+    var lbl = document.createElement('label');
+    lbl.style.display = 'flex';
+    lbl.style.alignItems = 'center';
+    lbl.style.gap = '6px';
+    lbl.style.fontSize = '12px';
+    lbl.style.cursor = 'pointer';
+    
+    var chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.value = val;
+    chk.checked = selected.indexOf(val) !== -1 || selected.length === 0;
+    optionChecks.push(chk);
+
+    lbl.appendChild(chk);
+    lbl.appendChild(document.createTextNode(val));
+    listCont.appendChild(lbl);
+
+    chk.onchange = function() {
+      if (!chk.checked) {
+        selectAllCheck.checked = false;
+      } else {
+        var allChecked = optionChecks.every(function(c) { return c.checked; });
+        if (allChecked) selectAllCheck.checked = true;
+      }
+    };
+  });
+
+  selectAllCheck.onchange = function() {
+    optionChecks.forEach(function(c) {
+      c.checked = selectAllCheck.checked;
+    });
+  };
+
+  searchInp.oninput = function() {
+    var txt = searchInp.value.toLowerCase();
+    listCont.childNodes.forEach(function(node) {
+      if (node === selectAllLabel) return;
+      var labelText = node.textContent.toLowerCase();
+      if (labelText.indexOf(txt) !== -1) {
+        node.style.display = 'flex';
+      } else {
+        node.style.display = 'none';
+      }
+    });
+  };
+
+  div.appendChild(listCont);
+
+  var btnRow = document.createElement('div');
+  btnRow.style.display = 'flex';
+  btnRow.style.justifyContent = 'space-between';
+  btnRow.style.gap = '8px';
+  btnRow.style.marginTop = '6px';
+
+  var clearBtn = document.createElement('button');
+  clearBtn.className = 'btn sm secondary';
+  clearBtn.style.padding = '4px 8px';
+  clearBtn.style.fontSize = '11px';
+  clearBtn.innerText = 'Clear';
+  clearBtn.onclick = function() {
+    delete activeInvFilters[tableType][colName];
+    div.remove();
+    renderAdminInventoryTables();
+  };
+
+  var applyBtn = document.createElement('button');
+  applyBtn.className = 'btn sm primary';
+  applyBtn.style.padding = '4px 8px';
+  applyBtn.style.fontSize = '11px';
+  applyBtn.innerText = 'Apply';
+  applyBtn.onclick = function() {
+    if (selectAllCheck.checked) {
+      delete activeInvFilters[tableType][colName];
+    } else {
+      var checkedVals = [];
+      optionChecks.forEach(function(c) {
+        if (c.checked) checkedVals.push(c.value);
+      });
+      activeInvFilters[tableType][colName] = checkedVals;
+    }
+    div.remove();
+    renderAdminInventoryTables();
+  };
+
+  btnRow.appendChild(clearBtn);
+  btnRow.appendChild(applyBtn);
+  div.appendChild(btnRow);
+
+  document.body.appendChild(div);
+
+  setTimeout(function() {
+    function clickOutside(e) {
+      if (!div.contains(e.target) && e.target !== element) {
+        div.remove();
+        document.removeEventListener('click', clickOutside);
+      }
+    }
+    document.addEventListener('click', clickOutside);
+  }, 10);
+}
+
 function renderAdminInventoryTables(){
     var mrFilter=document.getElementById('inv-filter-emp').value;
     var u=SESSION.user;
     var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
     
+    // Update trigger styles
+    updateFilterTriggerStyles('sample');
+    updateFilterTriggerStyles('gift');
+    updateFilterTriggerStyles('input');
+    
     // Render Samples
     var samplesList = DB.samplesInventory.filter(function(s){return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId));});
+    samplesList = getFilteredInventoryList(samplesList, 'sample');
     document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
       var emp=DB.employees.find(function(e){return e.id===s.empId;});
       var idVal = s.id || (s.empId + '|' + s.prodName);
@@ -10939,20 +11333,22 @@ function renderAdminInventoryTables(){
   
     // Render Gifts
     var giftsList = DB.giftsInventory.filter(function(g){return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId));});
+    giftsList = getFilteredInventoryList(giftsList, 'gift');
     document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
       var emp=DB.employees.find(function(e){return e.id===g.empId;});
       var idVal = g.id || (g.empId + '|' + g.giftName);
       return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+g.balance+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="8" class="empty">No entries found</td></tr>';
-
+ 
     // Render Inputs
-    var inputsList = DB.inputsInventory.filter(function(i){return !mrFilter||i.empId===mrFilter;});
+    var inputsList = DB.inputsInventory.filter(function(i){return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId));});
+    inputsList = getFilteredInventoryList(inputsList, 'input');
     document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
       var emp=DB.employees.find(function(e){return e.id===i.empId;});
       var idVal = i.id || (i.empId + '|' + i.inputName);
       return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+i.balance+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="8" class="empty">No entries found</td></tr>';
-
+ 
     // Uncheck master checkboxes on render
     var checkAllSamples = document.getElementById('check-all-samples');
     var checkAllGifts = document.getElementById('check-all-gifts');

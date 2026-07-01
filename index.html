@@ -2310,66 +2310,96 @@ async function initSupabaseData(isSilent) {
         return cloudSfc;
       })(),
       samplesInventory: (function() {
-        var cloudSamples = (samplesInv || []).map(s => ({
-          id: s.id,
-          prodName: s.prod_name,
-          empId: s.emp_id,
-          opening: s.opening || 0,
-          received: s.received || 0,
-          distributed: s.distributed || 0,
-          balance: s.balance || 0
-        }));
+        var cloudSamples = [];
+        var seen = new Set();
+        (samplesInv || []).forEach(s => {
+          if (!s || !s.emp_id || !s.prod_name) return;
+          var key = String(s.emp_id).toUpperCase().trim() + '|' + String(s.prod_name).toUpperCase().trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            cloudSamples.push({
+              id: s.id,
+              prodName: s.prod_name,
+              empId: s.emp_id,
+              opening: s.opening || 0,
+              received: s.received || 0,
+              distributed: s.distributed || 0,
+              balance: s.balance || 0
+            });
+          }
+        });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.samplesInventory)) {
           DB.samplesInventory.forEach(function(localSample) {
             if (localSample && localSample.id && String(localSample.id).startsWith('SAMPLEINV')) {
-              var alreadyInCloud = cloudSamples.some(function(cs) {
-                return cs.prodName === localSample.prodName && cs.empId === localSample.empId;
-              });
-              if (!alreadyInCloud) cloudSamples.push(localSample);
+              var key = String(localSample.empId).toUpperCase().trim() + '|' + String(localSample.prodName).toUpperCase().trim();
+              if (!seen.has(key)) {
+                seen.add(key);
+                cloudSamples.push(localSample);
+              }
             }
           });
         }
         return cloudSamples;
       })(),
       giftsInventory: (function() {
-        var cloudGifts = (giftsInv || []).map(g => ({
-          id: g.id,
-          giftName: g.gift_name,
-          empId: g.emp_id,
-          opening: g.opening || 0,
-          received: g.received || 0,
-          distributed: g.distributed || 0,
-          balance: g.balance || 0
-        }));
+        var cloudGifts = [];
+        var seen = new Set();
+        (giftsInv || []).forEach(g => {
+          if (!g || !g.emp_id || !g.gift_name) return;
+          var key = String(g.emp_id).toUpperCase().trim() + '|' + String(g.gift_name).toUpperCase().trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            cloudGifts.push({
+              id: g.id,
+              giftName: g.gift_name,
+              empId: g.emp_id,
+              opening: g.opening || 0,
+              received: g.received || 0,
+              distributed: g.distributed || 0,
+              balance: g.balance || 0
+            });
+          }
+        });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.giftsInventory)) {
           DB.giftsInventory.forEach(function(localGift) {
             if (localGift && localGift.id && String(localGift.id).startsWith('GIFTINV')) {
-              var alreadyInCloud = cloudGifts.some(function(cg) {
-                return cg.giftName === localGift.giftName && cg.empId === localGift.empId;
-              });
-              if (!alreadyInCloud) cloudGifts.push(localGift);
+              var key = String(localGift.empId).toUpperCase().trim() + '|' + String(localGift.giftName).toUpperCase().trim();
+              if (!seen.has(key)) {
+                seen.add(key);
+                cloudGifts.push(localGift);
+              }
             }
           });
         }
         return cloudGifts;
       })(),
       inputsInventory: (function() {
-        var cloudInputs = (inputsInv || []).map(i => ({
-          id: i.id,
-          inputName: i.input_name,
-          empId: i.emp_id,
-          opening: i.opening || 0,
-          received: i.received || 0,
-          distributed: i.distributed || 0,
-          balance: i.balance || 0
-        }));
+        var cloudInputs = [];
+        var seen = new Set();
+        (inputsInv || []).forEach(i => {
+          if (!i || !i.emp_id || !i.input_name) return;
+          var key = String(i.emp_id).toUpperCase().trim() + '|' + String(i.input_name).toUpperCase().trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            cloudInputs.push({
+              id: i.id,
+              inputName: i.input_name,
+              empId: i.emp_id,
+              opening: i.opening || 0,
+              received: i.received || 0,
+              distributed: i.distributed || 0,
+              balance: i.balance || 0
+            });
+          }
+        });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.inputsInventory)) {
           DB.inputsInventory.forEach(function(localInput) {
             if (localInput && localInput.id && String(localInput.id).startsWith('INPUTINV')) {
-              var alreadyInCloud = cloudInputs.some(function(ci) {
-                return ci.inputName === localInput.inputName && ci.empId === localInput.empId;
-              });
-              if (!alreadyInCloud) cloudInputs.push(localInput);
+              var key = String(localInput.empId).toUpperCase().trim() + '|' + String(localInput.inputName).toUpperCase().trim();
+              if (!seen.has(key)) {
+                seen.add(key);
+                cloudInputs.push(localInput);
+              }
             }
           });
         }
@@ -2795,6 +2825,39 @@ async function seedSupabaseDatabase() {
 
 var _saveDBSyncTimer = null;
 function saveDB() {
+  if (DB) {
+    if (Array.isArray(DB.samplesInventory)) {
+      var seen = new Set();
+      DB.samplesInventory = DB.samplesInventory.filter(function(s) {
+        if (!s) return false;
+        var key = String(s.empId).toUpperCase().trim() + '|' + String(s.prodName).toUpperCase().trim();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    if (Array.isArray(DB.giftsInventory)) {
+      var seen = new Set();
+      DB.giftsInventory = DB.giftsInventory.filter(function(g) {
+        if (!g) return false;
+        var key = String(g.empId).toUpperCase().trim() + '|' + String(g.giftName).toUpperCase().trim();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    if (Array.isArray(DB.inputsInventory)) {
+      var seen = new Set();
+      DB.inputsInventory = DB.inputsInventory.filter(function(i) {
+        if (!i) return false;
+        var key = String(i.empId).toUpperCase().trim() + '|' + String(i.inputName).toUpperCase().trim();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+  }
+
   idb.set('adonis_db', DB).then(function(success) {
     if (success) console.log("Database successfully cached to IndexedDB.");
   });
@@ -10788,7 +10851,9 @@ function uploadInventoryCSV(inp) {
     var row0Lower = lines[0].toLowerCase();
     var hasCategoryRow = row0Lower.indexOf('sample') !== -1 || row0Lower.indexOf('gift') !== -1 || row0Lower.indexOf('input') !== -1;
     
-    if (hasCategoryRow && lines[1]) {
+    var isExportedFormat = row0Lower.indexOf('item type') !== -1 && row0Lower.indexOf('item name') !== -1;
+
+    if (hasCategoryRow && lines[1] && !isExportedFormat) {
       isMultiColumn = true;
       dataStartIdx = 2;
       var row1 = parseCSVLine(lines[1]);
@@ -10813,7 +10878,7 @@ function uploadInventoryCSV(inp) {
           });
         }
       }
-    } else if (row0.length > 4 && (row0[0].toLowerCase().indexOf('emp') !== -1 || row0[0].toLowerCase().indexOf('employee') !== -1)) {
+    } else if (!isExportedFormat && row0.length > 4 && (row0[0].toLowerCase().indexOf('emp') !== -1 || row0[0].toLowerCase().indexOf('employee') !== -1)) {
       isMultiColumn = true;
       dataStartIdx = 1;
       for (var i = 3; i < row0.length; i++) {
@@ -10838,16 +10903,27 @@ function uploadInventoryCSV(inp) {
     }
     
     if (!isMultiColumn) {
-      var hasHeader = lines[0].toLowerCase().indexOf('employeeid') !== -1;
+      var hasHeader = lines[0].toLowerCase().indexOf('employee') !== -1 || lines[0].toLowerCase().indexOf('emp') !== -1;
       var dataLines = hasHeader ? lines.slice(1) : lines;
       
       dataLines.forEach(function(line) {
         var p = parseCSVLine(line);
         if (p.length < 4) return;
-        var empId = (p[0] || '').trim();
-        var itemType = (p[1] || '').trim().toLowerCase();
-        var itemName = (p[2] || '').trim();
-        var openingQty = parseInt(p[3]) || 0;
+        var empId, itemType, itemName, openingQty, receivedQty = 0, distributedQty = 0;
+        
+        if (isExportedFormat) {
+          empId = (p[0] || '').trim();
+          itemType = (p[3] || '').trim().toLowerCase();
+          itemName = (p[4] || '').trim();
+          openingQty = parseInt(p[5]) || 0;
+          receivedQty = parseInt(p[6]) || 0;
+          distributedQty = parseInt(p[7]) || 0;
+        } else {
+          empId = (p[0] || '').trim();
+          itemType = (p[1] || '').trim().toLowerCase();
+          itemName = (p[2] || '').trim();
+          openingQty = parseInt(p[3]) || 0;
+        }
         
         if (!empId || !itemType || !itemName) return;
         
@@ -10857,7 +10933,14 @@ function uploadInventoryCSV(inp) {
         if (!matchedEmp) return;
         empId = matchedEmp.id;
         
-        if (itemType === 'sample' || itemType === 'product') {
+        var category = '';
+        if (itemType.indexOf('sample') !== -1 || itemType.indexOf('product') !== -1) category = 'sample';
+        else if (itemType.indexOf('gift') !== -1) category = 'gift';
+        else if (itemType.indexOf('input') !== -1) category = 'input';
+        
+        if (!category) return;
+        
+        if (category === 'sample') {
           var matchedProd = DB.products.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
           if (matchedProd) {
             itemName = matchedProd;
@@ -10867,6 +10950,10 @@ function uploadInventoryCSV(inp) {
           var stock = DB.samplesInventory.find(function(s){return s.empId === empId && s.prodName === itemName;});
           if (stock) {
             stock.opening = openingQty;
+            if (isExportedFormat) {
+              stock.received = receivedQty;
+              stock.distributed = distributedQty;
+            }
             stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
           } else {
             DB.samplesInventory.push({
@@ -10874,13 +10961,13 @@ function uploadInventoryCSV(inp) {
               prodName: itemName,
               empId: empId,
               opening: openingQty,
-              received: 0,
-              distributed: 0,
-              balance: openingQty
+              received: receivedQty,
+              distributed: distributedQty,
+              balance: openingQty + receivedQty - distributedQty
             });
           }
           added++;
-        } else if (itemType === 'gift') {
+        } else if (category === 'gift') {
           var matchedGift = DB.gifts.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
           if (matchedGift) {
             itemName = matchedGift;
@@ -10890,6 +10977,10 @@ function uploadInventoryCSV(inp) {
           var stock = DB.giftsInventory.find(function(g){return g.empId === empId && g.giftName === itemName;});
           if (stock) {
             stock.opening = openingQty;
+            if (isExportedFormat) {
+              stock.received = receivedQty;
+              stock.distributed = distributedQty;
+            }
             stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
           } else {
             DB.giftsInventory.push({
@@ -10897,13 +10988,13 @@ function uploadInventoryCSV(inp) {
               giftName: itemName,
               empId: empId,
               opening: openingQty,
-              received: 0,
-              distributed: 0,
-              balance: openingQty
+              received: receivedQty,
+              distributed: distributedQty,
+              balance: openingQty + receivedQty - distributedQty
             });
           }
           added++;
-        } else if (itemType === 'input') {
+        } else if (category === 'input') {
           var matchedInput = DB.inputs.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
           if (matchedInput) {
             itemName = matchedInput;
@@ -10913,6 +11004,10 @@ function uploadInventoryCSV(inp) {
           var stock = DB.inputsInventory.find(function(i){return i.empId === empId && i.inputName === itemName;});
           if (stock) {
             stock.opening = openingQty;
+            if (isExportedFormat) {
+              stock.received = receivedQty;
+              stock.distributed = distributedQty;
+            }
             stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
           } else {
             DB.inputsInventory.push({
@@ -10920,9 +11015,9 @@ function uploadInventoryCSV(inp) {
               inputName: itemName,
               empId: empId,
               opening: openingQty,
-              received: 0,
-              distributed: 0,
-              balance: openingQty
+              received: receivedQty,
+              distributed: distributedQty,
+              balance: openingQty + receivedQty - distributedQty
             });
           }
           added++;

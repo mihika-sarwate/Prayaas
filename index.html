@@ -2309,33 +2309,72 @@ async function initSupabaseData(isSilent) {
         }
         return cloudSfc;
       })(),
-      samplesInventory: (samplesInv || []).map(s => ({
-        id: s.id,
-        prodName: s.prod_name,
-        empId: s.emp_id,
-        opening: s.opening,
-        received: s.received,
-        distributed: s.distributed,
-        balance: s.balance
-      })),
-      giftsInventory: (giftsInv || []).map(g => ({
-        id: g.id,
-        giftName: g.gift_name,
-        empId: g.emp_id,
-        opening: g.opening,
-        received: g.received,
-        distributed: g.distributed,
-        balance: g.balance
-      })),
-      inputsInventory: (inputsInv || []).map(i => ({
-        id: i.id,
-        inputName: i.input_name,
-        empId: i.emp_id,
-        opening: i.opening,
-        received: i.received,
-        distributed: i.distributed,
-        balance: i.balance
-      })),
+      samplesInventory: (function() {
+        var cloudSamples = (samplesInv || []).map(s => ({
+          id: s.id,
+          prodName: s.prod_name,
+          empId: s.emp_id,
+          opening: s.opening || 0,
+          received: s.received || 0,
+          distributed: s.distributed || 0,
+          balance: s.balance || 0
+        }));
+        if (typeof DB !== 'undefined' && DB && Array.isArray(DB.samplesInventory)) {
+          DB.samplesInventory.forEach(function(localSample) {
+            if (localSample && localSample.id && String(localSample.id).startsWith('SAMPLEINV')) {
+              var alreadyInCloud = cloudSamples.some(function(cs) {
+                return cs.prodName === localSample.prodName && cs.empId === localSample.empId;
+              });
+              if (!alreadyInCloud) cloudSamples.push(localSample);
+            }
+          });
+        }
+        return cloudSamples;
+      })(),
+      giftsInventory: (function() {
+        var cloudGifts = (giftsInv || []).map(g => ({
+          id: g.id,
+          giftName: g.gift_name,
+          empId: g.emp_id,
+          opening: g.opening || 0,
+          received: g.received || 0,
+          distributed: g.distributed || 0,
+          balance: g.balance || 0
+        }));
+        if (typeof DB !== 'undefined' && DB && Array.isArray(DB.giftsInventory)) {
+          DB.giftsInventory.forEach(function(localGift) {
+            if (localGift && localGift.id && String(localGift.id).startsWith('GIFTINV')) {
+              var alreadyInCloud = cloudGifts.some(function(cg) {
+                return cg.giftName === localGift.giftName && cg.empId === localGift.empId;
+              });
+              if (!alreadyInCloud) cloudGifts.push(localGift);
+            }
+          });
+        }
+        return cloudGifts;
+      })(),
+      inputsInventory: (function() {
+        var cloudInputs = (inputsInv || []).map(i => ({
+          id: i.id,
+          inputName: i.input_name,
+          empId: i.emp_id,
+          opening: i.opening || 0,
+          received: i.received || 0,
+          distributed: i.distributed || 0,
+          balance: i.balance || 0
+        }));
+        if (typeof DB !== 'undefined' && DB && Array.isArray(DB.inputsInventory)) {
+          DB.inputsInventory.forEach(function(localInput) {
+            if (localInput && localInput.id && String(localInput.id).startsWith('INPUTINV')) {
+              var alreadyInCloud = cloudInputs.some(function(ci) {
+                return ci.inputName === localInput.inputName && ci.empId === localInput.empId;
+              });
+              if (!alreadyInCloud) cloudInputs.push(localInput);
+            }
+          });
+        }
+        return cloudInputs;
+      })(),
       attendance: (attendanceData || []).map(function(a) {
         return {
           id: a.id,
@@ -3564,6 +3603,8 @@ window.addEventListener('beforeunload', function (e) {
       });
     } catch (e) {
       console.error("Error syncing samples inventory:", e);
+      hasSyncError = true;
+      showToast("⚠️ Samples inventory sync failed: " + (e.message || JSON.stringify(e)), 6000);
     }
 
     // Sync Gifts Inventory
@@ -3605,6 +3646,8 @@ window.addEventListener('beforeunload', function (e) {
       });
     } catch (e) {
       console.error("Error syncing gifts inventory:", e);
+      hasSyncError = true;
+      showToast("⚠️ Gifts inventory sync failed: " + (e.message || JSON.stringify(e)), 6000);
     }
 
     // Sync Inputs Inventory
@@ -3646,6 +3689,8 @@ window.addEventListener('beforeunload', function (e) {
       });
     } catch (e) {
       console.error("Error syncing inputs inventory:", e);
+      hasSyncError = true;
+      showToast("⚠️ Inputs inventory sync failed: " + (e.message || JSON.stringify(e)), 6000);
     }
 
     // Save newly updated integer IDs to local storage & IndexedDB
@@ -11029,7 +11074,14 @@ function uploadInventoryCSV(inp) {
     }
     
     saveDB();
-    showToast(added + ' inventory records processed successfully!');
+    if (typeof syncSupabaseDatabase === 'function') {
+      if (_saveDBSyncTimer) clearTimeout(_saveDBSyncTimer);
+      _saveDBSyncTimer = null;
+      showToast("Syncing uploaded records to Supabase Cloud...", 10000);
+      syncSupabaseDatabase();
+    } else {
+      showToast(added + ' inventory records processed successfully!');
+    }
     populateInventoryItemSelect();
     renderAdminInventoryTables();
     if (typeof populateReportingDropdowns === 'function') {

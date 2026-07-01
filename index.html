@@ -5826,13 +5826,48 @@ function exportAttendanceReport() {
     return;
   }
   var rows = getAttendanceDashboardRows();
-  var csv = 'Employee ID,Employee Name,Date,Status,Login Time,Remarks\n';
-  rows.forEach(function(row) {
-    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(row.employeeId || '').toUpperCase(); });
-    csv += [row.employeeId || '', emp ? emp.name || '' : '', row.date || '', row.attendanceStatus || '', row.loginTime || '', row.remarks || ''].map(function(val) {
+  if (!rows.length) {
+    showToast('No attendance records to export.');
+    return;
+  }
+  
+  // Find all unique dates present in the filtered rows, sorted chronologically ascending
+  var datesSet = {};
+  rows.forEach(function(r) { if (r.date) datesSet[r.date] = true; });
+  var dates = Object.keys(datesSet).sort();
+  
+  // Find all unique employee IDs in the filtered rows
+  var empsSet = {};
+  rows.forEach(function(r) { if (r.employeeId) empsSet[r.employeeId] = true; });
+  var empIds = Object.keys(empsSet).sort(function(a, b) {
+    var empA = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === a.toUpperCase(); });
+    var empB = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === b.toUpperCase(); });
+    var nameA = empA ? (empA.name || '') : a;
+    var nameB = empB ? (empB.name || '') : b;
+    return nameA.localeCompare(nameB);
+  });
+  
+  var csvHeaders = ['Employee ID', 'Employee Name'].concat(dates);
+  var csv = csvHeaders.map(function(h) { return '"' + String(h).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+  
+  empIds.forEach(function(empId) {
+    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
+    var empName = emp ? emp.name || '' : empId;
+    
+    var rowValues = [empId, empName];
+    
+    dates.forEach(function(d) {
+      var record = DB.attendance.find(function(r) {
+        return String(r.employeeId || '').toUpperCase() === empId.toUpperCase() && (formatDateForPostgres(r.date) || r.date) === d;
+      });
+      rowValues.push(record ? (record.attendanceStatus || '-') : '-');
+    });
+    
+    csv += rowValues.map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';
   });
+  
   downloadData(csv, 'attendance_report_latest_30_days.csv');
 }
 
@@ -11014,9 +11049,12 @@ function runMISReport(){
   var html='';
   
   if(currentReportType==='doc_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
     currentMISData=docCalls.map(function(r){
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var hq = emp && emp.area ? emp.area : 'N/A';
+      var state = emp && emp.state ? emp.state : 'N/A';
       var promoted = r.promotedProducts && r.promotedProducts.length ? r.promotedProducts.join(', ') : 'None';
       var parsedSamples = parseJSONField(r.samples);
       var parsedGifts = parseJSONField(r.gifts);
@@ -11024,7 +11062,7 @@ function runMISReport(){
       var samples = Object.keys(parsedSamples).map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', ') || 'None';
       var gifts = Object.keys(parsedGifts).map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', ') || 'None';
       var inputs = Object.keys(parsedInputs).map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', ') || 'None';
-      return [r.date, r.empId, r.empName, r.docName, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
+      return [r.date, r.empId, r.empName, hq, state, r.docName, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
     
   } else if(currentReportType==='chem_calls'){

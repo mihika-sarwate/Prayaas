@@ -10864,13 +10864,20 @@ function uploadInventoryCSV(inp) {
       var row1 = parseCSVLine(lines[1]);
       var currentCategory = '';
       for (var i = 3; i < row1.length; i++) {
-        if (row0[i] && row0[i].trim()) {
-          var cat = row0[i].trim().toLowerCase();
-          if (cat.indexOf('sample') !== -1 || cat.indexOf('product') !== -1) {
+        // Find the most recent non-empty category cell in row0 up to index i
+        var categoryHeader = '';
+        for (var colIdx = i; colIdx >= 3; colIdx--) {
+          if (row0[colIdx] && row0[colIdx].trim()) {
+            categoryHeader = row0[colIdx].trim().toLowerCase();
+            break;
+          }
+        }
+        if (categoryHeader) {
+          if (categoryHeader.indexOf('sample') !== -1 || categoryHeader.indexOf('product') !== -1) {
             currentCategory = 'sample';
-          } else if (cat.indexOf('gift') !== -1) {
+          } else if (categoryHeader.indexOf('gift') !== -1) {
             currentCategory = 'gift';
-          } else if (cat.indexOf('input') !== -1) {
+          } else if (categoryHeader.indexOf('input') !== -1) {
             currentCategory = 'input';
           }
         }

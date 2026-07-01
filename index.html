@@ -10754,7 +10754,9 @@ function downloadInventoryTemplate() {
   var samples = [
     'ARDEN 325', 'ARDEN 650', 'ARDEN MF SUSP', 'COLDAID', 'COLDAID SUSP',
     'MV30 SYRUP', 'MV30 TAB', 'ORT+', 'SERVIL JUNIOR', 'SERVIL-D',
-    'SERVIL-LS JUNIOR', 'SERVIL-LS SYRUP'
+    'SERVIL-LS JUNIOR', 'SERVIL-LS SYRUP', 'Aminoglobin-XT', 'Arden-A',
+    'Coniderm-F', 'Coniderm-MX', 'Hepa-heal', 'Servil-LS Baby Drops',
+    'Servil Herbal', 'Loramyl'
   ];
   var gifts = [
     'Servil Elite (BAG)', 'Servil Class (WIPES)', 'Servil Mass    (La-Adis Soap)',
@@ -10765,12 +10767,13 @@ function downloadInventoryTemplate() {
     'LBL - Servil Paedia', 'LBL - Arden MF', 'Arden MF Colour Cards'
   ];
 
-  var row0 = [
-    '', '', '',
-    'Samples', '', '', '', '', '', '', '', '', '', '', '',
-    'Gifts', '', '', '', '',
-    'Inputs', '', '', '', '', '', ''
-  ];
+  var row0 = ['', '', '', 'Samples'];
+  for (var i = 1; i < samples.length; i++) row0.push('');
+  row0.push('Gifts');
+  for (var i = 1; i < gifts.length; i++) row0.push('');
+  row0.push('Inputs');
+  for (var i = 1; i < inputs.length; i++) row0.push('');
+
   var row1 = ['Emp Id', 'H.Q.', 'STATE'].concat(samples, gifts, inputs);
   
   var csv = row0.join(',') + '\n' + row1.join(',') + '\n';

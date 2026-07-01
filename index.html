@@ -10745,6 +10745,11 @@ function issueStockToMR(){
   renderAdminInventoryTables();
 }
 
+function cleanNameForComparison(name) {
+  if (!name) return '';
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 function downloadInventoryTemplate() {
   var samples = [
     'ARDEN 325', 'ARDEN 650', 'ARDEN MF SUSP', 'COLDAID', 'COLDAID SUSP',
@@ -10781,21 +10786,21 @@ function downloadInventoryTemplate() {
       
       samples.forEach(function(pName) {
         var stock = DB.samplesInventory.find(function(s) {
-          return s.empId === e.id && s.prodName.toLowerCase().trim() === pName.toLowerCase().trim();
+          return s.empId === e.id && cleanNameForComparison(s.prodName) === cleanNameForComparison(pName);
         });
         row.push(stock ? stock.opening : 0);
       });
       
       gifts.forEach(function(gName) {
         var stock = DB.giftsInventory.find(function(g) {
-          return g.empId === e.id && g.giftName.toLowerCase().trim() === gName.toLowerCase().trim();
+          return g.empId === e.id && cleanNameForComparison(g.giftName) === cleanNameForComparison(gName);
         });
         row.push(stock ? stock.opening : 0);
       });
       
       inputs.forEach(function(iName) {
         var stock = DB.inputsInventory.find(function(i) {
-          return i.empId === e.id && i.inputName.toLowerCase().trim() === iName.toLowerCase().trim();
+          return i.empId === e.id && cleanNameForComparison(i.inputName) === cleanNameForComparison(iName);
         });
         row.push(stock ? stock.opening : 0);
       });
@@ -10833,12 +10838,12 @@ function uploadInventoryCSV(inp) {
     var added = 0;
     
     function classifyItem(itemName) {
-      var nameLower = itemName.toLowerCase().trim();
-      var matchedProd = DB.products.find(function(p) { return p.toLowerCase().trim() === nameLower; });
+      var clean = cleanNameForComparison(itemName);
+      var matchedProd = DB.products.find(function(p) { return cleanNameForComparison(p) === clean; });
       if (matchedProd) return { type: 'sample', name: matchedProd };
-      var matchedGift = DB.gifts.find(function(g) { return g.toLowerCase().trim() === nameLower; });
+      var matchedGift = DB.gifts.find(function(g) { return cleanNameForComparison(g) === clean; });
       if (matchedGift) return { type: 'gift', name: matchedGift };
-      var matchedInput = DB.inputs.find(function(i) { return i.toLowerCase().trim() === nameLower; });
+      var matchedInput = DB.inputs.find(function(i) { return cleanNameForComparison(i) === clean; });
       if (matchedInput) return { type: 'input', name: matchedInput };
       return null;
     }
@@ -10941,13 +10946,13 @@ function uploadInventoryCSV(inp) {
         if (!category) return;
         
         if (category === 'sample') {
-          var matchedProd = DB.products.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+          var matchedProd = DB.products.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
           if (matchedProd) {
             itemName = matchedProd;
           } else {
             DB.products.push(itemName);
           }
-          var stock = DB.samplesInventory.find(function(s){return s.empId === empId && s.prodName === itemName;});
+          var stock = DB.samplesInventory.find(function(s){return s.empId === empId && cleanNameForComparison(s.prodName) === cleanNameForComparison(itemName);});
           if (stock) {
             stock.opening = openingQty;
             if (isExportedFormat) {
@@ -10968,13 +10973,13 @@ function uploadInventoryCSV(inp) {
           }
           added++;
         } else if (category === 'gift') {
-          var matchedGift = DB.gifts.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+          var matchedGift = DB.gifts.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
           if (matchedGift) {
             itemName = matchedGift;
           } else {
             DB.gifts.push(itemName);
           }
-          var stock = DB.giftsInventory.find(function(g){return g.empId === empId && g.giftName === itemName;});
+          var stock = DB.giftsInventory.find(function(g){return g.empId === empId && cleanNameForComparison(g.giftName) === cleanNameForComparison(itemName);});
           if (stock) {
             stock.opening = openingQty;
             if (isExportedFormat) {
@@ -10995,13 +11000,13 @@ function uploadInventoryCSV(inp) {
           }
           added++;
         } else if (category === 'input') {
-          var matchedInput = DB.inputs.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+          var matchedInput = DB.inputs.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
           if (matchedInput) {
             itemName = matchedInput;
           } else {
             DB.inputs.push(itemName);
           }
-          var stock = DB.inputsInventory.find(function(i){return i.empId === empId && i.inputName === itemName;});
+          var stock = DB.inputsInventory.find(function(i){return i.empId === empId && cleanNameForComparison(i.inputName) === cleanNameForComparison(itemName);});
           if (stock) {
             stock.opening = openingQty;
             if (isExportedFormat) {
@@ -11095,13 +11100,13 @@ function uploadInventoryCSV(inp) {
           var itemType = catInfo.type;
           
           if (itemType === 'sample') {
-            var matchedProd = DB.products.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+            var matchedProd = DB.products.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
             if (matchedProd) {
               itemName = matchedProd;
             } else {
               DB.products.push(itemName);
             }
-            var stock = DB.samplesInventory.find(function(s){return s.empId === empId && s.prodName === itemName;});
+            var stock = DB.samplesInventory.find(function(s){return s.empId === empId && cleanNameForComparison(s.prodName) === cleanNameForComparison(itemName);});
             if (stock) {
               stock.opening = openingQty;
               stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
@@ -11118,13 +11123,13 @@ function uploadInventoryCSV(inp) {
             }
             added++;
           } else if (itemType === 'gift') {
-            var matchedGift = DB.gifts.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+            var matchedGift = DB.gifts.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
             if (matchedGift) {
               itemName = matchedGift;
             } else {
               DB.gifts.push(itemName);
             }
-            var stock = DB.giftsInventory.find(function(g){return g.empId === empId && g.giftName === itemName;});
+            var stock = DB.giftsInventory.find(function(g){return g.empId === empId && cleanNameForComparison(g.giftName) === cleanNameForComparison(itemName);});
             if (stock) {
               stock.opening = openingQty;
               stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
@@ -11141,13 +11146,13 @@ function uploadInventoryCSV(inp) {
             }
             added++;
           } else if (itemType === 'input') {
-            var matchedInput = DB.inputs.find(function(x) { return x.toLowerCase().trim() === itemName.toLowerCase().trim(); });
+            var matchedInput = DB.inputs.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
             if (matchedInput) {
               itemName = matchedInput;
             } else {
               DB.inputs.push(itemName);
             }
-            var stock = DB.inputsInventory.find(function(i){return i.empId === empId && i.inputName === itemName;});
+            var stock = DB.inputsInventory.find(function(i){return i.empId === empId && cleanNameForComparison(i.inputName) === cleanNameForComparison(itemName);});
             if (stock) {
               stock.opening = openingQty;
               stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);

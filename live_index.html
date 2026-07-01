@@ -1040,7 +1040,13 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
       </div>
       <div class="card">
-        <div class="card-title" id="rep-table-title">Query Results</div>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <span id="rep-table-title">Query Results</span>
+          <div id="mis-delete-actions" style="display:none; gap:10px;">
+            <button class="btn danger sm" onclick="deleteSelectedMISRecords()">Delete Selected</button>
+            <button class="btn danger outline sm" onclick="deleteAllFilteredMISRecords()">Delete All Filtered</button>
+          </div>
+        </div>
         <div class="tbl-wrap">
           <table class="tbl" id="mis-report-table">
             <thead id="mis-report-thead"></thead>
@@ -8676,6 +8682,8 @@ function populateAdminEmpFilters(){
 
 // ===== 13 COMPREHENSIVE MIS REPORTS ENGINE =====
 var currentMISData=[];
+var currentMISRowIds=[];
+var currentMISTableType=null;
 var currentReportType='doc_calls';
 
 function updateReportHeadersAndFilters(){
@@ -8706,12 +8714,16 @@ function runMISReport(){
   });
   
   currentMISData=[];
+  currentMISRowIds=[];
+  currentMISTableType=null;
   var html='';
   
   if(currentReportType==='doc_calls'){
+    currentMISTableType='reports';
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
     currentMISData=docCalls.map(function(r){
+      currentMISRowIds.push(r.id);
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var hq = emp && emp.area ? emp.area : 'N/A';
       var state = emp && emp.state ? emp.state : 'N/A';
@@ -8726,9 +8738,11 @@ function runMISReport(){
     });
     
   } else if(currentReportType==='chem_calls'){
+    currentMISTableType='reports';
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th><th>Actions</th></tr>';
     var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
     currentMISData=chemCalls.map(function(r){
+      currentMISRowIds.push(r.id);
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var state = emp && emp.state ? emp.state : 'N/A';
       return [r.date, r.empId, r.empName, state, r.chemName, r.classification, r.orderAmount, r.stockStatus, r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
@@ -8749,6 +8763,7 @@ function runMISReport(){
       var avg = (empsReps.length / days).toFixed(2);
       var state = e.state || 'N/A';
       currentMISData.push([e.id, e.name, state, empsReps.length, days, avg]);
+      currentMISRowIds.push(null);
     });
     
   } else if(currentReportType==='missed_calls'){
@@ -8773,6 +8788,7 @@ function runMISReport(){
           if(!visited){
             var doc=DB.doctors.find(function(dc){return dc.id===docId;});
             currentMISData.push([tp.month, tp.empName, state, d.date, doc?doc.code:'', doc?doc.name:docId, 'Missed Call']);
+            currentMISRowIds.push(null);
           }
         });
       });
@@ -8787,6 +8803,7 @@ function runMISReport(){
       var emp = DB.employees.find(function(e){return e.id===d.assignTo;});
       var state = emp && emp.state ? emp.state : 'N/A';
       currentMISData.push([d.code, d.name, emp?(emp.name+' ('+d.assignTo+')'):'Unassigned', state, d.spec, visits.length]);
+      currentMISRowIds.push(null);
     });
     
   } else if(currentReportType==='plan_vs_act'){
@@ -8816,11 +8833,14 @@ function runMISReport(){
         return r.empId===e.id && r.targetType==='Chemist' && (!from||r.date>=from) && (!to||r.date<=to);
       }).length;
       currentMISData.push([e.id, e.name, state, plannedDocs, actualDocs, plannedChems, actualChems]);
+      currentMISRowIds.push(null);
     });
     
   } else if(currentReportType==='jfw_days'){
+    currentMISTableType='reports';
     thead.innerHTML='<tr><th>MR Employee</th><th>MR State</th><th>Accompanying Manager ID</th><th>Manager Name</th><th>JFW Date</th><th>Work Remarks</th></tr>';
     baseReports.filter(function(r){return r.jfwMgrId !== '';}).forEach(function(r){
+      currentMISRowIds.push(r.id);
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var state = emp && emp.state ? emp.state : 'N/A';
       currentMISData.push([r.empName+' ('+r.empId+')', state, r.jfwMgrId, r.jfwMgrName, r.date, r.jfwRemarks ? (r.remarks + ' | JFW: ' + r.jfwRemarks) : r.remarks]);
@@ -8836,6 +8856,7 @@ function runMISReport(){
         }).length;
         var state = mr.state || 'N/A';
         currentMISData.push([m.name+' ('+m.id+')', mr.name+' ('+mr.id+')', state, accompDays]);
+        currentMISRowIds.push(null);
       });
     });
     
@@ -8869,6 +8890,7 @@ function runMISReport(){
         // Only show if there was inventory or if it was distributed
         if (itemsMap[p].opening > 0 || itemsMap[p].received > 0 || itemsMap[p].distributed > 0 || itemsMap[p].balance > 0) {
           currentMISData.push([e.name, state, p, itemsMap[p].opening, itemsMap[p].received, itemsMap[p].distributed, itemsMap[p].balance]);
+          currentMISRowIds.push(null);
         }
       }
     });
@@ -8903,20 +8925,23 @@ function runMISReport(){
         // Only show if there was inventory or if it was distributed
         if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
           currentMISData.push([e.name, state, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
+          currentMISRowIds.push(null);
         }
       }
     });
     
   } else if(currentReportType==='expenses_rep'){
-    thead.innerHTML='<tr><th>Employee</th><th>State</th><th>Month</th><th>Approved Claims (&#x20B9;)</th><th>Receipt Upload</th><th>Status</th></tr>';
+    currentMISTableType='expenses';
+    thead.innerHTML='<tr><th>Employee</th><th>State</th><th>Month</th><th>Approved Claims (&#x20B9;)</th><th>Receipt Upload</th><th>Status</th><th>Actions</th></tr>';
     var claims=DB.expenses.filter(function(ex){
       if(empId&&ex.empId!==empId)return false;
       return true;
     });
     currentMISData=claims.map(function(ex){
+      currentMISRowIds.push(ex.id);
       var emp = DB.employees.find(function(e){return e.id===ex.empId;});
       var state = emp && emp.state ? emp.state : 'N/A';
-      return [ex.empName+' ('+ex.empId+')', state, ex.month, ex.total, ex.receiptFile, ex.status];
+      return [ex.empName+' ('+ex.empId+')', state, ex.month, ex.total, ex.receiptFile, ex.status, '<button onclick="deleteExpenseClaim(\''+ex.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
     
   } else if(currentReportType==='leaves_rep'){
@@ -8940,11 +8965,15 @@ function runMISReport(){
       var pct = assigned ? Math.round((visitedIds.length / assigned)*100) : 0;
       var state = e.state || 'N/A';
       currentMISData.push([e.id, e.name, state, assigned, visitedIds.length, missed, pct+'%']);
+      currentMISRowIds.push(null);
     });
+    
   } else if(currentReportType==='transit_rep'){
+    currentMISTableType='reports';
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Work Type</th><th>Territory</th><th>City/HQ</th><th>Patch</th><th>Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     var transitReps=baseReports.filter(function(r){return r.workType==='TRANSIT';});
     currentMISData=transitReps.map(function(r){
+      currentMISRowIds.push(r.id);
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var state = emp && emp.state ? emp.state : 'N/A';
       return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||'', '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
@@ -8954,12 +8983,32 @@ function runMISReport(){
   if(!currentMISData.length){
     var colCount = thead.querySelectorAll('th').length || 12;
     tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">No matching records found for this query parameters</td></tr>';
+    var deleteActions = document.getElementById('mis-delete-actions');
+    if (deleteActions) deleteActions.style.display = 'none';
     return;
   }
   
-  tbody.innerHTML=currentMISData.map(function(row){
-    return '<tr>'+row.map(function(val){return '<td>'+val+'</td>';}).join('')+'</tr>';
+  if (currentMISTableType) {
+    thead.innerHTML = thead.innerHTML.replace('<tr>', '<tr><th><input type="checkbox" id="check-all-mis" onclick="toggleSelectAllMIS(this)"></th>');
+  }
+  
+  tbody.innerHTML=currentMISData.map(function(row, rowIdx){
+    var checkboxHtml = '';
+    if (currentMISTableType) {
+      var rowId = currentMISRowIds[rowIdx];
+      if (rowId) {
+        checkboxHtml = '<td><input type="checkbox" class="mis-row-check" value="' + rowId + '"></td>';
+      } else {
+        checkboxHtml = '<td></td>';
+      }
+    }
+    return '<tr>'+checkboxHtml+row.map(function(val){return '<td>'+val+'</td>';}).join('')+'</tr>';
   }).join('');
+  
+  var deleteActions = document.getElementById('mis-delete-actions');
+  if (deleteActions) {
+    deleteActions.style.display = (currentMISTableType && currentMISData.length) ? 'flex' : 'none';
+  }
 }
 
 function deleteAdminReport(id) {
@@ -8973,17 +9022,98 @@ function deleteAdminReport(id) {
   }
 }
 
+function deleteExpenseClaim(id) {
+  if(!confirm("Are you sure you want to delete this expense claim? This cannot be undone.")) return;
+  var idx = DB.expenses.findIndex(function(ex) { return ex.id === id; });
+  if(idx > -1) {
+    DB.expenses.splice(idx, 1);
+    saveDB();
+    showToast("Expense claim deleted successfully!");
+    runMISReport(); // Refresh the table
+  }
+}
+
+function toggleSelectAllMIS(master) {
+  var checks = document.querySelectorAll('.mis-row-check');
+  checks.forEach(function(c) {
+    c.checked = master.checked;
+  });
+}
+
+function deleteSelectedMISRecords() {
+  if (!currentMISTableType) return;
+  var checkedBoxes = document.querySelectorAll('.mis-row-check:checked');
+  if (!checkedBoxes.length) {
+    showToast('No records selected for deletion.');
+    return;
+  }
+  
+  if (!confirm('Are you sure you want to delete ' + checkedBoxes.length + ' selected record(s)? This cannot be undone.')) {
+    return;
+  }
+  
+  var idsToDelete = Array.from(checkedBoxes).map(function(cb) { return cb.value; });
+  
+  try {
+    if (currentMISTableType === 'reports') {
+      DB.reports = DB.reports.filter(function(r) { return !idsToDelete.includes(r.id); });
+    } else if (currentMISTableType === 'expenses') {
+      DB.expenses = DB.expenses.filter(function(ex) { return !idsToDelete.includes(ex.id); });
+    }
+    
+    saveDB();
+    showToast(idsToDelete.length + ' record(s) deleted successfully.');
+    runMISReport(); // Refresh view
+  } catch (e) {
+    console.error(e);
+    showToast('Error deleting records.');
+  }
+}
+
+function deleteAllFilteredMISRecords() {
+  if (!currentMISTableType) return;
+  var validIds = currentMISRowIds.filter(Boolean);
+  if (!validIds.length) {
+    showToast('No records found to delete.');
+    return;
+  }
+  
+  if (!confirm('Are you sure you want to delete ALL ' + validIds.length + ' filtered record(s)? This cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    if (currentMISTableType === 'reports') {
+      DB.reports = DB.reports.filter(function(r) { return !validIds.includes(r.id); });
+    } else if (currentMISTableType === 'expenses') {
+      DB.expenses = DB.expenses.filter(function(ex) { return !validIds.includes(ex.id); });
+    }
+    
+    saveDB();
+    showToast(validIds.length + ' record(s) deleted successfully.');
+    runMISReport(); // Refresh view
+  } catch (e) {
+    console.error(e);
+    showToast('Error deleting records.');
+  }
+}
+
 function exportReportToCSV(){
   if(!currentMISData.length){showToast('No data to export! Please run a query first.');return;}
   var thead=document.getElementById('mis-report-thead');
   var headers=[];
   var actionColIndex = -1;
-  thead.querySelectorAll('th').forEach(function(th, idx){
+  var dataColIdx = 0;
+  thead.querySelectorAll('th').forEach(function(th){
+    if (th.querySelector('input[type="checkbox"]')) {
+      return;
+    }
     if (th.textContent === 'Actions') {
-      actionColIndex = idx;
+      actionColIndex = dataColIdx;
     } else {
       headers.push(th.textContent);
     }
+    dataColIdx++;
   });
   
   var csv=[headers.join(',')];

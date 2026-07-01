@@ -2467,12 +2467,30 @@ window.addEventListener('beforeunload', function (e) {
       console.error("Error syncing employees:", e);
     }
 
+    // Fetch latest employee IDs from Supabase to ensure foreign key integrity
+    var activeEmpIds = new Set();
+    try {
+      var activeEmps = await fetchAllFromSupabase('employees');
+      if (activeEmps && activeEmps.length > 0) {
+        activeEmps.forEach(function(e) {
+          if (e.id) activeEmpIds.add(String(e.id).toUpperCase().trim());
+        });
+      }
+    } catch (e) {
+      console.error("Error fetching active employees for foreign key check:", e);
+    }
+
     // Sync Doctors
     try {
       const dbDocs = DB.doctors.map(d => {
         var assignTo = d.assignTo || null;
-        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
-          assignTo = null;
+        if (assignTo) {
+          var normAssign = String(assignTo).toUpperCase().trim();
+          if (activeEmpIds.size > 0 && !activeEmpIds.has(normAssign)) {
+            assignTo = null;
+          } else if (activeEmpIds.size === 0 && !DB.employees.find(x => String(x.id || '').toUpperCase().trim() === normAssign)) {
+            assignTo = null;
+          }
         }
         return {
           id: d.id,
@@ -2511,8 +2529,13 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbChems = DB.chemists.map(c => {
         var assignTo = c.assignTo || null;
-        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
-          assignTo = null;
+        if (assignTo) {
+          var normAssign = String(assignTo).toUpperCase().trim();
+          if (activeEmpIds.size > 0 && !activeEmpIds.has(normAssign)) {
+            assignTo = null;
+          } else if (activeEmpIds.size === 0 && !DB.employees.find(x => String(x.id || '').toUpperCase().trim() === normAssign)) {
+            assignTo = null;
+          }
         }
         return {
           id: c.id,
@@ -2555,8 +2578,13 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbStockists = DB.stockists.map(s => {
         var assignTo = s.assignTo || null;
-        if (assignTo && !DB.employees.find(x => String(x.id || '').toUpperCase() === String(assignTo).toUpperCase())) {
-          assignTo = null;
+        if (assignTo) {
+          var normAssign = String(assignTo).toUpperCase().trim();
+          if (activeEmpIds.size > 0 && !activeEmpIds.has(normAssign)) {
+            assignTo = null;
+          } else if (activeEmpIds.size === 0 && !DB.employees.find(x => String(x.id || '').toUpperCase().trim() === normAssign)) {
+            assignTo = null;
+          }
         }
         return {
           id: s.id,
@@ -6756,6 +6784,8 @@ function renderSortHead(table, col, label) {
          '</div>';
 }
 
+var selectedDocs = new Set();
+var currentFilteredDocs = [];
 var currentDocPage = 1; var docsPerPage = 50;
 function renderAdminDocList(page = 1) {
   currentDocPage = page;
@@ -6832,6 +6862,8 @@ function renderAdminDocList(page = 1) {
     });
   }
 
+  currentFilteredDocs = docs;
+
   var countEl = document.getElementById('doc-count');
   if (countEl) countEl.textContent = docs.length;
   var totalPages = Math.ceil(docs.length / docsPerPage);
@@ -6843,7 +6875,8 @@ function renderAdminDocList(page = 1) {
   
   tbody.innerHTML=pagedDocs.map(function(d){
     var emp=DB.employees.find(function(e){return e.id===d.assignTo;});
-    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" onchange="updateSelectedDocsCount()"></td>' +
+    var isChecked = selectedDocs.has(d.id) ? 'checked' : '';
+    return '<tr><td><input type="checkbox" class="doc-row-check admin-only" value="'+d.id+'" '+isChecked+' onchange="toggleIndividualDoc(this)"></td>' +
       '<td>'+(d.code||'')+'</td>' +
       '<td>'+(d.assignTo||'Unassigned')+'</td>' +
       '<td>'+(d.beName||'')+'</td>' +
@@ -6864,7 +6897,11 @@ function renderAdminDocList(page = 1) {
   }).join('');
   
   var masterCheck = document.getElementById('check-all-docs');
-  if (masterCheck) masterCheck.checked = false;
+  if (masterCheck) {
+    var checks = document.querySelectorAll('.doc-row-check');
+    var allCheckedOnPage = checks.length > 0 && Array.from(checks).every(function(c) { return c.checked; });
+    masterCheck.checked = allCheckedOnPage;
+  }
   updateSelectedDocsCount();
   var pagEl = document.getElementById('doc-pagination');
   if (pagEl) {
@@ -6880,13 +6917,38 @@ function removeDoc(id){
   if(!confirm('Delete doctor record?'))return;
   DB.doctors=DB.doctors.filter(function(d){return d.id!==id;});
   saveDB();
+  selectedDocs.delete(id);
   renderAdminDocList();
   runSupabaseDelete('doctors', function(q) {
     return q.eq('id', id);
   });
 }
 
+function toggleIndividualDoc(cb) {
+  if (cb.checked) {
+    selectedDocs.add(cb.value);
+  } else {
+    selectedDocs.delete(cb.value);
+  }
+  var masterCheck = document.getElementById('check-all-docs');
+  if (masterCheck) {
+    var checks = document.querySelectorAll('.doc-row-check');
+    var allCheckedOnPage = checks.length > 0 && Array.from(checks).every(function(c) { return c.checked; });
+    masterCheck.checked = allCheckedOnPage;
+  }
+  updateSelectedDocsCount();
+}
+
 function toggleSelectAllDocs(masterCheck) {
+  if (masterCheck.checked) {
+    currentFilteredDocs.forEach(function(d) {
+      selectedDocs.add(d.id);
+    });
+  } else {
+    currentFilteredDocs.forEach(function(d) {
+      selectedDocs.delete(d.id);
+    });
+  }
   var checks = document.querySelectorAll('.doc-row-check');
   checks.forEach(function(c) {
     c.checked = masterCheck.checked;
@@ -6895,7 +6957,7 @@ function toggleSelectAllDocs(masterCheck) {
 }
 
 function updateSelectedDocsCount() {
-  var selected = document.querySelectorAll('.doc-row-check:checked').length;
+  var selected = selectedDocs.size;
   var btn = document.getElementById('btn-bulk-delete-selected-docs');
   var btnReassign = document.getElementById('btn-bulk-reassign-selected-docs');
   if (btn) {
@@ -6914,32 +6976,32 @@ function updateSelectedDocsCount() {
 }
 
 function bulkReassignSelectedDoctors() {
-  var checked = document.querySelectorAll('.doc-row-check:checked');
-  if (!checked.length) return;
-  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected doctor records:');
+  if (!selectedDocs.size) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + selectedDocs.size + ' selected doctor records:');
   if (newEmpId === null) return;
   newEmpId = newEmpId.trim().toUpperCase();
-  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  var idsToUpdate = Array.from(selectedDocs);
   DB.doctors.forEach(function(d) {
     if (idsToUpdate.includes(d.id)) d.assignTo = newEmpId;
   });
   saveDB();
+  selectedDocs.clear();
   renderAdminDocList();
-  showToast(checked.length + ' doctors reassigned successfully.');
+  showToast(idsToUpdate.length + ' doctors reassigned successfully.');
 }
 
 function bulkDeleteSelectedDoctors() {
-  var checked = document.querySelectorAll('.doc-row-check:checked');
-  if (!checked.length) return;
-  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected doctor records?')) return;
-  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  if (!selectedDocs.size) return;
+  if (!confirm('Are you sure you want to delete the ' + selectedDocs.size + ' selected doctor records?')) return;
+  var idsToDelete = Array.from(selectedDocs);
   DB.doctors = DB.doctors.filter(function(d) { return !idsToDelete.includes(d.id); });
   saveDB();
+  selectedDocs.clear();
   renderAdminDocList();
   runSupabaseDelete('doctors', function(q) {
     return q.in('id', idsToDelete);
   });
-  showToast(checked.length + ' doctors deleted successfully!');
+  showToast(idsToDelete.length + ' doctors deleted successfully!');
   var masterCheck = document.getElementById('check-all-docs');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedDocsCount();
@@ -7118,10 +7180,9 @@ function uploadChemists(inp){
 
 function downloadChemTemplate(){
   var csv='ChemistID,Name,Area,AssignToEmpID,State\n';
-  var checked = document.querySelectorAll('.chem-row-check:checked');
   var chemsToExport = [];
-  if (checked.length > 0) {
-    var ids = Array.from(checked).map(c => c.value);
+  if (selectedChems.size > 0) {
+    var ids = Array.from(selectedChems);
     chemsToExport = DB.chemists.filter(c => ids.includes(c.id));
   } else {
     chemsToExport = DB.chemists || [];
@@ -7144,6 +7205,8 @@ function downloadChemTemplate(){
   }
 }
 
+var selectedChems = new Set();
+var currentFilteredChems = [];
 var currentChemPage = 1; var chemsPerPage = 50;
 function renderAdminChemistList(page = 1) {
   currentChemPage = page;
@@ -7210,6 +7273,8 @@ function renderAdminChemistList(page = 1) {
     });
   }
 
+  currentFilteredChems = chems;
+
   var countEl = document.getElementById('chem-count');
   if (countEl) countEl.textContent = chems.length;
   var totalPages = Math.ceil(chems.length / chemsPerPage);
@@ -7221,11 +7286,16 @@ function renderAdminChemistList(page = 1) {
   
   tbody.innerHTML=pagedChems.map(function(c){
     var emp=DB.employees.find(function(e){return e.id===c.assignTo;});
-    return '<tr><td><input type="checkbox" class="chem-row-check admin-only" value="'+c.id+'" onchange="updateSelectedChemsCount()"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(c.state||'')+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
+    var isChecked = selectedChems.has(c.id) ? 'checked' : '';
+    return '<tr><td><input type="checkbox" class="chem-row-check admin-only" value="'+c.id+'" '+isChecked+' onchange="toggleIndividualChem(this)"></td><td>'+c.id+'</td><td class="tbl-name">'+c.name+'</td><td>'+c.area+'</td><td>'+(c.state||'')+'</td><td>'+(emp?emp.name+' ('+c.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editChemist(\''+c.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeChemist(\''+c.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-chems');
-  if (masterCheck) masterCheck.checked = false;
+  if (masterCheck) {
+    var checks = document.querySelectorAll('.chem-row-check');
+    var allCheckedOnPage = checks.length > 0 && Array.from(checks).every(function(c) { return c.checked; });
+    masterCheck.checked = allCheckedOnPage;
+  }
   updateSelectedChemsCount();
   var pagEl = document.getElementById('chem-pagination');
   if (pagEl) {
@@ -7241,13 +7311,38 @@ function removeChemist(id){
   if(!confirm('Delete chemist record?'))return;
   DB.chemists=DB.chemists.filter(function(c){return c.id!==id;});
   saveDB();
+  selectedChems.delete(id);
   renderAdminChemistList();
   runSupabaseDelete('chemists', function(q) {
     return q.eq('id', id);
   });
 }
 
+function toggleIndividualChem(cb) {
+  if (cb.checked) {
+    selectedChems.add(cb.value);
+  } else {
+    selectedChems.delete(cb.value);
+  }
+  var masterCheck = document.getElementById('check-all-chems');
+  if (masterCheck) {
+    var checks = document.querySelectorAll('.chem-row-check');
+    var allCheckedOnPage = checks.length > 0 && Array.from(checks).every(function(c) { return c.checked; });
+    masterCheck.checked = allCheckedOnPage;
+  }
+  updateSelectedChemsCount();
+}
+
 function toggleSelectAllChems(masterCheck) {
+  if (masterCheck.checked) {
+    currentFilteredChems.forEach(function(c) {
+      selectedChems.add(c.id);
+    });
+  } else {
+    currentFilteredChems.forEach(function(c) {
+      selectedChems.delete(c.id);
+    });
+  }
   var checks = document.querySelectorAll('.chem-row-check');
   checks.forEach(function(c) {
     c.checked = masterCheck.checked;
@@ -7256,7 +7351,7 @@ function toggleSelectAllChems(masterCheck) {
 }
 
 function updateSelectedChemsCount() {
-  var selected = document.querySelectorAll('.chem-row-check:checked').length;
+  var selected = selectedChems.size;
   var btn = document.getElementById('btn-bulk-delete-selected-chems');
   var btnReassign = document.getElementById('btn-bulk-reassign-selected-chems');
   if (btn) {
@@ -7275,32 +7370,32 @@ function updateSelectedChemsCount() {
 }
 
 function bulkReassignSelectedChemists() {
-  var checked = document.querySelectorAll('.chem-row-check:checked');
-  if (!checked.length) return;
-  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected chemist records:');
+  if (!selectedChems.size) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + selectedChems.size + ' selected chemist records:');
   if (newEmpId === null) return;
   newEmpId = newEmpId.trim().toUpperCase();
-  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  var idsToUpdate = Array.from(selectedChems);
   DB.chemists.forEach(function(c) {
     if (idsToUpdate.includes(c.id)) c.assignTo = newEmpId;
   });
   saveDB();
+  selectedChems.clear();
   renderAdminChemistList();
-  showToast(checked.length + ' chemists reassigned successfully.');
+  showToast(idsToUpdate.length + ' chemists reassigned successfully.');
 }
 
 function bulkDeleteSelectedChemists() {
-  var checked = document.querySelectorAll('.chem-row-check:checked');
-  if (!checked.length) return;
-  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected chemist records?')) return;
-  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  if (!selectedChems.size) return;
+  if (!confirm('Are you sure you want to delete the ' + selectedChems.size + ' selected chemist records?')) return;
+  var idsToDelete = Array.from(selectedChems);
   DB.chemists = DB.chemists.filter(function(c) { return !idsToDelete.includes(c.id); });
   saveDB();
+  selectedChems.clear();
   renderAdminChemistList();
   runSupabaseDelete('chemists', function(q) {
     return q.in('id', idsToDelete);
   });
-  showToast(checked.length + ' chemists deleted successfully!');
+  showToast(idsToDelete.length + ' chemists deleted successfully!');
   var masterCheck = document.getElementById('check-all-chems');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedChemsCount();
@@ -7483,10 +7578,9 @@ function uploadStockists(inp) {
 
 function downloadStockistTemplate() {
   var csv = 'StockistID,Name,Area,AssignToEmpID,State\n';
-  var checked = document.querySelectorAll('.stockist-row-check:checked');
   var stkToExport = [];
-  if (checked.length > 0) {
-    var ids = Array.from(checked).map(c => c.value);
+  if (selectedStockists.size > 0) {
+    var ids = Array.from(selectedStockists);
     stkToExport = DB.stockists.filter(s => ids.includes(s.id));
   } else {
     stkToExport = DB.stockists || [];
@@ -7509,6 +7603,8 @@ function downloadStockistTemplate() {
   }
 }
 
+var selectedStockists = new Set();
+var currentFilteredStockists = [];
 var currentStockistPage = 1; var stockistsPerPage = 50;
 function renderAdminStockistList(page = 1) {
   currentStockistPage = page;
@@ -7575,6 +7671,8 @@ function renderAdminStockistList(page = 1) {
     });
   }
 
+  currentFilteredStockists = stockists;
+
   var countEl = document.getElementById('stockist-count');
   if (countEl) countEl.textContent = stockists.length;
   var totalPages = Math.ceil(stockists.length / stockistsPerPage);
@@ -7587,11 +7685,16 @@ function renderAdminStockistList(page = 1) {
   
   tbody.innerHTML = pagedStockists.map(function(s){
     var emp = DB.employees.find(function(e){return e.id===s.assignTo;});
-    return '<tr><td><input type="checkbox" class="stockist-row-check admin-only" value="'+s.id+'" onchange="updateSelectedStockistsCount()"></td><td>'+s.id+'</td><td class="tbl-name">'+s.name+'</td><td>'+s.area+'</td><td>'+(s.state||'')+'</td><td>'+(emp?emp.name+' ('+s.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editStockist(\''+s.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeStockist(\''+s.id+'\')">Del</button></td></tr>';
+    var isChecked = selectedStockists.has(s.id) ? 'checked' : '';
+    return '<tr><td><input type="checkbox" class="stockist-row-check admin-only" value="'+s.id+'" '+isChecked+' onchange="toggleIndividualStockist(this)"></td><td>'+s.id+'</td><td class="tbl-name">'+s.name+'</td><td>'+s.area+'</td><td>'+(s.state||'')+'</td><td>'+(emp?emp.name+' ('+s.assignTo+')':'Unassigned')+'</td><td><button class="btn sm primary admin-only" style="width:auto;display:inline-block;margin-right:4px" onclick="editStockist(\''+s.id+'\')">Edit</button><button class="btn sm danger admin-only" style="width:auto;display:inline-block" onclick="removeStockist(\''+s.id+'\')">Del</button></td></tr>';
   }).join('');
   
   var masterCheck = document.getElementById('check-all-stockists');
-  if (masterCheck) masterCheck.checked = false;
+  if (masterCheck) {
+    var checks = document.querySelectorAll('.stockist-row-check');
+    var allCheckedOnPage = checks.length > 0 && Array.from(checks).every(function(c) { return c.checked; });
+    masterCheck.checked = allCheckedOnPage;
+  }
   updateSelectedStockistsCount();
   var pagEl = document.getElementById('stockist-pagination');
   if (pagEl) {
@@ -7607,13 +7710,38 @@ function removeStockist(id) {
   if(!confirm('Delete stockist record?'))return;
   DB.stockists = DB.stockists.filter(function(s){return s.id!==id;});
   saveDB();
+  selectedStockists.delete(id);
   renderAdminStockistList();
   runSupabaseDelete('stockists', function(q) {
     return q.eq('id', id);
   });
 }
 
+function toggleIndividualStockist(cb) {
+  if (cb.checked) {
+    selectedStockists.add(cb.value);
+  } else {
+    selectedStockists.delete(cb.value);
+  }
+  var masterCheck = document.getElementById('check-all-stockists');
+  if (masterCheck) {
+    var checks = document.querySelectorAll('.stockist-row-check');
+    var allCheckedOnPage = checks.length > 0 && Array.from(checks).every(function(c) { return c.checked; });
+    masterCheck.checked = allCheckedOnPage;
+  }
+  updateSelectedStockistsCount();
+}
+
 function toggleSelectAllStockists(masterCheck) {
+  if (masterCheck.checked) {
+    currentFilteredStockists.forEach(function(s) {
+      selectedStockists.add(s.id);
+    });
+  } else {
+    currentFilteredStockists.forEach(function(s) {
+      selectedStockists.delete(s.id);
+    });
+  }
   var checks = document.querySelectorAll('.stockist-row-check');
   checks.forEach(function(c) {
     c.checked = masterCheck.checked;
@@ -7622,7 +7750,7 @@ function toggleSelectAllStockists(masterCheck) {
 }
 
 function updateSelectedStockistsCount() {
-  var selected = document.querySelectorAll('.stockist-row-check:checked').length;
+  var selected = selectedStockists.size;
   var btn = document.getElementById('btn-bulk-delete-selected-stockists');
   var btnReassign = document.getElementById('btn-bulk-reassign-selected-stockists');
   if (btn) {
@@ -7641,32 +7769,32 @@ function updateSelectedStockistsCount() {
 }
 
 function bulkReassignSelectedStockists() {
-  var checked = document.querySelectorAll('.stockist-row-check:checked');
-  if (!checked.length) return;
-  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + checked.length + ' selected stockist records:');
+  if (!selectedStockists.size) return;
+  var newEmpId = prompt('Enter the new Employee ID to assign to these ' + selectedStockists.size + ' selected stockist records:');
   if (newEmpId === null) return;
   newEmpId = newEmpId.trim().toUpperCase();
-  var idsToUpdate = Array.from(checked).map(function(cb) { return cb.value; });
+  var idsToUpdate = Array.from(selectedStockists);
   DB.stockists.forEach(function(s) {
     if (idsToUpdate.includes(s.id)) s.assignTo = newEmpId;
   });
   saveDB();
+  selectedStockists.clear();
   renderAdminStockistList();
-  showToast(checked.length + ' stockists reassigned successfully.');
+  showToast(idsToUpdate.length + ' stockists reassigned successfully.');
 }
 
 function bulkDeleteSelectedStockists() {
-  var checked = document.querySelectorAll('.stockist-row-check:checked');
-  if (!checked.length) return;
-  if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected stockist records?')) return;
-  var idsToDelete = Array.from(checked).map(function(cb) { return cb.value; });
+  if (!selectedStockists.size) return;
+  if (!confirm('Are you sure you want to delete the ' + selectedStockists.size + ' selected stockist records?')) return;
+  var idsToDelete = Array.from(selectedStockists);
   DB.stockists = DB.stockists.filter(function(s) { return !idsToDelete.includes(s.id); });
   saveDB();
+  selectedStockists.clear();
   renderAdminStockistList();
   runSupabaseDelete('stockists', function(q) {
     return q.in('id', idsToDelete);
   });
-  showToast(checked.length + ' stockists deleted successfully!');
+  showToast(idsToDelete.length + ' stockists deleted successfully!');
   var masterCheck = document.getElementById('check-all-stockists');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedStockistsCount();

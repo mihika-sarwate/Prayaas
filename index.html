@@ -702,11 +702,13 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
       <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
       <div class="admin-tab manager-only" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
+      <div class="admin-tab" id="tab-adm-tour" onclick="goAdminTab('tour')">Tour Plan</div>
       <div class="admin-tab" id="tab-adm-announcements" onclick="goAdminTab('announcements')" style="display:none">Broadcasts</div>
     </div>
 
     <!-- ADMIN SECTIONS -->
     <div id="sec-adm-visit" style="display:none"></div>
+    <div id="sec-adm-tour" style="display:none"></div>
     <div id="sec-adm-announcements" style="display:none" class="body"></div>
     <!-- ADMIN DASHBOARD PANEL -->
     <div id="sec-adm-dash">
@@ -7117,6 +7119,11 @@ function goTab(name){
     renderEmpInventoryTables();
   }
   if(name==='report') {
+    var tr = document.getElementById('tab-report');
+    if (tr) {
+      document.getElementById('scr-emp').appendChild(tr);
+      tr.style.display = 'block';
+    }
     populateReportingDropdowns();
     populateReportTerritoryDropdowns();
     populateJFWManagers();
@@ -7128,6 +7135,11 @@ function goTab(name){
     renderMyLeaves();
   }
   if(name==='tour') {
+    var tp = document.getElementById('tab-tour');
+    if (tp) {
+      document.getElementById('scr-emp').appendChild(tp);
+      tp.style.display = 'block';
+    }
     renderMyTourPlans();
     renderTPDaysForMonth();
   }
@@ -7237,7 +7249,7 @@ function goAdminTab(name){
     name = 'dash';
   }
   currentAdminTab=name;
-  ['dash','appr','attendance','master','inventory','reports','visit','announcements'].forEach(function(t){
+  ['dash','appr','attendance','master','inventory','reports','visit','tour','announcements'].forEach(function(t){
     var el=document.getElementById('sec-adm-'+t);
     if(el) el.style.display=t===name?'block':'none';
     var btn=document.getElementById('tab-adm-'+t);
@@ -7254,6 +7266,27 @@ function goAdminTab(name){
       populateReportingDropdowns();
       populateJFWManagers();
       checkMTPForSelectedDate();
+    }
+  }
+  if (name === 'tour') {
+    var tp = document.getElementById('tab-tour');
+    if(tp) {
+      document.getElementById('sec-adm-tour').appendChild(tp);
+      tp.style.display = 'block';
+      
+      var u = SESSION.user;
+      var mgr = DB.employees.find(function(e){return e.id===u.managerId;});
+      var mgrName = mgr ? mgr.name+' ('+mgr.role.toUpperCase()+')' : 'No Direct Manager';
+      var tpm = document.getElementById('tp-manager');
+      if (tpm) tpm.innerHTML = '<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
+      
+      var tpmVal = document.getElementById('tp-month');
+      if (tpmVal && !tpmVal.value) {
+        tpmVal.value = new Date().toISOString().slice(0,7);
+      }
+
+      renderMyTourPlans();
+      renderTPDaysForMonth();
     }
   }
   

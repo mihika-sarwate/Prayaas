@@ -663,7 +663,7 @@ table.tbl tr:last-child td{border-bottom:none}
           </table>
         </div>
         
-        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs) <span id="count-inv-inputs" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
+        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs)</div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead><tr><th>Input Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
@@ -1070,7 +1070,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <button class="btn sm danger" onclick="deleteSelectedInventory()">Delete Selected</button>
           <button class="btn sm danger outline" onclick="deleteAllFilteredInventory()">Delete All Filtered</button>
         </div>
-        <div class="card-title" style="margin-top:10px">Sample Inventory balances <span id="count-inv-samples" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
+        <div class="card-title" style="margin-top:10px">Sample Inventory balances <span id="admin-count-inv-samples" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead>
@@ -1089,7 +1089,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <tbody id="tbl-inv-samples"></tbody>
           </table>
         </div>
-        <div class="card-title" style="margin-top:20px">Promotional Gift balances <span id="count-inv-gifts" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
+        <div class="card-title" style="margin-top:20px">Promotional Gift balances <span id="admin-count-inv-gifts" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead>
@@ -1108,7 +1108,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <tbody id="tbl-inv-gifts"></tbody>
           </table>
         </div>
-        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs) <span id="count-inv-inputs" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
+        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs) <span id="admin-count-inv-inputs" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead>
@@ -11397,14 +11397,14 @@ function renderAdminInventoryTables(){
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Update counts
-    if (document.getElementById('count-inv-samples')) {
-      document.getElementById('count-inv-samples').textContent = '(Showing ' + samplesList.length + ' of ' + DB.samplesInventory.length + ')';
+    if (document.getElementById('admin-count-inv-samples')) {
+      document.getElementById('admin-count-inv-samples').textContent = '(Showing ' + samplesList.length + ' of ' + DB.samplesInventory.length + ')';
     }
-    if (document.getElementById('count-inv-gifts')) {
-      document.getElementById('count-inv-gifts').textContent = '(Showing ' + giftsList.length + ' of ' + DB.giftsInventory.length + ')';
+    if (document.getElementById('admin-count-inv-gifts')) {
+      document.getElementById('admin-count-inv-gifts').textContent = '(Showing ' + giftsList.length + ' of ' + DB.giftsInventory.length + ')';
     }
-    if (document.getElementById('count-inv-inputs')) {
-      document.getElementById('count-inv-inputs').textContent = '(Showing ' + inputsList.length + ' of ' + DB.inputsInventory.length + ')';
+    if (document.getElementById('admin-count-inv-inputs')) {
+      document.getElementById('admin-count-inv-inputs').textContent = '(Showing ' + inputsList.length + ' of ' + DB.inputsInventory.length + ')';
     }
 
     // Uncheck master checkboxes on render

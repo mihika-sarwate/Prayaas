@@ -663,7 +663,7 @@ table.tbl tr:last-child td{border-bottom:none}
           </table>
         </div>
         
-        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs)</div>
+        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs) <span id="count-inv-inputs" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead><tr><th>Input Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
@@ -1062,20 +1062,22 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="row2" style="display:flex; gap:15px; align-items:flex-end;">
           <div style="flex:1;"><label class="lbl">Filter MR</label><select id="inv-filter-emp" onchange="renderAdminInventoryTables()"><option value="">All Employees</option></select></div>
-          <div style="flex:2;"><label class="lbl">&#128269; Search Inventory</label><input type="text" id="inv-search-global" placeholder="Search by Employee, Product, Qty..." oninput="renderAdminInventoryTables()" class="txt" style="width:100%;"></div>
+          <div style="flex:1;"><label class="lbl">Filter State</label><select id="inv-filter-state" onchange="renderAdminInventoryTables()"><option value="">All States</option></select></div>
+          <div style="flex:2;"><label class="lbl">&#128269; Search Inventory</label><input type="text" id="inv-search-global" placeholder="Search by Employee, State, Product, Qty..." oninput="renderAdminInventoryTables()" class="txt" style="width:100%;"></div>
         </div>
         <div class="btn-row" style="margin-top:10px; margin-bottom:10px;">
           <button class="btn sm success" onclick="exportInventoryBalancesCSV()">Export Inventory Registers</button>
           <button class="btn sm danger" onclick="deleteSelectedInventory()">Delete Selected</button>
           <button class="btn sm danger outline" onclick="deleteAllFilteredInventory()">Delete All Filtered</button>
         </div>
-        <div class="card-title" style="margin-top:10px">Sample Inventory balances</div>
+        <div class="card-title" style="margin-top:10px">Sample Inventory balances <span id="count-inv-samples" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead>
               <tr>
                 <th><input type="checkbox" id="check-all-samples" onclick="toggleSelectAllInv('sample', this)"></th>
                 <th>Employee <span class="inv-filter-trigger" id="inv-trig-sample-employee" onclick="toggleInvFilterDropdown('sample', 'employee', this)">▼</span></th>
+                <th>State <span class="inv-filter-trigger" id="inv-trig-sample-state" onclick="toggleInvFilterDropdown('sample', 'state', this)">▼</span></th>
                 <th>Product Name <span class="inv-filter-trigger" id="inv-trig-sample-name" onclick="toggleInvFilterDropdown('sample', 'name', this)">▼</span></th>
                 <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-sample-opening" onclick="toggleInvFilterDropdown('sample', 'opening', this)">▼</span></th>
                 <th>Allocated <span class="inv-filter-trigger" id="inv-trig-sample-allocated" onclick="toggleInvFilterDropdown('sample', 'allocated', this)">▼</span></th>
@@ -1087,13 +1089,14 @@ table.tbl tr:last-child td{border-bottom:none}
             <tbody id="tbl-inv-samples"></tbody>
           </table>
         </div>
-        <div class="card-title" style="margin-top:20px">Promotional Gift balances</div>
+        <div class="card-title" style="margin-top:20px">Promotional Gift balances <span id="count-inv-gifts" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead>
               <tr>
                 <th><input type="checkbox" id="check-all-gifts" onclick="toggleSelectAllInv('gift', this)"></th>
                 <th>Employee <span class="inv-filter-trigger" id="inv-trig-gift-employee" onclick="toggleInvFilterDropdown('gift', 'employee', this)">▼</span></th>
+                <th>State <span class="inv-filter-trigger" id="inv-trig-gift-state" onclick="toggleInvFilterDropdown('gift', 'state', this)">▼</span></th>
                 <th>Gift Name <span class="inv-filter-trigger" id="inv-trig-gift-name" onclick="toggleInvFilterDropdown('gift', 'name', this)">▼</span></th>
                 <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-gift-opening" onclick="toggleInvFilterDropdown('gift', 'opening', this)">▼</span></th>
                 <th>Allocated <span class="inv-filter-trigger" id="inv-trig-gift-allocated" onclick="toggleInvFilterDropdown('gift', 'allocated', this)">▼</span></th>
@@ -1105,13 +1108,14 @@ table.tbl tr:last-child td{border-bottom:none}
             <tbody id="tbl-inv-gifts"></tbody>
           </table>
         </div>
-        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs)</div>
+        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs) <span id="count-inv-inputs" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead>
               <tr>
                 <th><input type="checkbox" id="check-all-inputs" onclick="toggleSelectAllInv('input', this)"></th>
                 <th>Employee <span class="inv-filter-trigger" id="inv-trig-input-employee" onclick="toggleInvFilterDropdown('input', 'employee', this)">▼</span></th>
+                <th>State <span class="inv-filter-trigger" id="inv-trig-input-state" onclick="toggleInvFilterDropdown('input', 'state', this)">▼</span></th>
                 <th>Input Name <span class="inv-filter-trigger" id="inv-trig-input-name" onclick="toggleInvFilterDropdown('input', 'name', this)">▼</span></th>
                 <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-input-opening" onclick="toggleInvFilterDropdown('input', 'opening', this)">▼</span></th>
                 <th>Allocated <span class="inv-filter-trigger" id="inv-trig-input-allocated" onclick="toggleInvFilterDropdown('input', 'allocated', this)">▼</span></th>
@@ -2136,9 +2140,9 @@ async function initSupabaseData(isSilent) {
         }
         return cloudStockists;
       })(),
-      products: DEFAULT_DB.products,
-      gifts: DEFAULT_DB.gifts,
-      inputs: DEFAULT_DB.inputs,
+      products: (typeof DB !== 'undefined' && DB && Array.isArray(DB.products) && DB.products.length > 0) ? DB.products : DEFAULT_DB.products,
+      gifts: (typeof DB !== 'undefined' && DB && Array.isArray(DB.gifts) && DB.gifts.length > 0) ? DB.gifts : DEFAULT_DB.gifts,
+      inputs: (typeof DB !== 'undefined' && DB && Array.isArray(DB.inputs) && DB.inputs.length > 0) ? DB.inputs : DEFAULT_DB.inputs,
       // Merge cloud reports with any locally pending reports that haven't been confirmed yet.
       // Without this, the 30-second poller would wipe out newly submitted reports that
       // are still in-flight to Supabase.
@@ -3552,6 +3556,10 @@ window.addEventListener('beforeunload', function (e) {
         });
       }
       await reconcileSupabaseRows('samples_inventory', DB.samplesInventory || [], function(row) {
+        var empId = row.empId || row.emp_id || '';
+        var prodName = row.prodName || row.prod_name || '';
+        return String(empId).toUpperCase().trim() + '|' + String(prodName).toUpperCase().trim();
+      }, function(row) {
         return supabase.from('samples_inventory').delete().eq('id', row.id);
       });
     } catch (e) {
@@ -3589,6 +3597,10 @@ window.addEventListener('beforeunload', function (e) {
         });
       }
       await reconcileSupabaseRows('gifts_inventory', DB.giftsInventory || [], function(row) {
+        var empId = row.empId || row.emp_id || '';
+        var giftName = row.giftName || row.gift_name || '';
+        return String(empId).toUpperCase().trim() + '|' + String(giftName).toUpperCase().trim();
+      }, function(row) {
         return supabase.from('gifts_inventory').delete().eq('id', row.id);
       });
     } catch (e) {
@@ -3626,6 +3638,10 @@ window.addEventListener('beforeunload', function (e) {
         });
       }
       await reconcileSupabaseRows('inputs_inventory', DB.inputsInventory || [], function(row) {
+        var empId = row.empId || row.emp_id || '';
+        var inputName = row.inputName || row.input_name || '';
+        return String(empId).toUpperCase().trim() + '|' + String(inputName).toUpperCase().trim();
+      }, function(row) {
         return supabase.from('inputs_inventory').delete().eq('id', row.id);
       });
     } catch (e) {
@@ -11027,7 +11043,7 @@ function uploadInventoryCSV(inp) {
 var activeInvFilters = { sample: {}, gift: {}, input: {} };
 
 function updateFilterTriggerStyles(tableType) {
-  var columns = ['employee', 'name', 'opening', 'allocated', 'distributed', 'balance'];
+  var columns = ['employee', 'state', 'name', 'opening', 'allocated', 'distributed', 'balance'];
   columns.forEach(function(col) {
     var elem = document.getElementById('inv-trig-' + tableType + '-' + col);
     if (elem) {
@@ -11050,6 +11066,7 @@ function getFilteredInventoryList(list, type) {
     var emp = DB.employees.find(function(e){return e.id === item.empId;});
     var empName = emp ? emp.name : '';
     var empId = item.empId || '';
+    var empState = emp ? emp.state || '' : '';
     var itemName = item.prodName || item.giftName || item.inputName || '';
     var opening = String(item.opening || 0);
     var received = String(item.received || 0);
@@ -11059,6 +11076,7 @@ function getFilteredInventoryList(list, type) {
     if (search) {
       var matchesSearch = empName.toLowerCase().indexOf(search) !== -1 ||
                           empId.toLowerCase().indexOf(search) !== -1 ||
+                          empState.toLowerCase().indexOf(search) !== -1 ||
                           itemName.toLowerCase().indexOf(search) !== -1 ||
                           opening.indexOf(search) !== -1 ||
                           received.indexOf(search) !== -1 ||
@@ -11073,6 +11091,7 @@ function getFilteredInventoryList(list, type) {
       if (selectedValues && selectedValues.length > 0) {
         var val = '';
         if (col === 'employee') val = empName + ' (' + empId + ')';
+        else if (col === 'state') val = empState;
         else if (col === 'name') val = itemName;
         else if (col === 'opening') val = opening;
         else if (col === 'allocated') val = received;
@@ -11107,13 +11126,26 @@ function toggleInvFilterDropdown(tableType, colName, element) {
   var u = SESSION.user;
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var mrFilter = document.getElementById('inv-filter-emp').value;
+  var stateFilter = document.getElementById('inv-filter-state') ? document.getElementById('inv-filter-state').value : '';
   var fullList = [];
   if (tableType === 'sample') {
-    fullList = DB.samplesInventory.filter(function(s){return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId));});
+    fullList = DB.samplesInventory.filter(function(s){
+      var emp = DB.employees.find(function(e){return e.id===s.empId;});
+      var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+      return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId)) && stateMatch;
+    });
   } else if (tableType === 'gift') {
-    fullList = DB.giftsInventory.filter(function(g){return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId));});
+    fullList = DB.giftsInventory.filter(function(g){
+      var emp = DB.employees.find(function(e){return e.id===g.empId;});
+      var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+      return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId)) && stateMatch;
+    });
   } else if (tableType === 'input') {
-    fullList = DB.inputsInventory.filter(function(i){return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId));});
+    fullList = DB.inputsInventory.filter(function(i){
+      var emp = DB.employees.find(function(e){return e.id===i.empId;});
+      var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+      return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId)) && stateMatch;
+    });
   }
 
   var uniqueValues = new Set();
@@ -11121,9 +11153,11 @@ function toggleInvFilterDropdown(tableType, colName, element) {
     var emp = DB.employees.find(function(e){return e.id === item.empId;});
     var empName = emp ? emp.name : '';
     var empId = item.empId || '';
+    var empState = emp ? emp.state || '' : '';
     var itemName = item.prodName || item.giftName || item.inputName || '';
     
     if (colName === 'employee') uniqueValues.add(empName + ' (' + empId + ')');
+    else if (colName === 'state') uniqueValues.add(empState);
     else if (colName === 'name') uniqueValues.add(itemName);
     else if (colName === 'opening') uniqueValues.add(String(item.opening || 0));
     else if (colName === 'allocated') uniqueValues.add(String(item.received || 0));
@@ -11314,6 +11348,7 @@ function toggleInvFilterDropdown(tableType, colName, element) {
 
 function renderAdminInventoryTables(){
     var mrFilter=document.getElementById('inv-filter-emp').value;
+    var stateFilter=document.getElementById('inv-filter-state') ? document.getElementById('inv-filter-state').value : '';
     var u=SESSION.user;
     var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
     
@@ -11323,32 +11358,55 @@ function renderAdminInventoryTables(){
     updateFilterTriggerStyles('input');
     
     // Render Samples
-    var samplesList = DB.samplesInventory.filter(function(s){return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId));});
+    var samplesList = DB.samplesInventory.filter(function(s){
+      var emp = DB.employees.find(function(e){return e.id===s.empId;});
+      var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+      return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId)) && stateMatch;
+    });
     samplesList = getFilteredInventoryList(samplesList, 'sample');
     document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
       var emp=DB.employees.find(function(e){return e.id===s.empId;});
       var idVal = s.id || (s.empId + '|' + s.prodName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+s.balance+'</td><td><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
-    }).join(''):'<tr><td colspan="8" class="empty">No entries found</td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+s.balance+'</td><td><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+    }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Render Gifts
-    var giftsList = DB.giftsInventory.filter(function(g){return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId));});
+    var giftsList = DB.giftsInventory.filter(function(g){
+      var emp = DB.employees.find(function(e){return e.id===g.empId;});
+      var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+      return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId)) && stateMatch;
+    });
     giftsList = getFilteredInventoryList(giftsList, 'gift');
     document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
       var emp=DB.employees.find(function(e){return e.id===g.empId;});
       var idVal = g.id || (g.empId + '|' + g.giftName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+g.balance+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
-    }).join(''):'<tr><td colspan="8" class="empty">No entries found</td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+g.balance+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+    }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
  
     // Render Inputs
-    var inputsList = DB.inputsInventory.filter(function(i){return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId));});
+    var inputsList = DB.inputsInventory.filter(function(i){
+      var emp = DB.employees.find(function(e){return e.id===i.empId;});
+      var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+      return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId)) && stateMatch;
+    });
     inputsList = getFilteredInventoryList(inputsList, 'input');
     document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
       var emp=DB.employees.find(function(e){return e.id===i.empId;});
       var idVal = i.id || (i.empId + '|' + i.inputName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+i.balance+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
-    }).join(''):'<tr><td colspan="8" class="empty">No entries found</td></tr>';
- 
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+i.balance+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+    }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
+  
+    // Update counts
+    if (document.getElementById('count-inv-samples')) {
+      document.getElementById('count-inv-samples').textContent = '(Showing ' + samplesList.length + ' of ' + DB.samplesInventory.length + ')';
+    }
+    if (document.getElementById('count-inv-gifts')) {
+      document.getElementById('count-inv-gifts').textContent = '(Showing ' + giftsList.length + ' of ' + DB.giftsInventory.length + ')';
+    }
+    if (document.getElementById('count-inv-inputs')) {
+      document.getElementById('count-inv-inputs').textContent = '(Showing ' + inputsList.length + ' of ' + DB.inputsInventory.length + ')';
+    }
+
     // Uncheck master checkboxes on render
     var checkAllSamples = document.getElementById('check-all-samples');
     var checkAllGifts = document.getElementById('check-all-gifts');
@@ -11440,18 +11498,24 @@ function deleteAllFilteredInventory() {
 
 function exportInventoryBalancesCSV() {
   var mrFilter = document.getElementById('inv-filter-emp').value;
+  var stateFilter = document.getElementById('inv-filter-state') ? document.getElementById('inv-filter-state').value : '';
   var u = SESSION.user;
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
 
-  var csv = 'Employee ID,Employee Name,Item Type,Item Name,Opening Stock,Allocated (Received),Distributed,Current Balance\n';
+  var csv = 'Employee ID,Employee Name,State,Item Type,Item Name,Opening Stock,Allocated (Received),Distributed,Current Balance\n';
 
   // 1. Samples
-  var samplesList = DB.samplesInventory.filter(function(s){return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId));});
+  var samplesList = DB.samplesInventory.filter(function(s){
+    var emp = DB.employees.find(function(e){return e.id===s.empId;});
+    var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+    return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId)) && stateMatch;
+  });
   samplesList.forEach(function(s) {
     var emp = DB.employees.find(function(e){return e.id===s.empId;});
     csv += [
       s.empId || '',
       emp ? emp.name || '' : '',
+      emp ? emp.state || '' : '',
       'Sample Product',
       s.prodName || '',
       s.opening || '0',
@@ -11464,12 +11528,17 @@ function exportInventoryBalancesCSV() {
   });
 
   // 2. Gifts
-  var giftsList = DB.giftsInventory.filter(function(g){return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId));});
+  var giftsList = DB.giftsInventory.filter(function(g){
+    var emp = DB.employees.find(function(e){return e.id===g.empId;});
+    var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+    return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId)) && stateMatch;
+  });
   giftsList.forEach(function(g) {
     var emp = DB.employees.find(function(e){return e.id===g.empId;});
     csv += [
       g.empId || '',
       emp ? emp.name || '' : '',
+      emp ? emp.state || '' : '',
       'Gift Promotional',
       g.giftName || '',
       g.opening || '0',
@@ -11482,12 +11551,17 @@ function exportInventoryBalancesCSV() {
   });
 
   // 3. Inputs
-  var inputsList = DB.inputsInventory.filter(function(i){return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId));});
+  var inputsList = DB.inputsInventory.filter(function(i){
+    var emp = DB.employees.find(function(e){return e.id===i.empId;});
+    var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
+    return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId)) && stateMatch;
+  });
   inputsList.forEach(function(i) {
     var emp = DB.employees.find(function(e){return e.id===i.empId;});
     csv += [
       i.empId || '',
       emp ? emp.name || '' : '',
+      emp ? emp.state || '' : '',
       'Promotional Input',
       i.inputName || '',
       i.opening || '0',
@@ -11511,13 +11585,29 @@ function populateAdminEmpFilters(){
     var sel=document.getElementById(selId);
     if(sel){
       sel.innerHTML = '<option value="">All Employees</option>';
-        DB.employees.filter(function(e){return e.role==='emp' && (!teamIds || teamIds.includes(e.id));}).forEach(function(e){
+        DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id));}).forEach(function(e){
         var o=document.createElement('option');o.value=e.id;o.textContent=e.name+' ('+e.id+')';sel.appendChild(o);
       });
     }
   });
-}
 
+  var stateSel = document.getElementById('inv-filter-state');
+  if (stateSel) {
+    stateSel.innerHTML = '<option value="">All States</option>';
+    var states = [];
+    DB.employees.forEach(function(e) {
+      if (e.state && states.indexOf(e.state) === -1) {
+        states.push(e.state);
+      }
+    });
+    states.sort().forEach(function(st) {
+      var o = document.createElement('option');
+      o.value = st;
+      o.textContent = st;
+      stateSel.appendChild(o);
+    });
+  }
+}
 // ===== 13 COMPREHENSIVE MIS REPORTS ENGINE =====
 var currentMISData=[];
 var currentMISRowIds=[];

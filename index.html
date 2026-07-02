@@ -4516,32 +4516,6 @@ function populateReportTerritoryDropdowns() {
     }
   });
 
-  var areaToTType = {};
-  Object.keys(mrAreasByTerritory).forEach(function(tt) {
-    mrAreasByTerritory[tt].forEach(function(a) {
-      if (!areaToTType[a]) areaToTType[a] = [];
-      areaToTType[a].push(tt);
-    });
-  });
-
-  DB.chemists.forEach(function(c) {
-    var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-    var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase(); }) : null;
-    var isAssignedToTeam = teamIdsUpper ? assignedList.some(function(a){ return teamIdsUpper.includes(a); }) : true;
-
-    if (isAssignedToTeam && c.area) {
-      var cArea = c.area.trim();
-      var tTypes = areaToTType[cArea];
-      if (tTypes && tTypes.length > 0) {
-        tTypes.forEach(function(tt) {
-          mrAreasByTerritory[tt].add(cArea);
-        });
-      } else {
-        mrAreasByTerritory['HQ'].add(cArea);
-      }
-    }
-  });
-  
   window._mrTownsByTerritory = mrTownsByTerritory;
   window._mrAreasByTerritory = mrAreasByTerritory;
   

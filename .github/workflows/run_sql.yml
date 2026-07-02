@@ -3,7 +3,7 @@ name: Run SQL DDL
 on: [push]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   run-sql:
@@ -32,12 +32,3 @@ jobs:
         if: ${{ env.DATABASE_URL == '' }}
         run: |
           echo "Skipping SQL DDL run because DATABASE_URL secret is not configured."
-
-      - name: Commit and Push output
-        if: ${{ env.DATABASE_URL != '' }}
-        run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git add -f db_tables.txt
-          git commit -m "chore: save database tables list [skip ci]" || exit 0
-          git push || echo "Push failed (e.g. due to branch protection or permissions), skipping push silently."

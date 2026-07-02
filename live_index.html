@@ -246,6 +246,100 @@ table.tbl tr:last-child td{border-bottom:none}
   font-size: 11px;
   border-radius: 4px;
 }
+
+/* Custom Multi-select Dropdown styling */
+.multiselect-container {
+  position: relative;
+  width: 100%;
+}
+.multiselect-header {
+  min-height: 38px;
+  padding: 8px 30px 8px 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  position: relative;
+  user-select: none;
+}
+.multiselect-header::after {
+  content: "▼";
+  font-size: 8px;
+  color: var(--text-muted);
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.multiselect-badge {
+  background: var(--accent);
+  color: var(--primary-dark);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.multiselect-badge .close-btn {
+  cursor: pointer;
+  font-weight: bold;
+  opacity: 0.6;
+}
+.multiselect-badge .close-btn:hover {
+  opacity: 1;
+}
+.multiselect-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+.multiselect-dropdown.open {
+  display: block;
+}
+.multiselect-option {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  text-align: left;
+}
+.multiselect-option:hover {
+  background: #f1f5f9;
+}
+.multiselect-option input {
+  cursor: pointer;
+}
+
+/* Style overrides for table layout multi-select */
+.tbl .multiselect-header {
+  min-height: 30px;
+  padding: 4px 20px 4px 8px;
+  border-radius: 4px;
+}
+.tbl .multiselect-header::after {
+  right: 8px;
+}
 </style>
 </head>
 <body>
@@ -332,10 +426,18 @@ table.tbl tr:last-child td{border-bottom:none}
       <div id="r-standard-loc-fields">
         <div class="row2">
           <div style="display:none"><label class="lbl">Territory</label><select id="r-territory" onchange="populateReportCityPatch()"><option value="HQ">HQ</option><option value="Ex">Ex</option><option value="OS">OS</option></select></div>
-          <div style="grid-column: span 2"><label class="lbl">Town / City</label><select id="r-city" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Town --</option></select></div>
+          <div style="grid-column: span 2">
+            <label class="lbl">Town / City</label>
+            <input type="hidden" id="r-city" value="">
+            <div id="r-city-container"></div>
+          </div>
         </div>
-        <div class="row2">
-          <div style="grid-column: span 2"><label class="lbl">Patch</label><select id="r-patch" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Patch --</option></select></div>
+        <div class="row2" style="margin-top: 8px">
+          <div style="grid-column: span 2">
+            <label class="lbl">Patch</label>
+            <input type="hidden" id="r-patch" value="">
+            <div id="r-patch-container"></div>
+          </div>
         </div>
       </div>
       <div id="r-transit-loc-fields" style="display:none">
@@ -3307,9 +3409,12 @@ function filterReportingDoctorsDropdown() {
   var city = citySel ? citySel.value.toLowerCase().trim() : '';
   var patch = patchSel ? patchSel.value.toLowerCase().trim() : '';
   
+  var selectedCities = city ? city.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+  var selectedPatches = patch ? patch.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+  
   filtered = filtered.filter(function(d) {
-    if (city && (d.city || '').toLowerCase().trim() !== city) return false;
-    if (patch && (d.area || '').toLowerCase().trim() !== patch) return false;
+    if (selectedCities.length > 0 && !selectedCities.includes((d.city || '').toLowerCase().trim())) return false;
+    if (selectedPatches.length > 0 && !selectedPatches.includes((d.area || '').toLowerCase().trim())) return false;
     return true;
   });
 
@@ -3324,9 +3429,12 @@ function filterReportingChemistsDropdown() {
   var city = citySel ? citySel.value.toLowerCase().trim() : '';
   var patch = patchSel ? patchSel.value.toLowerCase().trim() : '';
 
+  var selectedCities = city ? city.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+  var selectedPatches = patch ? patch.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+
   filtered = filtered.filter(function(c) {
-    if (city && (c.city || '').toLowerCase().trim() !== city) return false;
-    if (patch && (c.area || '').toLowerCase().trim() !== patch) return false;
+    if (selectedCities.length > 0 && !selectedCities.includes((c.city || '').toLowerCase().trim())) return false;
+    if (selectedPatches.length > 0 && !selectedPatches.includes((c.area || '').toLowerCase().trim())) return false;
     return true;
   });
 
@@ -3339,10 +3447,13 @@ function filterReportingDropdownsByPatch() {
   var patch = patchSel ? patchSel.value : '';
   var city = citySel ? citySel.value : '';
   
-  if (patch || city) {
+  var selectedPatches = patch ? patch.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+  var selectedCities = city ? city.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+  
+  if (selectedPatches.length > 0 || selectedCities.length > 0) {
     var matchedDoc = DB.doctors.find(function(d) {
-      if (patch && (d.area || '').toLowerCase().trim() === patch.toLowerCase().trim()) return true;
-      if (city && (d.city || '').toLowerCase().trim() === city.toLowerCase().trim()) return true;
+      if (selectedPatches.length > 0 && selectedPatches.includes((d.area || '').toLowerCase().trim())) return true;
+      if (selectedCities.length > 0 && selectedCities.includes((d.city || '').toLowerCase().trim())) return true;
       return false;
     });
     if (matchedDoc && matchedDoc.territoryType) {
@@ -3440,18 +3551,22 @@ function populateReportCityPatch() {
   var availableTowns = Array.from(townsSet).filter(function(x) { return x && x.trim() !== '' && !x.trim().startsWith('--'); }).sort();
   var availablePatches = Array.from(patchesSet).filter(function(x) { return x && x.trim() !== '' && !x.trim().startsWith('--'); }).sort();
   
-  var citySel = document.getElementById('r-city');
-  if (citySel) {
-    citySel.innerHTML = '<option value="">-- Select Town (' + availableTowns.length + ') --</option>' + availableTowns.map(function(t) {
-      return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>';
-    }).join('');
+  var cityContainer = document.getElementById('r-city-container');
+  var cityInput = document.getElementById('r-city');
+  if (cityContainer && cityInput) {
+    createMultiSelect(cityContainer, availableTowns, cityInput.value, '-- Select Towns --', function(newVal) {
+      cityInput.value = newVal;
+      filterReportingDropdownsByPatch();
+    });
   }
   
-  var patchSel = document.getElementById('r-patch');
-  if (patchSel) {
-    patchSel.innerHTML = '<option value="">-- Select Patch --</option>' + availablePatches.map(function(p) {
-      return '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>';
-    }).join('');
+  var patchContainer = document.getElementById('r-patch-container');
+  var patchInput = document.getElementById('r-patch');
+  if (patchContainer && patchInput) {
+    createMultiSelect(patchContainer, availablePatches, patchInput.value, '-- Select Patches --', function(newVal) {
+      patchInput.value = newVal;
+      filterReportingDropdownsByPatch();
+    });
   }
 }
 
@@ -3461,9 +3576,16 @@ function toggleReportWorkTypeFields() {
   var isTransit = wt && wt.value === 'TRANSIT';
   var needsLocation = isFieldWork || isTransit;
   
-  ['r-territory', 'r-city', 'r-patch', 'r-classification', 'r-calltype'].forEach(function(id) {
+  ['r-territory', 'r-classification', 'r-calltype'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.disabled = !needsLocation;
+  });
+  ['r-city-container', 'r-patch-container'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.style.pointerEvents = needsLocation ? 'auto' : 'none';
+      el.style.opacity = needsLocation ? '1' : '0.6';
+    }
   });
   
   if (isTransit) {
@@ -4559,29 +4681,16 @@ function renderMTPDaysUI(isReadOnly, existing){
         '<option value="TRANSIT"' + (workType === 'TRANSIT' ? ' selected' : '') + '>TRANSIT</option>' +
         '</select>';
         
-      // Patch Dropdown
-      var currentAreas = Array.from(mrAreas).sort();
-      if (area && !currentAreas.includes(area)) {
-        currentAreas.push(area);
-      }
-      patchSelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPPatch('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
-        '<option value="">-- Select Patch --</option>' +
-        currentAreas.map(function(a) {
-          return '<option value="' + escapeHTML(a) + '"' + (area === a ? ' selected' : '') + '>' + escapeHTML(a) + '</option>';
-        }).join('') +
-        '</select>';
+      // Patch Dropdown Container
+      patchSelect = isFieldWork ? '<div id="mtp-patch-container-' + originalIdx + '"></div>' : '<span>--</span>';
     }
 
-    var availableTowns = Array.from(mrTowns).sort();
-    if (city && !availableTowns.includes(city)) {
-      availableTowns.push(city);
+    var cityInput = '';
+    if (isReadOnly) {
+      cityInput = '<span>' + escapeHTML(city || '--') + '</span>';
+    } else {
+      cityInput = isFieldWork ? '<div id="mtp-town-container-' + originalIdx + '"></div>' : '<span>--</span>';
     }
-    var cityInput = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPCity('+originalIdx+', this.value)">' +
-      '<option value="">-- Town/City --</option>' +
-      availableTowns.map(function(t) {
-        return '<option value="' + escapeHTML(t) + '"' + (city === t ? ' selected' : '') + '>' + escapeHTML(t) + '</option>';
-      }).join('') +
-      '</select>';
 
     return '<tr class="mtp-area-row"'+holidayRowStyle+'>'+
       '<td class="tbl-name">'+d.date+holidayText+'</td>'+
@@ -4594,6 +4703,42 @@ function renderMTPDaysUI(isReadOnly, existing){
 
   html += '</tbody></table></div></div>';
   c.innerHTML = html;
+  
+  // Initialize multi-select controls for MTP edit rows
+  daysToRender.forEach(function(d) {
+    var originalIdx = currentMTPDays.indexOf(d);
+    var workType = d.workType || 'FIELD WORK';
+    var isFieldWork = (workType === 'FIELD WORK');
+    if (isFieldWork) {
+      // Initialize Town Multi-select
+      var townContainer = document.getElementById('mtp-town-container-' + originalIdx);
+      if (townContainer) {
+        var availableTowns = Array.from(mrTowns).sort();
+        var savedTowns = d.stayCity ? d.stayCity.split(',').map(function(s){return s.trim();}) : [];
+        savedTowns.forEach(function(st) {
+          if (st && !availableTowns.includes(st)) availableTowns.push(st);
+        });
+        
+        createMultiSelect(townContainer, availableTowns, d.stayCity || '', '-- Town/City --', function(newVal) {
+          currentMTPDays[originalIdx].stayCity = newVal;
+        });
+      }
+      
+      // Initialize Patch Multi-select
+      var patchContainer = document.getElementById('mtp-patch-container-' + originalIdx);
+      if (patchContainer) {
+        var currentAreas = Array.from(mrAreas).sort();
+        var savedPatches = d.areaTerritory ? d.areaTerritory.split(',').map(function(p){return p.trim();}) : [];
+        savedPatches.forEach(function(sp) {
+          if (sp && !currentAreas.includes(sp)) currentAreas.push(sp);
+        });
+        
+        createMultiSelect(patchContainer, currentAreas, d.areaTerritory || '', '-- Select Patch --', function(newVal) {
+          updateMTPPatchMulti(originalIdx, newVal);
+        });
+      }
+    }
+  });
   
   var actionsEl = document.getElementById('tp-action-buttons');
   if (actionsEl) {
@@ -4686,6 +4831,48 @@ function updateMTPPatch(idx, value){
       }
     }
   }
+  updateMTPAnalytics(document.getElementById('tp-month').value);
+}
+
+function updateMTPPatchMulti(idx, value) {
+  var patches = value.split(',').map(function(s){return s.trim();}).filter(Boolean);
+  currentMTPDays[idx].areaTerritory = value;
+  currentMTPDays[idx].toLocation = value;
+  
+  var allDocs = [];
+  var allChems = [];
+  var cities = [];
+  var territories = [];
+  
+  patches.forEach(function(patch) {
+    getAssignedDoctorsForArea(patch).forEach(function(doc) {
+      if (!allDocs.includes(doc.id)) allDocs.push(doc.id);
+    });
+    getAssignedChemistsForArea(patch).forEach(function(chem) {
+      if (!allChems.includes(chem.id)) allChems.push(chem.id);
+    });
+    
+    var matchedDoc = DB.doctors.find(function(d) {
+      var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+      return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
+    });
+    if (matchedDoc) {
+      if (matchedDoc.city && !cities.includes(matchedDoc.city)) cities.push(matchedDoc.city);
+      if (matchedDoc.territoryType && !territories.includes(matchedDoc.territoryType)) territories.push(matchedDoc.territoryType);
+    }
+  });
+  
+  currentMTPDays[idx].plannedDocs = allDocs;
+  currentMTPDays[idx].plannedChems = allChems;
+  
+  if (cities.length > 0) {
+    currentMTPDays[idx].stayCity = cities.join(', ');
+    renderMTPDaysUI(false, null);
+  }
+  if (territories.length > 0) {
+    currentMTPDays[idx].territory = territories.join(', ');
+  }
+  
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
 
@@ -9332,6 +9519,107 @@ function downloadData(csv,fname){
   a.download=fname;
   a.click();
 }
+function createMultiSelect(container, options, selectedString, placeholder, onchange) {
+  var selected = selectedString ? selectedString.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+  
+  container.className = 'multiselect-container';
+  container.innerHTML = '';
+  
+  var header = document.createElement('div');
+  header.className = 'multiselect-header';
+  
+  function updateHeader() {
+    header.innerHTML = '';
+    if (selected.length === 0) {
+      header.textContent = placeholder;
+    } else {
+      selected.forEach(function(val) {
+        var badge = document.createElement('span');
+        badge.className = 'multiselect-badge';
+        badge.textContent = val;
+        var close = document.createElement('span');
+        close.className = 'close-btn';
+        close.textContent = '×';
+        close.onclick = function(e) {
+          e.stopPropagation();
+          selected = selected.filter(function(x){return x !== val;});
+          updateHeader();
+          updateDropdownCheckboxes();
+          if (onchange) onchange(selected.join(', '));
+        };
+        badge.appendChild(close);
+        header.appendChild(badge);
+      });
+    }
+  }
+  
+  updateHeader();
+  
+  var dropdown = document.createElement('div');
+  dropdown.className = 'multiselect-dropdown';
+  
+  function updateDropdownCheckboxes() {
+    var checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(function(cb) {
+      cb.checked = selected.includes(cb.value);
+    });
+  }
+  
+  options.forEach(function(opt) {
+    var item = document.createElement('div');
+    item.className = 'multiselect-option';
+    
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = opt;
+    cb.checked = selected.includes(opt);
+    
+    cb.onchange = function(e) {
+      if (cb.checked) {
+        if (!selected.includes(opt)) selected.push(opt);
+      } else {
+        selected = selected.filter(function(x){return x !== opt;});
+      }
+      updateHeader();
+      if (onchange) onchange(selected.join(', '));
+    };
+    
+    item.onclick = function(e) {
+      if (e.target !== cb) {
+        cb.checked = !cb.checked;
+        cb.onchange();
+      }
+    };
+    
+    var label = document.createElement('span');
+    label.textContent = opt;
+    
+    item.appendChild(cb);
+    item.appendChild(label);
+    dropdown.appendChild(item);
+  });
+  
+  header.onclick = function(e) {
+    e.stopPropagation();
+    // Close other dropdowns
+    document.querySelectorAll('.multiselect-dropdown').forEach(function(d) {
+      if (d !== dropdown) d.classList.remove('open');
+    });
+    dropdown.classList.toggle('open');
+  };
+  
+  container.appendChild(header);
+  container.appendChild(dropdown);
+}
+
+// Global click handler to close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.multiselect-container')) {
+    document.querySelectorAll('.multiselect-dropdown').forEach(function(d) {
+      d.classList.remove('open');
+    });
+  }
+});
 
 // Utility Helpers
 function escapeHTML(str) {

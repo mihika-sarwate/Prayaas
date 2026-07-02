@@ -1393,6 +1393,11 @@ table.tbl tr:last-child td{border-bottom:none}
 
 <script>
 window.addEventListener('error', function(e) {
+  // Ignore generic cross-origin script errors or browser extension errors
+  if (e.message === 'Script error.' || !e.filename) {
+    console.warn('Ignored cross-origin or extension error:', e);
+    return;
+  }
   var div = document.createElement('div');
   div.style.position = 'fixed';
   div.style.top = '10px';
@@ -1729,6 +1734,7 @@ function ensureSupabaseLoaded(callback) {
     console.log("Local file failed. Trying UNPKG...");
     var sU = document.createElement('script');
     sU.src = "https://unpkg.com/@supabase/supabase-js@2";
+    sU.crossOrigin = "anonymous";
     sU.onload = function() {
       if (initSupabaseClient()) {
         console.log("Supabase loaded from UNPKG.");
@@ -1745,6 +1751,7 @@ function ensureSupabaseLoaded(callback) {
     console.log("UNPKG failed. Trying CDNJS...");
     var s2 = document.createElement('script');
     s2.src = "https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.0/supabase.js";
+    s2.crossOrigin = "anonymous";
     s2.onload = function() {
       if (initSupabaseClient()) {
         console.log("Supabase loaded from CDNJS.");

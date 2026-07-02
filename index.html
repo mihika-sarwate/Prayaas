@@ -4033,13 +4033,6 @@ window.addEventListener('beforeunload', function (e) {
 
   initSupabaseData();
 
-// Poll Supabase database for updates every 30 seconds if Supabase is connected, sync hasn't failed, and no sync is in progress or pending
-setInterval(async function() {
-  if (useSupabase && !isSyncing && !syncPending && !hasSyncError) {
-      console.log("Auto-polling Supabase data...");
-      await initSupabaseData(true);
-    }
-}, 30000);
 
 var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};
 

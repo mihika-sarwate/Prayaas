@@ -2,6 +2,6 @@
   "name": "prayaas",
   "version": "1.0.0",
   "scripts": {
-    "build": "node generate-config.js"
+    "build": "node build.js"
   }
 }

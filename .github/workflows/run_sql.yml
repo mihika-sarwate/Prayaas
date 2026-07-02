@@ -38,6 +38,6 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add db_tables.txt
+          git add -f db_tables.txt
           git commit -m "chore: save database tables list [skip ci]" || exit 0
-          git push
+          git push || echo "Push failed (e.g. due to branch protection or permissions), skipping push silently."

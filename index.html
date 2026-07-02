@@ -1919,6 +1919,8 @@ async function initSupabaseData(isSilent) {
       }
       try {
         await loadLocalDB();
+        var indicator = document.getElementById('db-status-indicator');
+        if (indicator) indicator.textContent = 'Database Connection: Offline Mode (Cached)';
       } catch (e) {
         console.error("loadLocalDB failed during timeout:", e);
       } finally {
@@ -1932,6 +1934,8 @@ async function initSupabaseData(isSilent) {
       console.warn("Supabase load already attempted. Using local database.");
       try {
         await loadLocalDB();
+        var indicator = document.getElementById('db-status-indicator');
+        if (indicator) indicator.textContent = 'Database Connection: Offline Mode (Cached)';
       } catch (e) {
         console.error("loadLocalDB failed after load attempt:", e);
       } finally {
@@ -1949,6 +1953,8 @@ async function initSupabaseData(isSilent) {
         isLoadingData = true;
         try {
           await loadLocalDB();
+          var indicator = document.getElementById('db-status-indicator');
+          if (indicator) indicator.textContent = 'Database Connection: Offline Mode (Cached)';
         } catch (e) {
           console.error("loadLocalDB failed after script loading:", e);
         } finally {
@@ -2864,6 +2870,8 @@ async function loadLocalDB() {
     }
   }
   hasInitializedData = true;
+  var indicator = document.getElementById('db-status-indicator');
+  if (indicator) indicator.textContent = 'Database Connection: Offline Mode (Cached)';
   try {
     ensureAttendanceSchedulerUpToDate();
   } catch(e) {

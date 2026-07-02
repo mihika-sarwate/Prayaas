@@ -2319,6 +2319,9 @@ async function loadLocalDB() {
       } catch (e2) {}
     }
   }
+  hasInitializedData = true;
+  var indicator = document.getElementById('db-status-indicator');
+  if (indicator) indicator.textContent = 'Database Connection: Offline Mode (Cached)';
 }
 async function seedSupabaseDatabase() {
   try {

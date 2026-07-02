@@ -331,8 +331,8 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div id="r-standard-loc-fields">
         <div class="row2">
-          <div><label class="lbl">Territory</label><select id="r-territory" onchange="populateReportCityPatch()"><option value="HQ">HQ</option><option value="Ex">Ex</option><option value="OS">OS</option></select></div>
-          <div><label class="lbl">Town / City</label><select id="r-city" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Town --</option></select></div>
+          <div style="display:none"><label class="lbl">Territory</label><select id="r-territory" onchange="populateReportCityPatch()"><option value="HQ">HQ</option><option value="Ex">Ex</option><option value="OS">OS</option></select></div>
+          <div style="grid-column: span 2"><label class="lbl">Town / City</label><select id="r-city" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Town --</option></select></div>
         </div>
         <div class="row2">
           <div style="grid-column: span 2"><label class="lbl">Patch</label><select id="r-patch" onchange="filterReportingDropdownsByPatch()"><option value="">-- Select Patch --</option></select></div>
@@ -3310,6 +3310,25 @@ function filterReportingChemistsDropdown() {
 }
 
 function filterReportingDropdownsByPatch() {
+  var patchSel = document.getElementById('r-patch');
+  var citySel = document.getElementById('r-city');
+  var patch = patchSel ? patchSel.value : '';
+  var city = citySel ? citySel.value : '';
+  
+  if (patch || city) {
+    var matchedDoc = DB.doctors.find(function(d) {
+      if (patch && (d.area || '').toLowerCase().trim() === patch.toLowerCase().trim()) return true;
+      if (city && (d.city || '').toLowerCase().trim() === city.toLowerCase().trim()) return true;
+      return false;
+    });
+    if (matchedDoc && matchedDoc.territoryType) {
+      var tSel = document.getElementById('r-territory');
+      if (tSel) {
+        tSel.value = matchedDoc.territoryType;
+      }
+    }
+  }
+
   filterReportingDoctorsDropdown();
   filterReportingChemistsDropdown();
   filterReportingStockistsDropdown();
@@ -3377,12 +3396,25 @@ function populateReportTerritoryDropdowns() {
 }
 
 function populateReportCityPatch() {
-  var tSel = document.getElementById('r-territory');
-  if (!tSel) return;
-  var territory = (tSel.value || 'HQ').trim().toUpperCase();
-  
   var mrTownsByTerritory = window._mrTownsByTerritory || {};
-  var availableTowns = mrTownsByTerritory[territory] ? Array.from(mrTownsByTerritory[territory]).filter(function(x) { return x && x.trim() !== '' && !x.trim().startsWith('--'); }).sort() : [];
+  var mrAreasByTerritory = window._mrAreasByTerritory || {};
+  
+  var townsSet = new Set();
+  var patchesSet = new Set();
+  
+  Object.keys(mrTownsByTerritory).forEach(function(k) {
+    if (mrTownsByTerritory[k]) {
+      mrTownsByTerritory[k].forEach(function(t) { townsSet.add(t); });
+    }
+  });
+  Object.keys(mrAreasByTerritory).forEach(function(k) {
+    if (mrAreasByTerritory[k]) {
+      mrAreasByTerritory[k].forEach(function(p) { patchesSet.add(p); });
+    }
+  });
+  
+  var availableTowns = Array.from(townsSet).filter(function(x) { return x && x.trim() !== '' && !x.trim().startsWith('--'); }).sort();
+  var availablePatches = Array.from(patchesSet).filter(function(x) { return x && x.trim() !== '' && !x.trim().startsWith('--'); }).sort();
   
   var citySel = document.getElementById('r-city');
   if (citySel) {
@@ -3390,9 +3422,6 @@ function populateReportCityPatch() {
       return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>';
     }).join('');
   }
-  
-  var mrAreasByTerritory = window._mrAreasByTerritory || {};
-  var availablePatches = mrAreasByTerritory[territory] ? Array.from(mrAreasByTerritory[territory]).filter(function(x) { return x && x.trim() !== '' && !x.trim().startsWith('--'); }).sort() : [];
   
   var patchSel = document.getElementById('r-patch');
   if (patchSel) {

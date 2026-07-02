@@ -1521,10 +1521,11 @@ async function fetchAllFromSupabase(table, options) {
   let allData = [];
   let page = 0;
   const pageSize = 1000;
+  const selectClause = (options && options.select) ? options.select : '*';
   while (true) {
     let query = supabase
       .from(table)
-      .select('*');
+      .select(selectClause);
       
     if (table === 'holidays') {
       query = query.order('date');
@@ -1577,14 +1578,29 @@ async function upsertInBatches(table, dataArray, chunkSize = 1000) {
   if (deduped.length < dataArray.length) {
     console.warn('upsertInBatches(' + table + '): removed ' + (dataArray.length - deduped.length) + ' duplicate rows before upsert.');
   }
+  let allUpdatedRows = [];
   for (let i = 0; i < deduped.length; i += chunkSize) {
     const chunk = deduped.slice(i, i + chunkSize);
-    const { error } = await supabase.from(table).upsert(chunk);
+    let query = supabase.from(table).upsert(chunk);
+    if (table === 'sfc') {
+      query = query.select('id,emp_id,from_loc,to_loc,distance,mode,category,fare,da,working_days,emp_name,hq,state,doctors,business');
+    } else if (table === 'samples_inventory') {
+      query = query.select('id,prod_name,emp_id');
+    } else if (table === 'gifts_inventory') {
+      query = query.select('id,gift_name,emp_id');
+    } else if (table === 'inputs_inventory') {
+      query = query.select('id,input_name,emp_id');
+    }
+    const { data, error } = await query;
     if (error) {
       console.error("Batch upsert failed on table " + table + ":", error);
       throw error;
     }
+    if (data) {
+      allUpdatedRows = allUpdatedRows.concat(data);
+    }
   }
+  return allUpdatedRows;
 }
 
 async function initSupabaseData(isSilent) {
@@ -2505,7 +2521,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('employees').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing employees:", e);
     }
@@ -2513,7 +2529,7 @@ window.addEventListener('beforeunload', function (e) {
     // Fetch latest employee IDs from Supabase to ensure foreign key integrity
     var activeEmpIds = new Set();
     try {
-      var activeEmps = await fetchAllFromSupabase('employees');
+      var activeEmps = await fetchAllFromSupabase('employees', { select: 'id' });
       if (activeEmps && activeEmps.length > 0) {
         activeEmps.forEach(function(e) {
           if (e.id) activeEmpIds.add(String(e.id).toUpperCase().trim());
@@ -2731,7 +2747,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('reports').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing reports:", e);
     }
@@ -2770,7 +2786,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('tour_plans').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing tour plans:", e);
     }
@@ -2802,7 +2818,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('expenses').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing expenses:", e);
     }
@@ -2840,7 +2856,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('leaves').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing leaves:", e);
     }
@@ -2866,7 +2882,7 @@ window.addEventListener('beforeunload', function (e) {
       await upsertInBatches('samples_inventory', dbSamples);
       await reconcileSupabaseRows('samples_inventory', DB.samplesInventory || [], function(row) {
         return supabase.from('samples_inventory').delete().eq('id', row.id);
-      });
+      }, { select: 'id,emp_id,prod_name' });
     } catch (e) {
       console.error("Error syncing samples inventory:", e);
     }
@@ -2892,7 +2908,7 @@ window.addEventListener('beforeunload', function (e) {
       await upsertInBatches('gifts_inventory', dbGifts);
       await reconcileSupabaseRows('gifts_inventory', DB.giftsInventory || [], function(row) {
         return supabase.from('gifts_inventory').delete().eq('id', row.id);
-      });
+      }, { select: 'id,emp_id,gift_name' });
     } catch (e) {
       console.error("Error syncing gifts inventory:", e);
     }
@@ -2918,7 +2934,7 @@ window.addEventListener('beforeunload', function (e) {
       await upsertInBatches('inputs_inventory', dbInputs);
       await reconcileSupabaseRows('inputs_inventory', DB.inputsInventory || [], function(row) {
         return supabase.from('inputs_inventory').delete().eq('id', row.id);
-      });
+      }, { select: 'id,emp_id,input_name' });
     } catch (e) {
       console.error("Error syncing inputs inventory:", e);
     }
@@ -2977,7 +2993,7 @@ window.addEventListener('beforeunload', function (e) {
       }
       await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
         return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();
-      });
+      }, { select: 'id,emp_id,from_loc,to_loc,distance,mode,category,fare,da,working_days,emp_name,hq,state,doctors,business' });
     } catch (e) {
       console.error("Error syncing SFC:", e);
     }
@@ -2999,7 +3015,7 @@ window.addEventListener('beforeunload', function (e) {
           return supabase.from('holidays').delete()
             .eq('date', formatDateForPostgres(row.date) || row.date)
             .eq('state', normalizeHolidayState(row.state));
-        });
+        }, { select: 'date,state' });
       }
     } catch (holErr) {
       if (holErr && (holErr.code === 'PGRST205' || /could not find the table/i.test(holErr.message || ''))) {
@@ -3916,10 +3932,10 @@ function normalizeHolidayKey(row) {
   ].join('|').toLowerCase();
 }
 
-async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn) {
+async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn, options) {
   var isPruningAllowed = SESSION && SESSION.user && SESSION.user.role === 'admin';
   try {
-    const remoteRows = await fetchAllFromSupabase(table);
+    const remoteRows = await fetchAllFromSupabase(table, options);
     const localKeys = new Set((localRows || []).map(localKeyFn));
     const staleRows = remoteRows.filter(function(row) {
       return !localKeys.has(localKeyFn(row));

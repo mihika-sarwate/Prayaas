@@ -1778,10 +1778,11 @@ async function fetchAllFromSupabase(table, options) {
   let allData = [];
   let page = 0;
   const pageSize = 1000;
+  const selectClause = (options && options.select) ? options.select : '*';
   while (true) {
     let query = supabase
       .from(table)
-      .select('*');
+      .select(selectClause);
       
     if (table === 'holidays') {
       query = query.order('date');
@@ -1856,18 +1857,29 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
       console.log("Sending chunk " + (i/chunkSize + 1) + " of " + Math.ceil(arr.length/chunkSize) + " to table " + table + ". Size: " + chunk.length);
       
       // Perform upsert with custom option onConflict to guarantee compatibility with custom text primary keys (like employees.id, doctors.id)
-      let res;
+      let opt = {};
       if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists') {
-        res = await supabase.from(table).upsert(chunk, { onConflict: 'id' }).select();
+        opt = { onConflict: 'id' };
       } else if (table === 'attendance') {
-        res = await supabase.from(table).upsert(chunk, { onConflict: 'employee_id,date' }).select();
+        opt = { onConflict: 'employee_id,date' };
       } else if (table === 'weekly_off_config') {
-        res = await supabase.from(table).upsert(chunk, { onConflict: 'employee_id,weekday' }).select();
+        opt = { onConflict: 'employee_id,weekday' };
       } else if (table === 'holidays') {
-        res = await supabase.from(table).upsert(chunk, { onConflict: 'date,state' }).select();
-      } else {
-        res = await supabase.from(table).upsert(chunk).select();
+        opt = { onConflict: 'date,state' };
       }
+      
+      let query = supabase.from(table).upsert(chunk, opt);
+      if (table === 'sfc') {
+        query = query.select('id,emp_id,from_loc,to_loc,distance,mode,category,fare,da,working_days,emp_name,hq,state,doctors,business');
+      } else if (table === 'samples_inventory') {
+        query = query.select('id,prod_name,emp_id');
+      } else if (table === 'gifts_inventory') {
+        query = query.select('id,gift_name,emp_id');
+      } else if (table === 'inputs_inventory') {
+        query = query.select('id,input_name,emp_id');
+      }
+      
+      let res = await query;
 
       console.log("Response for table " + table + ": status=" + res.status + ", error=" + (res.error ? JSON.stringify(res.error) : 'none'));
       if (res.error) {
@@ -3402,7 +3414,7 @@ window.addEventListener('beforeunload', function (e) {
       await upsertInBatches('announcements', dbAnnouncements);
       await reconcileSupabaseRows('announcements', DB.announcements, function(row) { return row.id; }, function(row) {
         return row.id ? supabase.from('announcements').delete().eq('id', row.id) : Promise.resolve();
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing announcements:", e);
     }
@@ -3436,7 +3448,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('employees').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
       // Employee sync confirmed — clear pending change markers so poller can resume normal updates
       _pendingLocalEmpIds.clear();
       _pendingDeletedEmpIds.clear();
@@ -3448,7 +3460,7 @@ window.addEventListener('beforeunload', function (e) {
     // Fetch latest employee IDs from Supabase to ensure foreign key integrity
     var activeEmpIds = new Set();
     try {
-      var activeEmps = await fetchAllFromSupabase('employees');
+      var activeEmps = await fetchAllFromSupabase('employees', { select: 'id' });
       if (activeEmps && activeEmps.length > 0) {
         activeEmps.forEach(function(e) {
           if (e.id) activeEmpIds.add(String(e.id).toUpperCase().trim());
@@ -3674,7 +3686,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('reports').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing reports:", e);
     }
@@ -3713,7 +3725,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('tour_plans').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing tour plans:", e);
     }
@@ -3745,7 +3757,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('expenses').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing expenses:", e);
     }
@@ -3783,7 +3795,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('leaves').delete().eq('id', row.id);
-      });
+      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing leaves:", e);
       hasSyncError = true;
@@ -3825,7 +3837,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(empId).toUpperCase().trim() + '|' + String(prodName).toUpperCase().trim();
       }, function(row) {
         return supabase.from('samples_inventory').delete().eq('id', row.id);
-      });
+      }, { select: 'id,emp_id,prod_name' });
     } catch (e) {
       console.error("Error syncing samples inventory:", e);
       hasSyncError = true;
@@ -3868,7 +3880,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(empId).toUpperCase().trim() + '|' + String(giftName).toUpperCase().trim();
       }, function(row) {
         return supabase.from('gifts_inventory').delete().eq('id', row.id);
-      });
+      }, { select: 'id,emp_id,gift_name' });
     } catch (e) {
       console.error("Error syncing gifts inventory:", e);
       hasSyncError = true;
@@ -3911,7 +3923,7 @@ window.addEventListener('beforeunload', function (e) {
         return String(empId).toUpperCase().trim() + '|' + String(inputName).toUpperCase().trim();
       }, function(row) {
         return supabase.from('inputs_inventory').delete().eq('id', row.id);
-      });
+      }, { select: 'id,emp_id,input_name' });
     } catch (e) {
       console.error("Error syncing inputs inventory:", e);
       hasSyncError = true;
@@ -3944,7 +3956,7 @@ window.addEventListener('beforeunload', function (e) {
         return supabase.from('attendance').delete()
           .eq('employee_id', row.employeeId)
           .eq('date', formatDateForPostgres(row.date) || row.date);
-      });
+      }, { select: 'employee_id,date' });
     } catch (e) {
       console.error("Error syncing attendance:", e);
       hasSyncError = true;
@@ -3967,7 +3979,7 @@ window.addEventListener('beforeunload', function (e) {
         return supabase.from('weekly_off_config').delete()
           .eq('employee_id', row.employeeId || null)
           .eq('weekday', typeof row.weekday === 'number' ? row.weekday : parseInt(row.weekday || '0', 10) || 0);
-      });
+      }, { select: 'id,employee_id,weekday' });
     } catch (e) {
       console.error("Error syncing weekly off configuration:", e);
       hasSyncError = true;
@@ -3991,7 +4003,7 @@ window.addEventListener('beforeunload', function (e) {
           return supabase.from('holidays').delete()
             .eq('date', formatDateForPostgres(row.date) || row.date)
             .eq('state', normalizeHolidayState(row.state));
-        });
+        }, { select: 'date,state' });
       }
     } catch (holErr) {
       if (holErr && (holErr.code === 'PGRST205' || /could not find the table/i.test(holErr.message || ''))) {
@@ -5088,11 +5100,11 @@ function normalizeHolidayKey(row) {
   ].join('|').toLowerCase();
 }
 
-async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn) {
+async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn, options) {
   if (_missingSupabaseTables[table]) return; // Skip for known-missing tables
   var isPruningAllowed = SESSION && SESSION.user && SESSION.user.role === 'admin';
   try {
-    const remoteRows = await fetchAllFromSupabase(table);
+    const remoteRows = await fetchAllFromSupabase(table, options);
     const localRowsMap = new Map();
     (localRows || []).forEach(function(l) {
       localRowsMap.set(localKeyFn(l), l);

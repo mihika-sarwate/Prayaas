@@ -789,10 +789,15 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="card">
         <div class="card-title">Blocked Employees</div>
+        <div style="margin-bottom: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <input type="text" id="blocked-search" placeholder="Search blocked employees..." oninput="renderAttendanceDashboard()" style="max-width: 280px; margin-bottom: 0;">
+          <button class="btn sm success" id="btn-unblock-selected-blocked" style="display:none; width:auto; padding: 6px 12px;" onclick="unblockSelectedBlocked()">Unblock Selected</button>
+          <button class="btn sm" id="btn-unblock-all-blocked" style="width:auto; padding: 6px 12px;" onclick="unblockAllBlocked()">Unblock All</button>
+        </div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead>
-              <tr><th>Employee</th><th>Blocked Date</th><th>Reason</th><th>Weekly Off</th><th>Action</th></tr>
+              <tr><th style="width:40px"><input type="checkbox" id="check-all-blocked" onclick="toggleSelectAllBlocked(this)"></th><th>Employee</th><th>Blocked Date</th><th>Reason</th><th>Weekly Off</th><th>Action</th></tr>
             </thead>
             <tbody id="attendance-blocked-body"></tbody>
           </table>
@@ -6091,18 +6096,100 @@ function renderAttendanceDashboard() {
   if (nsEl) nsEl.textContent = nsDays;
   if (leaveEl) leaveEl.textContent = leaveDays;
   if (pctEl) pctEl.textContent = percent + '%';
+  var blockedSearch = String(document.getElementById('blocked-search') ? document.getElementById('blocked-search').value : '').trim().toLowerCase();
+  var masterCheck = document.getElementById('check-all-blocked');
+  if (masterCheck) masterCheck.checked = false;
+  var btnSel = document.getElementById('btn-unblock-selected-blocked');
+  if (btnSel) btnSel.style.display = 'none';
+
   if (blockedBody) {
     var blockedRows = (DB.employees || []).filter(function(emp) {
-      return isAttendanceTrackedEmployee(emp) && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED';
+      if (!(isAttendanceTrackedEmployee(emp) && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED')) return false;
+      if (blockedSearch) {
+        var haystack = [
+          emp.id || '',
+          emp.name || '',
+          emp.blockedDate || '',
+          emp.blockedReason || '',
+          getEmployeeWeeklyOffLabel(emp)
+        ].join(' ').toLowerCase();
+        if (haystack.indexOf(blockedSearch) === -1) return false;
+      }
+      return true;
     });
     if (!blockedRows.length) {
-      blockedBody.innerHTML = '<tr><td colspan="5" class="empty">No blocked employees.</td></tr>';
+      blockedBody.innerHTML = '<tr><td colspan="6" class="empty">No blocked employees.</td></tr>';
     } else {
       blockedBody.innerHTML = blockedRows.map(function(emp) {
-        return '<tr><td class="tbl-name">' + escapeHTML(emp.name || emp.id) + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(emp.id || '') + '</div></td><td>' + escapeHTML(emp.blockedDate || '-') + '</td><td>' + escapeHTML(emp.blockedReason || '-') + '</td><td>' + escapeHTML(getEmployeeWeeklyOffLabel(emp)) + '</td><td><button class="btn sm success" style="width:auto;display:inline-block" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id)) + ', ' + escapeHTML(JSON.stringify('ACTIVE')) + ', true)">Unblock</button></td></tr>';
+        return '<tr><td><input type="checkbox" class="blocked-row-check" value="' + escapeHTML(emp.id || '') + '" onchange="updateSelectedBlockedCount()"></td><td class="tbl-name">' + escapeHTML(emp.name || emp.id) + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(emp.id || '') + '</div></td><td>' + escapeHTML(emp.blockedDate || '-') + '</td><td>' + escapeHTML(emp.blockedReason || '-') + '</td><td>' + escapeHTML(getEmployeeWeeklyOffLabel(emp)) + '</td><td><button class="btn sm success" style="width:auto;display:inline-block" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id)) + ', ' + escapeHTML(JSON.stringify('ACTIVE')) + ', true)">Unblock</button></td></tr>';
       }).join('');
     }
   }
+}
+
+function toggleSelectAllBlocked(masterCheck) {
+  var checks = document.querySelectorAll('.blocked-row-check');
+  checks.forEach(function(c) {
+    c.checked = masterCheck.checked;
+  });
+  updateSelectedBlockedCount();
+}
+
+function updateSelectedBlockedCount() {
+  var selected = document.querySelectorAll('.blocked-row-check:checked').length;
+  var btn = document.getElementById('btn-unblock-selected-blocked');
+  if (btn) {
+    if (selected > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = '🔓 Unblock Selected (' + selected + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function unblockSelectedBlocked() {
+  var checked = document.querySelectorAll('.blocked-row-check:checked');
+  if (!checked.length) return;
+  var idsToUnblock = Array.from(checked).map(function(cb) { return cb.value; });
+  if (!confirm('Are you sure you want to unblock the ' + idsToUnblock.length + ' selected employees?')) return;
+  idsToUnblock.forEach(function(id) {
+    setEmployeeAccountStatus(id, 'ACTIVE', true);
+  });
+  showToast('Selected employees unblocked successfully.', 3000);
+  var masterCheck = document.getElementById('check-all-blocked');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedBlockedCount();
+}
+
+function unblockAllBlocked() {
+  var blockedSearch = String(document.getElementById('blocked-search') ? document.getElementById('blocked-search').value : '').trim().toLowerCase();
+  var blockedRows = (DB.employees || []).filter(function(emp) {
+    if (!(isAttendanceTrackedEmployee(emp) && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED')) return false;
+    if (blockedSearch) {
+      var haystack = [
+        emp.id || '',
+        emp.name || '',
+        emp.blockedDate || '',
+        emp.blockedReason || '',
+        getEmployeeWeeklyOffLabel(emp)
+      ].join(' ').toLowerCase();
+      if (haystack.indexOf(blockedSearch) === -1) return false;
+    }
+    return true;
+  });
+  if (!blockedRows.length) {
+    showToast('No blocked employees to unblock.', 3000);
+    return;
+  }
+  if (!confirm('Are you sure you want to unblock all ' + blockedRows.length + ' blocked employees?')) return;
+  blockedRows.forEach(function(emp) {
+    setEmployeeAccountStatus(emp.id, 'ACTIVE', true);
+  });
+  showToast('All blocked employees unblocked successfully.', 3000);
+  var masterCheck = document.getElementById('check-all-blocked');
+  if (masterCheck) masterCheck.checked = false;
+  updateSelectedBlockedCount();
 }
 
 function runAttendanceValidationNow() {

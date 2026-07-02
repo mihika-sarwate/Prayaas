@@ -3072,6 +3072,12 @@ async function pushReportToSupabase(rep) {
       var mMgr = DB.employees.find(function(x) { return String(x.id||'').toUpperCase() === String(jfwMgrId).toUpperCase(); });
       jfwMgrId = mMgr ? mMgr.id : jfwMgrId;
     }
+    var meta = {
+      workType: rep.workType || 'FIELD WORK',
+      territory: rep.territory || '',
+      city: rep.city || '',
+      patch: rep.patch || ''
+    };
     var row = {
       id: rep.id,
       emp_id: empId,
@@ -3102,7 +3108,7 @@ async function pushReportToSupabase(rep) {
       jfw_remarks: rep.jfwRemarks || null,
       lat: rep.lat || null,
       lng: rep.lng || null,
-      remarks: rep.remarks || null,
+      remarks: (rep.remarks || '') + '\n===METADATA===\n' + JSON.stringify(meta),
       next_visit: formatDateForPostgres(rep.nextVisit) || null
     };
     var res = await supabase.from('reports').upsert([row], { onConflict: 'id' });
@@ -6093,7 +6099,7 @@ function renderAttendanceDashboard() {
       blockedBody.innerHTML = '<tr><td colspan="5" class="empty">No blocked employees.</td></tr>';
     } else {
       blockedBody.innerHTML = blockedRows.map(function(emp) {
-        return '<tr><td class="tbl-name">' + escapeHTML(emp.name || emp.id) + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(emp.id || '') + '</div></td><td>' + escapeHTML(emp.blockedDate || '-') + '</td><td>' + escapeHTML(emp.blockedReason || '-') + '</td><td>' + escapeHTML(getEmployeeWeeklyOffLabel(emp)) + '</td><td><button class="btn sm success" style="width:auto;display:inline-block" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('ACTIVE') + ', true') + ')">Unblock</button></td></tr>';
+        return '<tr><td class="tbl-name">' + escapeHTML(emp.name || emp.id) + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(emp.id || '') + '</div></td><td>' + escapeHTML(emp.blockedDate || '-') + '</td><td>' + escapeHTML(emp.blockedReason || '-') + '</td><td>' + escapeHTML(getEmployeeWeeklyOffLabel(emp)) + '</td><td><button class="btn sm success" style="width:auto;display:inline-block" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id)) + ', ' + escapeHTML(JSON.stringify('ACTIVE')) + ', true)">Unblock</button></td></tr>';
       }).join('');
     }
   }
@@ -8634,11 +8640,11 @@ function openEmployeeStatusModal(empId) {
       '<div style="display:flex;align-items:flex-end"><button class="btn sm" onclick="saveEmployeeWeeklyOff(' + escapeHTML(JSON.stringify(emp.id)) + ')">Save Weekly Off</button></div>',
     '</div>',
     '<div class="btn-row" style="flex-wrap:wrap">',
-      '<button class="btn warn sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Hold')) + ')">Hold</button>',
-      '<button class="btn danger sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Resign')) + ')">Resign</button>',
-      '<button class="btn gold sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Replace')) + ')">Replace</button>',
-      '<button class="btn success sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify('Active')) + ')">Active</button>',
-      '<button class="btn ' + (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'success' : 'warn') + ' sm" style="flex:1 1 100%" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id) + ', ' + JSON.stringify(normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED')) + ')">' + (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'Unblock Account' : 'Block Account') + '</button>',
+      '<button class="btn warn sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id)) + ', ' + escapeHTML(JSON.stringify('Hold')) + ')">Hold</button>',
+      '<button class="btn danger sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id)) + ', ' + escapeHTML(JSON.stringify('Resign')) + ')">Resign</button>',
+      '<button class="btn gold sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id)) + ', ' + escapeHTML(JSON.stringify('Replace')) + ')">Replace</button>',
+      '<button class="btn success sm" style="flex:1 1 calc(50% - 6px)" onclick="setEmployeeStatus(' + escapeHTML(JSON.stringify(emp.id)) + ', ' + escapeHTML(JSON.stringify('Active')) + ')">Active</button>',
+      '<button class="btn ' + (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'success' : 'warn') + ' sm" style="flex:1 1 100%" onclick="setEmployeeAccountStatus(' + escapeHTML(JSON.stringify(emp.id)) + ', ' + escapeHTML(JSON.stringify(normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED')) + ')">' + (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED' ? 'Unblock Account' : 'Block Account') + '</button>',
     '</div>'
   ].join('');
   var weeklyOffSelect = document.getElementById('emp-weekly-off');

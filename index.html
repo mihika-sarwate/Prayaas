@@ -4474,12 +4474,6 @@ function populateReportTerritoryDropdowns() {
     
     if (isAssignedToTeam && d.status === 'Active') {
       var tType = (d.territoryType || '').trim().toUpperCase();
-      var docCity = (d.city || '').trim().toLowerCase();
-      
-      // Enforce business rule: HQ category strictly matches employee's home headquarter town
-      if (tType === 'HQ' && userHq && docCity !== userHq) {
-        tType = 'EX';
-      }
       
       if (tType) {
         if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
@@ -4508,22 +4502,12 @@ function populateReportTerritoryDropdowns() {
       var tTypes = areaToTType[cArea];
       if (tTypes && tTypes.length > 0) {
         tTypes.forEach(function(tt) {
-          var chemCity = (c.city || '').trim().toLowerCase();
-          var actualTt = tt;
-          if (actualTt === 'HQ' && userHq && chemCity && chemCity !== userHq) {
-            actualTt = 'EX';
-          }
-          mrAreasByTerritory[actualTt].add(cArea);
-          if (c.city) mrTownsByTerritory[actualTt].add(c.city.trim());
+          mrAreasByTerritory[tt].add(cArea);
+          if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
         });
       } else {
-        var chemCity = (c.city || '').trim().toLowerCase();
-        var defaultTt = 'HQ';
-        if (userHq && chemCity && chemCity !== userHq) {
-          defaultTt = 'EX';
-        }
-        mrAreasByTerritory[defaultTt].add(cArea);
-        if (c.city) mrTownsByTerritory[defaultTt].add(c.city.trim());
+        mrAreasByTerritory['HQ'].add(cArea);
+        if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
       }
     }
   });
@@ -6381,12 +6365,6 @@ function renderMTPDaysUI(isReadOnly, existing){
 
       if (isAssignedToTeam && d.status === 'Active') {
         var tType = (d.territoryType || '').trim().toUpperCase();
-        var docCity = (d.city || '').trim().toLowerCase();
-        
-        // Enforce business rule: HQ category strictly matches target employee's home headquarter town
-        if (tType === 'HQ' && targetHq && docCity !== targetHq) {
-          tType = 'EX';
-        }
         
         if (tType) {
           if (d.city) mrTownsByTerritory[tType].add(d.city.trim());

@@ -1,5 +1,4 @@
 # Local configuration files containing credentials
-config.js
 .env
 
 # Local database CSVs / data backups

@@ -4447,12 +4447,12 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 
   html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+
-    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Type of Working</th><th>Town / City</th><th>Patch</th></tr></thead><tbody>';
+    '<div class="tbl-wrap"><table class="tbl" style="min-width:620px"><thead><tr><th>Date</th><th>Day</th><th>Type of Working</th><th>Territory</th><th>Town / City</th><th>Patch</th></tr></thead><tbody>';
 
   var daysToRender = isReadOnly ? currentMTPDays.filter(function(day){return day.workType === 'FIELD WORK' && !!(day.areaTerritory||'').trim();}) : currentMTPDays;
 
-  var mrTowns = new Set();
-  var mrAreas = new Set();
+  var mrTownsByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
+  var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   
   var targetEmpId = (existing && existing.empId) ? existing.empId : (SESSION.user ? SESSION.user.id : '');
   var teamIds = targetEmpId ? [String(targetEmpId).toUpperCase()] : null;
@@ -4466,8 +4466,11 @@ function renderMTPDaysUI(isReadOnly, existing){
       var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
 
       if (isAssignedToTeam && d.status === 'Active') {
-        if (d.city) mrTowns.add(d.city.trim());
-        if (d.area) mrAreas.add(d.area.trim());
+        var tType = (d.territoryType || '').trim().toUpperCase();
+        if (tType) {
+          if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
+          if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
+        }
       }
     });
   }
@@ -4477,6 +4480,7 @@ function renderMTPDaysUI(isReadOnly, existing){
     var area=d.areaTerritory||'';
     var city=d.stayCity||'';
     var workType=d.workType||'FIELD WORK';
+    var territory=d.territory||'HQ';
     
     var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
     
@@ -4489,11 +4493,13 @@ function renderMTPDaysUI(isReadOnly, existing){
     }
     
     var workTypeSelect = '';
+    var territorySelect = '';
     var patchSelect = '';
     var isFieldWork = (workType === 'FIELD WORK');
     
     if (isReadOnly) {
       workTypeSelect = '<span>' + workType + '</span>';
+      territorySelect = '<span>' + (isFieldWork ? territory : '--') + '</span>';
       patchSelect = '<span>' + (isFieldWork ? (area || '--') : '--') + '</span>';
     } else {
       // Work Type Dropdown
@@ -4506,8 +4512,16 @@ function renderMTPDaysUI(isReadOnly, existing){
         '<option value="TRANSIT"' + (workType === 'TRANSIT' ? ' selected' : '') + '>TRANSIT</option>' +
         '</select>';
         
+      // Territory Dropdown
+      territorySelect = '<select style="width:100%" '+(isFieldWork?'':'disabled')+' onchange="updateMTPTerritory('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
+        '<option value="HQ"' + (territory === 'HQ' ? ' selected' : '') + '>HQ</option>' +
+        '<option value="Ex"' + (territory === 'Ex' ? ' selected' : '') + '>Ex</option>' +
+        '<option value="OS"' + (territory === 'OS' ? ' selected' : '') + '>OS</option>' +
+        '</select>';
+        
       // Patch Dropdown
-      var currentAreas = Array.from(mrAreas).sort();
+      var lookupTerritory = (territory || 'HQ').trim().toUpperCase();
+      var currentAreas = mrAreasByTerritory[lookupTerritory] ? Array.from(mrAreasByTerritory[lookupTerritory]).sort() : [];
       if (area && !currentAreas.includes(area)) {
         currentAreas.push(area);
       }
@@ -4519,7 +4533,8 @@ function renderMTPDaysUI(isReadOnly, existing){
         '</select>';
     }
 
-    var availableTowns = Array.from(mrTowns).sort();
+    var lookupTerritory = (territory || 'HQ').trim().toUpperCase();
+    var availableTowns = mrTownsByTerritory[lookupTerritory] ? Array.from(mrTownsByTerritory[lookupTerritory]).sort() : [];
     if (city && !availableTowns.includes(city)) {
       availableTowns.push(city);
     }
@@ -4534,6 +4549,7 @@ function renderMTPDaysUI(isReadOnly, existing){
       '<td class="tbl-name">'+d.date+holidayText+'</td>'+
       '<td>'+dow+'</td>'+
       '<td>'+workTypeSelect+'</td>'+
+      '<td>'+territorySelect+'</td>'+
       '<td>'+cityInput+'</td>'+
       '<td>'+patchSelect+'</td>'+
       '</tr>';
@@ -4624,13 +4640,8 @@ function updateMTPPatch(idx, value){
       var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
       return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
     });
-    if (matchedDoc) {
-      if (matchedDoc.city) {
-        currentMTPDays[idx].stayCity = matchedDoc.city;
-      }
-      if (matchedDoc.territoryType) {
-        currentMTPDays[idx].territory = matchedDoc.territoryType;
-      }
+    if (matchedDoc && matchedDoc.city) {
+      currentMTPDays[idx].stayCity = matchedDoc.city;
     }
   }
   updateMTPAnalytics(document.getElementById('tp-month').value);

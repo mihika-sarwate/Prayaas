@@ -689,7 +689,10 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
         <div class="hdr-sub">Adonis Laboratories</div>
       </div>
-      <button class="hdr-badge" onclick="doLogout()">Logout</button>
+      <div style="display:flex;gap:6px">
+        <button class="hdr-badge" style="background:#0284c7;color:white" onclick="openChangePasswordModal()">Change Password</button>
+        <button class="hdr-badge" onclick="doLogout()">Logout</button>
+      </div>
     </div>
   </div>
   <div class="body">
@@ -1354,6 +1357,28 @@ table.tbl tr:last-child td{border-bottom:none}
   <div class="modal" style="max-width: 520px;">
     <div class="modal-title">Employee Status <button class="modal-close" onclick="closeModal('modal-emp-status')">&#215;</button></div>
     <div id="emp-status-modal-content"></div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-bg" id="modal-change-pwd">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-title">Change Password <button class="modal-close" onclick="closeModal('modal-change-pwd')">&times;</button></div>
+    <div style="padding: 16px;">
+      <div class="fw" style="margin-bottom: 12px;">
+        <label class="lbl">Current Password</label>
+        <input type="password" id="change-pwd-current" placeholder="Current Password">
+      </div>
+      <div class="fw" style="margin-bottom: 12px;">
+        <label class="lbl">New Password</label>
+        <input type="password" id="change-pwd-new" placeholder="New Password">
+      </div>
+      <div class="fw" style="margin-bottom: 16px;">
+        <label class="lbl">Confirm New Password</label>
+        <input type="password" id="change-pwd-confirm" placeholder="Confirm New Password">
+      </div>
+      <button class="btn success" style="width: 100%;" onclick="submitChangePassword()">Change Password</button>
+    </div>
   </div>
 </div>
 
@@ -4137,6 +4162,54 @@ function doLogin(){
     }
     initAdminApp();
   }
+}
+
+function openChangePasswordModal() {
+  document.getElementById('change-pwd-current').value = '';
+  document.getElementById('change-pwd-new').value = '';
+  document.getElementById('change-pwd-confirm').value = '';
+  document.getElementById('modal-change-pwd').classList.add('on');
+}
+
+function submitChangePassword() {
+  var currentPwd = document.getElementById('change-pwd-current').value;
+  var newPwd = document.getElementById('change-pwd-new').value;
+  var confirmPwd = document.getElementById('change-pwd-confirm').value;
+
+  if (!currentPwd || !newPwd || !confirmPwd) {
+    showToast('Please fill in all password fields.');
+    return;
+  }
+
+  if (currentPwd !== SESSION.user.pwd) {
+    showToast('Incorrect current password.');
+    return;
+  }
+
+  if (newPwd === currentPwd) {
+    showToast('New password cannot be the same as current password.');
+    return;
+  }
+
+  if (newPwd !== confirmPwd) {
+    showToast('New passwords do not match.');
+    return;
+  }
+
+  var emp = DB.employees.find(function(e) { return e && e.id === SESSION.user.id; });
+  if (!emp) {
+    showToast('Error: Logged in employee record not found.');
+    return;
+  }
+
+  emp.pwd = newPwd;
+  SESSION.user.pwd = newPwd;
+  localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+  saveDB();
+  pushEmployeeToSupabase(emp);
+  
+  closeModal('modal-change-pwd');
+  showToast('Password changed successfully.');
 }
 
 function doLogout(){

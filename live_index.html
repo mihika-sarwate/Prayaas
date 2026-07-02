@@ -3223,7 +3223,7 @@ function renderDoctorOptions(list) {
   var docSel = $('#r-doctor');
   var currentVal = docSel.val();
   
-  if (docSel.hasClass('select2-hidden-accessible')) {
+  if (typeof $.fn.select2 === 'function' && docSel.hasClass('select2-hidden-accessible')) {
     docSel.select2('destroy');
   }
   
@@ -3233,7 +3233,9 @@ function renderDoctorOptions(list) {
   });
   docSel.html(html);
   
-  docSel.select2({ width: '100%' });
+  if (typeof $.fn.select2 === 'function') {
+    docSel.select2({ width: '100%' });
+  }
   
   if (list.some(function(d) { return d.id === currentVal; })) {
     docSel.val(currentVal).trigger('change');
@@ -3244,7 +3246,7 @@ function renderChemistOptions(list) {
   var chemSel = $('#r-chemist');
   var currentVal = chemSel.val();
   
-  if (chemSel.hasClass('select2-hidden-accessible')) {
+  if (typeof $.fn.select2 === 'function' && chemSel.hasClass('select2-hidden-accessible')) {
     chemSel.select2('destroy');
   }
   
@@ -3254,7 +3256,9 @@ function renderChemistOptions(list) {
   });
   chemSel.html(html);
   
-  chemSel.select2({ width: '100%' });
+  if (typeof $.fn.select2 === 'function') {
+    chemSel.select2({ width: '100%' });
+  }
   
   if (list.some(function(c) { return c.id === currentVal; })) {
     chemSel.val(currentVal).trigger('change');
@@ -3306,7 +3310,7 @@ function renderStockistOptions(list) {
   if(stockSel.length === 0) return;
   var currentVal = stockSel.val();
   
-  if (stockSel.hasClass('select2-hidden-accessible')) {
+  if (typeof $.fn.select2 === 'function' && stockSel.hasClass('select2-hidden-accessible')) {
     stockSel.select2('destroy');
   }
   
@@ -3316,7 +3320,9 @@ function renderStockistOptions(list) {
   });
   stockSel.html(html);
   
-  stockSel.select2({ width: '100%' });
+  if (typeof $.fn.select2 === 'function') {
+    stockSel.select2({ width: '100%' });
+  }
   
   if (list.some(function(s) { return s.id === currentVal; })) {
     stockSel.val(currentVal).trigger('change');

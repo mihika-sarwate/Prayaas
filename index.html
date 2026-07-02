@@ -295,9 +295,6 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <button class="btn primary" onclick="doLogin()" style="margin-top:4px">Login</button>
       <div style="font-size:11px;color:#64748B;text-align:center;margin-top:15px;" id="db-status-indicator"></div>
-      <div style="text-align:center;margin-top:10px;">
-        <a href="#" onclick="promptSupabaseConfig(event)" style="font-size:10px;color:#3B82F6;text-decoration:none;">🔧 Configure Database Connection</a>
-      </div>
     </div>
   </div>
 </div>
@@ -4127,25 +4124,6 @@ function togglePasswordVisibility() {
     pwdInput.type = 'password';
     btn.textContent = 'Show';
   }
-}
-
-function promptSupabaseConfig(e) {
-  if (e) e.preventDefault();
-  var url = prompt("Enter Supabase URL:", localStorage.getItem('adonis_supabase_url') || supabaseUrl || '');
-  if (url === null) return;
-  var key = prompt("Enter Supabase Key (anon):", localStorage.getItem('adonis_supabase_key') || supabaseKey || '');
-  if (key === null) return;
-  
-  localStorage.setItem('adonis_supabase_url', url.trim());
-  localStorage.setItem('adonis_supabase_key', key.trim());
-  
-  supabaseUrl = url.trim();
-  supabaseKey = key.trim();
-  
-  supabase = null;
-  window._hasAttemptedSupabaseLoad = false;
-  isLoadingData = false;
-  initSupabaseData(false);
 }
 
 function doLogin(){

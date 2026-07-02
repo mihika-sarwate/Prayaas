@@ -1897,6 +1897,18 @@ async function initSupabaseData(isSilent) {
   }
   isLoadingData = true; // Set immediately so restoreSessionWhenReady always waits
 
+  if (window._supabaseLoadTimeout) clearTimeout(window._supabaseLoadTimeout);
+  window._supabaseLoadTimeout = setTimeout(async function() {
+    if (isLoadingData && !hasInitializedData) {
+      console.warn("Supabase load timed out (6s). Falling back to LocalStorage.");
+      if (isSilent !== true) {
+        showToast("Offline mode: Using local database cache.");
+      }
+      await loadLocalDB();
+      isLoadingData = false;
+    }
+  }, 6000);
+
   if (!supabase) {
     if (window._hasAttemptedSupabaseLoad) {
       console.warn("Supabase load already attempted. Using local database.");
@@ -2601,9 +2613,17 @@ async function initSupabaseData(isSilent) {
     }
     
     if (isSilent !== true) showToast("Supabase data synchronized!");
+    if (window._supabaseLoadTimeout) {
+      clearTimeout(window._supabaseLoadTimeout);
+      window._supabaseLoadTimeout = null;
+    }
     isLoadingData = false;
     
   } catch (err) {
+    if (window._supabaseLoadTimeout) {
+      clearTimeout(window._supabaseLoadTimeout);
+      window._supabaseLoadTimeout = null;
+    }
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
     // Only fall back to local cache if Supabase data was NOT already loaded
     if (!hasInitializedData) {

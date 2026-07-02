@@ -1592,25 +1592,42 @@ async function initSupabaseData(isSilent) {
     console.log("initSupabaseData ignored because load is already in progress.");
     return;
   }
+  isLoadingData = true; // Set immediately so restoreSessionWhenReady always waits
+
+  if (window._supabaseLoadTimeout) clearTimeout(window._supabaseLoadTimeout);
+  window._supabaseLoadTimeout = setTimeout(async function() {
+    if (isLoadingData && !hasInitializedData) {
+      console.warn("Supabase load timed out (6s). Falling back to LocalStorage.");
+      if (isSilent !== true) {
+        showToast("Offline mode: Using local database cache.");
+      }
+      await loadLocalDB();
+      isLoadingData = false;
+    }
+  }, 6000);
+
   if (!supabase) {
     if (window._hasAttemptedSupabaseLoad) {
       console.warn("Supabase load already attempted. Using local database.");
       await loadLocalDB();
+      isLoadingData = false;
       return;
     }
     window._hasAttemptedSupabaseLoad = true;
     ensureSupabaseLoaded(async function() {
+      isLoadingData = false; // release so next call can proceed
       if (supabase) {
         await initSupabaseData(isSilent);
       } else {
         console.warn("Supabase library not loaded. Using LocalStorage.");
+        isLoadingData = true;
         await loadLocalDB();
+        isLoadingData = false;
       }
     });
     return;
   }
   
-  isLoadingData = true;
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
@@ -2095,9 +2112,17 @@ async function initSupabaseData(isSilent) {
     }
     
     if (isSilent !== true) showToast("Supabase data synchronized!");
+    if (window._supabaseLoadTimeout) {
+      clearTimeout(window._supabaseLoadTimeout);
+      window._supabaseLoadTimeout = null;
+    }
     isLoadingData = false;
     
   } catch (err) {
+    if (window._supabaseLoadTimeout) {
+      clearTimeout(window._supabaseLoadTimeout);
+      window._supabaseLoadTimeout = null;
+    }
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
     if (isSilent !== true) {
       showToast("Using local database cache.");

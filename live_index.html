@@ -1618,16 +1618,26 @@ async function initSupabaseData(isSilent) {
       if (isSilent !== true) {
         showToast("Offline mode: Using local database cache.");
       }
-      await loadLocalDB();
-      isLoadingData = false;
+      try {
+        await loadLocalDB();
+      } catch (e) {
+        console.error("loadLocalDB failed during timeout:", e);
+      } finally {
+        isLoadingData = false;
+      }
     }
   }, timeoutMs);
 
   if (!supabase) {
     if (window._hasAttemptedSupabaseLoad) {
       console.warn("Supabase load already attempted. Using local database.");
-      await loadLocalDB();
-      isLoadingData = false;
+      try {
+        await loadLocalDB();
+      } catch (e) {
+        console.error("loadLocalDB failed after load attempt:", e);
+      } finally {
+        isLoadingData = false;
+      }
       return;
     }
     window._hasAttemptedSupabaseLoad = true;
@@ -1638,8 +1648,13 @@ async function initSupabaseData(isSilent) {
       } else {
         console.warn("Supabase library not loaded. Using LocalStorage.");
         isLoadingData = true;
-        await loadLocalDB();
-        isLoadingData = false;
+        try {
+          await loadLocalDB();
+        } catch (e) {
+          console.error("loadLocalDB failed after script loading:", e);
+        } finally {
+          isLoadingData = false;
+        }
       }
     });
     return;
@@ -2141,9 +2156,15 @@ async function initSupabaseData(isSilent) {
       window._supabaseLoadTimeout = null;
     }
     console.error("Supabase load failed. Falling back to LocalStorage:", err);
-    if (isSilent !== true) {
-      showToast("Using local database cache.");
-      await loadLocalDB();
+    if (!hasInitializedData) {
+      if (isSilent !== true) {
+        showToast("Using local database cache.");
+      }
+      try {
+        await loadLocalDB();
+      } catch (e) {
+        console.error("loadLocalDB failed in catch:", e);
+      }
     }
     isLoadingData = false;
   }

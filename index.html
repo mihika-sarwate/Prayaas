@@ -4485,7 +4485,7 @@ function filterReportingStockistsDropdown() {
 
 function populateReportTerritoryDropdowns() {
   if (!SESSION.user) return;
-  var teamIds = (SESSION.user.role === 'emp') ? [] : null;
+  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   if (teamIds) {
     teamIds.push(SESSION.user.id);
   }
@@ -4530,11 +4530,9 @@ function populateReportTerritoryDropdowns() {
       if (tTypes && tTypes.length > 0) {
         tTypes.forEach(function(tt) {
           mrAreasByTerritory[tt].add(cArea);
-          if (c.city) mrTownsByTerritory[tt].add(c.city.trim());
         });
       } else {
         mrAreasByTerritory['HQ'].add(cArea);
-        if (c.city) mrTownsByTerritory['HQ'].add(c.city.trim());
       }
     }
   });

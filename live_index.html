@@ -2419,7 +2419,7 @@ async function seedSupabaseDatabase() {
   } catch (e) { console.error("Error seeding reports:", e); }
 }
 
-function saveDB() {
+function saveDB(skipSync) {
   idb.set('adonis_db', DB).then(function(success) {
     if (success) console.log("Database successfully cached to IndexedDB.");
   });
@@ -2453,7 +2453,7 @@ function saveDB() {
       } catch(e3) {}
     }
   }
-  if (typeof syncSupabaseDatabase === 'function') {
+  if (typeof syncSupabaseDatabase === 'function' && !skipSync) {
     syncSupabaseDatabase();
   }
 }
@@ -2973,7 +2973,7 @@ window.addEventListener('beforeunload', function (e) {
             s.id = resMap[k];
           }
         });
-        saveDB();
+        saveDB(true);
       }
       await reconcileSupabaseRows('sfc', DB.sfc, normalizeSfcKey, function(row) {
         return row.id ? supabase.from('sfc').delete().eq('id', row.id) : Promise.resolve();

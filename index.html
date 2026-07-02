@@ -2980,7 +2980,7 @@ async function seedSupabaseDatabase() {
 }
 
 var _saveDBSyncTimer = null;
-function saveDB() {
+function saveDB(skipSync) {
   if (DB) {
     if (Array.isArray(DB.samplesInventory)) {
       var seen = new Set();
@@ -3048,7 +3048,7 @@ function saveDB() {
   }
   // Debounce full sync: wait 5 seconds after last saveDB before triggering a full cloud sync.
   // This prevents hammering Supabase with a full sync on every tiny change.
-  if (typeof syncSupabaseDatabase === 'function') {
+  if (typeof syncSupabaseDatabase === 'function' && !skipSync) {
     if (_saveDBSyncTimer) clearTimeout(_saveDBSyncTimer);
     _saveDBSyncTimer = setTimeout(function() {
       _saveDBSyncTimer = null;
@@ -3377,7 +3377,7 @@ window.addEventListener('beforeunload', function (e) {
             s.id = resMap[k];
           }
         });
-        saveDB();
+        saveDB(true);
       }
       // Removed prune step to prevent empty local state from clearing populated cloud database rows.
     } catch (e) {
@@ -5128,7 +5128,7 @@ async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn) 
     });
 
     if (needsSave && typeof saveDB === 'function') {
-      saveDB();
+      saveDB(true);
     }
 
     if (isPruningAllowed) {

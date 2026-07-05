@@ -4860,14 +4860,24 @@ function populateReportingDropdowns(){
       var assignedList = cleanAssign.split(',');
       var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
       
-      var myNameClean = String(SESSION.user.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var teamNamesClean = teamIds.map(function(id) {
+        var emp = DB.employees.find(function(e) { return e.id === id; });
+        return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+      }).filter(Boolean);
+      
       var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       var docMgrClean = String(d.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       
       var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
-      var matchByAssignName = myNameClean && assignedList.some(function(a){ return a.includes(myNameClean); });
-      var matchByBeName = myNameClean && docBeClean && (docBeClean.includes(myNameClean) || myNameClean.includes(docBeClean));
-      var matchByMgrName = myNameClean && docMgrClean && (docMgrClean.includes(myNameClean) || myNameClean.includes(docMgrClean));
+      var matchByAssignName = assignedList.some(function(a){ 
+        return teamNamesClean.some(function(tn) { return a.includes(tn); }); 
+      });
+      var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
+        return docBeClean.includes(tn) || tn.includes(docBeClean); 
+      });
+      var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
+        return docMgrClean.includes(tn) || tn.includes(docMgrClean); 
+      });
       
       return matchById || matchByAssignName || matchByBeName || matchByMgrName;
     }
@@ -4888,16 +4898,26 @@ function populateReportingDropdowns(){
     var docAssignedList = cleanAssign.split(',');
     var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); }) : null;
     
-    var myNameClean = String(SESSION.user.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var teamNamesClean = teamIds ? teamIds.map(function(id) {
+      var emp = DB.employees.find(function(e) { return e.id === id; });
+      return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+    }).filter(Boolean) : [];
+    
     var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     var docMgrClean = String(d.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     
     var isAssignedToTeam = true;
     if (teamIdsUpper) {
       var matchById = docAssignedList.some(function(a){ return teamIdsUpper.includes(a); });
-      var matchByAssignName = myNameClean && docAssignedList.some(function(a){ return a.includes(myNameClean); });
-      var matchByBeName = myNameClean && docBeClean && (docBeClean.includes(myNameClean) || myNameClean.includes(docBeClean));
-      var matchByMgrName = myNameClean && docMgrClean && (docMgrClean.includes(myNameClean) || myNameClean.includes(docMgrClean));
+      var matchByAssignName = docAssignedList.some(function(a){ 
+        return teamNamesClean.some(function(tn) { return a.includes(tn); }); 
+      });
+      var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
+        return docBeClean.includes(tn) || tn.includes(docBeClean); 
+      });
+      var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
+        return docMgrClean.includes(tn) || tn.includes(docMgrClean); 
+      });
       isAssignedToTeam = matchById || matchByAssignName || matchByBeName || matchByMgrName;
     }
     if (isAssignedToTeam && d.area) {
@@ -4912,14 +4932,24 @@ function populateReportingDropdowns(){
       var assignedList = cleanAssign.split(',');
       var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
       
-      var myNameClean = String(SESSION.user.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var teamNamesClean = teamIds.map(function(id) {
+        var emp = DB.employees.find(function(e) { return e.id === id; });
+        return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+      }).filter(Boolean);
+      
       var cBeClean = String(c.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       var cMgrClean = String(c.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       
       var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
-      var matchByAssignName = myNameClean && assignedList.some(function(a){ return a.includes(myNameClean); });
-      var matchByBeName = myNameClean && cBeClean && (cBeClean.includes(myNameClean) || myNameClean.includes(cBeClean));
-      var matchByMgrName = myNameClean && cMgrClean && (cMgrClean.includes(myNameClean) || myNameClean.includes(cMgrClean));
+      var matchByAssignName = assignedList.some(function(a){ 
+        return teamNamesClean.some(function(tn) { return a.includes(tn); }); 
+      });
+      var matchByBeName = cBeClean && teamNamesClean.some(function(tn) { 
+        return cBeClean.includes(tn) || tn.includes(cBeClean); 
+      });
+      var matchByMgrName = cMgrClean && teamNamesClean.some(function(tn) { 
+        return cMgrClean.includes(tn) || tn.includes(cMgrClean); 
+      });
       var hasAssign = matchById || matchByAssignName || matchByBeName || matchByMgrName;
       var unassigned = !c.assignTo || c.assignTo.trim() === '';
       var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
@@ -4949,14 +4979,24 @@ function populateReportingDropdowns(){
         var assignedList = cleanAssign.split(',');
         var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
         
-        var myNameClean = String(SESSION.user.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        var teamNamesClean = teamIds.map(function(id) {
+          var emp = DB.employees.find(function(e) { return e.id === id; });
+          return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+        }).filter(Boolean);
+        
         var sBeClean = String(s.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         var sMgrClean = String(s.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         
         var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
-        var matchByAssignName = myNameClean && assignedList.some(function(a){ return a.includes(myNameClean); });
-        var matchByBeName = myNameClean && sBeClean && (sBeClean.includes(myNameClean) || myNameClean.includes(sBeClean));
-        var matchByMgrName = myNameClean && sMgrClean && (sMgrClean.includes(myNameClean) || myNameClean.includes(sMgrClean));
+        var matchByAssignName = assignedList.some(function(a){ 
+          return teamNamesClean.some(function(tn) { return a.includes(tn); }); 
+        });
+        var matchByBeName = sBeClean && teamNamesClean.some(function(tn) { 
+          return sBeClean.includes(tn) || tn.includes(sBeClean); 
+        });
+        var matchByMgrName = sMgrClean && teamNamesClean.some(function(tn) { 
+          return sMgrClean.includes(tn) || tn.includes(sMgrClean); 
+        });
         var hasAssign = matchById || matchByAssignName || matchByBeName || matchByMgrName;
         var unassigned = !s.assignTo || s.assignTo.trim() === '';
         var inMyAreas = unassigned && s.area && activeDocAreas.has(s.area.toLowerCase().trim());
@@ -7620,16 +7660,35 @@ function getMyDoctors(){
     var rawAssign = String(d.assignTo || '').toUpperCase();
     var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
     var assignArr = cleanAssign.split(',');
-    var myId = String(SESSION.user.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     
+    var myId = String(SESSION.user.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     var myNameClean = String(SESSION.user.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    // Also include subordinates for my doctors? getMyDoctors usually is strictly self, but let's include subordinates if manager
+    var teamIds = null;
+    if (SESSION.user && SESSION.user.role !== 'admin') {
+      teamIds = getAllSubordinateIds(SESSION.user.id);
+    }
+    var teamNamesClean = teamIds ? teamIds.map(function(id) {
+      var emp = DB.employees.find(function(e) { return e.id === id; });
+      return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+    }).filter(Boolean) : [myNameClean].filter(Boolean);
+    
+    var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); }) : [myId];
+    
     var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     var docMgrClean = String(d.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     
-    var matchById = assignArr.includes(myId);
-    var matchByAssignName = myNameClean && assignArr.some(function(a){ return a.includes(myNameClean); });
-    var matchByBeName = myNameClean && docBeClean && (docBeClean.includes(myNameClean) || myNameClean.includes(docBeClean));
-    var matchByMgrName = myNameClean && docMgrClean && (docMgrClean.includes(myNameClean) || myNameClean.includes(docMgrClean));
+    var matchById = assignArr.some(function(a){ return teamIdsUpper.includes(a); });
+    var matchByAssignName = assignArr.some(function(a){ 
+      return teamNamesClean.some(function(tn) { return a.includes(tn); }); 
+    });
+    var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
+      return docBeClean.includes(tn) || tn.includes(docBeClean); 
+    });
+    var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
+      return docMgrClean.includes(tn) || tn.includes(docMgrClean); 
+    });
     
     return matchById || matchByAssignName || matchByBeName || matchByMgrName;
   });

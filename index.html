@@ -12870,10 +12870,26 @@ function createMultiSelect(container, options, selectedString, placeholder, onch
       if (d !== dropdown) d.classList.remove('open');
     });
     dropdown.classList.toggle('open');
+    
+    if (dropdown.classList.contains('open')) {
+      var rect = container.getBoundingClientRect();
+      dropdown.style.position = 'fixed';
+      dropdown.style.top = rect.bottom + 'px';
+      dropdown.style.left = rect.left + 'px';
+      dropdown.style.width = rect.width + 'px';
+      dropdown.style.zIndex = '999999';
+      document.body.appendChild(dropdown);
+    }
   };
   
+  // Close dropdown on window scroll to avoid floating dropdown
+  window.addEventListener('scroll', function() {
+    dropdown.classList.remove('open');
+  }, true);
+  
   container.appendChild(header);
-  container.appendChild(dropdown);
+  // Do not append dropdown to container initially, it will be appended to body on open.
+  // We can just keep it in memory.
 }
 
 // Global click handler to close dropdowns when clicking outside

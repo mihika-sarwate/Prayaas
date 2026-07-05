@@ -4851,10 +4851,6 @@ function populateReportingDropdowns(){
     return true; // Admin sees all
   });
 
-  if (finalDocs.length === 0) {
-    finalDocs = DB.doctors;
-  }
-
   finalDocs.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
   window._allReportingDocs = finalDocs;
   renderDoctorOptions(finalDocs);
@@ -4888,10 +4884,6 @@ function populateReportingDropdowns(){
     return true; // Admin sees all
   });
 
-  if (finalChems.length === 0) {
-    finalChems = DB.chemists;
-  }
-
   finalChems.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
   window._allReportingChems = finalChems;
   renderChemistOptions(finalChems);
@@ -4919,7 +4911,6 @@ function populateReportingDropdowns(){
       }
       return true;
     });
-    if (finalStockists.length === 0) finalStockists = DB.stockists;
     finalStockists.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
     window._allReportingStockists = finalStockists;
     renderStockistOptions(finalStockists);

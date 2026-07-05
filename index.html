@@ -1697,7 +1697,7 @@ function formatDateForPostgres(dateStr) {
   try {
     var d = new Date(dateStr);
     if (!isNaN(d.getTime())) {
-      return d.toISOString().split('T')[0];
+      return formatLocalDate(d);
     }
   } catch (e) {}
   
@@ -3303,7 +3303,7 @@ async function pushReportToSupabase(rep) {
       id: rep.id,
       emp_id: empId,
       emp_name: rep.empName || '',
-      date: formatDateForPostgres(rep.date) || new Date().toISOString().split('T')[0],
+      date: formatDateForPostgres(rep.date) || getTodayDateString(),
       time: rep.time || '',
       target_type: rep.targetType || '',
       classification: rep.classification || '',
@@ -3799,7 +3799,7 @@ window.addEventListener('beforeunload', function (e) {
         var row = {
           emp_id: empId,
           emp_name: r.empName || '',
-          date: formatDateForPostgres(r.date) || new Date().toISOString().split('T')[0],
+          date: formatDateForPostgres(r.date) || getTodayDateString(),
           time: r.time || '',
           target_type: r.targetType || '',
           classification: r.classification || '',
@@ -4423,11 +4423,11 @@ function initEmpApp(){
   checkAnnouncements();
 
   var now=new Date();
-  document.getElementById('r-date').value=now.toISOString().split('T')[0];
+  document.getElementById('r-date').value=getTodayDateString();
   document.getElementById('r-time').value=now.toTimeString().slice(0,5);
   
   // Set default values for inputs
-  var defMonth=now.toISOString().slice(0,7);
+  var defMonth=getTodayDateString().slice(0,7);
   document.getElementById('tp-month').value=defMonth;
   document.getElementById('exp-month').value=defMonth;
   
@@ -5922,7 +5922,7 @@ function finalSubmitToday() {
   if (!confirm('Are you sure you want to final submit all reports for today? Once submitted, they cannot be edited.')) return;
   
   var u = SESSION.user;
-  var today = new Date().toISOString().split('T')[0];
+  var today = getTodayDateString();
   var myTodayReports = DB.reports.filter(function(r){ return r.empId === u.id && r.date === today && !r.isFinal; });
   
   myTodayReports.forEach(function(r) {
@@ -5981,7 +5981,7 @@ function getGPS(){
 function renderHomeStats(){
   var u=SESSION.user;
   var myR=DB.reports.filter(function(r){return r.empId===u.id;});
-  var today=new Date().toISOString().split('T')[0];
+  var today=getTodayDateString();
   var todayR=myR.filter(function(r){return r.date===today;});
   
   document.getElementById('stat-today').textContent=todayR.length;

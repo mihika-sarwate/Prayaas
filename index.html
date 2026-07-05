@@ -596,7 +596,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="fw"><label class="lbl">Call Notes / Feedback</label><textarea id="r-remarks" placeholder="Enter visit summary details..."></textarea></div>
       <div class="fw"><label class="lbl">Follow-up Required (Next Visit)</label><input type="date" id="r-next-visit"></div>
     </div>
-    <div class="btn-row"><button class="btn success" onclick="submitReport()">&#10003; Submit Call Report</button></div>
+    <div class="btn-row"><button id="btn-submit-report" class="btn success" onclick="submitReport()">&#10003; Submit Call Report</button></div>
     <div style="height:20px"></div>
   </div>
 
@@ -5795,7 +5795,9 @@ function submitReport(){
       DB.reports.unshift(repObj);
     }
     window.currentEditReportId = null;
-    document.getElementById('btn-submit-report').textContent = 'Submit Report';
+    if (document.getElementById('btn-submit-report')) {
+      document.getElementById('btn-submit-report').textContent = '✓ Submit Call Report';
+    }
   } else {
     DB.reports.unshift(repObj);
   }
@@ -5913,7 +5915,9 @@ function editReport(id) {
     if (document.getElementById('r-stockist-stock')) document.getElementById('r-stockist-stock').value = rep.stockStatus || 'Adequate';
   }
   
-  document.getElementById('btn-submit-report').textContent = 'Update Report';
+  if (document.getElementById('btn-submit-report')) {
+    document.getElementById('btn-submit-report').textContent = '✓ Update Report';
+  }
   goTab('report');
   window.scrollTo(0, 0);
 }

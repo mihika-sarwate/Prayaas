@@ -6554,8 +6554,13 @@ function renderMTPDaysUI(isReadOnly, existing){
   var mrAreas = new Set();
   
   var targetEmpId = (existing && existing.empId) ? existing.empId : (SESSION.user ? SESSION.user.id : '');
-  var teamIds = targetEmpId ? [String(targetEmpId).toUpperCase().trim()] : null;
   var targetEmpObj = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(targetEmpId || '').toUpperCase(); });
+  
+  var teamIds = null;
+  if (targetEmpObj && targetEmpObj.role !== 'admin') {
+    teamIds = [String(targetEmpId).toUpperCase().trim()];
+  }
+  
   var targetHq = (targetEmpObj ? (targetEmpObj.area || targetEmpObj.hq || '') : '').trim().toLowerCase();
 
   if (targetEmpId) {

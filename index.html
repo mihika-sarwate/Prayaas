@@ -4685,14 +4685,14 @@ function populateReportTerritoryDropdowns() {
     var isAssignedToTeam = teamIdsUpper ? assignedList.some(function(a){ return teamIdsUpper.includes(a); }) : true;
     
     if (isAssignedToTeam) {
-      var tType = (d.territoryType || '').trim().toUpperCase();
+      var tType = (d.territoryType || 'HQ').trim().toUpperCase();
       
-      if (tType) {
-        if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
-        if (d.city) mrTownsByTerritory[tType].add(d.city.trim());
-        if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
-        if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
-      }
+      if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
+      var tTown = String(d.city || d.hq || '').trim();
+      if (tTown) mrTownsByTerritory[tType].add(tTown);
+      
+      if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
+      if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
     }
   });
 

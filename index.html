@@ -5603,6 +5603,10 @@ function submitReport(){
   var classification=document.getElementById('r-classification').value;
   
   if(!date){showToast('Please set report date');return;}
+  if(date !== getTodayDateString()){
+    showToast('Reports can only be submitted for today (must be submitted before 12 AM).');
+    return;
+  }
   
   var workType = document.getElementById('r-work-type') ? document.getElementById('r-work-type').value : 'FIELD WORK';
   var territory = '';
@@ -5836,6 +5840,15 @@ window.currentEditReportId = null;
 function editReport(id) {
   var rep = DB.reports.find(function(r) { return r.id === id; });
   if (!rep) return;
+  if (rep.isFinal) {
+    showToast('This report is final and cannot be edited.');
+    return;
+  }
+  var today = getTodayDateString();
+  if (rep.date !== today) {
+    showToast('Only reports for today can be edited (must be submitted by 12 AM).');
+    return;
+  }
   
   window.currentEditReportId = id;
   
@@ -5852,7 +5865,7 @@ function editReport(id) {
   document.getElementById('r-next-visit').value = rep.nextVisit || '';
   
   toggleReportWorkTypeFields();
-  toggleTargetTypeFields();
+  toggleReportTargetFields();
   
   // Populate specific fields based on target
   if (rep.targetType === 'Doctor') {

@@ -6554,23 +6554,25 @@ function renderMTPDaysUI(isReadOnly, existing){
   var mrAreas = new Set();
   
   var targetEmpId = (existing && existing.empId) ? existing.empId : (SESSION.user ? SESSION.user.id : '');
-  var teamIds = targetEmpId ? [String(targetEmpId).toUpperCase()] : null;
+  var teamIds = targetEmpId ? [String(targetEmpId).toUpperCase().trim()] : null;
   var targetEmpObj = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(targetEmpId || '').toUpperCase(); });
   var targetHq = (targetEmpObj ? (targetEmpObj.area || targetEmpObj.hq || '') : '').trim().toLowerCase();
 
   if (targetEmpId) {
-    var upperTargetId = String(targetEmpId).toUpperCase();
+    var upperTargetId = String(targetEmpId).toUpperCase().trim();
     
     // Populate directly from doctor assignments ONLY
     DB.doctors.forEach(function(d) {
       var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
       var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
+      var isActive = String(d.status || '').trim().toLowerCase() === 'active';
 
-      if (isAssignedToTeam && d.status === 'Active') {
+      if (isAssignedToTeam && isActive) {
         if (d.city) mrTowns.add(d.city.trim());
         if (d.area) mrAreas.add(d.area.trim());
       }
     });
+    console.log("MTP generated Towns: ", mrTowns, " Areas: ", mrAreas, " for EMP: ", upperTargetId);
   }
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);

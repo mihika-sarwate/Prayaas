@@ -6558,7 +6558,9 @@ function renderMTPDaysUI(isReadOnly, existing){
   
   var teamIds = null;
   if (targetEmpObj && targetEmpObj.role !== 'admin') {
-    teamIds = [String(targetEmpId).toUpperCase().trim()];
+    teamIds = getAllSubordinateIds(targetEmpId);
+    teamIds.push(targetEmpId);
+    teamIds = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
   }
   
   var targetHq = (targetEmpObj ? (targetEmpObj.area || targetEmpObj.hq || '') : '').trim().toLowerCase();
@@ -6566,15 +6568,40 @@ function renderMTPDaysUI(isReadOnly, existing){
   if (targetEmpId) {
     var upperTargetId = String(targetEmpId).toUpperCase().trim();
     
-    // Populate directly from doctor assignments ONLY
+    // Populate from doctor assignments
     DB.doctors.forEach(function(d) {
-      var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
+      var rawAssign = String(d.assignTo || '').toUpperCase();
+      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+      var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
       var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
       var isActive = String(d.status || '').trim().toLowerCase() === 'active';
 
       if (isAssignedToTeam && isActive) {
         if (d.city) mrTowns.add(d.city.trim());
         if (d.area) mrAreas.add(d.area.trim());
+      }
+    });
+    
+    // Populate from chemist assignments
+    (DB.chemists || []).forEach(function(c) {
+      var rawAssign = String(c.assignTo || '').toUpperCase();
+      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+      var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
+      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
+      if (isAssignedToTeam) {
+        if (c.city) mrTowns.add(c.city.trim());
+        if (c.area) mrAreas.add(c.area.trim());
+      }
+    });
+
+    // Populate from stockist assignments
+    (DB.stockists || []).forEach(function(s) {
+      var rawAssign = String(s.assignTo || '').toUpperCase();
+      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+      var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
+      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
+      if (isAssignedToTeam) {
+        if (s.area) mrAreas.add(s.area.trim());
       }
     });
     console.log("MTP generated Towns: ", mrTowns, " Areas: ", mrAreas, " for EMP: ", upperTargetId);

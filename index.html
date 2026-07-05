@@ -431,6 +431,9 @@ table.tbl tr:last-child td{border-bottom:none}
     <div class="card">
       <div class="card-title">&#128197; Today's Schedule &amp; Activity</div>
       <div id="today-reports"><div class="empty">No calls reported today</div></div>
+      <div id="final-submit-container" style="margin-top:10px;text-align:right;display:none;">
+        <button class="btn primary" onclick="finalSubmitToday()">Submit Final Report for Today</button>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">&#128203; My Recent Calls</div>
@@ -2370,7 +2373,7 @@ async function initSupabaseData(isSilent) {
           var workType = 'FIELD WORK';
           var territory = '';
           var city = '';
-          var patch = '';
+          var isFinal = false;
           if (cleanRemarks.indexOf('\n===METADATA===\n') !== -1) {
             var parts = cleanRemarks.split('\n===METADATA===\n');
             cleanRemarks = parts[0];
@@ -2380,6 +2383,7 @@ async function initSupabaseData(isSilent) {
               territory = meta.territory || '';
               city = meta.city || '';
               patch = meta.patch || '';
+              isFinal = meta.isFinal === true;
             } catch(e){}
           }
           return {
@@ -2417,6 +2421,7 @@ async function initSupabaseData(isSilent) {
             territory: territory,
             city: city,
             patch: patch,
+            isFinal: isFinal,
             nextVisit: r.next_visit
           };
         });
@@ -3788,7 +3793,8 @@ window.addEventListener('beforeunload', function (e) {
           workType: r.workType || 'FIELD WORK',
           territory: r.territory || '',
           city: r.city || '',
-          patch: r.patch || ''
+          patch: r.patch || '',
+          isFinal: r.isFinal === true
         };
         var row = {
           emp_id: empId,
@@ -5673,7 +5679,22 @@ function submitReport(){
     repObj.stockStatus=document.getElementById('r-stockist-stock').value;
   }
   
-  DB.reports.unshift(repObj);
+  var isEditing = window.currentEditReportId;
+  
+  if (isEditing) {
+    var existingIdx = DB.reports.findIndex(function(r) { return r.id === window.currentEditReportId; });
+    if (existingIdx !== -1) {
+      repObj.id = window.currentEditReportId;
+      DB.reports[existingIdx] = repObj;
+    } else {
+      DB.reports.unshift(repObj);
+    }
+    window.currentEditReportId = null;
+    document.getElementById('btn-submit-report').textContent = 'Submit Report';
+  } else {
+    DB.reports.unshift(repObj);
+  }
+  
   // Mark this report as pending so the 30-second poller does not erase it before cloud confirms.
   _pendingLocalReportIds.add(String(repObj.id));
   // Persist locally immediately
@@ -5682,7 +5703,7 @@ function submitReport(){
   // Push directly to Supabase now — do NOT wait for the debounced full sync
   pushReportToSupabase(repObj);
   pushUserInventoryToSupabase(SESSION.user.id);
-  showToast('Report submitted! Syncing to cloud...');
+  showToast(isEditing ? 'Report updated! Syncing to cloud...' : 'Report submitted! Syncing to cloud...');
   
   // Clear inputs
   document.getElementById('r-remarks').value='';
@@ -5709,6 +5730,108 @@ function submitReport(){
   renderHomeStats();
   goTab('home');
 }
+
+window.currentEditReportId = null;
+
+function editReport(id) {
+  var rep = DB.reports.find(function(r) { return r.id === id; });
+  if (!rep) return;
+  
+  window.currentEditReportId = id;
+  
+  // Populate standard fields
+  document.getElementById('r-date').value = rep.date || '';
+  document.getElementById('r-time').value = rep.time || '';
+  document.getElementById('r-target-type').value = rep.targetType || '';
+  document.getElementById('r-classification').value = rep.classification || '';
+  document.getElementById('r-work-type').value = rep.workType || 'FIELD WORK';
+  document.getElementById('r-calltype').value = rep.callType || '';
+  document.getElementById('r-jfw-manager').value = rep.jfwMgrId || '';
+  if (document.getElementById('r-jfw-remarks')) document.getElementById('r-jfw-remarks').value = rep.jfwRemarks || '';
+  document.getElementById('r-remarks').value = (rep.remarks || '').split('\n===METADATA===')[0];
+  document.getElementById('r-next-visit').value = rep.nextVisit || '';
+  
+  toggleReportWorkTypeFields();
+  toggleTargetTypeFields();
+  
+  // Populate specific fields based on target
+  if (rep.targetType === 'Doctor') {
+    document.getElementById('r-doctor').value = rep.docId || '';
+    if (rep.docId === 'UNLISTED') {
+      if (document.getElementById('r-unlisted-doc-name')) document.getElementById('r-unlisted-doc-name').value = rep.docName.replace(' (Unlisted)', '');
+      if (document.getElementById('r-unlisted-doc-spec')) document.getElementById('r-unlisted-doc-spec').value = rep.docSpec || '';
+      if (document.getElementById('r-unlisted-doc-area')) document.getElementById('r-unlisted-doc-area').value = rep.docArea || '';
+      if (document.getElementById('r-unlisted-doctor-wrap')) document.getElementById('r-unlisted-doctor-wrap').style.display = 'block';
+    }
+    
+    // Check promos
+    var promoted = rep.promotedProducts || [];
+    document.querySelectorAll('.promo-prod-check').forEach(function(cb){
+      cb.checked = promoted.includes(cb.value);
+    });
+    
+    // Repopulate samples/gifts/inputs
+    var parsedSamples = parseJSONField(rep.samples);
+    document.querySelectorAll('.sample-inp').forEach(function(inp) {
+      var pName = inp.getAttribute('data-prod');
+      if (parsedSamples[pName]) inp.value = parsedSamples[pName];
+    });
+    
+    var parsedGifts = parseJSONField(rep.gifts);
+    document.querySelectorAll('.gift-inp').forEach(function(inp) {
+      var gName = inp.getAttribute('data-gift');
+      if (parsedGifts[gName]) inp.value = parsedGifts[gName];
+    });
+    
+    var parsedInputs = parseJSONField(rep.inputs);
+    document.querySelectorAll('.input-inp').forEach(function(inp) {
+      var iName = inp.getAttribute('data-input');
+      if (parsedInputs[iName]) inp.value = parsedInputs[iName];
+    });
+    
+  } else if (rep.targetType === 'Chemist') {
+    document.getElementById('r-chemist').value = rep.chemId || '';
+    document.getElementById('r-chem-order').value = rep.orderAmount || '';
+    document.getElementById('r-chem-stock').value = rep.stockStatus || 'Adequate';
+  } else if (rep.targetType === 'Stockist') {
+    if (document.getElementById('r-stockist')) document.getElementById('r-stockist').value = rep.stockId || '';
+    if (document.getElementById('r-stockist-order')) document.getElementById('r-stockist-order').value = rep.orderAmount || '';
+    if (document.getElementById('r-stockist-stock')) document.getElementById('r-stockist-stock').value = rep.stockStatus || 'Adequate';
+  }
+  
+  document.getElementById('btn-submit-report').textContent = 'Update Report';
+  goTab('report');
+  window.scrollTo(0, 0);
+}
+
+function finalSubmitToday() {
+  if (!confirm('Are you sure you want to final submit all reports for today? Once submitted, they cannot be edited.')) return;
+  
+  var u = SESSION.user;
+  var today = new Date().toISOString().split('T')[0];
+  var myTodayReports = DB.reports.filter(function(r){ return r.empId === u.id && r.date === today && !r.isFinal; });
+  
+  myTodayReports.forEach(function(r) {
+    r.isFinal = true;
+    pushReportToSupabase(r);
+  });
+  
+  idb.set('adonis_db', DB);
+  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
+  
+  // Record attendance as present
+  upsertAttendanceRecord({
+    employeeId: u.id,
+    date: today,
+    loginTime: getAttendanceLoginTimeValue(new Date()),
+    attendanceStatus: 'P',
+    remarks: 'Present via Final DCR Submission'
+  });
+  
+  renderHomeStats();
+  showToast('Final submit successful! Reports locked.');
+}
+
 
 // GPS Simulation
 function getGPS(){
@@ -5767,6 +5890,12 @@ function renderHomeStats(){
   
   document.getElementById('today-reports').innerHTML=todayR.length ? todayR.map(repRow).join('') : '<div class="empty">No calls reported today</div>';
   document.getElementById('recent-reports').innerHTML=myR.length ? myR.slice(0,5).map(repRow).join('') : '<div class="empty">No reports submitted yet</div>';
+
+  var finalBtnContainer = document.getElementById('final-submit-container');
+  if (finalBtnContainer) {
+    var hasDrafts = todayR.some(function(r){ return !r.isFinal; });
+    finalBtnContainer.style.display = (hasDrafts && todayR.length > 0) ? 'block' : 'none';
+  }
 }
 
 function repRow(r){
@@ -5802,7 +5931,12 @@ function repRow(r){
   }
   
   var badgeClass=r.classification==='Planned Call' ? 'green' : 'orange';
-  return '<div class="report-row"><div class="report-doc">'+title+' <span class="badge '+badgeClass+'">'+r.classification+'</span></div><div class="report-meta">'+r.date+' '+r.time+' | '+sub+'</div><div class="report-value" style="font-size:0.85rem; line-height:1.4;">'+val+'</div></div>';
+  var finalBadge = r.isFinal ? '<span class="badge" style="background:#8b5cf6;color:white;margin-left:5px">Final</span>' : '<span class="badge" style="background:#9ca3af;color:white;margin-left:5px">Draft</span>';
+  var editBtn = '';
+  if (!r.isFinal && r.empId === SESSION.user.id) {
+    editBtn = '<button class="btn sm" style="float:right; padding: 2px 8px;" onclick="editReport(\''+r.id+'\')">Edit</button>';
+  }
+  return '<div class="report-row"><div class="report-doc">'+title+' <span class="badge '+badgeClass+'">'+r.classification+'</span>'+finalBadge+editBtn+'</div><div class="report-meta">'+r.date+' '+r.time+' | '+sub+'</div><div class="report-value" style="font-size:0.85rem; line-height:1.4;">'+val+'</div></div>';
 }
 
 // ===== TOUR PLAN MTP FUNCTIONS =====
@@ -6082,11 +6216,11 @@ function getAttendanceStatusMeta(emp, dateStr) {
         
         // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
         // Check DCR report submission or login attendance record.
-        var hasReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+        var hasFinalReport = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && r.isFinal;
         });
-        if (hasReport) {
-          return { status: 'P', remarks: 'Present via DCR Submission' };
+        if (hasFinalReport) {
+          return { status: 'P', remarks: 'Present via Final DCR Submission' };
         }
         
         var existing = getAttendanceRecord(emp.id, dateStr);
@@ -6110,12 +6244,12 @@ function getAttendanceStatusMeta(emp, dateStr) {
     if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
   }
   
-  // Check if they have submitted any daily call reports (DCR) for this date
-  var hasReport = (DB.reports || []).some(function(r) {
-    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+  // Check if they have submitted a FINAL daily call report (DCR) for this date
+  var hasFinalReport = (DB.reports || []).some(function(r) {
+    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && r.isFinal;
   });
-  if (hasReport) {
-    return { status: 'P', remarks: 'Present via DCR Submission' };
+  if (hasFinalReport) {
+    return { status: 'P', remarks: 'Present via Final DCR Submission' };
   }
   
   var existing = getAttendanceRecord(emp.id, dateStr);

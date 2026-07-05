@@ -9,7 +9,7 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="config.js"></script>
+<script src="config.js?v=v_mmxdvruucggeixjqwsqr_v3"></script>
 <script src="supabase.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
@@ -1410,6 +1410,19 @@ var idb = {
     });
   }
 };
+
+// Database project migration cache-buster
+var MIGRATION_VERSION = 'v_mmxdvruucggeixjqwsqr_v3';
+if (localStorage.getItem('adonis_db_project_version') !== MIGRATION_VERSION) {
+  localStorage.removeItem('adonis_db');
+  localStorage.removeItem('adonis_supabase_url');
+  localStorage.removeItem('adonis_supabase_key');
+  localStorage.removeItem('adonis_session');
+  try {
+    indexedDB.deleteDatabase('adonis_cache_db');
+  } catch(e) {}
+  localStorage.setItem('adonis_db_project_version', MIGRATION_VERSION);
+}
 
 var supabaseUrl = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.supabaseUrl) || localStorage.getItem('adonis_supabase_url') || '';
 var supabaseKey = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.supabaseKey) || localStorage.getItem('adonis_supabase_key') || '';

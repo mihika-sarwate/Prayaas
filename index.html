@@ -13408,10 +13408,6 @@ function renderAnnouncementHistory() {
 
 // Observe dynamic additions
 /* emojiObserver disabled */
-  }
-});
-
-emojiObserver.observe(document.body, { childList: true, subtree: true });
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', beautifyEmojis);

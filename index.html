@@ -4680,8 +4680,11 @@ function populateReportTerritoryDropdowns() {
   var mrAreasByTerritory = { 'HQ': new Set(), 'EX': new Set(), 'OS': new Set() };
   
   DB.doctors.forEach(function(d) {
-    var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-    var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase(); }) : null;
+    var rawAssign = String(d.assignTo || '').toUpperCase();
+    var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+    var assignedList = cleanAssign.split(',');
+    
+    var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); }) : null;
     var isAssignedToTeam = teamIdsUpper ? assignedList.some(function(a){ return teamIdsUpper.includes(a); }) : true;
     
     if (isAssignedToTeam) {
@@ -4696,22 +4699,6 @@ function populateReportTerritoryDropdowns() {
       if (tArea) mrAreasByTerritory[tType].add(tArea);
     }
   });
-
-  var hasAnyTown = false;
-  Object.keys(mrTownsByTerritory).forEach(function(k) { if(mrTownsByTerritory[k].size > 0) hasAnyTown = true; });
-  
-  if (!hasAnyTown) {
-    DB.doctors.forEach(function(d) {
-      var tType = (d.territoryType || 'HQ').trim().toUpperCase();
-      if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
-      var tTown = String(d.city || d.hq || d.area || 'Unknown Town').trim();
-      if (tTown) mrTownsByTerritory[tType].add(tTown);
-      
-      if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
-      var tArea = String(d.area || 'Unknown Patch').trim();
-      if (tArea) mrAreasByTerritory[tType].add(tArea);
-    });
-  }
 
   window._mrTownsByTerritory = mrTownsByTerritory;
   window._mrAreasByTerritory = mrAreasByTerritory;
@@ -4855,8 +4842,11 @@ function populateReportingDropdowns(){
   
   var finalDocs = DB.doctors.filter(function(d){
     if (teamIds) {
-      var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      return assignedList.some(function(a){ return teamIds.includes(a); });
+      var rawAssign = String(d.assignTo || '').toUpperCase();
+      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+      var assignedList = cleanAssign.split(',');
+      var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+      return assignedList.some(function(a){ return teamIdsUpper.includes(a); });
     }
     return true; // Admin sees all
   });
@@ -4874,8 +4864,11 @@ function populateReportingDropdowns(){
   // Find all areas where this MR (or their team) has active doctors assigned
   var activeDocAreas = new Set();
   DB.doctors.forEach(function(d){
-    var docAssignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-    var isAssignedToTeam = teamIds ? docAssignedList.some(function(a){ return teamIds.includes(a); }) : true;
+    var rawAssign = String(d.assignTo || '').toUpperCase();
+    var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+    var docAssignedList = cleanAssign.split(',');
+    var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); }) : null;
+    var isAssignedToTeam = teamIdsUpper ? docAssignedList.some(function(a){ return teamIdsUpper.includes(a); }) : true;
     if (isAssignedToTeam && d.area) {
       activeDocAreas.add(d.area.toLowerCase().trim());
     }
@@ -4883,8 +4876,11 @@ function populateReportingDropdowns(){
 
   var finalChems = DB.chemists.filter(function(c){
     if (teamIds) {
-      var assignedList = String(c.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      var hasAssign = assignedList.some(function(a){ return teamIds.includes(a); });
+      var rawAssign = String(c.assignTo || '').toUpperCase();
+      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+      var assignedList = cleanAssign.split(',');
+      var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+      var hasAssign = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var unassigned = !c.assignTo || c.assignTo.trim() === '';
       var inMyAreas = unassigned && c.area && activeDocAreas.has(c.area.toLowerCase().trim());
       return hasAssign || inMyAreas;
@@ -4912,8 +4908,11 @@ function populateReportingDropdowns(){
   if(stockSel) {
     var finalStockists = DB.stockists.filter(function(s){
       if (teamIds) {
-        var assignedList = String(s.assignTo || '').toUpperCase().split(',').map(function(x){return x.trim();});
-        var hasAssign = assignedList.some(function(a){ return teamIds.includes(a); });
+        var rawAssign = String(s.assignTo || '').toUpperCase();
+        var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+        var assignedList = cleanAssign.split(',');
+        var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+        var hasAssign = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
         var unassigned = !s.assignTo || s.assignTo.trim() === '';
         var inMyAreas = unassigned && s.area && activeDocAreas.has(s.area.toLowerCase().trim());
         return hasAssign || inMyAreas;
@@ -6736,16 +6735,6 @@ function renderMTPDaysUI(isReadOnly, existing){
       }
     });
     
-    // Fallback if mrTowns is empty (e.g. assignTo mismatches)
-    if (mrTowns.size === 0) {
-      DB.doctors.forEach(function(d) {
-        var tTown = String(d.city || d.hq || d.area || 'Unknown Town').trim();
-        if (tTown) mrTowns.add(tTown);
-        var tArea = String(d.area || 'Unknown Patch').trim();
-        if (tArea) mrAreas.add(tArea);
-      });
-    }
-
     // Populate from chemist assignments
     (DB.chemists || []).forEach(function(c) {
       var rawAssign = String(c.assignTo || '').toUpperCase();
@@ -7584,7 +7573,11 @@ function renderMyLeaves(){
 // ===== LISTING SUB-MODULE FUNCTIONS =====
 function getMyDoctors(){
   return DB.doctors.filter(function(d){
-    return String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+    var rawAssign = String(d.assignTo || '').toUpperCase();
+    var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+    var assignArr = cleanAssign.split(',');
+    var myId = String(SESSION.user.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return assignArr.includes(myId);
   });
 }
 

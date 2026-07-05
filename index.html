@@ -13407,21 +13407,7 @@ function renderAnnouncementHistory() {
 }
 
 // Observe dynamic additions
-const emojiObserver = new MutationObserver((mutations) => {
-  let shouldRun = false;
-  for (let mutation of mutations) {
-    for (let node of mutation.addedNodes) {
-      if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
-        shouldRun = true;
-        break;
-      }
-    }
-    if (shouldRun) break;
-  }
-  if (shouldRun) {
-    emojiObserver.disconnect();
-    beautifyEmojis();
-    emojiObserver.observe(document.body, { childList: true, subtree: true });
+/* emojiObserver disabled */
   }
 });
 
@@ -13439,5 +13425,6 @@ if (document.readyState === 'loading') {
 
 
 
-< ! - -   t r i g g e r   b u i l d   - - >  
+< ! - -   t r i g g e r   b u i l d   - - > 
+ 
  

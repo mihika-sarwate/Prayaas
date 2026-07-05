@@ -5603,7 +5603,13 @@ function submitReport(){
   var classification=document.getElementById('r-classification').value;
   
   if(!date){showToast('Please set report date');return;}
-  if(date !== getTodayDateString()){
+  
+  var today = getTodayDateString();
+  var yesterday = offsetDate(today, -1);
+  var currentHour = new Date().getHours();
+  var isAllowed = (date === today) || (date === yesterday && currentHour < 3);
+  
+  if(!isAllowed){
     showToast('Reports can only be submitted for today (must be submitted before 12 AM).');
     return;
   }
@@ -5845,7 +5851,12 @@ function editReport(id) {
     return;
   }
   var today = getTodayDateString();
-  if (rep.date !== today) {
+  var yesterday = offsetDate(today, -1);
+  var currentHour = new Date().getHours();
+  // Allow editing today's reports, OR yesterday's reports if it's before 3 AM (grace period for late night workers)
+  var isAllowed = (rep.date === today) || (rep.date === yesterday && currentHour < 3);
+  
+  if (!isAllowed) {
     showToast('Only reports for today can be edited (must be submitted by 12 AM).');
     return;
   }

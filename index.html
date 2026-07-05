@@ -4684,7 +4684,7 @@ function populateReportTerritoryDropdowns() {
     var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase(); }) : null;
     var isAssignedToTeam = teamIdsUpper ? assignedList.some(function(a){ return teamIdsUpper.includes(a); }) : true;
     
-    if (isAssignedToTeam && d.status === 'Active') {
+    if (isAssignedToTeam) {
       var tType = (d.territoryType || '').trim().toUpperCase();
       
       if (tType) {
@@ -4839,13 +4839,13 @@ function populateReportingDropdowns(){
   var finalDocs = DB.doctors.filter(function(d){
     if (teamIds) {
       var assignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
-      return assignedList.some(function(a){ return teamIds.includes(a); }) && d.status === 'Active';
+      return assignedList.some(function(a){ return teamIds.includes(a); });
     }
-    return d.status === 'Active'; // Admin sees all active
+    return true; // Admin sees all
   });
 
   if (finalDocs.length === 0) {
-    finalDocs = DB.doctors.filter(function(d){ return d.status === 'Active'; });
+    finalDocs = DB.doctors;
   }
 
   finalDocs.sort(function(a, b){ return (a.name || '').localeCompare(b.name || ''); });
@@ -4859,7 +4859,7 @@ function populateReportingDropdowns(){
   DB.doctors.forEach(function(d){
     var docAssignedList = String(d.assignTo || '').toUpperCase().split(',').map(function(s){return s.trim();});
     var isAssignedToTeam = teamIds ? docAssignedList.some(function(a){ return teamIds.includes(a); }) : true;
-    if (isAssignedToTeam && d.status === 'Active' && d.area) {
+    if (isAssignedToTeam && d.area) {
       activeDocAreas.add(d.area.toLowerCase().trim());
     }
   });

@@ -6711,7 +6711,7 @@ function renderMTPDaysUI(isReadOnly, existing){
       var isExactMatch = rawAssign === String(targetEmpId || '').toUpperCase();
       var isActive = String(d.status || '').trim().toLowerCase() === 'active';
 
-      if ((isAssignedToTeam || isExactMatch) && isActive) {
+      if (isAssignedToTeam || isExactMatch) {
         var tTown = String(d.city || d.hq || '').trim();
         if (tTown) mrTowns.add(tTown);
         if (d.area) mrAreas.add(String(d.area).trim());

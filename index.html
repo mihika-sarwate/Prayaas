@@ -4870,7 +4870,7 @@ function populateReportingDropdowns(){
       
       var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var matchByAssignName = assignedList.some(function(a){ 
-        return teamNamesClean.some(function(tn) { return a.includes(tn); }); 
+        return teamNamesClean.some(function(tn) { return a.includes(tn) || tn.includes(a); }); 
       });
       var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
         return docBeClean.includes(tn) || tn.includes(docBeClean); 
@@ -4942,7 +4942,7 @@ function populateReportingDropdowns(){
       
       var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var matchByAssignName = assignedList.some(function(a){ 
-        return teamNamesClean.some(function(tn) { return a.includes(tn); }); 
+        return teamNamesClean.some(function(tn) { return a.includes(tn) || tn.includes(a); }); 
       });
       var matchByBeName = cBeClean && teamNamesClean.some(function(tn) { 
         return cBeClean.includes(tn) || tn.includes(cBeClean); 
@@ -9674,7 +9674,7 @@ function uploadDoctors(inp){
         else if (h.indexOf('name of be') !== -1 || h.indexOf('be name') !== -1) beNameCol = idx;
         else if (h === 'hq' || (h.indexOf('hq') !== -1 && h.indexOf('territory') === -1)) hqCol = idx;
         else if (h.indexOf('reporting manager') !== -1 || h.indexOf('manager') !== -1) mgrNameCol = idx;
-        else if (h.indexOf('name of doctor') !== -1 || h === 'name' || h.indexOf('doctor') !== -1) nameCol = idx;
+        else if ((h.indexOf('doc') !== -1 && h.indexOf('name') !== -1) || h === 'name' || h.indexOf('doctor name') !== -1 || h.indexOf('name of doctor') !== -1 || h === 'doctor' || h.indexOf('customer') !== -1 || h.indexOf('party') !== -1) nameCol = idx;
         else if (h.indexOf('speciality') !== -1 || h === 'spec') specCol = idx;
         else if (h.indexOf('qualification') !== -1 || h === 'qual') qualCol = idx;
         else if (h.indexOf('address') !== -1) addCol = idx;

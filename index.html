@@ -6574,11 +6574,13 @@ function renderMTPDaysUI(isReadOnly, existing){
       var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
       var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
       var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
+      var isExactMatch = rawAssign === String(targetEmpId || '').toUpperCase();
       var isActive = String(d.status || '').trim().toLowerCase() === 'active';
 
-      if (isAssignedToTeam && isActive) {
-        if (d.city) mrTowns.add(d.city.trim());
-        if (d.area) mrAreas.add(d.area.trim());
+      if ((isAssignedToTeam || isExactMatch) && isActive) {
+        var tTown = String(d.city || d.hq || '').trim();
+        if (tTown) mrTowns.add(tTown);
+        if (d.area) mrAreas.add(String(d.area).trim());
       }
     });
     
@@ -6588,9 +6590,11 @@ function renderMTPDaysUI(isReadOnly, existing){
       var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
       var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
       var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-      if (isAssignedToTeam) {
-        if (c.city) mrTowns.add(c.city.trim());
-        if (c.area) mrAreas.add(c.area.trim());
+      var isExactMatch = rawAssign === String(targetEmpId || '').toUpperCase();
+      if (isAssignedToTeam || isExactMatch) {
+        var tTown = String(c.city || '').trim();
+        if (tTown) mrTowns.add(tTown);
+        if (c.area) mrAreas.add(String(c.area).trim());
       }
     });
 
@@ -6600,8 +6604,9 @@ function renderMTPDaysUI(isReadOnly, existing){
       var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
       var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
       var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-      if (isAssignedToTeam) {
-        if (s.area) mrAreas.add(s.area.trim());
+      var isExactMatch = rawAssign === String(targetEmpId || '').toUpperCase();
+      if (isAssignedToTeam || isExactMatch) {
+        if (s.area) mrAreas.add(String(s.area).trim());
       }
     });
     console.log("MTP generated Towns: ", mrTowns, " Areas: ", mrAreas, " for EMP: ", upperTargetId);

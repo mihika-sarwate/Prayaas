@@ -4697,6 +4697,22 @@ function populateReportTerritoryDropdowns() {
     }
   });
 
+  var hasAnyTown = false;
+  Object.keys(mrTownsByTerritory).forEach(function(k) { if(mrTownsByTerritory[k].size > 0) hasAnyTown = true; });
+  
+  if (!hasAnyTown) {
+    DB.doctors.forEach(function(d) {
+      var tType = (d.territoryType || 'HQ').trim().toUpperCase();
+      if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
+      var tTown = String(d.city || d.hq || d.area || 'Unknown Town').trim();
+      if (tTown) mrTownsByTerritory[tType].add(tTown);
+      
+      if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
+      var tArea = String(d.area || 'Unknown Patch').trim();
+      if (tArea) mrAreasByTerritory[tType].add(tArea);
+    });
+  }
+
   window._mrTownsByTerritory = mrTownsByTerritory;
   window._mrAreasByTerritory = mrAreasByTerritory;
   
@@ -6720,6 +6736,16 @@ function renderMTPDaysUI(isReadOnly, existing){
       }
     });
     
+    // Fallback if mrTowns is empty (e.g. assignTo mismatches)
+    if (mrTowns.size === 0) {
+      DB.doctors.forEach(function(d) {
+        var tTown = String(d.city || d.hq || d.area || 'Unknown Town').trim();
+        if (tTown) mrTowns.add(tTown);
+        var tArea = String(d.area || 'Unknown Patch').trim();
+        if (tArea) mrAreas.add(tArea);
+      });
+    }
+
     // Populate from chemist assignments
     (DB.chemists || []).forEach(function(c) {
       var rawAssign = String(c.assignTo || '').toUpperCase();

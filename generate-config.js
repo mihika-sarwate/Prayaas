@@ -1,19 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-let envUrl = process.env.SUPABASE_URL || '';
-let envKey = process.env.SUPABASE_KEY || '';
-
-try {
-  const envPath = path.join(__dirname, '.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    const urlMatch = envContent.match(/SUPABASE_URL=(.*)/);
-    const keyMatch = envContent.match(/SUPABASE_KEY=(.*)/);
-    if (urlMatch) envUrl = urlMatch[1].trim();
-    if (keyMatch) envKey = keyMatch[1].trim();
-  }
-} catch (e) {}
+let envUrl = 'https://mmxdvruucggeixjqwsqr.supabase.co';
+let envKey = 'sb_publishable_2jy3q9qK_wkcnFAmPHe8dA_NEGZsRpl';
 
 const url = envUrl;
 const key = envKey;

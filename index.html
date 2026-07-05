@@ -4688,11 +4688,12 @@ function populateReportTerritoryDropdowns() {
       var tType = (d.territoryType || 'HQ').trim().toUpperCase();
       
       if (!mrTownsByTerritory[tType]) mrTownsByTerritory[tType] = new Set();
-      var tTown = String(d.city || d.hq || '').trim();
+      var tTown = String(d.city || d.hq || d.area || 'Unknown Town').trim();
       if (tTown) mrTownsByTerritory[tType].add(tTown);
       
       if (!mrAreasByTerritory[tType]) mrAreasByTerritory[tType] = new Set();
-      if (d.area) mrAreasByTerritory[tType].add(d.area.trim());
+      var tArea = String(d.area || 'Unknown Patch').trim();
+      if (tArea) mrAreasByTerritory[tType].add(tArea);
     }
   });
 
@@ -6712,9 +6713,10 @@ function renderMTPDaysUI(isReadOnly, existing){
       var isActive = String(d.status || '').trim().toLowerCase() === 'active';
 
       if (isAssignedToTeam || isExactMatch) {
-        var tTown = String(d.city || d.hq || '').trim();
+        var tTown = String(d.city || d.hq || d.area || 'Unknown Town').trim();
         if (tTown) mrTowns.add(tTown);
-        if (d.area) mrAreas.add(String(d.area).trim());
+        var tArea = String(d.area || 'Unknown Patch').trim();
+        if (tArea) mrAreas.add(tArea);
       }
     });
     

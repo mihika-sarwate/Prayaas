@@ -525,7 +525,7 @@ table.tbl tr:last-child td{border-bottom:none}
 
       <!-- Joint Field Work (Moved to top) -->
       <div class="fw" style="margin-top: 15px;"><label class="lbl">Worked With (Hierarchy)</label>
-        <select id="r-jfw-manager" onchange="populateReportingDropdowns()"><option value="">-- Working Alone --</option></select>
+        <select id="r-jfw-manager" onchange="populateReportingDropdowns(); populateReportTerritoryDropdowns(); filterReportingDropdownsByPatch();"><option value="">-- Working Alone --</option></select>
       </div>
       <div class="fw" style="margin-top: 5px;"><label class="lbl">Worked With (Remarks)</label>
         <input type="text" id="r-jfw-remarks" placeholder="Enter remarks if working with multiple people" />
@@ -4819,9 +4819,14 @@ function filterReportingStockistsDropdown() {
 
 function populateReportTerritoryDropdowns() {
   if (!SESSION.user) return;
+
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   if (teamIds) {
     teamIds.push(SESSION.user.id);
+  }
+  var jfwMgrEl = document.getElementById('r-jfw-manager');
+  if (jfwMgrEl && jfwMgrEl.value) {
+    teamIds = [jfwMgrEl.value];
   }
   
   var userHq = (SESSION.user.area || SESSION.user.hq || '').trim().toLowerCase();
@@ -4998,6 +5003,10 @@ function populateReportingDropdowns(){
   var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
   if (teamIds) {
     teamIds.push(SESSION.user.id);
+  }
+  var jfwMgrEl = document.getElementById('r-jfw-manager');
+  if (jfwMgrEl && jfwMgrEl.value) {
+    teamIds = [jfwMgrEl.value];
   }
 
   var docSel=document.getElementById('r-doctor');

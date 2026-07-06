@@ -2298,17 +2298,19 @@ async function initSupabaseData(isSilent) {
         }));
         var localDocs = (typeof DB !== 'undefined' && DB && DB.doctors) ? DB.doctors : [];
         restoreLocalAssignTo('doctors', cloudDocs);
-        restoreLocalAssignTo('doctors', cloudDocs);
-        if (cloudDocs.length === 0 && localDocs.length > 0) {
-          console.warn('Supabase returned 0 doctors but local DB has ' + localDocs.length + '. Keeping local data to prevent data loss.');
-          return localDocs;
-        }
-        if (cloudDocs.length < localDocs.length) {
-          console.warn('Supabase returned fewer doctors (' + cloudDocs.length + ') than local (' + localDocs.length + '). Keeping local data to prevent data loss. Triggering re-sync.');
+        
+        var cloudIds = new Set(cloudDocs.map(function(d){ return String(d.id); }));
+        var missingLocal = localDocs.filter(function(d) {
+          return !cloudIds.has(String(d.id)) && !_pendingDeletedDocIds.has(String(d.id));
+        });
+        
+        var mergedDocs = cloudDocs.concat(missingLocal);
+        
+        if (missingLocal.length > 0) {
+          console.warn('Preserving ' + missingLocal.length + ' unsynced local doctors. Triggering re-sync.');
           setTimeout(function() { if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase(); }, 2000);
-          return localDocs;
         }
-        return cloudDocs;
+        return mergedDocs;
       })(),
       chemists: (function() {
         var cloudChems = (chemists || []).map(c => {
@@ -10428,27 +10430,39 @@ function bulkReassignSelectedDoctors() {
   showToast(idsToUpdate.length + ' doctors reassigned successfully.');
 }
 
-function bulkDeleteSelectedDoctors() {
+async function bulkDeleteSelectedDoctors() {
   if (!selectedDocs.size) return;
   if (!confirm('Are you sure you want to delete the ' + selectedDocs.size + ' selected doctor records?')) return;
+  
   var idsToDelete = Array.from(selectedDocs);
-  idsToDelete.forEach(function(id) { _pendingDeletedDocIds.add(String(id)); });
-  _saveTombstonesToStorage();
-  DB.doctors = DB.doctors.filter(function(d) { return !idsToDelete.includes(d.id); });
-  saveDB();
-  selectedDocs.clear();
-  renderAdminDocList();
-  runSupabaseDelete('doctors', function(q) {
-    return q.in('id', idsToDelete);
-  }).then(function(res) {
+  var btn = document.querySelector('button[onclick="bulkDeleteSelectedDoctors()"]');
+  if (btn) { btn.disabled = true; btn.textContent = "Deleting..."; }
+  
+  try {
+    var res = await runSupabaseDelete('doctors', function(q) {
+      return q.in('id', idsToDelete);
+    });
+    
     if (res && res.error) {
-      console.error('Error in bulk delete:', res.error);
+      alert("Failed to delete from database: " + res.error.message);
+      if (btn) { btn.disabled = false; btn.textContent = "Delete Selected"; }
+      return; // Do not delete locally if DB delete fails
     }
-  });
-  showToast(idsToDelete.length + ' doctors deleted successfully!');
-  var masterCheck = document.getElementById('check-all-docs');
-  if (masterCheck) masterCheck.checked = false;
-  updateSelectedDocsCount();
+    
+    // Success - delete locally
+    DB.doctors = DB.doctors.filter(function(d) { return !idsToDelete.includes(d.id); });
+    saveDB();
+    selectedDocs.clear();
+    renderAdminDocList();
+    showToast(idsToDelete.length + ' doctors deleted successfully from database!');
+    var masterCheck = document.getElementById('check-all-docs');
+    if (masterCheck) masterCheck.checked = false;
+    updateSelectedDocsCount();
+  } catch (err) {
+    alert("Error deleting from database: " + (err.message || String(err)));
+  }
+  
+  if (btn) { btn.disabled = false; btn.textContent = "Delete Selected"; }
 }
 
 function bulkDeleteAllDoctors() {

@@ -7041,6 +7041,11 @@ async function grantPastReportAccess() {
     if (emp) {
       if (!emp.allowedPastDates) emp.allowedPastDates = [];
       if (!emp.allowedPastDates.includes(date)) emp.allowedPastDates.push(date);
+      
+      if (SESSION && SESSION.user && String(SESSION.user.id).toUpperCase() === empId.toUpperCase()) {
+        SESSION.user.allowedPastDates = emp.allowedPastDates.slice();
+        localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+      }
     }
   });
   window.selectedPastReportAccess.clear();
@@ -7062,6 +7067,11 @@ async function revokePastReportAccess() {
     var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
     if (emp && emp.allowedPastDates) {
       emp.allowedPastDates = emp.allowedPastDates.filter(function(d) { return d !== date; });
+      
+      if (SESSION && SESSION.user && String(SESSION.user.id).toUpperCase() === empId.toUpperCase()) {
+        SESSION.user.allowedPastDates = emp.allowedPastDates.slice();
+        localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+      }
     }
   });
   window.selectedPastReportAccess.clear();

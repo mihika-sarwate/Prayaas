@@ -10356,9 +10356,8 @@ function removeDoc(id){
   runSupabaseDelete('doctors', function(q) {
     return q.eq('id', id);
   }).then(function(res) {
-    if (!res || !res.error) {
-      _pendingDeletedDocIds.delete(String(id));
-      _saveTombstonesToStorage();
+    if (res && res.error) {
+      console.error('Error deleting doctor:', res.error);
     }
   });
 }
@@ -10442,9 +10441,8 @@ function bulkDeleteSelectedDoctors() {
   runSupabaseDelete('doctors', function(q) {
     return q.in('id', idsToDelete);
   }).then(function(res) {
-    if (!res || !res.error) {
-      idsToDelete.forEach(function(id) { _pendingDeletedDocIds.delete(String(id)); });
-      _saveTombstonesToStorage();
+    if (res && res.error) {
+      console.error('Error in bulk delete:', res.error);
     }
   });
   showToast(idsToDelete.length + ' doctors deleted successfully!');

@@ -2258,8 +2258,9 @@ async function initSupabaseData(isSilent) {
           var empIdUpper = String(e.id || '').toUpperCase();
           var safeRole = (e.role || 'emp').trim().toLowerCase();
           var cloudDesigRaw = e.designation;
-          if ((typeof cloudDesigRaw === 'undefined' || cloudDesigRaw === null || cloudDesigRaw === '') && e.leaves && e.leaves._designation) {
-            cloudDesigRaw = e.leaves._designation;
+          var parsedLeaves = parseJSONField(e.leaves);
+          if ((typeof cloudDesigRaw === 'undefined' || cloudDesigRaw === null || cloudDesigRaw === '') && parsedLeaves._designation) {
+            cloudDesigRaw = parsedLeaves._designation;
           }
           var cloudDesig = cloudDesigRaw;
           var existing = _existingLocalEmpsMap[empIdUpper] || null;
@@ -2285,8 +2286,8 @@ async function initSupabaseData(isSilent) {
             blockedDate: e.blocked_date || '',
             blockedReason: e.blocked_reason || '',
             designation: (typeof cloudDesig !== 'undefined' && cloudDesig !== null && cloudDesig !== '') ? cloudDesig : (typeof localDesig !== 'undefined' && localDesig !== '' ? localDesig : ''),
-            allowedPastDates: (e.leaves && e.leaves._allowedPastDates) ? e.leaves._allowedPastDates : [],
-            leaves: e.leaves
+            allowedPastDates: parsedLeaves._allowedPastDates || [],
+            leaves: parsedLeaves
           };
         }),
       doctors: (function() {
@@ -3759,7 +3760,7 @@ function clearLocalAssignTo(entityType) {
           blocked_date: formatDateForPostgres(e.blockedDate) || null,
           blocked_reason: e.blockedReason || null,
           designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-          leaves: e.leaves ? Object.assign({}, e.leaves, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role), _allowedPastDates: e.allowedPastDates || [] }) : { _allowedPastDates: e.allowedPastDates || [] }
+          leaves: Object.assign({}, parseJSONField(e.leaves), { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role), _allowedPastDates: e.allowedPastDates || [] })
         };
       });
       await upsertEmployeeRowsToSupabase(dbEmps);

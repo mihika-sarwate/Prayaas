@@ -7031,7 +7031,7 @@ function togglePastReportAccessAll() {
   renderAttendanceDashboard();
 }
 
-function grantPastReportAccess() {
+async function grantPastReportAccess() {
   if (!window.selectedPastReportAccess || window.selectedPastReportAccess.size === 0) return;
   window.selectedPastReportAccess.forEach(function(key) {
     var parts = key.split('|');
@@ -7045,12 +7045,16 @@ function grantPastReportAccess() {
   });
   window.selectedPastReportAccess.clear();
   saveDB(true);
-  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
+  if (typeof syncSupabaseDatabase === 'function') {
+    showLoadingOverlay('Saving permissions to cloud...');
+    try { await syncSupabaseDatabase(); } catch(e) {}
+    hideLoadingOverlay();
+  }
   showToast('Access granted successfully', 3000);
   renderAttendanceDashboard();
 }
 
-function revokePastReportAccess() {
+async function revokePastReportAccess() {
   if (!window.selectedPastReportAccess || window.selectedPastReportAccess.size === 0) return;
   window.selectedPastReportAccess.forEach(function(key) {
     var parts = key.split('|');
@@ -7063,7 +7067,11 @@ function revokePastReportAccess() {
   });
   window.selectedPastReportAccess.clear();
   saveDB(true);
-  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
+  if (typeof syncSupabaseDatabase === 'function') {
+    showLoadingOverlay('Removing permissions from cloud...');
+    try { await syncSupabaseDatabase(); } catch(e) {}
+    hideLoadingOverlay();
+  }
   showToast('Access revoked successfully', 3000);
   renderAttendanceDashboard();
 }

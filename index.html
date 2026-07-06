@@ -415,6 +415,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <button class="nav-btn" id="nb-leave" onclick="goTab('leave')"><span class="ni material-symbols-outlined">calendar_today</span>Leaves</button>
     <button class="nav-btn" id="nb-doctors" onclick="goTab('doctors')"><span class="ni material-symbols-outlined">group</span>Master</button>
     <button class="nav-btn" id="nb-inventory" onclick="goTab('inventory')"><span class="ni material-symbols-outlined">inventory_2</span>Inventory</button>
+    <button class="nav-btn" id="nb-emp-reports" onclick="goTab('emp-reports')"><span class="ni material-symbols-outlined">analytics</span>MIS Reports</button>
     <button class="nav-btn" id="nb-announcements" onclick="goTab('announcements')" style="display:none"><span class="ni material-symbols-outlined">campaign</span>Broadcast</button>
   </div>
 
@@ -773,6 +774,50 @@ table.tbl tr:last-child td{border-bottom:none}
           <table class="tbl">
             <thead><tr><th>Input Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
             <tbody id="tbl-emp-inv-inputs"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- MR MY MIS REPORTS TAB -->
+    <div class="body" id="tab-emp-reports" style="display:none">
+      <div class="card">
+        <div class="card-title">&#128269; My MIS Reports</div>
+        <div class="fw"><label class="lbl">Select Report Category</label>
+          <select id="emp-rep-selector" onchange="updateEmpReportHeadersAndFilters()">
+            <option value="doc_calls">1. Total Doctor Calls Report</option>
+            <option value="chem_calls">2. Total Chemist Calls Report</option>
+            <option value="call_avg">3. Doctor Call Average Report</option>
+            <option value="missed_calls">4. Missed Doctor Calls Report</option>
+            <option value="visit_freq">5. Doctor Visit Frequency Report</option>
+            <option value="plan_vs_act">6. Planned vs Actual Calls Report</option>
+            <option value="jfw_days">7. Joint Field Work (JFW) Summary</option>
+            <option value="mgr_accomp">8. Manager Accompaniment Report</option>
+            <option value="samples_util">9. Sample Utilization Report</option>
+            <option value="gifts_util">10. Gift Utilization Report</option>
+            <option value="expenses_rep">11. Expense Summary Report</option>
+            <option value="leaves_rep">12. Leave Utilisation Report</option>
+            <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
+            <option value="transit_rep">14. Transit Report</option>
+          </select>
+        </div>
+        <div class="row2">
+          <div><label class="lbl">From Date</label><input type="date" id="emp-rep-from"></div>
+          <div><label class="lbl">To Date</label><input type="date" id="emp-rep-to"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary sm" onclick="runEmpMISReport()">Run Query / Filter</button>
+          <button class="btn success sm" onclick="exportEmpReportToCSV()">&#8595; Export Excel / CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          <span id="emp-rep-table-title">Query Results</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl" id="emp-mis-report-table">
+            <thead id="emp-mis-report-thead"></thead>
+            <tbody id="emp-mis-report-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -8213,7 +8258,7 @@ function goTab(name){
     return; // Already on this tab, don't wipe state
   }
   currentTab = name;
-  ['home','report','tour','expense','leave','doctors','announcements','inventory'].forEach(function(t){
+  ['home','report','tour','expense','leave','doctors','announcements','inventory','emp-reports'].forEach(function(t){
     var el=document.getElementById('tab-'+t);
     if (el) {
       el.style.display=t===name?'block':'none';
@@ -8222,6 +8267,9 @@ function goTab(name){
   });
   if(name==='announcements') {
     renderBroadcastPanel('tab-announcements');
+  }
+  if(name==='emp-reports') {
+    updateEmpReportHeadersAndFilters();
   }
   if(name==='inventory') {
     renderEmpInventoryTables();
@@ -14242,6 +14290,295 @@ function renderAnnouncementHistory() {
 
 // Observe dynamic additions
 /* emojiObserver disabled */
+
+// ===== 14 EMPLOYEE MIS REPORTS ENGINE =====
+var currentEmpMISData=[];
+var currentEmpReportType='doc_calls';
+
+function updateEmpReportHeadersAndFilters(){
+  currentEmpReportType=document.getElementById('emp-rep-selector').value;
+  var thead=document.getElementById('emp-mis-report-thead');
+  var tbody=document.getElementById('emp-mis-report-tbody');
+  thead.innerHTML='';
+  tbody.innerHTML='<tr><td class="empty">Click "Run Query" to fetch data</td></tr>';
+}
+
+function runEmpMISReport(){
+    var empId=SESSION.user.id;
+    var from=document.getElementById('emp-rep-from').value;
+    var to=document.getElementById('emp-rep-to').value;
+    
+    var thead=document.getElementById('emp-mis-report-thead');
+    var tbody=document.getElementById('emp-mis-report-tbody');
+    
+    // Filter base calls reports for this specific employee
+    var baseReports=DB.reports.filter(function(r){
+      if(r.empId!==empId)return false;
+      if(from&&r.date<from)return false;
+      if(to&&r.date>to)return false;
+      return true;
+    });
+  
+  currentEmpMISData=[];
+  
+  if(currentEmpReportType==='doc_calls'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
+    var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
+    currentEmpMISData=docCalls.map(function(r){
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var hq = emp && emp.area ? emp.area : 'N/A';
+      var state = emp && emp.state ? emp.state : 'N/A';
+      var promoted = r.promotedProducts && r.promotedProducts.length ? r.promotedProducts.join(', ') : 'None';
+      var parsedSamples = parseJSONField(r.samples);
+      var parsedGifts = parseJSONField(r.gifts);
+      var parsedInputs = parseJSONField(r.inputs);
+      var samples = Object.keys(parsedSamples).map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', ') || 'None';
+      var gifts = Object.keys(parsedGifts).map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', ') || 'None';
+      var inputs = Object.keys(parsedInputs).map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', ') || 'None';
+      return [r.date, r.empId, r.empName, hq, state, r.docName, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
+    });
+    
+  } else if(currentEmpReportType==='chem_calls'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th></tr>';
+    var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
+    currentEmpMISData=chemCalls.map(function(r){
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var state = emp && emp.state ? emp.state : 'N/A';
+      return [r.date, r.empId, r.empName, state, r.chemName, r.classification, r.orderAmount, r.stockStatus, r.remarks];
+    });
+    
+  } else if(currentEmpReportType==='call_avg'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Total Doctor Calls</th><th>Working Days Checked</th><th>Call Average / Day</th></tr>';
+    var e=DB.employees.find(function(x){return x.id===empId;});
+    if (e) {
+      var empsReps = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
+      });
+      var workingDates=[];
+      DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
+        if(!workingDates.includes(r.date)) workingDates.push(r.date);
+      });
+      var days = workingDates.length || 1;
+      var avg = (empsReps.length / days).toFixed(2);
+      var state = e.state || 'N/A';
+      currentEmpMISData.push([e.id, e.name, state, empsReps.length, days, avg]);
+    }
+    
+  } else if(currentEmpReportType==='missed_calls'){
+    thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>State</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
+    var myTPs=DB.tourPlans.filter(function(tp){
+      var statusUpper = String(tp.status || '').toUpperCase();
+      return (statusUpper==='APPROVED' || statusUpper==='SUBMITTED') && String(tp.empId || '').toUpperCase()===String(empId).toUpperCase();
+    });
+    myTPs.forEach(function(tp){
+      var emp = DB.employees.find(function(e){return String(e.id || '').toUpperCase() === String(tp.empId || '').toUpperCase();});
+      var state = emp && emp.state ? emp.state : 'N/A';
+      tp.days.forEach(function(d){
+        if(from && d.date < from) return;
+        if(to && d.date > to) return;
+        var area=d.areaTerritory||d.toLocation||'';
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+        plannedDocIds.forEach(function(docId){
+          var visited = DB.reports.find(function(r){
+            return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && r.docId===docId;
+          });
+          if(!visited){
+            var doc=DB.doctors.find(function(dc){return dc.id===docId;});
+            currentEmpMISData.push([tp.month, tp.empName, state, d.date, doc?doc.code:'', doc?doc.name:docId, 'Missed Call']);
+          }
+        });
+      });
+    });
+    
+  } else if(currentEmpReportType==='visit_freq'){
+    thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>MR State</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
+    DB.doctors.filter(function(d){return d.assignTo===empId;}).forEach(function(d){
+      var visits = DB.reports.filter(function(r){
+        return r.targetType==='Doctor' && r.docId===d.id && (!from||r.date>=from) && (!to||r.date<=to);
+      });
+      var emp = DB.employees.find(function(e){return e.id===d.assignTo;});
+      var state = emp && emp.state ? emp.state : 'N/A';
+      currentEmpMISData.push([d.code, d.name, emp?(emp.name+' ('+d.assignTo+')'):'Unassigned', state, d.spec, visits.length]);
+    });
+    
+  } else if(currentEmpReportType==='plan_vs_act'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Planned Doctor Calls</th><th>Actual Doctor Calls</th><th>Planned Chemist Calls</th><th>Actual Chemist Calls</th></tr>';
+    var e=DB.employees.find(function(x){return x.id===empId;});
+    if (e) {
+      var plannedDocs = 0;
+      var plannedChems = 0;
+      var state = e.state || 'N/A';
+      DB.tourPlans.filter(function(tp){
+        var statusUpper = String(tp.status || '').toUpperCase();
+        return String(tp.empId || '').toUpperCase()===String(e.id || '').toUpperCase() && (statusUpper==='APPROVED' || statusUpper==='SUBMITTED');
+      }).forEach(function(tp){
+        tp.days.forEach(function(d){
+          if(from && d.date < from) return;
+          if(to && d.date > to) return;
+          var area=d.areaTerritory||d.toLocation||'';
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+          plannedDocs += docIds.length;
+          plannedChems += chemIds.length;
+        });
+      });
+      var actualDocs = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
+      }).length;
+      var actualChems = DB.reports.filter(function(r){
+        return r.empId===e.id && r.targetType==='Chemist' && (!from||r.date>=from) && (!to||r.date<=to);
+      }).length;
+      currentEmpMISData.push([e.id, e.name, state, plannedDocs, actualDocs, plannedChems, actualChems]);
+    }
+    
+  } else if(currentEmpReportType==='jfw_days'){
+    thead.innerHTML='<tr><th>MR Employee</th><th>MR State</th><th>Accompanying Manager ID</th><th>Manager Name</th><th>JFW Date</th><th>Work Remarks</th></tr>';
+    baseReports.filter(function(r){return r.jfwMgrId !== '';}).forEach(function(r){
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var state = emp && emp.state ? emp.state : 'N/A';
+      currentEmpMISData.push([r.empName+' ('+r.empId+')', state, r.jfwMgrId, r.jfwMgrName, r.date, r.jfwRemarks ? (r.remarks + ' | JFW: ' + r.jfwRemarks) : r.remarks]);
+    });
+    
+  } else if(currentEmpReportType==='mgr_accomp'){
+    thead.innerHTML='<tr><th>Manager Name</th><th>MR Employee</th><th>MR State</th><th>Coaching &amp; Accompanist Days</th></tr>';
+    var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN';});
+    var mr=DB.employees.find(function(x){return x.id===empId;});
+    if (mr) {
+      managers.forEach(function(m){
+        var accompDays=DB.reports.filter(function(r){
+          return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
+        }).length;
+        var state = mr.state || 'N/A';
+        currentEmpMISData.push([m.name+' ('+m.id+')', mr.name+' ('+mr.id+')', state, accompDays]);
+      });
+    }
+    
+  } else if(currentEmpReportType==='samples_util'){
+    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    var e = DB.employees.find(function(x){ return x.id === empId; });
+    if (e) {
+      var state = e.state || 'N/A';
+      var myInv = DB.samplesInventory.filter(function(s){ return s.empId === e.id; });
+      var itemsMap = {};
+      myInv.forEach(function(s){
+        itemsMap[s.prodName] = { opening: s.opening, received: s.received, balance: s.balance, distributed: 0 };
+      });
+      var myReports = DB.reports.filter(function(r){
+        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+      });
+      myReports.forEach(function(r) {
+        var parsedSamples = parseJSONField(r.samples);
+        for (var p in parsedSamples) {
+          if (!itemsMap[p]) itemsMap[p] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+          itemsMap[p].distributed += parsedSamples[p];
+        }
+      });
+      for (var p in itemsMap) {
+        if (itemsMap[p].opening > 0 || itemsMap[p].received > 0 || itemsMap[p].distributed > 0 || itemsMap[p].balance > 0) {
+          currentEmpMISData.push([e.name, state, p, itemsMap[p].opening, itemsMap[p].received, itemsMap[p].distributed, itemsMap[p].balance]);
+        }
+      }
+    }
+    
+  } else if(currentEmpReportType==='gifts_util'){
+    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    var e = DB.employees.find(function(x){ return x.id === empId; });
+    if (e) {
+      var state = e.state || 'N/A';
+      var myInv = DB.giftsInventory.filter(function(g){ return g.empId === e.id; });
+      var itemsMap = {};
+      myInv.forEach(function(g){
+        itemsMap[g.giftName] = { opening: g.opening, received: g.received, balance: g.balance, distributed: 0 };
+      });
+      var myReports = DB.reports.filter(function(r){
+        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+      });
+      myReports.forEach(function(r) {
+        var parsedGifts = parseJSONField(r.gifts);
+        for (var g in parsedGifts) {
+          if (!itemsMap[g]) itemsMap[g] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+          itemsMap[g].distributed += parsedGifts[g];
+        }
+      });
+      for (var g in itemsMap) {
+        if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
+          currentEmpMISData.push([e.name, state, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
+        }
+      }
+    }
+    
+  } else if(currentEmpReportType==='expenses_rep'){
+    thead.innerHTML='<tr><th>Employee</th><th>State</th><th>Month</th><th>Approved Claims (&#x20B9;)</th><th>Receipt Upload</th><th>Status</th></tr>';
+    var claims=DB.expenses.filter(function(ex){
+      return ex.empId===empId;
+    });
+    currentEmpMISData=claims.map(function(ex){
+      var emp = DB.employees.find(function(e){return e.id===ex.empId;});
+      var state = emp && emp.state ? emp.state : 'N/A';
+      return [ex.empName+' ('+ex.empId+')', state, ex.month, ex.total, ex.receiptFile, ex.status];
+    });
+    
+  } else if(currentEmpReportType==='leaves_rep'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>CL Balance</th><th>SL Balance</th><th>EL Balance</th><th>LWP Used</th></tr>';
+    var e = DB.employees.find(function(x){return x.id===empId;});
+    if (e) {
+      var state = e.state || 'N/A';
+      currentEmpMISData.push([e.id, e.name, state, e.leaves.CL - e.leaves.CL_used, e.leaves.SL - e.leaves.SL_used, e.leaves.EL - e.leaves.EL_used, e.leaves.LWP_used]);
+    }
+    
+  } else if(currentEmpReportType==='doc_coverage'){
+    thead.innerHTML='<tr><th>MR ID</th><th>MR Name</th><th>State</th><th>Total Active Doctors</th><th>Visited Doctors</th><th>Doctors Not Visited</th><th>Coverage Rate %</th></tr>';
+    var e = DB.employees.find(function(x){return x.id===empId;});
+    if (e) {
+      var assigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
+      var visitedIds=[];
+      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor';}).forEach(function(r){
+        if(!visitedIds.includes(r.docId)) visitedIds.push(r.docId);
+      });
+      var missed = Math.max(0, assigned - visitedIds.length);
+      var pct = assigned ? Math.round((visitedIds.length / assigned)*100) : 0;
+      var state = e.state || 'N/A';
+      currentEmpMISData.push([e.id, e.name, state, assigned, visitedIds.length, missed, pct+'%']);
+    }
+    
+  } else if(currentEmpReportType==='transit_rep'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Work Type</th><th>Territory</th><th>City/HQ</th><th>Patch</th><th>Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th></tr>';
+    var transitReps=baseReports.filter(function(r){return r.workType==='TRANSIT';});
+    currentEmpMISData=transitReps.map(function(r){
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var state = emp && emp.state ? emp.state : 'N/A';
+      return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||''];
+    });
+  }
+  
+  if(!currentEmpMISData.length){
+    var colCount = thead.querySelectorAll('th').length || 10;
+    tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">No matching records found for this query parameters</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML=currentEmpMISData.map(function(row){
+    return '<tr>'+row.map(function(val){return '<td>'+val+'</td>';}).join('')+'</tr>';
+  }).join('');
+}
+
+function exportEmpReportToCSV(){
+  if(!currentEmpMISData.length){showToast('No data to export! Please run a query first.');return;}
+  var thead=document.getElementById('emp-mis-report-thead');
+  var headers=[];
+  thead.querySelectorAll('th').forEach(function(th){
+    headers.push(th.textContent);
+  });
+  
+  var csv=[headers.join(',')];
+  currentEmpMISData.forEach(function(row){
+    csv.push(row.map(function(val){
+      return '"'+(val||'').toString().replace(/"/g,'""')+'"';
+    }).join(','));
+  });
+  
+  downloadData(csv.join('\n'), 'my_mis_report_'+currentEmpReportType+'.csv');
+}
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', beautifyEmojis);

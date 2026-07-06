@@ -2027,6 +2027,14 @@ async function initSupabaseData(isSilent) {
   }
   isLoadingData = true; // Set immediately so restoreSessionWhenReady always waits
 
+  if (!hasInitializedData) {
+    try {
+      await loadLocalDB();
+    } catch(e) {
+      console.error("Initial loadLocalDB failed:", e);
+    }
+  }
+
   if (window._supabaseLoadTimeout) clearTimeout(window._supabaseLoadTimeout);
   var timeoutMs = (navigator.onLine === false) ? 500 : 20000;
   window._supabaseLoadTimeout = setTimeout(async function() {

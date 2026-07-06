@@ -5069,13 +5069,13 @@ function populateReportingDropdowns(){
       
       var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var matchByAssignName = assignedList.some(function(a){ 
-        return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
+        return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
       });
       var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
-        return tn && docBeClean === tn; 
+        return tn && (docBeClean.includes(tn) || tn.includes(docBeClean)); 
       });
       var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
-        return tn && docMgrClean === tn; 
+        return tn && (docMgrClean.includes(tn) || tn.includes(docMgrClean)); 
       });
       
       return matchById || matchByAssignName || matchByBeName || matchByMgrName;
@@ -5109,13 +5109,13 @@ function populateReportingDropdowns(){
     if (teamIdsUpper) {
       var matchById = docAssignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var matchByAssignName = docAssignedList.some(function(a){ 
-        return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
+        return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
       });
       var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
-        return tn && docBeClean === tn; 
+        return tn && (docBeClean.includes(tn) || tn.includes(docBeClean)); 
       });
       var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
-        return tn && docMgrClean === tn; 
+        return tn && (docMgrClean.includes(tn) || tn.includes(docMgrClean)); 
       });
       isAssignedToTeam = matchById || matchByAssignName || matchByBeName || matchByMgrName;
     }
@@ -5141,13 +5141,13 @@ function populateReportingDropdowns(){
       
       var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var matchByAssignName = assignedList.some(function(a){ 
-        return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
+        return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
       });
       var matchByBeName = cBeClean && teamNamesClean.some(function(tn) { 
-        return tn && cBeClean === tn; 
+        return tn && (cBeClean.includes(tn) || tn.includes(cBeClean)); 
       });
       var matchByMgrName = cMgrClean && teamNamesClean.some(function(tn) { 
-        return tn && cMgrClean === tn; 
+        return tn && (cMgrClean.includes(tn) || tn.includes(cMgrClean)); 
       });
       var hasAssign = matchById || matchByAssignName || matchByBeName || matchByMgrName;
       var unassigned = !c.assignTo || c.assignTo.trim() === '';
@@ -5188,13 +5188,13 @@ function populateReportingDropdowns(){
         
         var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
         var matchByAssignName = assignedList.some(function(a){ 
-          return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
+          return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
         });
         var matchByBeName = sBeClean && teamNamesClean.some(function(tn) { 
-          return tn && sBeClean === tn; 
+          return tn && (sBeClean.includes(tn) || tn.includes(sBeClean)); 
         });
         var matchByMgrName = sMgrClean && teamNamesClean.some(function(tn) { 
-          return tn && sMgrClean === tn; 
+          return tn && (sMgrClean.includes(tn) || tn.includes(sMgrClean)); 
         });
         var hasAssign = matchById || matchByAssignName || matchByBeName || matchByMgrName;
         var unassigned = !s.assignTo || s.assignTo.trim() === '';
@@ -7898,13 +7898,13 @@ function getMyDoctors(){
     
     var matchById = assignArr.some(function(a){ return teamIdsUpper.includes(a); });
     var matchByAssignName = assignArr.some(function(a){ 
-      return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
+      return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
     });
     var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
-      return tn && docBeClean === tn; 
+      return tn && (docBeClean.includes(tn) || tn.includes(docBeClean)); 
     });
     var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
-      return tn && docMgrClean === tn; 
+      return tn && (docMgrClean.includes(tn) || tn.includes(docMgrClean)); 
     });
     
     return matchById || matchByAssignName || matchByBeName || matchByMgrName;

@@ -2276,9 +2276,11 @@ async function initSupabaseData(isSilent) {
           };
         }),
       doctors: (function() {
-        var cloudDocs = (doctors || []).map(d => ({
-          id: d.id,
-          code: d.code,
+        var cloudDocs = (doctors || [])
+          .filter(function(d) { return !_pendingDeletedDocIds.has(String(d.id)); })
+          .map(d => ({
+            id: d.id,
+            code: d.code,
           name: d.name,
           beName: d.be_name,
           hq: d.hq,
@@ -3227,6 +3229,7 @@ var hasInitializedData = false;
 // Track employee IDs that have pending local changes not yet confirmed in Supabase.
 // The poller must NOT overwrite these with stale cloud data.
 var _pendingDeletedEmpIds = new Set(); // IDs that were deleted locally
+var _pendingDeletedDocIds = new Set(); // Doctor tombstones
 var _pendingLocalEmpIds = new Set();   // IDs whose data was changed locally (block/unblock/edit)
 var _pendingLocalReportIds = new Set(); // Report IDs submitted locally but not yet confirmed in cloud
 
@@ -3430,6 +3433,7 @@ async function pushUserInventoryToSupabase(empId) {
 function _saveTombstonesToStorage() {
   try {
     localStorage.setItem('adonis_deleted_emp_tombstones', JSON.stringify([..._pendingDeletedEmpIds]));
+    localStorage.setItem('adonis_deleted_doc_tombstones', JSON.stringify([..._pendingDeletedDocIds]));
   } catch(e) {}
 }
 
@@ -3439,6 +3443,10 @@ function _saveTombstonesToStorage() {
     var saved = JSON.parse(localStorage.getItem('adonis_deleted_emp_tombstones') || '[]');
     saved.forEach(function(id) { _pendingDeletedEmpIds.add(String(id).toUpperCase()); });
     if (saved.length > 0) console.log('Loaded ' + saved.length + ' deleted-employee tombstone(s) from previous session.');
+    
+    var savedDocs = JSON.parse(localStorage.getItem('adonis_deleted_doc_tombstones') || '[]');
+    savedDocs.forEach(function(id) { _pendingDeletedDocIds.add(String(id)); });
+    if (savedDocs.length > 0) console.log('Loaded ' + savedDocs.length + ' deleted-doctor tombstone(s).');
   } catch(e) {}
 })();
 
@@ -10173,12 +10181,19 @@ function renderAdminDocList(page = 1) {
 
 function removeDoc(id){
   if(!confirm('Delete doctor record?'))return;
+  _pendingDeletedDocIds.add(String(id));
+  _saveTombstonesToStorage();
   DB.doctors=DB.doctors.filter(function(d){return d.id!==id;});
   saveDB();
   selectedDocs.delete(id);
   renderAdminDocList();
   runSupabaseDelete('doctors', function(q) {
     return q.eq('id', id);
+  }).then(function(res) {
+    if (!res || !res.error) {
+      _pendingDeletedDocIds.delete(String(id));
+      _saveTombstonesToStorage();
+    }
   });
 }
 
@@ -10252,12 +10267,19 @@ function bulkDeleteSelectedDoctors() {
   if (!selectedDocs.size) return;
   if (!confirm('Are you sure you want to delete the ' + selectedDocs.size + ' selected doctor records?')) return;
   var idsToDelete = Array.from(selectedDocs);
+  idsToDelete.forEach(function(id) { _pendingDeletedDocIds.add(String(id)); });
+  _saveTombstonesToStorage();
   DB.doctors = DB.doctors.filter(function(d) { return !idsToDelete.includes(d.id); });
   saveDB();
   selectedDocs.clear();
   renderAdminDocList();
   runSupabaseDelete('doctors', function(q) {
     return q.in('id', idsToDelete);
+  }).then(function(res) {
+    if (!res || !res.error) {
+      idsToDelete.forEach(function(id) { _pendingDeletedDocIds.delete(String(id)); });
+      _saveTombstonesToStorage();
+    }
   });
   showToast(idsToDelete.length + ' doctors deleted successfully!');
   var masterCheck = document.getElementById('check-all-docs');

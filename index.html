@@ -6770,24 +6770,31 @@ function renderAttendanceDashboard() {
         return nameA.localeCompare(nameB);
       });
       
+      var isPastDate = function(dt) { return dt < getTodayDateString(); };
+      window._currentAttendanceDates = dates;
+      window._currentAttendanceEmpIds = empIds;
+      
       // Update header
       if (theadEl) {
-        var headerHtml = '<tr><th>Employee</th>';
+        var headerHtml = '<tr><th style="cursor:pointer; user-select:none;" onclick="togglePastReportAccessAll()" title="Toggle All Past Dates">Employee</th>';
         dates.forEach(function(d) {
           var parts = d.split('-');
           var shortDate = parts[2] + '/' + parts[1];
-          headerHtml += '<th style="text-align:center; min-width:60px;">' + escapeHTML(shortDate) + '</th>';
+          var isPast = isPastDate(d);
+          var clickAttr = isPast ? ' onclick="togglePastReportAccessColumn(\'' + d + '\')"' : '';
+          var style = 'text-align:center; min-width:60px; user-select:none;';
+          if (isPast) style += ' cursor:pointer;';
+          headerHtml += '<th style="' + style + '"' + clickAttr + ' title="' + (isPast ? 'Toggle Column' : '') + '">' + escapeHTML(shortDate) + '</th>';
         });
         headerHtml += '</tr>';
         theadEl.innerHTML = headerHtml;
       }
       
-      var isPastDate = function(dt) { return dt < getTodayDateString(); };
-
       // Update body
       tbody.innerHTML = empIds.map(function(empId) {
         var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
-        var rowHtml = '<tr><td class="tbl-name">' + escapeHTML((emp ? emp.name : empId) || '-') + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(empId || '') + '</div></td>';
+        var rowClickAttr = ' onclick="togglePastReportAccessRow(\'' + empId + '\')"';
+        var rowHtml = '<tr><td class="tbl-name" style="cursor:pointer; user-select:none;"' + rowClickAttr + ' title="Toggle Row">' + escapeHTML((emp ? emp.name : empId) || '-') + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(empId || '') + '</div></td>';
         
         dates.forEach(function(d) {
           var record = DB.attendance.find(function(r) {
@@ -6959,6 +6966,60 @@ function togglePastReportAccess(empId, date) {
   } else {
     window.selectedPastReportAccess.add(key);
   }
+  renderAttendanceDashboard();
+}
+
+function togglePastReportAccessRow(empId) {
+  var isPastDate = function(dt) { return dt < getTodayDateString(); };
+  var pastDates = (window._currentAttendanceDates || []).filter(isPastDate);
+  if (!pastDates.length) return;
+  var allSelected = true;
+  pastDates.forEach(function(d) {
+    if (!window.selectedPastReportAccess.has(empId + '|' + d)) allSelected = false;
+  });
+  pastDates.forEach(function(d) {
+    var key = empId + '|' + d;
+    if (allSelected) window.selectedPastReportAccess.delete(key);
+    else window.selectedPastReportAccess.add(key);
+  });
+  renderAttendanceDashboard();
+}
+
+function togglePastReportAccessColumn(date) {
+  var isPastDate = function(dt) { return dt < getTodayDateString(); };
+  if (!isPastDate(date)) return;
+  var empIds = window._currentAttendanceEmpIds || [];
+  if (!empIds.length) return;
+  var allSelected = true;
+  empIds.forEach(function(empId) {
+    if (!window.selectedPastReportAccess.has(empId + '|' + date)) allSelected = false;
+  });
+  empIds.forEach(function(empId) {
+    var key = empId + '|' + date;
+    if (allSelected) window.selectedPastReportAccess.delete(key);
+    else window.selectedPastReportAccess.add(key);
+  });
+  renderAttendanceDashboard();
+}
+
+function togglePastReportAccessAll() {
+  var isPastDate = function(dt) { return dt < getTodayDateString(); };
+  var pastDates = (window._currentAttendanceDates || []).filter(isPastDate);
+  var empIds = window._currentAttendanceEmpIds || [];
+  if (!pastDates.length || !empIds.length) return;
+  var allSelected = true;
+  empIds.forEach(function(empId) {
+    pastDates.forEach(function(d) {
+      if (!window.selectedPastReportAccess.has(empId + '|' + d)) allSelected = false;
+    });
+  });
+  empIds.forEach(function(empId) {
+    pastDates.forEach(function(d) {
+      var key = empId + '|' + d;
+      if (allSelected) window.selectedPastReportAccess.delete(key);
+      else window.selectedPastReportAccess.add(key);
+    });
+  });
   renderAttendanceDashboard();
 }
 

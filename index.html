@@ -986,7 +986,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="row3">
           <div><label class="lbl">DOJ</label><input type="date" id="adm-emp-doj"></div>
           <div><label class="lbl">State</label><input type="text" id="adm-emp-state" placeholder="State"></div>
-          <div></div>
+          <div style="display:flex;align-items:center;padding-top:18px"><label class="lbl" style="margin:0;cursor:pointer"><input type="checkbox" id="adm-emp-allow-past-reports" style="margin-right:8px;transform:scale(1.2)">Allow Past Reports</label></div>
         </div>
         <div style="display: flex; gap: 8px;">
           <button class="btn primary sm admin-only" id="btn-save-emp" onclick="addEmployee()">+ Save Employee Record</button>
@@ -5766,7 +5766,7 @@ function submitReport(){
   
   if(!date){showToast('Please set report date');return;}
   
-  if(date !== getTodayDateString()){
+  if(date !== getTodayDateString() && !SESSION.user.allowPastReports){
     showToast('Reports can only be submitted for today (must be submitted before 12 AM).');
     return;
   }
@@ -6010,7 +6010,7 @@ function editReport(id) {
     return;
   }
   var today = getTodayDateString();
-  if (rep.date !== today) {
+  if (rep.date !== today && !SESSION.user.allowPastReports) {
     showToast('Only reports for today can be edited (must be submitted by 12 AM).');
     return;
   }
@@ -9088,6 +9088,7 @@ function editEmployee(empId) {
   document.getElementById('adm-emp-doj').value = emp.doj || '';
   document.getElementById('adm-emp-state').value = emp.state || '';
   document.getElementById('adm-emp-status').value = normalizeEmployeeStatus(emp.status);
+  if (document.getElementById('adm-emp-allow-past-reports')) document.getElementById('adm-emp-allow-past-reports').checked = !!emp.allowPastReports;
   
   document.getElementById('adm-emp-form-title').textContent = 'Edit Employee Record (ID: ' + emp.id + ')';
   document.getElementById('btn-save-emp').textContent = 'Update Employee Record';
@@ -9110,6 +9111,7 @@ function cancelEditEmployee() {
   document.getElementById('adm-emp-doj').value = '';
   document.getElementById('adm-emp-state').value = '';
   document.getElementById('adm-emp-status').value = 'Active';
+  if (document.getElementById('adm-emp-allow-past-reports')) document.getElementById('adm-emp-allow-past-reports').checked = false;
   
   document.getElementById('adm-emp-form-title').textContent = 'Add New Employee Record';
   document.getElementById('btn-save-emp').textContent = '+ Save Employee Record';
@@ -9127,6 +9129,7 @@ function addEmployee(){
   var doj=document.getElementById('adm-emp-doj').value;
   var state=document.getElementById('adm-emp-state').value.trim();
   var status=document.getElementById('adm-emp-status').value;
+  var allowPastReports = document.getElementById('adm-emp-allow-past-reports') ? document.getElementById('adm-emp-allow-past-reports').checked : false;
   
   if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
   
@@ -9143,6 +9146,7 @@ function addEmployee(){
     emp.doj = doj;
     emp.state = state;
     emp.status = normalizeEmployeeStatus(status);
+    emp.allowPastReports = allowPastReports;
     
     saveDB();
     cancelEditEmployee();
@@ -9165,6 +9169,7 @@ function addEmployee(){
     doj:doj,
     state:state,
     status:normalizeEmployeeStatus(status),
+    allowPastReports:allowPastReports,
     leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
   });
   saveDB();

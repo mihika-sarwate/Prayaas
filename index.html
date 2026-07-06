@@ -3377,7 +3377,7 @@ async function pushEmployeeToSupabase(emp) {
       state: emp.state || null,
       designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role),
       doj: formatDateForPostgres(emp.doj) || null,
-      leaves: emp.leaves || {}
+      leaves: Object.assign({}, parseJSONField(emp.leaves), { _designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role), _allowedPastDates: emp.allowedPastDates || [] })
     };
     var res = await supabase.from('employees').upsert([row], { onConflict: 'id' });
     if (res && res.error) {
@@ -7034,6 +7034,7 @@ function togglePastReportAccessAll() {
 
 async function grantPastReportAccess() {
   if (!window.selectedPastReportAccess || window.selectedPastReportAccess.size === 0) return;
+  var updatedEmps = [];
   window.selectedPastReportAccess.forEach(function(key) {
     var parts = key.split('|');
     var empId = parts[0];
@@ -7042,6 +7043,7 @@ async function grantPastReportAccess() {
     if (emp) {
       if (!emp.allowedPastDates) emp.allowedPastDates = [];
       if (!emp.allowedPastDates.includes(date)) emp.allowedPastDates.push(date);
+      updatedEmps.push(emp);
       
       if (SESSION && SESSION.user && String(SESSION.user.id).toUpperCase() === empId.toUpperCase()) {
         SESSION.user.allowedPastDates = emp.allowedPastDates.slice();
@@ -7051,12 +7053,10 @@ async function grantPastReportAccess() {
   });
   window.selectedPastReportAccess.clear();
   saveDB(true);
-  if (typeof syncSupabaseDatabase === 'function') {
+  if (typeof pushEmployeeToSupabase === 'function') {
     showToast('Saving permissions to cloud...', 2000);
-    while (typeof isSyncing !== 'undefined' && isSyncing) {
-      await new Promise(function(resolve) { setTimeout(resolve, 200); });
-    }
-    try { await syncSupabaseDatabase(); } catch(e) {}
+    var pushPromises = updatedEmps.map(function(emp) { return pushEmployeeToSupabase(emp); });
+    Promise.all(pushPromises).catch(function(e) { console.error(e); });
   }
   showToast('Access granted successfully', 3000);
   renderAttendanceDashboard();
@@ -7064,6 +7064,7 @@ async function grantPastReportAccess() {
 
 async function revokePastReportAccess() {
   if (!window.selectedPastReportAccess || window.selectedPastReportAccess.size === 0) return;
+  var updatedEmps = [];
   window.selectedPastReportAccess.forEach(function(key) {
     var parts = key.split('|');
     var empId = parts[0];
@@ -7071,6 +7072,7 @@ async function revokePastReportAccess() {
     var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
     if (emp && emp.allowedPastDates) {
       emp.allowedPastDates = emp.allowedPastDates.filter(function(d) { return d !== date; });
+      updatedEmps.push(emp);
       
       if (SESSION && SESSION.user && String(SESSION.user.id).toUpperCase() === empId.toUpperCase()) {
         SESSION.user.allowedPastDates = emp.allowedPastDates.slice();
@@ -7080,9 +7082,10 @@ async function revokePastReportAccess() {
   });
   window.selectedPastReportAccess.clear();
   saveDB(true);
-  if (typeof syncSupabaseDatabase === 'function') {
+  if (typeof pushEmployeeToSupabase === 'function') {
     showToast('Removing permissions from cloud...', 2000);
-    try { await syncSupabaseDatabase(); } catch(e) {}
+    var pushPromises = updatedEmps.map(function(emp) { return pushEmployeeToSupabase(emp); });
+    Promise.all(pushPromises).catch(function(e) { console.error(e); });
   }
   showToast('Access revoked successfully', 3000);
   renderAttendanceDashboard();

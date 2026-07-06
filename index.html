@@ -3776,14 +3776,12 @@ function clearLocalAssignTo(entityType) {
       await upsertInBatches('doctors', dbDocs);
       clearLocalAssignTo('doctors');
       clearLocalAssignTo('doctors');
-      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
-      /*
+      // Automatic deletion reconciliation re-enabled as requested
       await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('doctors').delete().eq('id', row.id);
       });
-      */
     } catch (e) {
       console.error("Error syncing doctors:", e);
       showToast('⚠️ Doctor sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
@@ -3838,14 +3836,12 @@ function clearLocalAssignTo(entityType) {
           throw upsertErr;
         }
       }
-      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
-      /*
+      // Automatic deletion reconciliation re-enabled as requested
       await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('chemists').delete().eq('id', row.id);
       });
-      */
     } catch (e) {
       console.error("Error syncing chemists:", e);
       showToast('⚠️ Chemist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
@@ -3900,14 +3896,12 @@ function clearLocalAssignTo(entityType) {
           throw upsertErr;
         }
       }
-      // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
-      /*
+      // Automatic deletion reconciliation re-enabled as requested
       await reconcileSupabaseRows('stockists', DB.stockists, function(row) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
         return supabase.from('stockists').delete().eq('id', row.id);
       });
-      */
     } catch (e) {
       console.error("Error syncing stockists:", e);
       showToast('⚠️ Stockist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);

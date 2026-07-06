@@ -2754,7 +2754,7 @@ async function initSupabaseData(isSilent) {
     
     // Refresh the UI with the fresh data
     if (SESSION.user) {
-      var freshUser = DB.employees.find(function(e) { return e.id === SESSION.user.id; });
+      var freshUser = DB.employees.find(function(e) { return String(e.id || '').trim().toUpperCase() === String(SESSION.user.id || '').trim().toUpperCase(); });
       if (freshUser) {
         SESSION.user = freshUser;
         localStorage.setItem('adonis_session', JSON.stringify(SESSION));
@@ -5816,7 +5816,8 @@ function submitReport(){
   
   var isSpecificDateAllowed = SESSION.user.allowedPastDates && SESSION.user.allowedPastDates.includes(date);
   if(date !== getTodayDateString() && !SESSION.user.allowPastReports && !isSpecificDateAllowed){
-    showToast('Reports can only be submitted for today or dates granted by Admin.');
+    var allowedStr = SESSION.user.allowedPastDates ? SESSION.user.allowedPastDates.join(', ') : 'none';
+    showToast('Reports can only be submitted for today or dates granted by Admin. (Attempted: ' + date + ', Allowed: ' + allowedStr + ')', 6000);
     return;
   }
   
@@ -6061,7 +6062,8 @@ function editReport(id) {
   var today = getTodayDateString();
   var isSpecificDateAllowed = SESSION.user.allowedPastDates && SESSION.user.allowedPastDates.includes(rep.date);
   if (rep.date !== today && !SESSION.user.allowPastReports && !isSpecificDateAllowed) {
-    showToast('You can only edit today\'s report or dates granted by Admin.');
+    var allowedStrEdit = SESSION.user.allowedPastDates ? SESSION.user.allowedPastDates.join(', ') : 'none';
+    showToast('You can only edit today\'s report or dates granted by Admin. (Attempted: ' + rep.date + ', Allowed: ' + allowedStrEdit + ')', 6000);
     return;
   }
   

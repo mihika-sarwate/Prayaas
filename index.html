@@ -1028,7 +1028,8 @@ table.tbl tr:last-child td{border-bottom:none}
           <input type="file" id="doc-upload" accept=".csv" onchange="uploadDoctors(this)" style="display:none">
           <button class="btn sm danger admin-only" onclick="bulkDeleteAllDoctors()">&#128465; Delete All</button>
           <button class="btn sm danger" id="btn-bulk-delete-selected-docs" class="btn sm danger admin-only" onclick="bulkDeleteSelectedDoctors()" style="display:none">&#128465; Delete Selected (0)</button>
-          <button class="btn sm primary admin-only" id="btn-bulk-reassign-selected-docs" onclick="bulkReassignSelectedDoctors()" style="display:none">&#10227; Reassign Selected (0)</button>
+          <button class="btn sm primary admin-only" id="btn-bulk-reassign-selected-docs" onclick="bulkReassignSelectedDoctors()" style="display:none">&#10227; Reassign MR (0)</button>
+          <button class="btn sm primary admin-only" id="btn-bulk-change-manager-docs" onclick="bulkChangeManagerSelectedDoctors()" style="display:none">&#10227; Change Manager (0)</button>
         </div>
         <button class="btn sm admin-only" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
       </div>
@@ -10413,17 +10414,23 @@ function updateSelectedDocsCount() {
   var selected = selectedDocs.size;
   var btn = document.getElementById('btn-bulk-delete-selected-docs');
   var btnReassign = document.getElementById('btn-bulk-reassign-selected-docs');
+  var btnChangeMgr = document.getElementById('btn-bulk-change-manager-docs');
   if (btn) {
     if (selected > 0) {
       btn.style.display = 'inline-block';
       btn.textContent = '🗑 Delete Selected (' + selected + ')';
       if (btnReassign) {
         btnReassign.style.display = 'inline-block';
-        btnReassign.textContent = '⟳ Reassign Selected (' + selected + ')';
+        btnReassign.textContent = '⟳ Reassign MR (' + selected + ')';
+      }
+      if (btnChangeMgr) {
+        btnChangeMgr.style.display = 'inline-block';
+        btnChangeMgr.textContent = '⟳ Change Manager (' + selected + ')';
       }
     } else {
       btn.style.display = 'none';
       if (btnReassign) btnReassign.style.display = 'none';
+      if (btnChangeMgr) btnChangeMgr.style.display = 'none';
     }
   }
 }
@@ -10441,6 +10448,21 @@ function bulkReassignSelectedDoctors() {
   selectedDocs.clear();
   renderAdminDocList();
   showToast(idsToUpdate.length + ' doctors reassigned successfully.');
+}
+
+function bulkChangeManagerSelectedDoctors() {
+  if (!selectedDocs.size) return;
+  var newMgrName = prompt('Enter the new Reporting Manager name to assign to these ' + selectedDocs.size + ' selected doctor records:');
+  if (newMgrName === null) return;
+  newMgrName = newMgrName.trim();
+  var idsToUpdate = Array.from(selectedDocs);
+  DB.doctors.forEach(function(d) {
+    if (idsToUpdate.includes(d.id)) d.managerName = newMgrName;
+  });
+  saveDB();
+  selectedDocs.clear();
+  renderAdminDocList();
+  showToast(idsToUpdate.length + ' doctors reporting manager updated successfully.');
 }
 
 async function bulkDeleteSelectedDoctors() {

@@ -2298,6 +2298,7 @@ async function initSupabaseData(isSilent) {
         }));
         var localDocs = (typeof DB !== 'undefined' && DB && DB.doctors) ? DB.doctors : [];
         restoreLocalAssignTo('doctors', cloudDocs);
+        restoreLocalAssignTo('doctors', cloudDocs);
         if (cloudDocs.length === 0 && localDocs.length > 0) {
           console.warn('Supabase returned 0 doctors but local DB has ' + localDocs.length + '. Keeping local data to prevent data loss.');
           return localDocs;
@@ -2327,6 +2328,7 @@ async function initSupabaseData(isSilent) {
         });
         var localChems = (typeof DB !== 'undefined' && DB && DB.chemists) ? DB.chemists : [];
         restoreLocalAssignTo('chemists', cloudChems);
+        restoreLocalAssignTo('chemists', cloudChems);
         if (cloudChems.length === 0 && localChems.length > 0) {
           console.warn('Supabase returned 0 chemists but local DB has ' + localChems.length + '. Keeping local data.');
           return localChems;
@@ -2354,6 +2356,7 @@ async function initSupabaseData(isSilent) {
           };
         });
         var localStockists = (typeof DB !== 'undefined' && DB && DB.stockists) ? DB.stockists : [];
+        restoreLocalAssignTo('stockists', cloudStockists);
         restoreLocalAssignTo('stockists', cloudStockists);
         if (cloudStockists.length === 0 && localStockists.length > 0) {
           console.warn('Supabase returned 0 stockists but local DB has ' + localStockists.length + '. Keeping local data.');
@@ -3172,6 +3175,42 @@ async function seedSupabaseDatabase() {
 }
 
 var _saveDBSyncTimer = null;
+
+function persistLocalAssignTo(entityType, entityId, assignToVal) {
+  try {
+    var key = 'adonis_pending_' + entityType;
+    var data = JSON.parse(localStorage.getItem(key) || '{}');
+    if (assignToVal) {
+      data[entityId] = assignToVal;
+    } else {
+      delete data[entityId];
+    }
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function restoreLocalAssignTo(entityType, arr) {
+  try {
+    var key = 'adonis_pending_' + entityType;
+    var data = JSON.parse(localStorage.getItem(key) || '{}');
+    var keys = Object.keys(data);
+    if (keys.length > 0 && Array.isArray(arr)) {
+      arr.forEach(function(item) {
+        if (data[item.id]) {
+          item.assignTo = data[item.id];
+          if (item.assign_to !== undefined) item.assign_to = data[item.id];
+        }
+      });
+    }
+  } catch(e) {}
+}
+
+function clearLocalAssignTo(entityType) {
+  try {
+    localStorage.removeItem('adonis_pending_' + entityType);
+  } catch(e) {}
+}
+
 function saveDB(skipSync) {
   if (DB) {
     if (Array.isArray(DB.samplesInventory)) {
@@ -3736,6 +3775,7 @@ function clearLocalAssignTo(entityType) {
       });
       await upsertInBatches('doctors', dbDocs);
       clearLocalAssignTo('doctors');
+      clearLocalAssignTo('doctors');
       // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
       /*
       await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
@@ -3782,6 +3822,7 @@ function clearLocalAssignTo(entityType) {
       });
       try {
         await upsertInBatches('chemists', dbChems);
+      clearLocalAssignTo('chemists');
       clearLocalAssignTo('chemists');
       } catch (upsertErr) {
         var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
@@ -3843,6 +3884,7 @@ function clearLocalAssignTo(entityType) {
       });
       try {
         await upsertInBatches('stockists', dbStockists);
+      clearLocalAssignTo('stockists');
       clearLocalAssignTo('stockists');
       } catch (upsertErr) {
         var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
@@ -9764,6 +9806,7 @@ function saveDoctor(){
       doc.phone=document.getElementById('md-phone').value.trim();
       doc.assignTo=document.getElementById('md-assign').value;
       persistLocalAssignTo('doctors', doc.id, doc.assignTo);
+      persistLocalAssignTo('doctors', doc.id, doc.assignTo);
       doc.status=document.getElementById('md-status').value;
     }
   }
@@ -10486,6 +10529,7 @@ function saveChemist(){
       chem.area=area;
       chem.state=state;
       chem.assignTo=document.getElementById('mc-assign').value;
+      persistLocalAssignTo('chemists', chem.id, chem.assignTo);
       persistLocalAssignTo('chemists', chem.id, chem.assignTo);
     }
   }

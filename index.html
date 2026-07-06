@@ -10447,6 +10447,13 @@ async function bulkDeleteSelectedDoctors() {
   if (btn) { btn.disabled = true; btn.textContent = "Deleting..."; }
   
   try {
+    var repRes = await runSupabaseDelete('reports', function(q) {
+      return q.in('doc_id', idsToDelete);
+    });
+    if (repRes && repRes.error) {
+      console.warn("Failed to delete related reports: " + repRes.error.message);
+    }
+    
     var res = await runSupabaseDelete('doctors', function(q) {
       return q.in('id', idsToDelete);
     });
@@ -10473,7 +10480,7 @@ async function bulkDeleteSelectedDoctors() {
   if (btn) { btn.disabled = false; btn.textContent = "Delete Selected"; }
 }
 
-function bulkDeleteAllDoctors() {
+async function bulkDeleteAllDoctors() {
   if (DB.doctors.length === 0) {
     showToast('Doctor list is already empty.');
     return;
@@ -10482,6 +10489,11 @@ function bulkDeleteAllDoctors() {
   DB.doctors = [];
   saveDB();
   renderAdminDocList();
+  
+  await runSupabaseDelete('reports', function(q) {
+    return q.not('doc_id', 'is', null);
+  });
+  
   runSupabaseDelete('doctors', function(q) {
     return q.neq('id', 'dummy_value_to_delete_all');
   });

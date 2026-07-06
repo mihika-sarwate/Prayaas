@@ -886,6 +886,10 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="card">
         <div class="card-title">Attendance History - Latest 30 Days</div>
+        <div id="attendance-past-access-actions" style="margin-bottom: 12px; display: none; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button class="btn sm success" id="btn-grant-past-access" style="display:none; width:auto; padding: 6px 12px;" onclick="grantPastReportAccess()">Grant Edit Access (0)</button>
+          <button class="btn sm danger" id="btn-revoke-past-access" style="display:none; width:auto; padding: 6px 12px;" onclick="revokePastReportAccess()">Revoke Access (0)</button>
+        </div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead>
@@ -2281,6 +2285,7 @@ async function initSupabaseData(isSilent) {
             blockedDate: e.blocked_date || '',
             blockedReason: e.blocked_reason || '',
             designation: (typeof cloudDesig !== 'undefined' && cloudDesig !== null && cloudDesig !== '') ? cloudDesig : (typeof localDesig !== 'undefined' && localDesig !== '' ? localDesig : ''),
+            allowedPastDates: (e.leaves && e.leaves._allowedPastDates) ? e.leaves._allowedPastDates : [],
             leaves: e.leaves
           };
         }),
@@ -3748,7 +3753,7 @@ function clearLocalAssignTo(entityType) {
           blocked_date: formatDateForPostgres(e.blockedDate) || null,
           blocked_reason: e.blockedReason || null,
           designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-          leaves: e.leaves ? Object.assign({}, e.leaves, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) }) : {}
+          leaves: e.leaves ? Object.assign({}, e.leaves, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role), _allowedPastDates: e.allowedPastDates || [] }) : { _allowedPastDates: e.allowedPastDates || [] }
         };
       });
       await upsertEmployeeRowsToSupabase(dbEmps);
@@ -5803,8 +5808,9 @@ function submitReport(){
   
   if(!date){showToast('Please set report date');return;}
   
-  if(date !== getTodayDateString() && !SESSION.user.allowPastReports){
-    showToast('Reports can only be submitted for today (must be submitted before 12 AM).');
+  var isSpecificDateAllowed = SESSION.user.allowedPastDates && SESSION.user.allowedPastDates.includes(date);
+  if(date !== getTodayDateString() && !SESSION.user.allowPastReports && !isSpecificDateAllowed){
+    showToast('Reports can only be submitted for today or dates granted by Admin.');
     return;
   }
   
@@ -6047,8 +6053,9 @@ function editReport(id) {
     return;
   }
   var today = getTodayDateString();
-  if (rep.date !== today && !SESSION.user.allowPastReports) {
-    showToast('Only reports for today can be edited (must be submitted by 12 AM).');
+  var isSpecificDateAllowed = SESSION.user.allowedPastDates && SESSION.user.allowedPastDates.includes(rep.date);
+  if (rep.date !== today && !SESSION.user.allowPastReports && !isSpecificDateAllowed) {
+    showToast('You can only edit today\'s report or dates granted by Admin.');
     return;
   }
   
@@ -6775,6 +6782,8 @@ function renderAttendanceDashboard() {
         theadEl.innerHTML = headerHtml;
       }
       
+      var isPastDate = function(dt) { return dt < getTodayDateString(); };
+
       // Update body
       tbody.innerHTML = empIds.map(function(empId) {
         var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
@@ -6785,18 +6794,49 @@ function renderAttendanceDashboard() {
             return String(r.employeeId || '').toUpperCase() === empId.toUpperCase() && (formatDateForPostgres(r.date) || r.date) === d;
           });
           
+          var key = empId + '|' + d;
+          var isSelected = window.selectedPastReportAccess && window.selectedPastReportAccess.has(key);
+          var hasAccess = emp && emp.allowedPastDates && emp.allowedPastDates.includes(d);
+          var cellStyle = 'text-align:center; position:relative; cursor:pointer; user-select:none;';
+          if (isSelected) {
+            cellStyle += ' background-color:rgba(26,115,232,0.1); border:1px solid var(--primary);';
+          }
+          var cellClass = isPastDate(d) ? 'past-report-cell' : '';
+          var accessIcon = hasAccess ? '<div title="Edit Access Granted" style="position:absolute; top:2px; right:2px; color:#34A853; font-size:10px;"><i class="fa fa-unlock"></i></div>' : '';
+          var clickAttr = isPastDate(d) ? ' onclick="togglePastReportAccess(\'' + empId + '\', \'' + d + '\')"' : '';
+
           if (record) {
             var label = record.attendanceStatus || '-';
             var badgeClass = getAttendanceStatusBadgeClass(record.attendanceStatus);
-            rowHtml += '<td style="text-align:center;"><span class="badge ' + badgeClass + '" title="' + escapeHTML(record.remarks || '') + '" style="cursor:pointer; padding: 4px 8px; font-size:11px;">' + escapeHTML(label) + '</span></td>';
+            rowHtml += '<td class="' + cellClass + '" style="' + cellStyle + '"' + clickAttr + '>' + accessIcon + '<span class="badge ' + badgeClass + '" title="' + escapeHTML(record.remarks || '') + '" style="padding: 4px 8px; font-size:11px; pointer-events:none;">' + escapeHTML(label) + '</span></td>';
           } else {
-            rowHtml += '<td style="text-align:center; color:var(--text-muted)">-</td>';
+            rowHtml += '<td class="' + cellClass + '" style="' + cellStyle + ' color:var(--text-muted);"' + clickAttr + '>' + accessIcon + '-</td>';
           }
         });
         
         rowHtml += '</tr>';
         return rowHtml;
       }).join('');
+    }
+  }
+
+  // Update action buttons
+  var actionsContainer = document.getElementById('attendance-past-access-actions');
+  if (actionsContainer) {
+    if (window.selectedPastReportAccess && window.selectedPastReportAccess.size > 0) {
+      actionsContainer.style.display = 'flex';
+      var btnGrant = document.getElementById('btn-grant-past-access');
+      var btnRevoke = document.getElementById('btn-revoke-past-access');
+      if (btnGrant) {
+        btnGrant.style.display = 'inline-block';
+        btnGrant.textContent = 'Grant Edit Access (' + window.selectedPastReportAccess.size + ')';
+      }
+      if (btnRevoke) {
+        btnRevoke.style.display = 'inline-block';
+        btnRevoke.textContent = 'Revoke Access (' + window.selectedPastReportAccess.size + ')';
+      }
+    } else {
+      actionsContainer.style.display = 'none';
     }
   }
   var workingDays = rows.filter(function(r) { return r.attendanceStatus !== 'H' && r.attendanceStatus !== 'WO'; }).length;
@@ -6909,6 +6949,56 @@ function unblockAllBlocked() {
   if (masterCheck) masterCheck.checked = false;
   updateSelectedBlockedCount();
 }
+
+window.selectedPastReportAccess = window.selectedPastReportAccess || new Set();
+
+function togglePastReportAccess(empId, date) {
+  var key = empId + '|' + date;
+  if (window.selectedPastReportAccess.has(key)) {
+    window.selectedPastReportAccess.delete(key);
+  } else {
+    window.selectedPastReportAccess.add(key);
+  }
+  renderAttendanceDashboard();
+}
+
+function grantPastReportAccess() {
+  if (!window.selectedPastReportAccess || window.selectedPastReportAccess.size === 0) return;
+  window.selectedPastReportAccess.forEach(function(key) {
+    var parts = key.split('|');
+    var empId = parts[0];
+    var date = parts[1];
+    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
+    if (emp) {
+      if (!emp.allowedPastDates) emp.allowedPastDates = [];
+      if (!emp.allowedPastDates.includes(date)) emp.allowedPastDates.push(date);
+    }
+  });
+  window.selectedPastReportAccess.clear();
+  saveDB(true);
+  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
+  showToast('Access granted successfully', 3000);
+  renderAttendanceDashboard();
+}
+
+function revokePastReportAccess() {
+  if (!window.selectedPastReportAccess || window.selectedPastReportAccess.size === 0) return;
+  window.selectedPastReportAccess.forEach(function(key) {
+    var parts = key.split('|');
+    var empId = parts[0];
+    var date = parts[1];
+    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
+    if (emp && emp.allowedPastDates) {
+      emp.allowedPastDates = emp.allowedPastDates.filter(function(d) { return d !== date; });
+    }
+  });
+  window.selectedPastReportAccess.clear();
+  saveDB(true);
+  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
+  showToast('Access revoked successfully', 3000);
+  renderAttendanceDashboard();
+}
+
 
 function runAttendanceValidationNow() {
   if (!SESSION.user || SESSION.user.role !== 'admin') {

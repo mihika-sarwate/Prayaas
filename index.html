@@ -7053,6 +7053,9 @@ async function grantPastReportAccess() {
   saveDB(true);
   if (typeof syncSupabaseDatabase === 'function') {
     showToast('Saving permissions to cloud...', 2000);
+    while (typeof isSyncing !== 'undefined' && isSyncing) {
+      await new Promise(function(resolve) { setTimeout(resolve, 200); });
+    }
     try { await syncSupabaseDatabase(); } catch(e) {}
   }
   showToast('Access granted successfully', 3000);

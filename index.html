@@ -2307,6 +2307,7 @@ async function initSupabaseData(isSilent) {
         }));
         var localDocs = (typeof DB !== 'undefined' && DB && DB.doctors) ? DB.doctors : [];
         restoreLocalAssignTo('doctors', cloudDocs);
+        restoreLocalManagerName('doctors', cloudDocs);
         
         var cloudIds = new Set(cloudDocs.map(function(d){ return String(d.id); }));
         var missingLocal = localDocs.filter(function(d) {
@@ -3222,6 +3223,41 @@ function clearLocalAssignTo(entityType) {
   } catch(e) {}
 }
 
+function persistLocalManagerName(entityType, entityId, val) {
+  try {
+    var key = 'adonis_pending_mgr_' + entityType;
+    var data = JSON.parse(localStorage.getItem(key) || '{}');
+    if (val !== undefined && val !== null) {
+      data[entityId] = val;
+    } else {
+      delete data[entityId];
+    }
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function restoreLocalManagerName(entityType, arr) {
+  try {
+    var key = 'adonis_pending_mgr_' + entityType;
+    var data = JSON.parse(localStorage.getItem(key) || '{}');
+    var keys = Object.keys(data);
+    if (keys.length > 0 && Array.isArray(arr)) {
+      arr.forEach(function(item) {
+        if (data[item.id] !== undefined) {
+          item.managerName = data[item.id];
+          if (item.manager_name !== undefined) item.manager_name = data[item.id];
+        }
+      });
+    }
+  } catch(e) {}
+}
+
+function clearLocalManagerName(entityType) {
+  try {
+    localStorage.removeItem('adonis_pending_mgr_' + entityType);
+  } catch(e) {}
+}
+
 function saveDB(skipSync) {
   if (DB) {
     if (Array.isArray(DB.samplesInventory)) {
@@ -3786,7 +3822,7 @@ function clearLocalAssignTo(entityType) {
       });
       await upsertInBatches('doctors', dbDocs);
       clearLocalAssignTo('doctors');
-      clearLocalAssignTo('doctors');
+      clearLocalManagerName('doctors');
       // Automatic deletion reconciliation re-enabled as requested
       await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
         return String(row.id || '').toUpperCase();
@@ -10442,7 +10478,10 @@ function bulkReassignSelectedDoctors() {
   newEmpId = newEmpId.trim().toUpperCase();
   var idsToUpdate = Array.from(selectedDocs);
   DB.doctors.forEach(function(d) {
-    if (idsToUpdate.includes(d.id)) d.assignTo = newEmpId;
+    if (idsToUpdate.includes(d.id)) {
+      d.assignTo = newEmpId;
+      persistLocalAssignTo('doctors', d.id, newEmpId);
+    }
   });
   saveDB();
   selectedDocs.clear();
@@ -10457,9 +10496,13 @@ function bulkChangeManagerSelectedDoctors() {
   newMgrName = newMgrName.trim();
   var idsToUpdate = Array.from(selectedDocs);
   DB.doctors.forEach(function(d) {
-    if (idsToUpdate.includes(d.id)) d.managerName = newMgrName;
+    if (idsToUpdate.includes(d.id)) {
+      d.managerName = newMgrName;
+      persistLocalManagerName('doctors', d.id, newMgrName);
+    }
   });
   saveDB();
+  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
   selectedDocs.clear();
   renderAdminDocList();
   showToast(idsToUpdate.length + ' doctors reporting manager updated successfully.');

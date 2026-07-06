@@ -7046,9 +7046,8 @@ async function grantPastReportAccess() {
   window.selectedPastReportAccess.clear();
   saveDB(true);
   if (typeof syncSupabaseDatabase === 'function') {
-    showLoadingOverlay('Saving permissions to cloud...');
+    showToast('Saving permissions to cloud...', 2000);
     try { await syncSupabaseDatabase(); } catch(e) {}
-    hideLoadingOverlay();
   }
   showToast('Access granted successfully', 3000);
   renderAttendanceDashboard();
@@ -7068,9 +7067,8 @@ async function revokePastReportAccess() {
   window.selectedPastReportAccess.clear();
   saveDB(true);
   if (typeof syncSupabaseDatabase === 'function') {
-    showLoadingOverlay('Removing permissions from cloud...');
+    showToast('Removing permissions from cloud...', 2000);
     try { await syncSupabaseDatabase(); } catch(e) {}
-    hideLoadingOverlay();
   }
   showToast('Access revoked successfully', 3000);
   renderAttendanceDashboard();

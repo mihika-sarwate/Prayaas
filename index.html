@@ -2297,6 +2297,7 @@ async function initSupabaseData(isSilent) {
           status: d.status
         }));
         var localDocs = (typeof DB !== 'undefined' && DB && DB.doctors) ? DB.doctors : [];
+        restoreLocalAssignTo('doctors', cloudDocs);
         if (cloudDocs.length === 0 && localDocs.length > 0) {
           console.warn('Supabase returned 0 doctors but local DB has ' + localDocs.length + '. Keeping local data to prevent data loss.');
           return localDocs;
@@ -2325,6 +2326,7 @@ async function initSupabaseData(isSilent) {
           };
         });
         var localChems = (typeof DB !== 'undefined' && DB && DB.chemists) ? DB.chemists : [];
+        restoreLocalAssignTo('chemists', cloudChems);
         if (cloudChems.length === 0 && localChems.length > 0) {
           console.warn('Supabase returned 0 chemists but local DB has ' + localChems.length + '. Keeping local data.');
           return localChems;
@@ -2352,6 +2354,7 @@ async function initSupabaseData(isSilent) {
           };
         });
         var localStockists = (typeof DB !== 'undefined' && DB && DB.stockists) ? DB.stockists : [];
+        restoreLocalAssignTo('stockists', cloudStockists);
         if (cloudStockists.length === 0 && localStockists.length > 0) {
           console.warn('Supabase returned 0 stockists but local DB has ' + localStockists.length + '. Keeping local data.');
           return localStockists;
@@ -2768,6 +2771,30 @@ async function initSupabaseData(isSilent) {
       }
     }
     
+    
+  // Auto-repair any unassigned records using beName (for doctors) or similar logic
+  var didRepair = false;
+  
+  if (DB.doctors) {
+    DB.doctors.forEach(d => {
+      if ((!d.assignTo || d.assignTo === 'UNASSIGNED') && d.beName) {
+        var match = DB.employees.find(e => String(e.name).toUpperCase().trim() === String(d.beName).toUpperCase().trim());
+        if (match) {
+          d.assignTo = match.id;
+          didRepair = true;
+        }
+      }
+    });
+  }
+
+  if (didRepair) {
+    console.log('Auto-repaired unassigned doctors based on BE Name.');
+    saveDB();
+    if (typeof syncSupabaseDatabase === 'function') {
+      setTimeout(syncSupabaseDatabase, 3000); // give it a moment, then push to cloud
+    }
+  }
+
     if (isSilent !== true) showToast("Supabase data synchronized!");
     if (window._supabaseLoadTimeout) {
       clearTimeout(window._supabaseLoadTimeout);
@@ -3465,6 +3492,42 @@ window.addEventListener('beforeunload', function (e) {
       syncPending = true;
       return;
     }
+
+
+function persistLocalAssignTo(entityType, entityId, assignToVal) {
+  try {
+    var key = 'adonis_pending_' + entityType;
+    var data = JSON.parse(localStorage.getItem(key) || '{}');
+    if (assignToVal) {
+      data[entityId] = assignToVal;
+    } else {
+      delete data[entityId];
+    }
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function restoreLocalAssignTo(entityType, arr) {
+  try {
+    var key = 'adonis_pending_' + entityType;
+    var data = JSON.parse(localStorage.getItem(key) || '{}');
+    var keys = Object.keys(data);
+    if (keys.length > 0 && Array.isArray(arr)) {
+      arr.forEach(function(item) {
+        if (data[item.id]) {
+          item.assignTo = data[item.id];
+        }
+      });
+    }
+  } catch(e) {}
+}
+
+function clearLocalAssignTo(entityType) {
+  try {
+    localStorage.removeItem('adonis_pending_' + entityType);
+  } catch(e) {}
+}
+
     isSyncing = true;
     syncPending = false;
     hasSyncError = false;
@@ -3633,13 +3696,24 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbDocs = DB.doctors.map(d => {
         var assignTo = d.assignTo || null;
-        if (assignTo) {
-          var normAssign = String(assignTo).toUpperCase().trim();
-          if (activeEmpIds.size > 0 && !activeEmpIds.has(normAssign)) {
-            assignTo = null;
-          } else if (activeEmpIds.size === 0 && !DB.employees.find(x => String(x.id || '').toUpperCase().trim() === normAssign)) {
-            assignTo = null;
+                if (assignTo) {
+          var normAssignStr = String(assignTo).toUpperCase().trim();
+                    var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+          var validList = [];
+          
+          if (normAssignList.length > 0) {
+            normAssignList.forEach(function(a) {
+              if (activeEmpIds.size > 0) {
+                if (activeEmpIds.has(a)) validList.push(a);
+              } else {
+                if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
+              }
+            });
+            if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
+              validList = normAssignList;
+            }
           }
+          assignTo = validList.length > 0 ? validList.join(',') : null;
         }
         return {
           id: d.id || undefined,
@@ -3661,6 +3735,7 @@ window.addEventListener('beforeunload', function (e) {
         };
       });
       await upsertInBatches('doctors', dbDocs);
+      clearLocalAssignTo('doctors');
       // Automatic deletion reconciliation disabled for safety to prevent data loss on local cache quota overflow
       /*
       await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
@@ -3678,13 +3753,24 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbChems = DB.chemists.map(c => {
         var assignTo = c.assignTo || null;
-        if (assignTo) {
-          var normAssign = String(assignTo).toUpperCase().trim();
-          if (activeEmpIds.size > 0 && !activeEmpIds.has(normAssign)) {
-            assignTo = null;
-          } else if (activeEmpIds.size === 0 && !DB.employees.find(x => String(x.id || '').toUpperCase().trim() === normAssign)) {
-            assignTo = null;
+                if (assignTo) {
+          var normAssignStr = String(assignTo).toUpperCase().trim();
+                    var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+          var validList = [];
+          
+          if (normAssignList.length > 0) {
+            normAssignList.forEach(function(a) {
+              if (activeEmpIds.size > 0) {
+                if (activeEmpIds.has(a)) validList.push(a);
+              } else {
+                if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
+              }
+            });
+            if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
+              validList = normAssignList;
+            }
           }
+          assignTo = validList.length > 0 ? validList.join(',') : null;
         }
         return {
           id: c.id || undefined,
@@ -3696,6 +3782,7 @@ window.addEventListener('beforeunload', function (e) {
       });
       try {
         await upsertInBatches('chemists', dbChems);
+      clearLocalAssignTo('chemists');
       } catch (upsertErr) {
         var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
         if (errMsg.indexOf('state') !== -1) {
@@ -3727,13 +3814,24 @@ window.addEventListener('beforeunload', function (e) {
     try {
       const dbStockists = DB.stockists.map(s => {
         var assignTo = s.assignTo || null;
-        if (assignTo) {
-          var normAssign = String(assignTo).toUpperCase().trim();
-          if (activeEmpIds.size > 0 && !activeEmpIds.has(normAssign)) {
-            assignTo = null;
-          } else if (activeEmpIds.size === 0 && !DB.employees.find(x => String(x.id || '').toUpperCase().trim() === normAssign)) {
-            assignTo = null;
+                if (assignTo) {
+          var normAssignStr = String(assignTo).toUpperCase().trim();
+                    var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+          var validList = [];
+          
+          if (normAssignList.length > 0) {
+            normAssignList.forEach(function(a) {
+              if (activeEmpIds.size > 0) {
+                if (activeEmpIds.has(a)) validList.push(a);
+              } else {
+                if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
+              }
+            });
+            if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
+              validList = normAssignList;
+            }
           }
+          assignTo = validList.length > 0 ? validList.join(',') : null;
         }
         return {
           id: s.id || undefined,
@@ -3745,6 +3843,7 @@ window.addEventListener('beforeunload', function (e) {
       });
       try {
         await upsertInBatches('stockists', dbStockists);
+      clearLocalAssignTo('stockists');
       } catch (upsertErr) {
         var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
         if (errMsg.indexOf('state') !== -1) {
@@ -9645,6 +9744,7 @@ function saveDoctor(){
       assignTo: document.getElementById('md-assign').value,
       status: document.getElementById('md-status').value
     });
+    persistLocalAssignTo('doctors', docId, document.getElementById('md-assign').value);
   } else {
     // Edit
     var doc=DB.doctors.find(function(d){return d.id===id;});
@@ -9663,11 +9763,16 @@ function saveDoctor(){
       doc.address=document.getElementById('md-address').value.trim();
       doc.phone=document.getElementById('md-phone').value.trim();
       doc.assignTo=document.getElementById('md-assign').value;
+      persistLocalAssignTo('doctors', doc.id, doc.assignTo);
       doc.status=document.getElementById('md-status').value;
     }
   }
   
   saveDB();
+  if (typeof syncSupabaseDatabase === 'function') {
+    if (_saveDBSyncTimer) { clearTimeout(_saveDBSyncTimer); _saveDBSyncTimer = null; }
+    syncSupabaseDatabase();
+  }
   closeModal('modal-add-doc');
   showToast('Doctor record saved successfully.');
   renderAdminDocList();
@@ -9725,7 +9830,22 @@ function uploadDoctors(inp){
       var existing = DB.doctors.find(function(d){ return d.code === docCode; });
       var newDoc;
       // Determine state from CSV, or fetch/deduce automatically from the assigned employee's state
-      var assignToVal = (p[empIdCol]||'').toUpperCase();
+      var assignToVal = (p[empIdCol]||'').toUpperCase().trim();
+      var beName = (p[beNameCol]||'').trim();
+      
+      // Auto-resolve Employee ID from Name or BE Name
+      if (assignToVal && assignToVal !== 'UNASSIGNED') {
+        var exactMatch = DB.employees.find(e => String(e.id).toUpperCase() === assignToVal);
+        if (!exactMatch) {
+          var nameMatch = DB.employees.find(e => String(e.name).toUpperCase().trim() === assignToVal);
+          if (nameMatch) assignToVal = String(nameMatch.id).toUpperCase();
+        }
+      }
+      if ((!assignToVal || assignToVal === 'UNASSIGNED') && beName) {
+        var beMatch = DB.employees.find(e => String(e.name).toUpperCase().trim() === beName.toUpperCase());
+        if (beMatch) assignToVal = String(beMatch.id).toUpperCase();
+      }
+
       
       // Determine state from CSV, or fetch/deduce automatically from the assigned employee's state
       var finalState = (p[stateCol] || '').trim();
@@ -10366,10 +10486,15 @@ function saveChemist(){
       chem.area=area;
       chem.state=state;
       chem.assignTo=document.getElementById('mc-assign').value;
+      persistLocalAssignTo('chemists', chem.id, chem.assignTo);
     }
   }
   
   saveDB();
+  if (typeof syncSupabaseDatabase === 'function') {
+    if (_saveDBSyncTimer) { clearTimeout(_saveDBSyncTimer); _saveDBSyncTimer = null; }
+    syncSupabaseDatabase();
+  }
   closeModal('modal-add-chem');
   showToast('Chemist record saved successfully.');
   renderAdminChemistList();
@@ -10418,7 +10543,15 @@ function uploadChemists(inp){
       var existing = DB.chemists.find(function(c){ return c.id === chemId; });
       var newChem;
       var chemState = (stateCol !== -1 ? p[stateCol] : '') || '';
-      var assignToVal = (p[assignCol]||'').toUpperCase();
+      var assignToVal = (p[assignCol]||'').toUpperCase().trim();
+      // Auto-resolve Employee ID from Name
+      if (assignToVal && assignToVal !== 'UNASSIGNED') {
+        var exactMatch = DB.employees.find(e => String(e.id).toUpperCase() === assignToVal);
+        if (!exactMatch) {
+          var nameMatch = DB.employees.find(e => String(e.name).toUpperCase().trim() === assignToVal);
+          if (nameMatch) assignToVal = String(nameMatch.id).toUpperCase();
+        }
+      }
       if (!chemState && assignToVal) {
         var emp = DB.employees.find(function(e) {
           return String(e.id || '').trim().toUpperCase() === assignToVal.trim();
@@ -10769,6 +10902,10 @@ function saveStockist() {
   }
   
   saveDB();
+  if (typeof syncSupabaseDatabase === 'function') {
+    if (_saveDBSyncTimer) { clearTimeout(_saveDBSyncTimer); _saveDBSyncTimer = null; }
+    syncSupabaseDatabase();
+  }
   closeModal('modal-add-stockist');
   showToast('Stockist record saved successfully.');
   renderAdminStockistList();
@@ -10817,7 +10954,15 @@ function uploadStockists(inp) {
       var existing = DB.stockists.find(function(s){ return s.id === stockistId; });
       var newStk;
       var stkState = (stateCol !== -1 ? p[stateCol] : '') || '';
-      var assignToVal = (p[assignCol]||'').toUpperCase();
+      var assignToVal = (p[assignCol]||'').toUpperCase().trim();
+      // Auto-resolve Employee ID from Name
+      if (assignToVal && assignToVal !== 'UNASSIGNED') {
+        var exactMatch = DB.employees.find(e => String(e.id).toUpperCase() === assignToVal);
+        if (!exactMatch) {
+          var nameMatch = DB.employees.find(e => String(e.name).toUpperCase().trim() === assignToVal);
+          if (nameMatch) assignToVal = String(nameMatch.id).toUpperCase();
+        }
+      }
       if (!stkState && assignToVal) {
         var emp = DB.employees.find(function(e) {
           return String(e.id || '').trim().toUpperCase() === assignToVal.trim();

@@ -2754,6 +2754,9 @@ async function initSupabaseData(isSilent) {
     
     // Refresh the UI with the fresh data
     if (SESSION.user) {
+      var freshUser = DB.employees.find(function(e) { return e.id === SESSION.user.id; });
+      if (freshUser) SESSION.user = freshUser;
+
       if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
         renderAdminStats();
         if (SESSION.user.role === 'admin') {

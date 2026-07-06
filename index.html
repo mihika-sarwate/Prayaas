@@ -5817,8 +5817,8 @@ function submitReport(){
   
   var isSpecificDateAllowed = SESSION.user.allowedPastDates && SESSION.user.allowedPastDates.includes(date);
   if(date !== getTodayDateString() && !SESSION.user.allowPastReports && !isSpecificDateAllowed){
-    var allowedStr = SESSION.user.allowedPastDates ? SESSION.user.allowedPastDates.join(', ') : 'none';
-    showToast('Reports can only be submitted for today or dates granted by Admin. (Attempted: ' + date + ', Allowed: ' + allowedStr + ')', 6000);
+    var allowedStr = SESSION.user.allowedPastDates ? JSON.stringify(SESSION.user.allowedPastDates) : 'undefined';
+    showToast('Reports can only be submitted for today or dates granted by Admin. (Attempted: ' + date + ', Allowed: ' + allowedStr + ', Type: ' + (typeof SESSION.user.allowedPastDates) + ', Array: ' + Array.isArray(SESSION.user.allowedPastDates) + ')', 8000);
     return;
   }
   
@@ -6063,8 +6063,8 @@ function editReport(id) {
   var today = getTodayDateString();
   var isSpecificDateAllowed = SESSION.user.allowedPastDates && SESSION.user.allowedPastDates.includes(rep.date);
   if (rep.date !== today && !SESSION.user.allowPastReports && !isSpecificDateAllowed) {
-    var allowedStrEdit = SESSION.user.allowedPastDates ? SESSION.user.allowedPastDates.join(', ') : 'none';
-    showToast('You can only edit today\'s report or dates granted by Admin. (Attempted: ' + rep.date + ', Allowed: ' + allowedStrEdit + ')', 6000);
+    var allowedStr = SESSION.user.allowedPastDates ? JSON.stringify(SESSION.user.allowedPastDates) : 'undefined';
+    showToast('You can only edit today\'s report or dates granted by Admin. (Attempted: ' + rep.date + ', Allowed: ' + allowedStr + ', Type: ' + (typeof SESSION.user.allowedPastDates) + ', Array: ' + Array.isArray(SESSION.user.allowedPastDates) + ')', 8000);
     return;
   }
   

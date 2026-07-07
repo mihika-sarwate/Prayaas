@@ -2991,11 +2991,15 @@ function doLogin(){
       supabase.from('employees').select('account_status, blocked_date, blocked_reason').eq('id', emp.id).single()
         .then(function(res) {
           var freshStatus = res && res.data ? normalizeAccountStatus(res.data.account_status) : 'BLOCKED';
-          if (freshStatus !== 'BLOCKED') {
-            // Admin unblocked them — update local cache and proceed with login
-            emp.accountStatus = 'ACTIVE';
+          emp.accountStatus = freshStatus;
+          if (freshStatus === 'ACTIVE') {
             emp.blockedDate = '';
             emp.blockedReason = '';
+          }
+          saveDB(); // Persist the unblocked status locally so subsequent schedulers don't re-block
+
+          if (freshStatus !== 'BLOCKED') {
+            // Admin unblocked them — proceed with login
             // Continue with login
             recordAttendanceOnSuccessfulLogin(emp);
             SESSION.user = emp;

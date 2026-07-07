@@ -3,5 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "build": "node generate-config.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
+    "pg": "^8.22.0"
   }
 }

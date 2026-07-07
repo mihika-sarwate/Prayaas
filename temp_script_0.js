@@ -1,1552 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Sankalp - Field Force Management System (Adonis Laboratories)</title>
-<link rel="icon" type="image/jpeg" href="logo.jpg">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="config.js?v=v_mmxdvruucggeixjqwsqr_v3"></script>
-<script src="supabase.js"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
-:root {
-  --primary: #0084c2;
-  --primary-light: #38bdf8;
-  --primary-dark: #00679a;
-  --secondary: #dc2626;
-  --secondary-light: #f87171;
-  --secondary-dark: #991b1b;
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --success: #10b981;
-  --danger: var(--secondary);
-  --warning: #f59e0b;
-  --accent: #e0f2fe;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-main);color:var(--text);min-height:100vh}
-.screen{display:none;min-height:100vh;width:100%;flex-direction:column}
-.screen.on{display:flex}
-.hdr{background:linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);padding:max(16px,env(safe-area-inset-top)) 20px 16px;flex-shrink:0;box-shadow:0 4px 20px rgba(0,132,194,0.15)}
-.hdr-row{display:flex;align-items:center;justify-content:space-between}
-.logo{height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.hdr-brand{margin-left:12px;flex:1}
-.hdr-title{font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.3px}
-.hdr-sub{font-size:11px;color:rgba(255,255,255,0.75);margin-top:1px;font-weight:400}
-.hdr-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;transition:all 0.2s}
-.hdr-badge:hover{background:rgba(255,255,255,0.2);transform:translateY(-1px)}
-.body{flex:1;overflow-y:auto;padding:20px;padding-bottom:max(30px,env(safe-area-inset-bottom))}
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:18px;box-shadow:0 4px 24px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.02);transition:all 0.2s}
-.card:hover{box-shadow:0 6px 30px rgba(15,23,42,0.06);transform:translateY(-1px)}
-.card-title{font-size:15px;font-weight:700;color:var(--primary-dark);margin-bottom:16px;display:flex;align-items:center;gap:8px;border-bottom:1.5px solid #f1f5f9;padding-bottom:10px}
-.header-icon{color:var(--primary) !important;background:rgba(0,132,194,0.08);padding:6px;border-radius:8px;margin-right:8px;font-size:18px !important;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
-label.lbl{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px}
-input[type=text],input[type=password],input[type=number],input[type=date],input[type=time],input[type=month],textarea,select{width:100%;border:1.5px solid var(--border);border-radius:12px;background:#f8fafc;color:var(--text);font-family:inherit;font-size:14px;padding:0 14px;height:46px;outline:none;transition:all 0.2s}
-textarea{height:90px;padding:12px 14px;resize:none;line-height:1.5}
-input:focus,textarea:focus,select:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(0,132,194,0.12)}
-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%2364748b' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;appearance:none}
-.fw{margin-bottom:16px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
-.btn{height:46px;border-radius:12px;border:1.5px solid var(--border);background:#ffffff;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;transition:all 0.2s;box-shadow:0 2px 4px rgba(15,23,42,0.02)}
-.btn:hover{background:#f8fafc;transform:translateY(-1px)}
-.btn:active{transform:scale(0.98)}
-.btn.primary{background:linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);color:#fff;border:none;box-shadow:0 4px 14px rgba(0,132,194,0.25)}
-.btn.primary:hover{background:linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);box-shadow:0 6px 20px rgba(0,132,194,0.35)}
-.btn.success{background:linear-gradient(135deg, var(--success) 0%, #059669 100%);color:#fff;border:none;box-shadow:0 4px 14px rgba(16,185,129,0.25)}
-.btn.success:hover{background:linear-gradient(135deg, #34d399 0%, var(--success) 100%);box-shadow:0 6px 20px rgba(16,185,129,0.35)}
-.btn.danger{background:linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);color:#fff;border:none;box-shadow:0 4px 14px rgba(244,63,94,0.25)}
-.btn.danger:hover{background:linear-gradient(135deg, var(--secondary-light) 0%, var(--secondary) 100%);box-shadow:0 6px 20px rgba(244,63,94,0.35)}
-.btn.gold{background:linear-gradient(135deg, var(--accent) 0%, #c7d2fe 100%);color:var(--primary-dark);border-color:var(--accent)}
-.btn.gold:hover{background:linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%)}
-.btn.warn{background:linear-gradient(135deg, var(--warning) 0%, #d97706 100%);color:#fff;border:none}
-.btn-row{display:flex;gap:12px;margin-top:16px}
-.btn-row .btn{flex:1}
-.btn.sm{height:36px;font-size:12px;border-radius:10px;padding:0 12px}
-.badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.3px}
-.badge.green{background:#d1fae5;color:#065f46}
-.badge.blue{background:#e0f2fe;color:#0369a1}
-.badge.orange{background:#fef3c7;color:#92400e}
-.badge.red{background:#fee2e2;color:#991b1b}
-.badge.grey{background:#f1f5f9;color:#475569}
-.badge.purple{background:#ede9fe;color:#5b21b6}
-.badge.teal{background:#ccfbf1;color:#115e59}
-.nav{display:flex;background:#ffffff;border-bottom:1.5px solid var(--border);flex-shrink:0;box-shadow:0 4px 20px rgba(15,23,42,0.04)}
-.nav-btn{flex:1;background:none;border:none;padding:14px 2px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;font-size:10px;font-weight:600;color:var(--text-muted);transition:all 0.2s}
-.nav-btn.on{color:var(--primary);position:relative}
-.nav-btn.on::after{content:'';position:absolute;top:0;width:30px;height:4px;background:var(--primary);border-radius:0 0 4px 4px}
-.nav-btn .ni{font-size:24px;transition:transform 0.2s;font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24}
-.nav-btn.on .ni{font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24}
-.nav-btn:hover .ni{transform:translateY(-2px)}
-.doc-card{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1.5px solid #f1f5f9;cursor:pointer;transition:all 0.15s}
-.doc-card:hover{transform:translateX(4px)}
-.doc-card:last-child{border-bottom:none}
-.doc-avatar{width:42px;height:42px;border-radius:50%;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#0369a1;flex-shrink:0;border:1px solid #bae6fd}
-.doc-info{flex:1;min-width:0}
-.doc-name{font-size:14px;font-weight:700;color:var(--text)}
-.doc-spec{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:500}
-.doc-area{font-size:10.5px;color:var(--text-muted);margin-top:3px}
-.sample-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1.5px solid #f1f5f9}
-.sample-row:last-child{border-bottom:none}
-.sample-name{flex:1;font-size:13px;font-weight:600;color:var(--text)}
-.sample-qty{width:90px;flex-shrink:0}
-.sample-qty input{height:36px;text-align:center;font-size:14px;border-radius:10px}
-.report-row{padding:14px 0;border-bottom:1.5px solid #f1f5f9;transition:all 0.2s}
-.report-row:last-child{border-bottom:none}
-.report-doc{font-size:14px;font-weight:700;color:var(--primary-dark);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.report-meta{font-size:11px;color:var(--text-muted);margin-top:4px}
-.report-value{font-size:11.5px;font-weight:600;color:var(--success);margin-top:4px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;box-shadow:0 2px 8px rgba(15,23,42,0.01)}
-.stat-l{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
-.stat-v{font-size:24px;font-weight:800;color:var(--text);margin-top:6px;letter-spacing:-0.5px}
-.stat-v.green{color:var(--success)}
-.stat-v.orange{color:var(--warning)}
-.login-wrap{min-height:100vh;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at center, var(--primary) 0%, var(--primary-dark) 100%)}
-.login-card{background:#fff;border-radius:24px;padding:40px 32px;width:100%;max-width:400px;box-shadow:0 20px 40px rgba(15,23,42,0.3)}
-.login-title{text-align:center;font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-0.5px}
-.login-sub{text-align:center;font-size:14px;color:var(--text-muted);margin-bottom:32px}
-.gps-bar{display:flex;align-items:center;gap:10px;background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text-muted);margin-bottom:16px}
-.gps-bar.got{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
-.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--border)}
-table.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:600px}
-table.tbl th{font-size:11px;font-weight:700;color:var(--text-muted);text-align:left;padding:12px 14px;border-bottom:1.5px solid var(--border);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;background:#f8fafc}
-table.tbl td{padding:14px;border-bottom:1px solid #f1f5f9;color:var(--text);vertical-align:middle}
-table.tbl tr:last-child td{border-bottom:none}
-.tbl-name{font-weight:600;color:var(--text)}
-.empty{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;font-weight:500}
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.95);color:#fff;font-size:13px;font-weight:600;padding:14px 28px;border-radius:30px;z-index:999;display:none;white-space:nowrap;box-shadow:0 10px 25px rgba(0,0,0,0.2);backdrop-filter:blur(8px)}
-.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.4);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
-.modal-bg.on{display:flex}
-.modal{background:#fff;border-radius:20px;padding:28px;width:92%;max-width:560px;max-height:85vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25)}
-.modal-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #f1f5f9;padding-bottom:12px;letter-spacing:-0.4px}
-.modal-close{background:#f1f5f9;border:none;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all 0.15s}
-.modal-close:hover{background:#e2e8f0;color:var(--text)}
-.link-btn{background:none;border:none;padding:0;color:var(--primary-dark);font:inherit;font-weight:700;cursor:pointer;text-align:left}
-.link-btn:hover{text-decoration:underline}
-.sec-hdr{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--border)}
-.info-box{background:#f0f9ff;border-radius:12px;padding:14px;font-size:12.5px;color:#0369a1;line-height:1.6;margin-bottom:16px;border-left:4px solid var(--primary-light)}
-.info-box.green{background:#ecfdf5;color:#065f46;border-left-color:#10b981}
-.info-box.orange{background:#fffbeb;color:#92400e;border-left-color:#f59e0b}
-.tp-day{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
-.tp-day-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.tp-day-date{font-size:14px;font-weight:700;color:var(--text)}
-.tp-day-label{font-size:11px;color:var(--text-muted)}
-.exp-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #f1f5f9}
-.exp-row:last-child{border-bottom:none}
-.exp-label{flex:1;font-size:13px;font-weight:600;color:var(--text)}
-.exp-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
-.exp-amt{font-size:14px;font-weight:700;color:var(--success);width:90px;text-align:right;flex-shrink:0}
-.exp-total{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-top:2.5px solid var(--border);margin-top:12px}
-.exp-total-label{font-size:15px;font-weight:700;color:var(--text)}
-.exp-total-amt{font-size:20px;font-weight:800;color:var(--success)}
-.appr-card{border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all 0.2s}
-.appr-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,23,42,0.06);border-color:#cbd5e1}
-.appr-card.pending{border-left:5px solid var(--warning)}
-.appr-card.approved{border-left:5px solid var(--success)}
-.appr-card.rejected{border-left:5px solid var(--danger)}
-.appr-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.appr-name{font-size:14px;font-weight:700;color:var(--text)}
-.appr-meta{font-size:11px;color:var(--text-muted);margin-top:3px}
-.checklist-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:10px;max-height:160px;overflow-y:auto;border:1.5px solid var(--border);padding:12px;border-radius:12px;background:#f8fafc}
-.checklist-item{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;cursor:pointer}
-.checklist-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary)}
-.admin-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.admin-tab{padding:10px 16px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s}
-.admin-tab:hover{color:var(--primary)}
-.admin-tab.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
-.password-container{position:relative;width:100%}
-.password-toggle-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;user-select:none;padding:4px}
-.password-toggle-btn:hover{color:var(--primary)}
-    .admin-tab { display: inline-block; padding: 10px 15px; cursor: pointer; color: #555; font-weight: 500; font-size: 14px; border-bottom: 2px solid transparent; }
-    .admin-tab:hover { color: #007bb5; }
-    .admin-tab.on { color: #007bb5; border-bottom: 2px solid #007bb5; }
-    .admin-sub-tab { display: inline-block; padding: 6px 12px; margin: 0 5px 10px 0; cursor: pointer; color: #666; font-size: 13px; border: 1px solid #ddd; border-radius: 4px; background: #fff; }
-    .admin-sub-tab.on { background: #007bb5; color: #fff; border-color: #007bb5; }
-    
-    .admin-only { /* controlled by JS body class */ }
-    body:not(.is-admin) .admin-only { display: none !important; }
-    body.is-admin .manager-only { display: none !important; }
-.excel-filter-popup {
-  position: absolute;
-  z-index: 99999;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  width: 220px;
-  max-height: 350px;
-  display: flex;
-  flex-direction: column;
-  font-size: 12px;
-  color: var(--text);
-  overflow: hidden;
-}
-.excel-filter-header {
-  padding: 8px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-.excel-filter-header input {
-  height: 28px !important;
-  font-size: 11px !important;
-  padding: 0 8px !important;
-  border-radius: 4px !important;
-}
-.excel-filter-actions {
-  display: flex;
-  gap: 8px;
-  padding: 6px 8px;
-  border-bottom: 1px solid #f1f5f9;
-}
-.excel-filter-actions a {
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-.excel-filter-actions a:hover { text-decoration: underline; }
-.excel-filter-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0;
-  max-height: 200px;
-}
-.excel-filter-item {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.excel-filter-item:hover { background: #f1f5f9; }
-.excel-filter-item input {
-  margin-right: 6px;
-  cursor: pointer;
-}
-.excel-filter-footer {
-  padding: 8px;
-  border-top: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  background: #f8fafc;
-}
-.excel-filter-footer button {
-  height: 26px;
-  padding: 0 12px;
-  font-size: 11px;
-  border-radius: 4px;
-}
-.inv-filter-trigger {
-  color: #94a3b8;
-  cursor: pointer;
-  margin-left: 4px;
-  font-size: 10px;
-  transition: color 0.2s;
-  display: inline-block;
-}
-.inv-filter-trigger:hover {
-  color: #3b82f6;
-}
-.inv-filter-trigger.active {
-  color: #10b981 !important;
-}
-.inv-filter-dropdown label {
-  user-select: none;
-}
-.inv-filter-dropdown input[type="checkbox"] {
-  cursor: pointer;
-}
-
-/* Custom Multi-select Dropdown styling */
-.multiselect-container {
-  position: relative;
-  width: 100%;
-}
-.multiselect-header {
-  min-height: 38px;
-  padding: 8px 30px 8px 12px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-  position: relative;
-  user-select: none;
-}
-.multiselect-header::after {
-  content: "▼";
-  font-size: 8px;
-  color: var(--text-muted);
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.multiselect-badge {
-  background: var(--accent);
-  color: var(--primary-dark);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.multiselect-badge .close-btn {
-  cursor: pointer;
-  font-weight: bold;
-  opacity: 0.6;
-}
-.multiselect-badge .close-btn:hover {
-  opacity: 1;
-}
-.multiselect-dropdown {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  z-index: 1000;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 4px;
-}
-.multiselect-dropdown.open {
-  display: block;
-}
-.multiselect-option {
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  cursor: pointer;
-  user-select: none;
-  text-align: left;
-}
-.multiselect-option:hover {
-  background: #f1f5f9;
-}
-.multiselect-option input {
-  cursor: pointer;
-}
-
-/* Style overrides for table layout multi-select */
-.tbl .multiselect-header {
-  min-height: 30px;
-  padding: 4px 20px 4px 8px;
-  border-radius: 4px;
-}
-.tbl .multiselect-header::after {
-  right: 8px;
-}
-</style>
-</head>
-<body>
-<!-- Global Excel Filter Popup -->
-<div id="excel-filter-popup" class="excel-filter-popup" style="display:none;"></div>
-
-<div class="toast" id="toast"></div>
-
-<!-- LOGIN SCREEN -->
-<div id="scr-login" style="display:flex; width:100%;">
-  <div class="login-wrap">
-    <div class="login-card">
-      <div class="login-logo" style="width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
-        <img src="logo.jpg" alt="Adonis Logo" style="max-height: 90px; max-width: 100%; object-fit: contain;">
-      </div>
-      <div class="login-title">Sankalp</div>
-      <div class="login-sub">Field Force Reporting System</div>
-      <div class="fw"><label class="lbl">Employee ID</label><input type="text" id="login-id" placeholder="e.g. EMP001" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
-      <div class="fw">
-        <label class="lbl">Password</label>
-        <div class="password-container">
-          <input type="password" id="login-pwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" style="padding-right: 60px;">
-          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility()" tabindex="-1">Show</button>
-        </div>
-      </div>
-      <button class="btn primary" onclick="doLogin()" style="margin-top:4px">Login</button>
-      <div style="font-size:11px;color:#64748B;text-align:center;margin-top:15px;" id="db-status-indicator"></div>
-    </div>
-  </div>
-</div>
-
-<!-- EMPLOYEE / MR APP -->
-<div id="scr-emp" class="screen">
-  <div class="hdr">
-    <div class="hdr-row">
-      <div class="logo">
-        <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
-      </div>
-      <div class="hdr-brand"><div class="hdr-title">Sankalp MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
-      <button id="emp-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 4px 10px; font-size: 12px; width: auto; height: auto; line-height: 1.2; margin-right: 8px;">🔄 Sync</button>
-      <button class="hdr-badge" onclick="doLogout()">Logout</button>
-    </div>
-  </div>
-  
-  <!-- NAVIGATION -->
-  <div class="nav">
-    <button class="nav-btn on" id="nb-home" onclick="goTab('home')"><span class="ni material-symbols-outlined">home</span>Home</button>
-    <button class="nav-btn" id="nb-report" onclick="goTab('report')"><span class="ni material-symbols-outlined">description</span>Report</button>
-    <button class="nav-btn" id="nb-tour" onclick="goTab('tour')"><span class="ni material-symbols-outlined">map</span>Tour Plan</button>
-    <button class="nav-btn" id="nb-expense" onclick="goTab('expense')"><span class="ni material-symbols-outlined">payments</span>Expense</button>
-    <button class="nav-btn" id="nb-leave" onclick="goTab('leave')"><span class="ni material-symbols-outlined">calendar_today</span>Leaves</button>
-    <button class="nav-btn" id="nb-doctors" onclick="goTab('doctors')"><span class="ni material-symbols-outlined">group</span>Master</button>
-    <button class="nav-btn" id="nb-inventory" onclick="goTab('inventory')"><span class="ni material-symbols-outlined">inventory_2</span>Inventory</button>
-    <button class="nav-btn" id="nb-emp-reports" onclick="goTab('emp-reports')"><span class="ni material-symbols-outlined">analytics</span>MIS Reports</button>
-    <button class="nav-btn" id="nb-announcements" onclick="goTab('announcements')" style="display:none"><span class="ni material-symbols-outlined">campaign</span>Broadcast</button>
-  </div>
-
-  <!-- MR HOME TAB -->
-  <div class="body" id="tab-home">
-    <div class="stats">
-      <div class="stat"><div class="stat-l">Calls Today</div><div class="stat-v green" id="stat-today">0</div></div>
-      <div class="stat"><div class="stat-l">Total Coverage</div><div class="stat-v" id="stat-coverage">0%</div></div>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="stat-l">Tour Plan Status</div><div class="stat-v orange" id="stat-tp">â€”</div></div>
-      <div class="stat"><div class="stat-l">Leave Balance</div><div class="stat-v" id="stat-leave-bal">CL:0 SL:0</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">&#128197; Today's Schedule &amp; Activity</div>
-      <div id="today-reports"><div class="empty">No calls reported today</div></div>
-      <div id="final-submit-container" style="margin-top:10px;text-align:right;display:none;">
-        <button class="btn primary" onclick="finalSubmitToday()">Submit Final Report for Today</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">&#128203; My Recent Calls</div>
-      <div id="recent-reports"><div class="empty">No reports submitted yet</div></div>
-    </div>
-  </div>
-
-  <!-- MR REPORT / VISIT TAB -->
-  <div class="body" id="tab-report" style="display:none">
-    <div class="card">
-      <div class="card-title">&#128203; Submit Daily Call Report</div>
-      <div class="row2">
-        <div><label class="lbl">Date</label><input type="date" id="r-date" onchange="checkMTPForSelectedDate()"></div>
-        <div><label class="lbl">Type of Working</label><select id="r-work-type" onchange="toggleReportWorkTypeFields()"><option value="FIELD WORK">FIELD WORK</option><option value="WEEKLY OFF">WEEKLY OFF</option><option value="LEAVE">LEAVE</option><option value="HOLIDAY">HOLIDAY</option><option value="MEETING">MEETING</option><option value="TRANSIT">TRANSIT</option></select></div>
-      </div>
-      <div id="r-standard-loc-fields">
-        <div class="row2">
-          <div style="display:none"><label class="lbl">Territory</label><select id="r-territory" onchange="populateReportCityPatch()"><option value="HQ">HQ</option><option value="Ex">Ex</option><option value="OS">OS</option></select></div>
-          <div style="grid-column: span 2">
-            <label class="lbl">Town / City</label>
-            <input type="hidden" id="r-city" value="">
-            <div id="r-city-container"></div>
-          </div>
-        </div>
-        <div class="row2" style="margin-top: 8px">
-          <div style="grid-column: span 2">
-            <label class="lbl">Patch</label>
-            <input type="hidden" id="r-patch" value="">
-            <div id="r-patch-container"></div>
-          </div>
-        </div>
-      </div>
-      <div id="r-transit-loc-fields" style="display:none">
-        <div class="row2">
-          <div><label class="lbl">From Town</label><select id="r-transit-from"></select></div>
-          <div><label class="lbl">To Town</label><select id="r-transit-to"></select></div>
-        </div>
-      </div>
-      <div class="row2">
-        <div><label class="lbl">Call Classification</label><select id="r-classification"><option>Planned Call</option><option>Unplanned Call</option></select></div>
-        <div><label class="lbl">Time</label><input type="time" id="r-time"></div>
-      </div>
-      <div class="row2" style="margin-bottom:0">
-        <div id="r-target-type-wrap" style="grid-column: span 2"><label class="lbl">Target Type</label><select id="r-target-type" onchange="toggleReportTargetFields()"><option>Doctor</option><option>Chemist</option><option>Stockist</option></select></div>
-      </div>
-      
-      <!-- Doctor Selection -->
-      <div class="fw" id="r-doctor-wrap">
-        <label class="lbl">Doctor</label>
-        <select id="r-doctor" onchange="updateReportClassificationFromTarget()" style="width: 100%;"><option value="">-- Select Doctor --</option></select>
-      </div>
-      
-      <!-- Unlisted Doctor Fields -->
-      <div class="fw" id="r-unlisted-doctor-wrap" style="display:none; margin-top: 10px;">
-        <div class="row2" style="margin-bottom:0">
-          <div>
-            <label class="lbl">Doctor Name *</label>
-            <input type="text" id="r-unlisted-doc-name" placeholder="Enter Doctor Name" />
-          </div>
-          <div>
-            <label class="lbl">Specialty</label>
-            <input type="text" id="r-unlisted-doc-spec" placeholder="e.g. MD, MBBS" />
-          </div>
-        </div>
-        <div class="fw" style="margin-top: 5px;">
-          <label class="lbl">Area / Patch</label>
-          <input type="text" id="r-unlisted-doc-area" placeholder="Enter Area/Patch" />
-        </div>
-      </div>
-      
-      <!-- Chemist Selection -->
-      <div class="fw" id="r-chemist-wrap" style="display:none">
-        <label class="lbl">Chemist</label>
-        <select id="r-chemist" onchange="updateReportClassificationFromTarget()" style="width: 100%;"><option value="">-- Select Chemist --</option></select>
-      </div>
-      
-      <!-- Stockist Selection -->
-      <div class="fw" id="r-stockist-wrap" style="display:none">
-        <label class="lbl">Stockist</label>
-        <select id="r-stockist" onchange="updateReportClassificationFromTarget()" style="width: 100%;"><option value="">-- Select Stockist --</option></select>
-      </div>
-      <div class="fw" id="r-planned-targets-wrap" style="display:none"></div>
-      
-      <div class="fw"><label class="lbl">Call Type / Objective</label>
-        <select id="r-calltype">
-          <option>Regular Visit</option><option>Introductory Visit</option><option>Follow-up</option><option>CME / Event</option>
-        </select>
-      </div>
-
-      <!-- Joint Field Work (Moved to top) -->
-      <div class="fw" style="margin-top: 15px;"><label class="lbl">Worked With (Hierarchy)</label>
-        <select id="r-jfw-manager" onchange="populateReportingDropdowns(); populateReportTerritoryDropdowns(); filterReportingDropdownsByPatch();"><option value="">-- Working Alone --</option></select>
-      </div>
-      <div class="fw" style="margin-top: 5px;"><label class="lbl">Worked With (Remarks)</label>
-        <input type="text" id="r-jfw-remarks" placeholder="Enter remarks if working with multiple people" />
-      </div>
-    </div>
-    
-    <!-- Planned activities card -->
-    <div class="card" id="r-planned-activities-card" style="display:none">
-      <div class="card-title">&#128197; Planned Activities for Selected Date</div>
-      <div id="r-planned-docs-list" style="margin-bottom:8px"></div>
-      <div id="r-planned-chems-list"></div>
-    </div>
-
-    <!-- Doctor Specific Form Fields -->
-    <div id="r-doctor-details-wrap">
-      <div class="card">
-        <div class="card-title">&#128188; Product Promotion &amp; Discussion</div>
-        <div class="fw"><label class="lbl">Products Detailed (Promoted)</label>
-          <div id="r-promo-products" class="checklist-grid"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#127873; Samples Issued</div>
-        <div id="samples-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#127381; Gift Distribution</div>
-        <div id="gifts-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#128196; Input/Literature Given</div>
-        <div id="inputs-list"></div>
-      </div>
-    </div>
-
-    <!-- Chemist Specific Form Fields -->
-    <div id="r-chemist-details-wrap" style="display:none">
-      <div class="card">
-        <div class="card-title">&#128221; Order &amp; Stock Info</div>
-        <div class="row2">
-          <div><label class="lbl">Orders Discussed (&#x20B9;)</label><input type="number" id="r-chem-order" placeholder="0"></div>
-          <div><label class="lbl">Stock Availability</label><select id="r-chem-stock"><option>Adequate Stock</option><option>Low Stock</option><option>Out of Stock</option></select></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stockist Specific Form Fields -->
-    <div id="r-stockist-details-wrap" style="display:none">
-      <div class="card">
-        <div class="card-title">&#128221; Order &amp; Stock Info</div>
-        <div class="row2">
-          <div><label class="lbl">Orders Discussed (&#x20B9;)</label><input type="number" id="r-stockist-order" placeholder="0"></div>
-          <div><label class="lbl">Stock Availability</label><select id="r-stockist-stock"><option>Adequate Stock</option><option>Low Stock</option><option>Out of Stock</option></select></div>
-        </div>
-      </div>
-    </div>
-
-
-
-    <div class="card">
-      <div class="card-title">&#128205; Remarks &amp; Location</div>
-      <div class="gps-bar" id="gps-bar">
-        <span style="font-size:18px">&#128205;</span>
-        <span id="gps-text">Tap to capture GPS location</span>
-        <button class="btn sm" style="width:auto;padding:0 12px;margin-left:auto" onclick="getGPS()">Get GPS</button>
-      </div>
-      <input type="hidden" id="r-lat"><input type="hidden" id="r-lng">
-      <div class="fw"><label class="lbl">Call Notes / Feedback</label><textarea id="r-remarks" placeholder="Enter visit summary details..."></textarea></div>
-      <div class="fw"><label class="lbl">Follow-up Required (Next Visit)</label><input type="date" id="r-next-visit"></div>
-    </div>
-    <div class="btn-row"><button id="btn-submit-report" class="btn success" onclick="submitReport()">&#10003; Submit Call Report</button></div>
-    <div style="height:20px"></div>
-  </div>
-
-  <!-- MR TOUR PLAN TAB -->
-  <div class="body" id="tab-tour" style="display:none">
-    <div class="card">
-      <div class="card-title">&#128506; Monthly Tour Plan (MTP)</div>
-      <div class="row2">
-        <div><label class="lbl">Month</label><input type="month" id="tp-month" onchange="renderTPDaysForMonth()"></div>
-        <div><label class="lbl">Reporting Manager</label><select id="tp-manager" disabled></select></div>
-      </div>
-      <div class="info-box">Enter only the Area/Territory for working days. Empty dates will not be included when the MTP is saved or submitted.</div>
-    </div>
-    <!-- MTP ANALYTICS CARD -->
-    <div class="card" id="mtp-analytics-card" style="display:none">
-      <div class="card-title">&#128202; MTP Analytics (Approved Plan)</div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Planned Doctor Calls</div><div class="stat-v" id="mtp-stat-planned-docs">0</div></div>
-        <div class="stat"><div class="stat-l">Planned Chemist Calls</div><div class="stat-v" id="mtp-stat-planned-chems">0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">MTP Doctor Coverage</div><div class="stat-v green" id="mtp-stat-coverage">0%</div></div>
-        <div class="stat"><div class="stat-l">Missed Doctor Calls</div><div class="stat-v red" id="mtp-stat-missed-docs">0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Missed Chemist Calls</div><div class="stat-v red" id="mtp-stat-missed-chems">0</div></div>
-        <div class="stat"><div class="stat-l">Doctor Actual vs Planned</div><div class="stat-v" id="mtp-stat-doc-ratio">0 / 0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat" style="grid-column: span 2"><div class="stat-l">Chemist Actual vs Planned</div><div class="stat-v" id="mtp-stat-chem-ratio">0 / 0</div></div>
-      </div>
-    </div>
-
-    <!-- Toggle View option -->
-    <div class="admin-tabs" style="margin-top:10px;margin-bottom:10px">
-      <div class="admin-tab on" id="mtp-view-grid-btn" onclick="toggleMTPViewMode('grid')">Tabular View</div>
-      <div class="admin-tab" id="mtp-view-cal-btn" onclick="toggleMTPViewMode('calendar')">Calendar View</div>
-    </div>
-    
-    <div id="mtp-grid-wrapper">
-      <div id="tp-days-container"></div>
-    </div>
-    
-    <div id="mtp-calendar-wrapper" style="display:none">
-      <div class="card" style="padding:16px">
-        <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:4px;text-align:center;font-weight:700;font-size:11px;margin-bottom:8px">
-          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-        </div>
-        <div id="mtp-calendar-grid" style="display:grid;grid-template-columns:repeat(7, 1fr);gap:6px"></div>
-      </div>
-    </div>
-
-    <div class="btn-row" id="tp-action-buttons" style="display:none">
-      <button class="btn primary" onclick="saveOrSubmitTourPlan('Draft')">Save as Draft</button>
-      <button class="btn success" onclick="saveOrSubmitTourPlan('Submitted')">Submit Tour Plan</button>
-    </div>
-    <div style="height:10px"></div>
-    <div class="sec-hdr">My MTP History</div>
-    <div id="my-tp-list"></div>
-    <div style="height:20px"></div>
-  </div>
-
-  <!-- MR EXPENSE TAB -->
-  <div class="body" id="tab-expense" style="display:none">
-    <div class="card">
-      <div class="card-title">&#128176; Submit Expense Claim</div>
-      <div class="info-box green">Expenses are auto-calculated from your approved daily visit reports using the standard fare charts.</div>
-      <div class="fw"><label class="lbl">Select Month</label><input type="month" id="exp-month" onchange="generateExpenseFromReports()"></div>
-    </div>
-    <div id="expense-detail" style="display:none">
-      <div class="card">
-        <div class="card-title">&#128196; Expense Statement</div>
-        <div id="exp-breakdown"></div>
-        <div class="exp-total">
-          <div class="exp-total-label">Total Claim Amount</div>
-          <div class="exp-total-amt" id="exp-grand-total">&#x20B9;0</div>
-        </div>
-        <div class="fw" style="margin-top:14px">
-          <label class="lbl">Upload Bill/Receipt (Supports images/PDF)</label>
-          <input type="file" id="exp-receipt-file" accept="image/*,application/pdf">
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn success" onclick="submitExpense()">&#128228; Submit Claim for Approval</button>
-      </div>
-    </div>
-    <div class="sec-hdr">My Submitted Claims</div>
-    <div id="my-expenses-list"></div>
-    <div style="height:20px"></div>
-  </div>
-
-  <!-- MR LEAVE TAB -->
-  <div class="body" id="tab-leave" style="display:none">
-    <div class="card">
-      <div class="card-title">&#127915; Apply for Leave</div>
-      <div class="row2">
-        <div><label class="lbl">Start Date</label><input type="date" id="lv-start"></div>
-        <div><label class="lbl">End Date</label><input type="date" id="lv-end"></div>
-      </div>
-      <div class="row2">
-        <div><label class="lbl">Leave Type</label><select id="lv-type"><option>Casual Leave</option><option>Sick Leave</option><option>Earned Leave</option><option>LWP</option></select></div>
-        <div><label class="lbl">Reporting Manager</label><select id="lv-manager" disabled></select></div>
-      </div>
-      <div class="fw"><label class="lbl">Reason for Leave</label><textarea id="lv-reason" placeholder="State reason..."></textarea></div>
-      <button class="btn primary" onclick="submitLeave()">Submit Leave Request</button>
-    </div>
-    <div class="card">
-      <div class="card-title">&#128202; Leave Balance Details</div>
-      <div class="row2" style="text-align:center">
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Casual (CL)</div><div class="stat-v" id="lv-bal-cl">0 / 12</div></div>
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Sick (SL)</div><div class="stat-v" id="lv-bal-sl">0 / 10</div></div>
-      </div>
-      <div class="row2" style="text-align:center;margin-top:10px">
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">Earned (EL)</div><div class="stat-v" id="lv-bal-el">0 / 15</div></div>
-        <div style="padding:10px;background:#F1F5F9;border-radius:10px;cursor:pointer" onclick="viewMyLeaveBalanceDetails()"><div class="stat-l">LWP</div><div class="stat-v" id="lv-bal-lwp">0</div></div>
-      </div>
-      <div class="info-box" style="margin-top:12px">Tap any leave bucket to open the full leave balance ledger.</div>
-    </div>
-    <div class="sec-hdr">My Leave Requests</div>
-    <div id="my-leaves-list"></div>
-    <div style="height:20px"></div>
-  </div>
-
-  <!-- MR DOCTORS & CHEMISTS TAB -->
-  <div class="body" id="tab-doctors" style="display:none">
-    <div class="admin-tabs" style="margin-bottom:10px">
-      <div class="admin-tab on" id="doc-subtab-btn" onclick="toggleDocChemistSubtab('doc')">Doctors</div>
-      <div class="admin-tab" id="chem-subtab-btn" onclick="toggleDocChemistSubtab('chem')">Chemists</div>
-      <div class="admin-tab" id="stockist-subtab-btn" onclick="toggleDocChemistSubtab('stockist')">Stockists</div>
-    </div>
-    <div id="doc-subtab-content">
-      <div class="card" style="padding:10px 14px;margin-bottom:10px">
-        <input type="text" id="doc-search" placeholder="&#128269; Search doctor, speciality, area..." oninput="renderDocList()" style="background:#F1F5F9">
-      </div>
-      <div class="card"><div id="doc-list"><div class="empty">No doctors assigned</div></div></div>
-    </div>
-    <div id="chem-subtab-content" style="display:none">
-      <div class="card" style="padding:10px 14px;margin-bottom:10px">
-        <input type="text" id="chem-search" placeholder="&#128269; Search chemists by name or area..." oninput="renderChemistList()" style="background:#F1F5F9">
-      </div>
-      <div class="card"><div id="chemist-list"><div class="empty">No chemists assigned</div></div></div>
-    </div>
-    <div id="stockist-subtab-content" style="display:none">
-      <div class="card" style="padding:10px 14px;margin-bottom:10px">
-        <input type="text" id="stockist-search" placeholder="&#128269; Search stockists by name or area..." oninput="renderStockistList()" style="background:#F1F5F9">
-      </div>
-      <div class="card"><div id="stockist-list"><div class="empty">No stockists assigned</div></div></div>
-    </div>
-  </div>
-    <!-- MR ANNOUNCEMENT TAB -->
-    <div class="body" id="tab-announcements" style="display:none"></div>
-    <!-- MR INVENTORY TAB -->
-    <div class="body" id="tab-inventory" style="display:none">
-      <div class="sec-hdr">📦 My Inventory Balances</div>
-      <div class="card">
-        <div class="card-title">Sample Product Inventory</div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Product Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
-            <tbody id="tbl-emp-inv-samples"></tbody>
-          </table>
-        </div>
-        
-        <div class="card-title" style="margin-top:20px">Promotional Gift Inventory</div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Gift Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
-            <tbody id="tbl-emp-inv-gifts"></tbody>
-          </table>
-        </div>
-        
-        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs)</div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Input Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
-            <tbody id="tbl-emp-inv-inputs"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    
-    <!-- MR MY MIS REPORTS TAB -->
-    <div class="body" id="tab-emp-reports" style="display:none">
-      <div class="card">
-        <div class="card-title">&#128269; My MIS Reports</div>
-        <div class="fw"><label class="lbl">Select Report Category</label>
-          <select id="emp-rep-selector" onchange="updateEmpReportHeadersAndFilters()">
-            <option value="doc_calls">1. Total Doctor Calls Report</option>
-            <option value="chem_calls">2. Total Chemist Calls Report</option>
-            <option value="call_avg">3. Doctor Call Average Report</option>
-            <option value="missed_calls">4. Missed Doctor Calls Report</option>
-            <option value="visit_freq">5. Doctor Visit Frequency Report</option>
-            <option value="plan_vs_act">6. Planned vs Actual Calls Report</option>
-            <option value="jfw_days">7. Joint Field Work (JFW) Summary</option>
-            <option value="mgr_accomp">8. Manager Accompaniment Report</option>
-            <option value="samples_util">9. Sample Utilization Report</option>
-            <option value="gifts_util">10. Gift Utilization Report</option>
-            <option value="expenses_rep">11. Expense Summary Report</option>
-            <option value="leaves_rep">12. Leave Utilisation Report</option>
-            <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
-            <option value="transit_rep">14. Transit Report</option>
-          </select>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">From Date</label><input type="date" id="emp-rep-from"></div>
-          <div><label class="lbl">To Date</label><input type="date" id="emp-rep-to"></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn primary sm" onclick="runEmpMISReport()">Run Query / Filter</button>
-          <button class="btn success sm" onclick="exportEmpReportToCSV()">&#8595; Export Excel / CSV</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">
-          <span id="emp-rep-table-title">Query Results</span>
-        </div>
-        <div class="tbl-wrap">
-          <table class="tbl" id="emp-mis-report-table">
-            <thead id="emp-mis-report-thead"></thead>
-            <tbody id="emp-mis-report-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-</div>
-
-<!-- MANAGER & ADMIN PORTAL -->
-<div id="scr-admin" class="screen">
-  <div class="hdr">
-    <div class="hdr-row">
-      <div class="logo">
-        <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
-      </div>
-      <div class="hdr-brand">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="hdr-title" id="adm-panel-title">Sankalp Admin Console</div>
-          <span class="badge orange" id="adm-badge" style="padding:2px 8px;font-size:9px;text-transform:uppercase">ADM</span>
-          <button id="admin-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 2px 8px; font-size: 10px; width: auto; height: auto; line-height: 1.2; margin-left: 8px;">🔄 Sync</button>
-        </div>
-        <div class="hdr-sub">Adonis Laboratories</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="hdr-badge" style="background:#0284c7;color:white" onclick="openChangePasswordModal()">Change Password</button>
-        <button class="hdr-badge" onclick="doLogout()">Logout</button>
-      </div>
-    </div>
-  </div>
-  <div class="body">
-    <!-- ADMIN TABS -->
-    <div class="admin-tabs">
-      <div class="admin-tab on" id="tab-adm-dash" onclick="goAdminTab('dash')">Dashboard</div>
-      <div class="admin-tab" id="tab-adm-appr" onclick="goAdminTab('appr')">Approvals</div>
-      <div class="admin-tab admin-only" id="tab-adm-attendance" onclick="goAdminTab('attendance')">Attendance</div>
-      <div class="admin-tab" id="tab-adm-master" onclick="goAdminTab('master')">Master Data</div>
-      <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
-      <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
-      <div class="admin-tab manager-only" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
-      <div class="admin-tab" id="tab-adm-tour" onclick="goAdminTab('tour')">Tour Plan</div>
-      <div class="admin-tab" id="tab-adm-announcements" onclick="goAdminTab('announcements')" style="display:none">Broadcasts</div>
-    </div>
-
-    <!-- ADMIN SECTIONS -->
-    <div id="sec-adm-visit" style="display:none"></div>
-    <div id="sec-adm-tour" style="display:none"></div>
-    <div id="sec-adm-announcements" style="display:none" class="body"></div>
-    <!-- ADMIN DASHBOARD PANEL -->
-    <div id="sec-adm-dash">
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Total Active Team</div><div class="stat-v" id="adm-emp-count">0</div></div>
-        <div class="stat"><div class="stat-l">Assigned Doctors</div><div class="stat-v" id="adm-doc-count">0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Total Daily Call Reports</div><div class="stat-v green" id="adm-rep-count">0</div></div>
-        <div class="stat"><div class="stat-l">Pending Approvals</div><div class="stat-v orange" id="adm-pending-count">0</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#128101; Active Team Performance &amp; Coverage Summary</div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead>
-              <tr><th>Employee ID</th><th>Name</th><th>Territory</th><th>Reports Submitted</th><th>Doctor Coverage %</th><th>JFW Days Accompanied</th></tr>
-            </thead>
-            <tbody id="adm-dash-team-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ADMIN APPROVALS PANEL -->
-    <div id="sec-adm-appr" style="display:none">
-      <div class="sec-hdr">&#9989; Tour Plan (MTP) Submissions</div>
-      <div id="adm-tp-approvals"><div class="empty">No tour plans pending your approval</div></div>
-      <div class="sec-hdr" style="margin-top: 15px; color: var(--success);">&#128197; Approved/Rejected Tour Plans</div>
-      <div id="adm-tp-history"><div class="empty">No approved/rejected tour plans found</div></div>
-
-      <div class="sec-hdr" style="margin-top: 25px;">&#128176; Expense Claims Submissions</div>
-      <div id="adm-exp-approvals"><div class="empty">No expense claims pending your approval</div></div>
-
-      <div class="sec-hdr" style="margin-top: 25px;">&#127915; Leave Application Submissions</div>
-      <div id="adm-leave-approvals"><div class="empty">No leave requests pending your approval</div></div>
-      <div class="sec-hdr" style="margin-top: 15px; color: var(--success);">&#128197; Approved/Rejected Leave Applications</div>
-      <div id="adm-leave-history"><div class="empty">No approved/rejected leave applications found</div></div>
-    </div>
-
-    <!-- ADMIN ATTENDANCE PANEL -->
-    <div id="sec-adm-attendance" style="display:none">
-      <div class="info-box">
-        Attendance is auto-generated from first login, approved leave, holidays, and weekly offs. Daily attendance validation runs for the previous day and blocks non-exempt employees only when attendance is not submitted for a working day.
-      </div>
-      <div class="card">
-        <div class="row3">
-          <div><label class="lbl">Employee</label><select id="attendance-employee-filter" onchange="renderAttendanceDashboard()"><option value="">All Employees</option></select></div>
-          <div><label class="lbl">Status</label><select id="attendance-status-filter" onchange="renderAttendanceDashboard()"><option value="">All Statuses</option><option value="P">Present</option><option value="SL">Sick Leave</option><option value="CL">Casual Leave</option><option value="H">Holiday</option><option value="WO">Weekly Off</option><option value="NS">Not Submitted</option></select></div>
-          <div><label class="lbl">Search</label><input type="text" id="attendance-search" placeholder="Search employee, date, status, remarks..." oninput="renderAttendanceDashboard()"></div>
-        </div>
-        <div class="btn-row" style="margin-top:0">
-          <button class="btn sm success admin-only" onclick="runAttendanceValidationNow()">Run Validation Now</button>
-          <button class="btn sm admin-only" onclick="exportAttendanceReport()">Export Attendance CSV</button>
-        </div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Total Working Days</div><div class="stat-v" id="attendance-stat-working">0</div></div>
-        <div class="stat"><div class="stat-l">Total Present</div><div class="stat-v green" id="attendance-stat-present">0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-l">Not Submitted Days</div><div class="stat-v orange" id="attendance-stat-ns">0</div></div>
-        <div class="stat"><div class="stat-l">Approved Leaves</div><div class="stat-v" id="attendance-stat-leaves">0</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat" style="grid-column: span 2"><div class="stat-l">Attendance Percentage</div><div class="stat-v" id="attendance-stat-percent">0.00%</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Attendance History - Latest 30 Days</div>
-        <div id="attendance-past-access-actions" style="margin-bottom: 12px; display: none; gap: 10px; align-items: center; flex-wrap: wrap;">
-          <button class="btn sm success" id="btn-grant-past-access" style="display:none; width:auto; padding: 6px 12px;" onclick="grantPastReportAccess()">Grant Edit Access (0)</button>
-          <button class="btn sm danger" id="btn-revoke-past-access" style="display:none; width:auto; padding: 6px 12px;" onclick="revokePastReportAccess()">Revoke Access (0)</button>
-        </div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead>
-              <tr><th>Employee</th><th>Date</th><th>Status</th><th>Login Time</th><th>Remarks</th></tr>
-            </thead>
-            <tbody id="attendance-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Blocked Employees</div>
-        <div style="margin-bottom: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-          <input type="text" id="blocked-search" placeholder="Search blocked employees..." oninput="renderAttendanceDashboard()" style="max-width: 280px; margin-bottom: 0;">
-          <button class="btn sm success" id="btn-unblock-selected-blocked" style="display:none; width:auto; padding: 6px 12px;" onclick="unblockSelectedBlocked()">Unblock Selected</button>
-          <button class="btn sm" id="btn-unblock-all-blocked" style="width:auto; padding: 6px 12px;" onclick="unblockAllBlocked()">Unblock All</button>
-        </div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead>
-              <tr><th style="width:40px"><input type="checkbox" id="check-all-blocked" onclick="toggleSelectAllBlocked(this)"></th><th>Employee</th><th>Blocked Date</th><th>Reason</th><th>Weekly Off</th><th>Action</th></tr>
-            </thead>
-            <tbody id="attendance-blocked-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ADMIN MASTER DATA PANEL -->
-    <div id="sec-adm-master" style="display:none">
-      <div class="admin-tabs" style="margin-bottom:14px">
-        <div class="admin-tab on" id="subtab-adm-sfc" onclick="goMasterSubTab('sfc')">SFC Master</div>
-        <div class="admin-tab" id="subtab-adm-emp" onclick="goMasterSubTab('emp')">Employee Master</div>
-        <div class="admin-tab" id="subtab-adm-doc" onclick="goMasterSubTab('doc')">Doctor Master</div>
-        <div class="admin-tab" id="subtab-adm-chem" onclick="goMasterSubTab('chem')">Chemist Master</div>
-        <div class="admin-tab" id="subtab-adm-stockist" onclick="goMasterSubTab('stockist')">Stockist Master</div>
-        <div class="admin-tab" id="subtab-adm-leave" onclick="goMasterSubTab('leave')">Leave Balance Master</div>
-        <div class="admin-tab" id="subtab-adm-holiday" onclick="goMasterSubTab('holiday')">Holiday Master</div>
-      </div>
-
-      <!-- SFC Master -->
-      <div id="adm-sfc-section" class="master-sub-sec">
-        <div class="sec-hdr">&#128506; Fare &amp; Distance Master (SFC)</div>
-        <div class="card">
-          <div class="info-box">Upload SFC CSV with columns: <strong>WorkingDays, EmpName, HQ, State, From, To, Category, Distance, Mode, Fare, DA, Total, Doctors, Business</strong></div>
-          <div class="btn-row" style="margin-bottom:10px">
-            <button class="btn sm success admin-only" onclick="downloadSFCTemplate()">&#8595; SFC Template</button>
-            <button class="btn sm primary admin-only" onclick="document.getElementById('sfc-upload').click()">&#8593; Upload SFC CSV</button>
-            <input type="file" id="sfc-upload" accept=".csv" onchange="uploadSFC(this)" style="display:none">
-            <button class="btn sm danger admin-only" onclick="bulkDeleteAllSFC()">&#128465; Delete All</button>
-            <button id="btn-bulk-delete-selected-sfc" class="btn sm danger admin-only" onclick="bulkDeleteSelectedSFC()" style="display:none">&#128465; Delete Selected (0)</button>
-          </div>
-          <input type="text" id="adm-sfc-search" placeholder="&#128269; Search SFC by from, to, mode, or fare..." oninput="renderSFCTable()" style="margin-bottom:10px;background:#F1F5F9">
-        </div>
-        <div class="card">
-          <div class="card-title">SFC Standard Travel Chart (<span id="sfc-count">0</span> records)</div>
-          <div class="tbl-wrap">
-            <table class="tbl">
-              <thead id="sfc-table-head"></thead>
-              <tbody id="sfc-table-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Employee Master -->
-      <div id="adm-emp-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128101; Hierarchy &amp; Employee Management</div>
-      <div class="card admin-only">
-        <div class="card-title" id="adm-emp-form-title">Add New Employee Record</div>
-        <div class="row2">
-          <div><label class="lbl">Employee ID</label><input type="text" id="adm-emp-id" placeholder="e.g. EMP004"></div>
-          <div><label class="lbl">Name</label><input type="text" id="adm-emp-name" placeholder="Full Name"></div>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">Password</label><input type="text" id="adm-emp-pwd" placeholder="Password"></div>
-          <div><label class="lbl">Territory / HQ</label><input type="text" id="adm-emp-area" placeholder="HQ city"></div>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">Designation</label><input type="text" id="adm-emp-designation" placeholder="e.g. Medical Representative"></div>
-          <div><label class="lbl">Reporting Manager</label><select id="adm-emp-mgr"><option value="">-- None / Root --</option></select></div>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">Role / Level</label>
-            <select id="adm-emp-role">
-              <option value="EMP">Employee (EMP)</option>
-              <option value="emp">Medical Representative (MR)</option>
-              <option value="manager">Manager</option>
-              <option value="manager">First Line Manager (FLM)</option>
-              <option value="am">Area Manager (AM)</option>
-              <option value="rm">Regional Manager (RM)</option>
-              <option value="zm">Zonal Manager (ZM)</option>
-              <option value="nsm">National Sales Manager (NSM)</option>
-              <option value="admin">System Administrator</option>
-            </select>
-          </div>
-          <div><label class="lbl">Status</label><select id="adm-emp-status"><option>Active</option><option>Hold</option><option>Replace</option><option>Resign</option></select></div>
-        </div>
-        <div class="row3">
-          <div><label class="lbl">DOJ</label><input type="date" id="adm-emp-doj"></div>
-          <div><label class="lbl">State</label><input type="text" id="adm-emp-state" placeholder="State"></div>
-          <div style="display:flex;align-items:center;padding-top:18px"><label class="lbl" style="margin:0;cursor:pointer"><input type="checkbox" id="adm-emp-allow-past-reports" style="margin-right:8px;transform:scale(1.2)">Allow Past Reports</label></div>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn primary sm admin-only" id="btn-save-emp" onclick="addEmployee()">+ Save Employee Record</button>
-          <button class="btn sm admin-only" id="btn-cancel-edit-emp" onclick="cancelEditEmployee()" style="display:none; background-color: #64748B; color: white;">Cancel Edit</button>
-        </div>
-      </div>
-      <div class="card admin-only">
-        <div class="card-title">Bulk Import Employees</div>
-        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Designation, Role, ManagerID, DOJ, State, Status</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
-          <input type="file" id="emp-upload" accept=".csv" onchange="uploadEmployees(this)" style="display:none">
-          <button class="btn sm primary admin-only" onclick="pushEmployeesToGitHub()">&#65039; Push to GitHub</button>
-          <button class="btn sm danger admin-only" onclick="bulkDeleteAllEmployees()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-emps" class="btn sm danger admin-only" onclick="bulkDeleteSelectedEmployees()" style="display:none">&#128465; Delete Selected (0)</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Employee Registry (<span id="emp-count">0</span> records)</div>
-        <input type="text" id="adm-emp-search" placeholder="&#128269; Search employee master by name, ID, designation, role, HQ, or state..." oninput="renderEmpTable()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="emp-table-head"></thead>
-            <tbody id="emp-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-      </div>
-
-      <!-- Doctor Master -->
-      <div id="adm-doc-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128203; Doctor Master Management</div>
-      <div class="card">
-        <div class="info-box">Upload Doctor CSV. Columns: <strong>DoctorCode, Emp Id, Name of BE, HQ, Reporting Manager, Name of Doctor, Speciality, Qualification, Address, City, Patch, State, Territory Type (HQ/Ex/OS), Mobile</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadDocTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('doc-upload').click()">&#8593; Upload Doctor CSV</button>
-          <input type="file" id="doc-upload" accept=".csv" onchange="uploadDoctors(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="bulkDeleteAllDoctors()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-docs" class="btn sm danger admin-only" onclick="bulkDeleteSelectedDoctors()" style="display:none">&#128465; Delete Selected (0)</button>
-          <button class="btn sm primary admin-only" id="btn-bulk-reassign-selected-docs" onclick="bulkReassignSelectedDoctors()" style="display:none">&#10227; Reassign MR (0)</button>
-          <button class="btn sm primary admin-only" id="btn-bulk-change-manager-docs" onclick="bulkChangeManagerSelectedDoctors()" style="display:none">&#10227; Change Manager (0)</button>
-        </div>
-        <button class="btn sm admin-only" onclick="addDoctorManual()">+ Add Single Doctor Manual</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Doctor Registry (<span id="doc-count">0</span> records)</div>
-        <input type="text" id="adm-doc-search" placeholder="&#128269; Search doctor master registry..." oninput="renderAdminDocList()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="doc-table-head"></thead>
-            <tbody id="doc-table-body"></tbody>
-          </table><div id="doc-pagination" style="margin-top:10px;text-align:right;"></div></div></div></div>
-
-      <!-- Chemist Master -->
-      <div id="adm-chem-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128221; Chemist Master Management</div>
-      <div class="card">
-        <div class="info-box">Upload Chemist CSV. Columns: <strong>ChemistID, Name, Area, AssignToEmpID, State</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadChemTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('chem-upload').click()">&#8593; Upload Chemist CSV</button>
-          <input type="file" id="chem-upload" accept=".csv" onchange="uploadChemists(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="bulkDeleteAllChemists()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-chems" class="btn sm danger admin-only" onclick="bulkDeleteSelectedChemists()" style="display:none">&#128465; Delete Selected (0)</button>
-          <button class="btn sm primary admin-only" id="btn-bulk-reassign-selected-chems" onclick="bulkReassignSelectedChemists()" style="display:none">&#10227; Reassign Selected (0)</button>
-        </div>
-        <button class="btn sm admin-only" onclick="addChemistManual()">+ Add Single Chemist Manual</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Chemist Registry (<span id="chem-count">0</span> records)</div>
-        <input type="text" id="adm-chem-search" placeholder="&#128269; Search chemist master registry..." oninput="renderAdminChemistList()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="chem-table-head"></thead>
-            <tbody id="chem-table-body"></tbody>
-          </table>
-          <div id="chem-pagination" style="margin-top:10px;text-align:right;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stockist Master -->
-    <div id="adm-stockist-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128221; Stockist Master Management</div>
-      <div class="card">
-        <div class="info-box">Upload Stockist CSV. Columns: <strong>StockistID, Name, Area, AssignToEmpID, State</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadStockistTemplate()">&#8595; Download Selected/All</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('stockist-upload').click()">&#8593; Upload Stockist CSV</button>
-          <input type="file" id="stockist-upload" accept=".csv" onchange="uploadStockists(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="bulkDeleteAllStockists()">&#128465; Delete All</button>
-          <button class="btn sm danger" id="btn-bulk-delete-selected-stockists" onclick="bulkDeleteSelectedStockists()" style="display:none">&#128465; Delete Selected (0)</button>
-          <button class="btn sm primary admin-only" id="btn-bulk-reassign-selected-stockists" onclick="bulkReassignSelectedStockists()" style="display:none">&#10227; Reassign Selected (0)</button>
-        </div>
-        <button class="btn sm admin-only" onclick="addStockistManual()">+ Add Single Stockist Manual</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Stockist Registry (<span id="stockist-count">0</span> records)</div>
-        <input type="text" id="adm-stockist-search" placeholder="&#128269; Search stockist master registry..." oninput="renderAdminStockistList()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="stockist-table-head"></thead>
-            <tbody id="stockist-table-body"></tbody>
-          </table>
-          <div id="stockist-pagination" style="margin-top:10px;text-align:right;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Leave Balance Master -->
-    <div id="adm-leave-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#127973; Leave Balance Management (CL/SL/PL)</div>
-      <div class="card">
-        <div class="info-box">Upload Leave Balance CSV. Ensure format matches the downloaded template exactly.</div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadLeaveBalanceData()">&#8595; Download Leave Balance</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload Leave Balance CSV</button>
-          <input type="file" id="leave-bal-upload" accept=".csv" onchange="uploadLeaveBalances(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="deleteSelectedLeaves()">&#128465; Delete Selected</button>
-          <button class="btn sm danger admin-only" onclick="deleteAllLeaves()">&#128465; Delete All</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Employee Leave Balances (<span id="leave-bal-count">0</span> records)</div>
-        <input type="text" id="adm-leave-search" placeholder="&#128269; Search leave balances by employee, HQ, or designation..." oninput="renderLeaveBalanceTable()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl" id="leave-bal-table">
-            <thead id="leave-bal-table-head"></thead>
-            <tbody id="leave-bal-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Holiday Master -->
-    <div id="adm-holiday-section" class="master-sub-sec" style="display:none">
-      <div class="sec-hdr">&#128197; Holiday List Management</div>
-      <div class="card">
-        <div class="info-box">Upload Holiday List CSV. Columns: <strong>Date (YYYY-MM-DD), HolidayName, State</strong></div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadHolidayList()">&#8595; Download Holiday List</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('holiday-upload').click()">&#8593; Upload Holiday CSV</button>
-          <input type="file" id="holiday-upload" accept=".csv" onchange="uploadHolidays(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="clearAllHolidays()">&#128465; Delete All</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Holiday Calendar (<span id="holiday-count">0</span> records)</div>
-        <input type="text" id="adm-holiday-search" placeholder="&#128269; Search holiday master by date, name, or state..." oninput="renderHolidayTable()" style="margin-bottom:10px;background:#F1F5F9">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead id="holiday-table-head"></thead>
-            <tbody id="holiday-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ADMIN INVENTORY PANEL -->
-    <div id="sec-adm-inventory" style="display:none">
-      <div class="card admin-only">
-        <div class="card-title">&#128230; Issue Stock to Representative</div>
-        <div class="row2">
-          <div><label class="lbl">Select Employee (MR)</label><select id="inv-issue-emp"></select></div>
-          <div><label class="lbl">Item Type</label><select id="inv-issue-type" onchange="populateInventoryItemSelect()"><option>Sample Product</option><option>Gift Promotional</option><option>Promotional Input</option></select></div>
-        </div>
-        <div class="row2">
-          <div><label class="lbl">Item Name</label><select id="inv-issue-item"></select></div>
-          <div><label class="lbl">Quantity to Issue</label><input type="number" id="inv-issue-qty" min="1" placeholder="Qty"></div>
-        </div>
-        <button class="btn success sm admin-only" onclick="issueStockToMR()">Issue / Allocate Stock</button>
-      </div>
-
-      <div class="card admin-only" style="margin-top: 15px;">
-        <div class="card-title">&#128228; Bulk Upload Inventory (CSV)</div>
-        <div class="info-box">Upload Inventory CSV. Columns: <strong>EmployeeID, ItemType, ItemName, OpeningQty</strong><br><span style="font-size: 11px; color: #64748B;">ItemType values: <em>sample</em> (or <em>product</em>), <em>gift</em>, <em>input</em></span></div>
-        <div style="display:flex; gap:10px; margin-top:10px;">
-          <button class="btn sm primary admin-only" onclick="document.getElementById('inv-bulk-upload').click()">&#8593; Upload Inventory CSV</button>
-          <input type="file" id="inv-bulk-upload" accept=".csv" onchange="uploadInventoryCSV(this)" style="display:none">
-          <button class="btn sm secondary admin-only" onclick="downloadInventoryTemplate()">Template</button>
-        </div>
-      </div>
-
-      <div class="sec-hdr">&#128196; Employee Inventory Registers</div>
-      <div class="card">
-        <div class="row2" style="display:flex; gap:15px; align-items:flex-end;">
-          <div style="flex:1;"><label class="lbl">Filter MR</label><select id="inv-filter-emp" onchange="renderAdminInventoryTables()"><option value="">All Employees</option></select></div>
-          <div style="flex:1;"><label class="lbl">Filter State</label><select id="inv-filter-state" onchange="renderAdminInventoryTables()"><option value="">All States</option></select></div>
-          <div style="flex:2;"><label class="lbl">&#128269; Search Inventory</label><input type="text" id="inv-search-global" placeholder="Search by Employee, State, Product, Qty..." oninput="renderAdminInventoryTables()" class="txt" style="width:100%;"></div>
-        </div>
-        <div class="btn-row" style="margin-top:10px; margin-bottom:10px;">
-          <button class="btn sm success" onclick="exportInventoryBalancesCSV()">Export Inventory Registers</button>
-          <button class="btn sm danger" onclick="deleteSelectedInventory()">Delete Selected</button>
-          <button class="btn sm danger outline" onclick="deleteAllFilteredInventory()">Delete All Filtered</button>
-        </div>
-        <div class="card-title" style="margin-top:10px">Sample Inventory balances <span id="admin-count-inv-samples" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead>
-              <tr>
-                <th><input type="checkbox" id="check-all-samples" onclick="toggleSelectAllInv('sample', this)"></th>
-                <th>Employee <span class="inv-filter-trigger" id="inv-trig-sample-employee" onclick="toggleInvFilterDropdown('sample', 'employee', this)">▼</span></th>
-                <th>State <span class="inv-filter-trigger" id="inv-trig-sample-state" onclick="toggleInvFilterDropdown('sample', 'state', this)">▼</span></th>
-                <th>Product Name <span class="inv-filter-trigger" id="inv-trig-sample-name" onclick="toggleInvFilterDropdown('sample', 'name', this)">▼</span></th>
-                <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-sample-opening" onclick="toggleInvFilterDropdown('sample', 'opening', this)">▼</span></th>
-                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-sample-allocated" onclick="toggleInvFilterDropdown('sample', 'allocated', this)">▼</span></th>
-                <th>Distributed <span class="inv-filter-trigger" id="inv-trig-sample-distributed" onclick="toggleInvFilterDropdown('sample', 'distributed', this)">▼</span></th>
-                <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-sample-balance" onclick="toggleInvFilterDropdown('sample', 'balance', this)">▼</span></th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="tbl-inv-samples"></tbody>
-          </table>
-        </div>
-        <div class="card-title" style="margin-top:20px">Promotional Gift balances <span id="admin-count-inv-gifts" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead>
-              <tr>
-                <th><input type="checkbox" id="check-all-gifts" onclick="toggleSelectAllInv('gift', this)"></th>
-                <th>Employee <span class="inv-filter-trigger" id="inv-trig-gift-employee" onclick="toggleInvFilterDropdown('gift', 'employee', this)">▼</span></th>
-                <th>State <span class="inv-filter-trigger" id="inv-trig-gift-state" onclick="toggleInvFilterDropdown('gift', 'state', this)">▼</span></th>
-                <th>Gift Name <span class="inv-filter-trigger" id="inv-trig-gift-name" onclick="toggleInvFilterDropdown('gift', 'name', this)">▼</span></th>
-                <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-gift-opening" onclick="toggleInvFilterDropdown('gift', 'opening', this)">▼</span></th>
-                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-gift-allocated" onclick="toggleInvFilterDropdown('gift', 'allocated', this)">▼</span></th>
-                <th>Distributed <span class="inv-filter-trigger" id="inv-trig-gift-distributed" onclick="toggleInvFilterDropdown('gift', 'distributed', this)">▼</span></th>
-                <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-gift-balance" onclick="toggleInvFilterDropdown('gift', 'balance', this)">▼</span></th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="tbl-inv-gifts"></tbody>
-          </table>
-        </div>
-        <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs) <span id="admin-count-inv-inputs" style="font-size:12px; font-weight:normal; color:#64748b; margin-left:8px;"></span></div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead>
-              <tr>
-                <th><input type="checkbox" id="check-all-inputs" onclick="toggleSelectAllInv('input', this)"></th>
-                <th>Employee <span class="inv-filter-trigger" id="inv-trig-input-employee" onclick="toggleInvFilterDropdown('input', 'employee', this)">▼</span></th>
-                <th>State <span class="inv-filter-trigger" id="inv-trig-input-state" onclick="toggleInvFilterDropdown('input', 'state', this)">▼</span></th>
-                <th>Input Name <span class="inv-filter-trigger" id="inv-trig-input-name" onclick="toggleInvFilterDropdown('input', 'name', this)">▼</span></th>
-                <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-input-opening" onclick="toggleInvFilterDropdown('input', 'opening', this)">▼</span></th>
-                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-input-allocated" onclick="toggleInvFilterDropdown('input', 'allocated', this)">▼</span></th>
-                <th>Distributed <span class="inv-filter-trigger" id="inv-trig-input-distributed" onclick="toggleInvFilterDropdown('input', 'distributed', this)">▼</span></th>
-                <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-input-balance" onclick="toggleInvFilterDropdown('input', 'balance', this)">▼</span></th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="tbl-inv-inputs"></tbody>
-          </table>
-        </div>
-      </div>
-      </div>
-    </div>
-
-    <!-- ADMIN REPORTS PANEL -->
-    <div id="sec-adm-reports" style="display:none">
-      <div class="card">
-        <div class="card-title">&#128269; Master Report Filter &amp; Selection</div>
-        <div class="fw"><label class="lbl">Select Report Category</label>
-          <select id="rep-selector" onchange="updateReportHeadersAndFilters()">
-            <option value="doc_calls">1. Total Doctor Calls Report</option>
-            <option value="chem_calls">2. Total Chemist Calls Report</option>
-            <option value="call_avg">3. Doctor Call Average Report</option>
-            <option value="missed_calls">4. Missed Doctor Calls Report</option>
-            <option value="visit_freq">5. Doctor Visit Frequency Report</option>
-            <option value="plan_vs_act">6. Planned vs Actual Calls Report</option>
-            <option value="jfw_days">7. Joint Field Work (JFW) Summary</option>
-            <option value="mgr_accomp">8. Manager Accompaniment Report</option>
-            <option value="samples_util">9. Sample Utilization Report</option>
-            <option value="gifts_util">10. Gift Utilization Report</option>
-            <option value="expenses_rep">11. Expense Summary Report</option>
-            <option value="leaves_rep">12. Leave Utilisation Report</option>
-            <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
-            <option value="transit_rep">14. Transit Report</option>
-          </select>
-        </div>
-        <div class="row3">
-          <div><label class="lbl">Employee Filter</label><select id="rep-filter-emp"><option value="">All employees</option></select></div>
-          <div><label class="lbl">From Date</label><input type="date" id="rep-from"></div>
-          <div><label class="lbl">To Date</label><input type="date" id="rep-to"></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn primary sm" onclick="runMISReport()">Run Query / Filter</button>
-          <button class="btn success sm" onclick="exportReportToCSV()">&#8595; Export Excel / CSV</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-          <span id="rep-table-title">Query Results</span>
-          <div id="mis-delete-actions" style="display:none; gap:10px;">
-            <button class="btn danger sm" onclick="deleteSelectedMISRecords()">Delete Selected</button>
-            <button class="btn danger outline sm" onclick="deleteAllFilteredMISRecords()">Delete All Filtered</button>
-          </div>
-        </div>
-        <div class="tbl-wrap">
-          <table class="tbl" id="mis-report-table">
-            <thead id="mis-report-thead"></thead>
-            <tbody id="mis-report-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- SINGLE DOCTOR MODAL -->
-<div class="modal-bg" id="modal-add-doc">
-  <div class="modal">
-    <div class="modal-title"><span id="doc-modal-title-text">Add Doctor</span> <button class="modal-close" onclick="closeModal('modal-add-doc')">&#215;</button></div>
-    <input type="hidden" id="md-id">
-    <div class="row2">
-      <div><label class="lbl">Doctor Code</label><input type="text" id="md-code" placeholder="DOC001"></div>
-      <div><label class="lbl">Name of Doctor</label><input type="text" id="md-name" placeholder="Dr. Name"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Name of BE</label><input type="text" id="md-bename" placeholder="BE Name"></div>
-      <div><label class="lbl">HQ</label><input type="text" id="md-hq" placeholder="HQ"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Reporting Manager</label><input type="text" id="md-managername" placeholder="Reporting Manager"></div>
-      <div><label class="lbl">State</label><input type="text" id="md-state" placeholder="State"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Territory Type (HQ/Ex/OS)</label><select id="md-territorytype"><option value="">-- Select --</option><option>HQ</option><option>Ex</option><option>OS</option></select></div>
-      <div><label class="lbl">Speciality</label><input type="text" id="md-spec" placeholder="Cardiology..."></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Qualification</label><input type="text" id="md-qual" placeholder="MBBS, MD..."></div>
-      <div><label class="lbl">City</label><input type="text" id="md-city" placeholder="City"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Patch (Area)</label><input type="text" id="md-area" placeholder="Local Area"></div>
-      <div><label class="lbl">Mobile</label><input type="text" id="md-phone" placeholder="Mobile"></div>
-    </div>
-    <div class="fw"><label class="lbl">Address</label><input type="text" id="md-address" placeholder="Hospital address"></div>
-    <div class="row2">
-      <div><label class="lbl">Assign To MR</label><select id="md-assign"><option value="">-- Assign MR --</option></select></div>
-      <div>
-        <label class="lbl">Status</label>
-        <select id="md-status"><option>Active</option><option>Inactive</option></select>
-      </div>
-    </div>
-    <div class="btn-row"><button class="btn primary" onclick="saveDoctor()">Save Doctor Record</button></div>
-  </div>
-</div>
-
-<!-- SINGLE CHEMIST MODAL -->
-<div class="modal-bg" id="modal-add-chem">
-  <div class="modal">
-    <div class="modal-title"><span id="chem-modal-title-text">Add Chemist</span> <button class="modal-close" onclick="closeModal('modal-add-chem')">&#215;</button></div>
-    <input type="hidden" id="mc-id">
-    <div class="fw"><label class="lbl">Chemist Code / ID</label><input type="text" id="mc-code" placeholder="CHM001"></div>
-    <div class="fw"><label class="lbl">Chemist Name</label><input type="text" id="mc-name" placeholder="Chemist shop name"></div>
-    <div class="row3">
-      <div><label class="lbl">Area</label><input type="text" id="mc-area" placeholder="Area"></div>
-      <div><label class="lbl">State</label><input type="text" id="mc-state" placeholder="State"></div>
-      <div><label class="lbl">Assign To MR</label><select id="mc-assign"><option value="">-- Assign MR --</option></select></div>
-    </div>
-    <div class="btn-row"><button class="btn primary" onclick="saveChemist()">Save Chemist Record</button></div>
-  </div>
-</div>
-
-<!-- SINGLE STOCKIST MODAL -->
-<div class="modal-bg" id="modal-add-stockist">
-  <div class="modal">
-    <div class="modal-title"><span id="stockist-modal-title-text">Add Stockist</span> <button class="modal-close" onclick="closeModal('modal-add-stockist')">&#215;</button></div>
-    <input type="hidden" id="ms-id">
-    <div class="fw"><label class="lbl">Stockist Code / ID</label><input type="text" id="ms-code" placeholder="STK001"></div>
-    <div class="fw"><label class="lbl">Stockist Name</label><input type="text" id="ms-name" placeholder="Stockist name"></div>
-    <div class="row3">
-      <div><label class="lbl">Area</label><input type="text" id="ms-area" placeholder="Area"></div>
-      <div><label class="lbl">State</label><input type="text" id="ms-state" placeholder="State"></div>
-      <div><label class="lbl">Assign To MR</label><select id="ms-assign"><option value="">-- Assign MR --</option></select></div>
-    </div>
-    <div class="btn-row"><button class="btn primary" onclick="saveStockist()">Save Stockist Record</button></div>
-  </div>
-</div>
-
-<!-- EDIT SFC MODAL -->
-<div class="modal-bg" id="modal-edit-sfc">
-  <div class="modal" style="max-width: 600px;">
-    <div class="modal-title">Edit SFC Record <button class="modal-close" onclick="closeModal('modal-edit-sfc')">&#215;</button></div>
-    <input type="hidden" id="sfc-edit-index">
-    <div class="row2">
-      <div><label class="lbl">Emp ID</label><input type="text" id="sfc-edit-empid" placeholder="e.g. EMP001"></div>
-      <div><label class="lbl">Name of BE</label><input type="text" id="sfc-edit-empname" placeholder="BE Name"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">Working Days</label><input type="number" id="sfc-edit-workingdays" placeholder="26"></div>
-      <div><label class="lbl">HQ</label><input type="text" id="sfc-edit-hq" placeholder="HQ"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">State</label><input type="text" id="sfc-edit-state" placeholder="State"></div>
-      <div><label class="lbl">Category (HQ/EX/OS)</label><input type="text" id="sfc-edit-category" placeholder="HQ/EX/OS"></div>
-    </div>
-    <div class="row2">
-      <div><label class="lbl">From Town</label><input type="text" id="sfc-edit-from" placeholder="From Town"></div>
-      <div><label class="lbl">To Town</label><input type="text" id="sfc-edit-to" placeholder="To Town"></div>
-    </div>
-    <div class="row3">
-      <div><label class="lbl">Distance (One Way)</label><input type="number" id="sfc-edit-distance" placeholder="Distance" oninput="calcSfcTotal()"></div>
-      <div><label class="lbl">Mode</label><input type="text" id="sfc-edit-mode" placeholder="e.g. Bus/Train"></div>
-      <div><label class="lbl">Fare (Up & Down)</label><input type="number" id="sfc-edit-fare" placeholder="Fare" oninput="calcSfcTotal()"></div>
-    </div>
-    <div class="row3">
-      <div><label class="lbl">DA</label><input type="number" id="sfc-edit-da" placeholder="DA" oninput="calcSfcTotal()"></div>
-      <div><label class="lbl">Total</label><input type="number" id="sfc-edit-total" placeholder="Total" readonly></div>
-      <div><label class="lbl">No. of Doctors</label><input type="number" id="sfc-edit-doctors" placeholder="Doctors"></div>
-    </div>
-    <div class="fw">
-      <label class="lbl">Expected Business / Month</label>
-      <input type="number" id="sfc-edit-business" placeholder="Business">
-    </div>
-    <div class="btn-row" style="margin-top:15px"><button class="btn primary" onclick="saveSFCRow()">Save SFC Record</button></div>
-  </div>
-</div>
-
-<!-- TOUR PLAN DETAIL MODAL -->
-<div class="modal-bg" id="modal-tp-detail">
-  <div class="modal" style="max-width: 700px;">
-    <div class="modal-title">Monthly Tour Plan Detail <button class="modal-close" onclick="closeModal('modal-tp-detail')">&#215;</button></div>
-    <div id="tp-detail-content"></div>
-    <div class="btn-row" id="tp-approval-btns" style="display:none">
-      <button class="btn danger" onclick="rejectTP()">&#10008; Reject Plan</button>
-      <button class="btn success" onclick="approveTP()">&#10003; Approve Plan</button>
-    </div>
-    <div class="btn-row" id="tp-delete-btn-wrap" style="display:none; margin-top: 10px; justify-content: center;">
-      <button class="btn danger" style="background-color: #dc3545;" onclick="deleteTPAdmin()">🗑 Delete Tour Plan</button>
-    </div>
-  </div>
-</div>
-
-<!-- EXPENSE DETAIL MODAL -->
-<div class="modal-bg" id="modal-exp-detail">
-  <div class="modal" style="max-width: 650px;">
-    <div class="modal-title">Expense Claim Review <button class="modal-close" onclick="closeModal('modal-exp-detail')">&#215;</button></div>
-    <div id="exp-detail-content"></div>
-    <div class="btn-row" id="exp-approval-btns" style="display:none">
-      <button class="btn danger" onclick="rejectExp()">&#10008; Reject Claim</button>
-      <button class="btn success" onclick="approveExp()">&#10003; Approve Claim</button>
-    </div>
-  </div>
-</div>
-
-<!-- LEAVE DETAIL MODAL -->
-<div class="modal-bg" id="modal-leave-detail">
-  <div class="modal">
-    <div class="modal-title">Leave Request Review <button class="modal-close" onclick="closeModal('modal-leave-detail')">&#215;</button></div>
-    <div id="leave-detail-content"></div>
-    <div class="btn-row" id="leave-approval-btns" style="display:none">
-      <button class="btn danger" onclick="rejectLeave()">&#10008; Reject Leave</button>
-      <button class="btn success" onclick="approveLeave()">&#10003; Approve Leave</button>
-    </div>
-  </div>
-</div>
-
-<!-- LEAVE BALANCE DETAIL MODAL -->
-<div class="modal-bg" id="modal-leave-balance-detail">
-  <div class="modal" style="max-width: 1180px;">
-    <div class="modal-title">Leave Balance Detail <button class="modal-close" onclick="closeModal('modal-leave-balance-detail')">&#215;</button></div>
-    <div id="leave-balance-detail-content"></div>
-  </div>
-</div>
-
-<!-- EMPLOYEE STATUS ACTION MODAL -->
-<div class="modal-bg" id="modal-emp-status">
-  <div class="modal" style="max-width: 520px;">
-    <div class="modal-title">Employee Status <button class="modal-close" onclick="closeModal('modal-emp-status')">&#215;</button></div>
-    <div id="emp-status-modal-content"></div>
-  </div>
-</div>
-
-<!-- CHANGE PASSWORD MODAL -->
-<div class="modal-bg" id="modal-change-pwd">
-  <div class="modal" style="max-width: 400px;">
-    <div class="modal-title">Change Password <button class="modal-close" onclick="closeModal('modal-change-pwd')">&times;</button></div>
-    <div style="padding: 16px;">
-      <div class="fw" style="margin-bottom: 12px;">
-        <label class="lbl">Current Password</label>
-        <input type="password" id="change-pwd-current" placeholder="Current Password">
-      </div>
-      <div class="fw" style="margin-bottom: 12px;">
-        <label class="lbl">New Password</label>
-        <input type="password" id="change-pwd-new" placeholder="New Password">
-      </div>
-      <div class="fw" style="margin-bottom: 16px;">
-        <label class="lbl">Confirm New Password</label>
-        <input type="password" id="change-pwd-confirm" placeholder="Confirm New Password">
-      </div>
-      <button class="btn success" style="width: 100%;" onclick="submitChangePassword()">Change Password</button>
-    </div>
-  </div>
-</div>
-
-<!-- BROADCAST ANNOUNCEMENT OVERLAY -->
-<div id="announcement-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.85); z-index:100000; align-items:center; justify-content:center; padding:16px;">
-  <div style="background:#fff; border-radius:24px; padding:40px 32px; width:100%; max-width:550px; box-shadow:0 20px 40px rgba(0,0,0,0.3); text-align:center; position:relative;">
-    <h2 style="font-family:'Outfit', 'Segoe UI', sans-serif; font-size:28px; font-weight:800; color:#0f172a; margin-bottom:16px; letter-spacing:-0.5px;" id="announcement-title">Namaskaram!</h2>
-    <div id="announcement-body" style="font-family:'Inter', sans-serif; font-size:15px; line-height:1.6; color:#334155; margin-bottom:32px; text-align:left; max-height:300px; overflow-y:auto; white-space:pre-wrap;"></div>
-    <button class="btn primary" id="btn-announcement-ack" style="width:100%; padding:14px; font-size:16px; font-weight:600; border-radius:12px; background:#001a72; color:#fff; cursor:pointer; border:none; transition: all 0.2s;" onclick="acknowledgeAnnouncement()">Continue to Website</button>
-  </div>
-</div>
-
-<script>
 window.addEventListener('error', function(e) {
   // Ignore generic cross-origin script errors or browser extension errors
   if (e.message === 'Script error.' || !e.filename) {
@@ -2077,14 +529,6 @@ async function initSupabaseData(isSilent) {
   }
   isLoadingData = true; // Set immediately so restoreSessionWhenReady always waits
 
-  if (!hasInitializedData) {
-    try {
-      await loadLocalDB();
-    } catch(e) {
-      console.error("Initial loadLocalDB failed:", e);
-    }
-  }
-
   if (window._supabaseLoadTimeout) clearTimeout(window._supabaseLoadTimeout);
   var timeoutMs = (navigator.onLine === false) ? 500 : 20000;
   window._supabaseLoadTimeout = setTimeout(async function() {
@@ -2303,9 +747,8 @@ async function initSupabaseData(isSilent) {
           var empIdUpper = String(e.id || '').toUpperCase();
           var safeRole = (e.role || 'emp').trim().toLowerCase();
           var cloudDesigRaw = e.designation;
-          var parsedLeaves = parseJSONField(e.leaves);
-          if ((typeof cloudDesigRaw === 'undefined' || cloudDesigRaw === null || cloudDesigRaw === '') && parsedLeaves._designation) {
-            cloudDesigRaw = parsedLeaves._designation;
+          if ((typeof cloudDesigRaw === 'undefined' || cloudDesigRaw === null || cloudDesigRaw === '') && e.leaves && e.leaves._designation) {
+            cloudDesigRaw = e.leaves._designation;
           }
           var cloudDesig = cloudDesigRaw;
           var existing = _existingLocalEmpsMap[empIdUpper] || null;
@@ -2331,8 +774,7 @@ async function initSupabaseData(isSilent) {
             blockedDate: e.blocked_date || '',
             blockedReason: e.blocked_reason || '',
             designation: (typeof cloudDesig !== 'undefined' && cloudDesig !== null && cloudDesig !== '') ? cloudDesig : (typeof localDesig !== 'undefined' && localDesig !== '' ? localDesig : ''),
-            allowedPastDates: parsedLeaves._allowedPastDates || [],
-            leaves: parsedLeaves
+            leaves: e.leaves
           };
         }),
       doctors: (function() {
@@ -2358,7 +800,6 @@ async function initSupabaseData(isSilent) {
         }));
         var localDocs = (typeof DB !== 'undefined' && DB && DB.doctors) ? DB.doctors : [];
         restoreLocalAssignTo('doctors', cloudDocs);
-        restoreLocalManagerName('doctors', cloudDocs);
         
         var cloudIds = new Set(cloudDocs.map(function(d){ return String(d.id); }));
         var missingLocal = localDocs.filter(function(d) {
@@ -2800,12 +1241,6 @@ async function initSupabaseData(isSilent) {
     
     // Refresh the UI with the fresh data
     if (SESSION.user) {
-      var freshUser = DB.employees.find(function(e) { return String(e.id || '').trim().toUpperCase() === String(SESSION.user.id || '').trim().toUpperCase(); });
-      if (freshUser) {
-        SESSION.user = freshUser;
-        localStorage.setItem('adonis_session', JSON.stringify(SESSION));
-      }
-
       if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
         renderAdminStats();
         if (SESSION.user.role === 'admin') {
@@ -3280,41 +1715,6 @@ function clearLocalAssignTo(entityType) {
   } catch(e) {}
 }
 
-function persistLocalManagerName(entityType, entityId, val) {
-  try {
-    var key = 'adonis_pending_mgr_' + entityType;
-    var data = JSON.parse(localStorage.getItem(key) || '{}');
-    if (val !== undefined && val !== null) {
-      data[entityId] = val;
-    } else {
-      delete data[entityId];
-    }
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch(e) {}
-}
-
-function restoreLocalManagerName(entityType, arr) {
-  try {
-    var key = 'adonis_pending_mgr_' + entityType;
-    var data = JSON.parse(localStorage.getItem(key) || '{}');
-    var keys = Object.keys(data);
-    if (keys.length > 0 && Array.isArray(arr)) {
-      arr.forEach(function(item) {
-        if (data[item.id] !== undefined) {
-          item.managerName = data[item.id];
-          if (item.manager_name !== undefined) item.manager_name = data[item.id];
-        }
-      });
-    }
-  } catch(e) {}
-}
-
-function clearLocalManagerName(entityType) {
-  try {
-    localStorage.removeItem('adonis_pending_mgr_' + entityType);
-  } catch(e) {}
-}
-
 function saveDB(skipSync) {
   if (DB) {
     if (Array.isArray(DB.samplesInventory)) {
@@ -3422,7 +1822,7 @@ async function pushEmployeeToSupabase(emp) {
       state: emp.state || null,
       designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role),
       doj: formatDateForPostgres(emp.doj) || null,
-      leaves: Object.assign({}, parseJSONField(emp.leaves), { _designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role), _allowedPastDates: emp.allowedPastDates || [] })
+      leaves: emp.leaves || {}
     };
     var res = await supabase.from('employees').upsert([row], { onConflict: 'id' });
     if (res && res.error) {
@@ -3805,7 +2205,7 @@ function clearLocalAssignTo(entityType) {
           blocked_date: formatDateForPostgres(e.blockedDate) || null,
           blocked_reason: e.blockedReason || null,
           designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-          leaves: Object.assign({}, parseJSONField(e.leaves), { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role), _allowedPastDates: e.allowedPastDates || [] })
+          leaves: e.leaves ? Object.assign({}, e.leaves, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) }) : {}
         };
       });
       await upsertEmployeeRowsToSupabase(dbEmps);
@@ -3879,7 +2279,7 @@ function clearLocalAssignTo(entityType) {
       });
       await upsertInBatches('doctors', dbDocs);
       clearLocalAssignTo('doctors');
-      clearLocalManagerName('doctors');
+      clearLocalAssignTo('doctors');
       // Automatic deletion reconciliation re-enabled as requested
       await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
         return String(row.id || '').toUpperCase();
@@ -4941,7 +3341,7 @@ function populateReportTerritoryDropdowns() {
     var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); }) : null;
     var myNameClean = String(SESSION.user.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    var docMgrClean = String(d.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var docMgrClean = String(d.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     
     var isAssignedToTeam = true;
     if (teamIdsUpper) {
@@ -5122,17 +3522,17 @@ function populateReportingDropdowns(){
       }).filter(Boolean);
       
       var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-      var docMgrClean = String(d.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var docMgrClean = String(d.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       
       var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var matchByAssignName = assignedList.some(function(a){ 
-        return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
+        return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
       });
       var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
-        return tn && (docBeClean.includes(tn) || tn.includes(docBeClean)); 
+        return tn && docBeClean === tn; 
       });
       var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
-        return tn && (docMgrClean.includes(tn) || tn.includes(docMgrClean)); 
+        return tn && docMgrClean === tn; 
       });
       
       return matchById || matchByAssignName || matchByBeName || matchByMgrName;
@@ -5160,19 +3560,19 @@ function populateReportingDropdowns(){
     }).filter(Boolean) : [];
     
     var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    var docMgrClean = String(d.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var docMgrClean = String(d.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     
     var isAssignedToTeam = true;
     if (teamIdsUpper) {
       var matchById = docAssignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var matchByAssignName = docAssignedList.some(function(a){ 
-        return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
+        return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
       });
       var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
-        return tn && (docBeClean.includes(tn) || tn.includes(docBeClean)); 
+        return tn && docBeClean === tn; 
       });
       var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
-        return tn && (docMgrClean.includes(tn) || tn.includes(docMgrClean)); 
+        return tn && docMgrClean === tn; 
       });
       isAssignedToTeam = matchById || matchByAssignName || matchByBeName || matchByMgrName;
     }
@@ -5194,17 +3594,17 @@ function populateReportingDropdowns(){
       }).filter(Boolean);
       
       var cBeClean = String(c.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-      var cMgrClean = String(c.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var cMgrClean = String(c.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       
       var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
       var matchByAssignName = assignedList.some(function(a){ 
-        return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
+        return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
       });
       var matchByBeName = cBeClean && teamNamesClean.some(function(tn) { 
-        return tn && (cBeClean.includes(tn) || tn.includes(cBeClean)); 
+        return tn && cBeClean === tn; 
       });
       var matchByMgrName = cMgrClean && teamNamesClean.some(function(tn) { 
-        return tn && (cMgrClean.includes(tn) || tn.includes(cMgrClean)); 
+        return tn && cMgrClean === tn; 
       });
       var hasAssign = matchById || matchByAssignName || matchByBeName || matchByMgrName;
       var unassigned = !c.assignTo || c.assignTo.trim() === '';
@@ -5241,17 +3641,17 @@ function populateReportingDropdowns(){
         }).filter(Boolean);
         
         var sBeClean = String(s.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-        var sMgrClean = String(s.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        var sMgrClean = String(s.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         
         var matchById = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
         var matchByAssignName = assignedList.some(function(a){ 
-          return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
+          return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
         });
         var matchByBeName = sBeClean && teamNamesClean.some(function(tn) { 
-          return tn && (sBeClean.includes(tn) || tn.includes(sBeClean)); 
+          return tn && sBeClean === tn; 
         });
         var matchByMgrName = sMgrClean && teamNamesClean.some(function(tn) { 
-          return tn && (sMgrClean.includes(tn) || tn.includes(sMgrClean)); 
+          return tn && sMgrClean === tn; 
         });
         var hasAssign = matchById || matchByAssignName || matchByBeName || matchByMgrName;
         var unassigned = !s.assignTo || s.assignTo.trim() === '';
@@ -5860,10 +4260,8 @@ function submitReport(){
   
   if(!date){showToast('Please set report date');return;}
   
-  var isSpecificDateAllowed = SESSION.user.allowedPastDates && SESSION.user.allowedPastDates.includes(date);
-  if(date !== getTodayDateString() && !SESSION.user.allowPastReports && !isSpecificDateAllowed){
-    var allowedStr = SESSION.user.allowedPastDates ? JSON.stringify(SESSION.user.allowedPastDates) : 'undefined';
-    showToast('Reports can only be submitted for today or dates granted by Admin. (Attempted: ' + date + ', Allowed: ' + allowedStr + ', Type: ' + (typeof SESSION.user.allowedPastDates) + ', Array: ' + Array.isArray(SESSION.user.allowedPastDates) + ')', 8000);
+  if(date !== getTodayDateString()){
+    showToast('Reports can only be submitted for today (must be submitted before 12 AM).');
     return;
   }
   
@@ -6106,10 +4504,8 @@ function editReport(id) {
     return;
   }
   var today = getTodayDateString();
-  var isSpecificDateAllowed = SESSION.user.allowedPastDates && SESSION.user.allowedPastDates.includes(rep.date);
-  if (rep.date !== today && !SESSION.user.allowPastReports && !isSpecificDateAllowed) {
-    var allowedStr = SESSION.user.allowedPastDates ? JSON.stringify(SESSION.user.allowedPastDates) : 'undefined';
-    showToast('You can only edit today\'s report or dates granted by Admin. (Attempted: ' + rep.date + ', Allowed: ' + allowedStr + ', Type: ' + (typeof SESSION.user.allowedPastDates) + ', Array: ' + Array.isArray(SESSION.user.allowedPastDates) + ')', 8000);
+  if (rep.date !== today) {
+    showToast('Only reports for today can be edited (must be submitted by 12 AM).');
     return;
   }
   
@@ -6824,21 +5220,13 @@ function renderAttendanceDashboard() {
         return nameA.localeCompare(nameB);
       });
       
-      var isPastDate = function(dt) { return dt < getTodayDateString(); };
-      window._currentAttendanceDates = dates;
-      window._currentAttendanceEmpIds = empIds;
-      
       // Update header
       if (theadEl) {
-        var headerHtml = '<tr><th style="cursor:pointer; user-select:none;" onclick="togglePastReportAccessAll()" title="Toggle All Past Dates">Employee</th>';
+        var headerHtml = '<tr><th>Employee</th>';
         dates.forEach(function(d) {
           var parts = d.split('-');
           var shortDate = parts[2] + '/' + parts[1];
-          var isPast = isPastDate(d);
-          var clickAttr = isPast ? ' onclick="togglePastReportAccessColumn(\'' + d + '\')"' : '';
-          var style = 'text-align:center; min-width:60px; user-select:none;';
-          if (isPast) style += ' cursor:pointer;';
-          headerHtml += '<th style="' + style + '"' + clickAttr + ' title="' + (isPast ? 'Toggle Column' : '') + '">' + escapeHTML(shortDate) + '</th>';
+          headerHtml += '<th style="text-align:center; min-width:60px;">' + escapeHTML(shortDate) + '</th>';
         });
         headerHtml += '</tr>';
         theadEl.innerHTML = headerHtml;
@@ -6847,57 +5235,25 @@ function renderAttendanceDashboard() {
       // Update body
       tbody.innerHTML = empIds.map(function(empId) {
         var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
-        var rowClickAttr = ' onclick="togglePastReportAccessRow(\'' + empId + '\')"';
-        var rowHtml = '<tr><td class="tbl-name" style="cursor:pointer; user-select:none;"' + rowClickAttr + ' title="Toggle Row">' + escapeHTML((emp ? emp.name : empId) || '-') + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(empId || '') + '</div></td>';
+        var rowHtml = '<tr><td class="tbl-name">' + escapeHTML((emp ? emp.name : empId) || '-') + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(empId || '') + '</div></td>';
         
         dates.forEach(function(d) {
           var record = DB.attendance.find(function(r) {
             return String(r.employeeId || '').toUpperCase() === empId.toUpperCase() && (formatDateForPostgres(r.date) || r.date) === d;
           });
           
-          var key = empId + '|' + d;
-          var isSelected = window.selectedPastReportAccess && window.selectedPastReportAccess.has(key);
-          var hasAccess = emp && emp.allowedPastDates && emp.allowedPastDates.includes(d);
-          var cellStyle = 'text-align:center; position:relative; cursor:pointer; user-select:none;';
-          if (isSelected) {
-            cellStyle += ' background-color:rgba(26,115,232,0.1); border:1px solid var(--primary);';
-          }
-          var cellClass = isPastDate(d) ? 'past-report-cell' : '';
-          var accessIcon = hasAccess ? '<div title="Edit Access Granted" style="position:absolute; top:2px; right:2px; color:#34A853; font-size:10px;"><i class="fa fa-unlock"></i></div>' : '';
-          var clickAttr = isPastDate(d) ? ' onclick="togglePastReportAccess(\'' + empId + '\', \'' + d + '\')"' : '';
-
           if (record) {
             var label = record.attendanceStatus || '-';
             var badgeClass = getAttendanceStatusBadgeClass(record.attendanceStatus);
-            rowHtml += '<td class="' + cellClass + '" style="' + cellStyle + '"' + clickAttr + '>' + accessIcon + '<span class="badge ' + badgeClass + '" title="' + escapeHTML(record.remarks || '') + '" style="padding: 4px 8px; font-size:11px; pointer-events:none;">' + escapeHTML(label) + '</span></td>';
+            rowHtml += '<td style="text-align:center;"><span class="badge ' + badgeClass + '" title="' + escapeHTML(record.remarks || '') + '" style="cursor:pointer; padding: 4px 8px; font-size:11px;">' + escapeHTML(label) + '</span></td>';
           } else {
-            rowHtml += '<td class="' + cellClass + '" style="' + cellStyle + ' color:var(--text-muted);"' + clickAttr + '>' + accessIcon + '-</td>';
+            rowHtml += '<td style="text-align:center; color:var(--text-muted)">-</td>';
           }
         });
         
         rowHtml += '</tr>';
         return rowHtml;
       }).join('');
-    }
-  }
-
-  // Update action buttons
-  var actionsContainer = document.getElementById('attendance-past-access-actions');
-  if (actionsContainer) {
-    if (window.selectedPastReportAccess && window.selectedPastReportAccess.size > 0) {
-      actionsContainer.style.display = 'flex';
-      var btnGrant = document.getElementById('btn-grant-past-access');
-      var btnRevoke = document.getElementById('btn-revoke-past-access');
-      if (btnGrant) {
-        btnGrant.style.display = 'inline-block';
-        btnGrant.textContent = 'Grant Edit Access (' + window.selectedPastReportAccess.size + ')';
-      }
-      if (btnRevoke) {
-        btnRevoke.style.display = 'inline-block';
-        btnRevoke.textContent = 'Revoke Access (' + window.selectedPastReportAccess.size + ')';
-      }
-    } else {
-      actionsContainer.style.display = 'none';
     }
   }
   var workingDays = rows.filter(function(r) { return r.attendanceStatus !== 'H' && r.attendanceStatus !== 'WO'; }).length;
@@ -7010,132 +5366,6 @@ function unblockAllBlocked() {
   if (masterCheck) masterCheck.checked = false;
   updateSelectedBlockedCount();
 }
-
-window.selectedPastReportAccess = window.selectedPastReportAccess || new Set();
-
-function togglePastReportAccess(empId, date) {
-  var key = empId + '|' + date;
-  if (window.selectedPastReportAccess.has(key)) {
-    window.selectedPastReportAccess.delete(key);
-  } else {
-    window.selectedPastReportAccess.add(key);
-  }
-  renderAttendanceDashboard();
-}
-
-function togglePastReportAccessRow(empId) {
-  var isPastDate = function(dt) { return dt < getTodayDateString(); };
-  var pastDates = (window._currentAttendanceDates || []).filter(isPastDate);
-  if (!pastDates.length) return;
-  var allSelected = true;
-  pastDates.forEach(function(d) {
-    if (!window.selectedPastReportAccess.has(empId + '|' + d)) allSelected = false;
-  });
-  pastDates.forEach(function(d) {
-    var key = empId + '|' + d;
-    if (allSelected) window.selectedPastReportAccess.delete(key);
-    else window.selectedPastReportAccess.add(key);
-  });
-  renderAttendanceDashboard();
-}
-
-function togglePastReportAccessColumn(date) {
-  var isPastDate = function(dt) { return dt < getTodayDateString(); };
-  if (!isPastDate(date)) return;
-  var empIds = window._currentAttendanceEmpIds || [];
-  if (!empIds.length) return;
-  var allSelected = true;
-  empIds.forEach(function(empId) {
-    if (!window.selectedPastReportAccess.has(empId + '|' + date)) allSelected = false;
-  });
-  empIds.forEach(function(empId) {
-    var key = empId + '|' + date;
-    if (allSelected) window.selectedPastReportAccess.delete(key);
-    else window.selectedPastReportAccess.add(key);
-  });
-  renderAttendanceDashboard();
-}
-
-function togglePastReportAccessAll() {
-  var isPastDate = function(dt) { return dt < getTodayDateString(); };
-  var pastDates = (window._currentAttendanceDates || []).filter(isPastDate);
-  var empIds = window._currentAttendanceEmpIds || [];
-  if (!pastDates.length || !empIds.length) return;
-  var allSelected = true;
-  empIds.forEach(function(empId) {
-    pastDates.forEach(function(d) {
-      if (!window.selectedPastReportAccess.has(empId + '|' + d)) allSelected = false;
-    });
-  });
-  empIds.forEach(function(empId) {
-    pastDates.forEach(function(d) {
-      var key = empId + '|' + d;
-      if (allSelected) window.selectedPastReportAccess.delete(key);
-      else window.selectedPastReportAccess.add(key);
-    });
-  });
-  renderAttendanceDashboard();
-}
-
-async function grantPastReportAccess() {
-  if (!window.selectedPastReportAccess || window.selectedPastReportAccess.size === 0) return;
-  var updatedEmps = [];
-  window.selectedPastReportAccess.forEach(function(key) {
-    var parts = key.split('|');
-    var empId = parts[0];
-    var date = parts[1];
-    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
-    if (emp) {
-      if (!emp.allowedPastDates) emp.allowedPastDates = [];
-      if (!emp.allowedPastDates.includes(date)) emp.allowedPastDates.push(date);
-      updatedEmps.push(emp);
-      
-      if (SESSION && SESSION.user && String(SESSION.user.id).toUpperCase() === empId.toUpperCase()) {
-        SESSION.user.allowedPastDates = emp.allowedPastDates.slice();
-        localStorage.setItem('adonis_session', JSON.stringify(SESSION));
-      }
-    }
-  });
-  window.selectedPastReportAccess.clear();
-  saveDB(true);
-  if (typeof pushEmployeeToSupabase === 'function') {
-    showToast('Saving permissions to cloud...', 2000);
-    var pushPromises = updatedEmps.map(function(emp) { return pushEmployeeToSupabase(emp); });
-    Promise.all(pushPromises).catch(function(e) { console.error(e); });
-  }
-  showToast('Access granted successfully', 3000);
-  renderAttendanceDashboard();
-}
-
-async function revokePastReportAccess() {
-  if (!window.selectedPastReportAccess || window.selectedPastReportAccess.size === 0) return;
-  var updatedEmps = [];
-  window.selectedPastReportAccess.forEach(function(key) {
-    var parts = key.split('|');
-    var empId = parts[0];
-    var date = parts[1];
-    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
-    if (emp && emp.allowedPastDates) {
-      emp.allowedPastDates = emp.allowedPastDates.filter(function(d) { return d !== date; });
-      updatedEmps.push(emp);
-      
-      if (SESSION && SESSION.user && String(SESSION.user.id).toUpperCase() === empId.toUpperCase()) {
-        SESSION.user.allowedPastDates = emp.allowedPastDates.slice();
-        localStorage.setItem('adonis_session', JSON.stringify(SESSION));
-      }
-    }
-  });
-  window.selectedPastReportAccess.clear();
-  saveDB(true);
-  if (typeof pushEmployeeToSupabase === 'function') {
-    showToast('Removing permissions from cloud...', 2000);
-    var pushPromises = updatedEmps.map(function(emp) { return pushEmployeeToSupabase(emp); });
-    Promise.all(pushPromises).catch(function(e) { console.error(e); });
-  }
-  showToast('Access revoked successfully', 3000);
-  renderAttendanceDashboard();
-}
-
 
 function runAttendanceValidationNow() {
   if (!SESSION.user || SESSION.user.role !== 'admin') {
@@ -8121,17 +6351,17 @@ function getMyDoctors(){
     var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); }) : [myId];
     
     var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    var docMgrClean = String(d.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var docMgrClean = String(d.mgrName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     
     var matchById = assignArr.some(function(a){ return teamIdsUpper.includes(a); });
     var matchByAssignName = assignArr.some(function(a){ 
-      return teamNamesClean.some(function(tn) { return a && tn && (a.includes(tn) || tn.includes(a)); }); 
+      return teamNamesClean.some(function(tn) { return a && tn && a === tn; }); 
     });
     var matchByBeName = docBeClean && teamNamesClean.some(function(tn) { 
-      return tn && (docBeClean.includes(tn) || tn.includes(docBeClean)); 
+      return tn && docBeClean === tn; 
     });
     var matchByMgrName = docMgrClean && teamNamesClean.some(function(tn) { 
-      return tn && (docMgrClean.includes(tn) || tn.includes(docMgrClean)); 
+      return tn && docMgrClean === tn; 
     });
     
     return matchById || matchByAssignName || matchByBeName || matchByMgrName;
@@ -8258,7 +6488,7 @@ function goTab(name){
     return; // Already on this tab, don't wipe state
   }
   currentTab = name;
-  ['home','report','tour','expense','leave','doctors','announcements','inventory','emp-reports'].forEach(function(t){
+  ['home','report','tour','expense','leave','doctors','announcements','inventory'].forEach(function(t){
     var el=document.getElementById('tab-'+t);
     if (el) {
       el.style.display=t===name?'block':'none';
@@ -8267,9 +6497,6 @@ function goTab(name){
   });
   if(name==='announcements') {
     renderBroadcastPanel('tab-announcements');
-  }
-  if(name==='emp-reports') {
-    updateEmpReportHeadersAndFilters();
   }
   if(name==='inventory') {
     renderEmpInventoryTables();
@@ -9355,7 +7582,6 @@ function editEmployee(empId) {
   document.getElementById('adm-emp-doj').value = emp.doj || '';
   document.getElementById('adm-emp-state').value = emp.state || '';
   document.getElementById('adm-emp-status').value = normalizeEmployeeStatus(emp.status);
-  if (document.getElementById('adm-emp-allow-past-reports')) document.getElementById('adm-emp-allow-past-reports').checked = !!emp.allowPastReports;
   
   document.getElementById('adm-emp-form-title').textContent = 'Edit Employee Record (ID: ' + emp.id + ')';
   document.getElementById('btn-save-emp').textContent = 'Update Employee Record';
@@ -9378,7 +7604,6 @@ function cancelEditEmployee() {
   document.getElementById('adm-emp-doj').value = '';
   document.getElementById('adm-emp-state').value = '';
   document.getElementById('adm-emp-status').value = 'Active';
-  if (document.getElementById('adm-emp-allow-past-reports')) document.getElementById('adm-emp-allow-past-reports').checked = false;
   
   document.getElementById('adm-emp-form-title').textContent = 'Add New Employee Record';
   document.getElementById('btn-save-emp').textContent = '+ Save Employee Record';
@@ -9396,7 +7621,6 @@ function addEmployee(){
   var doj=document.getElementById('adm-emp-doj').value;
   var state=document.getElementById('adm-emp-state').value.trim();
   var status=document.getElementById('adm-emp-status').value;
-  var allowPastReports = document.getElementById('adm-emp-allow-past-reports') ? document.getElementById('adm-emp-allow-past-reports').checked : false;
   
   if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
   
@@ -9413,7 +7637,6 @@ function addEmployee(){
     emp.doj = doj;
     emp.state = state;
     emp.status = normalizeEmployeeStatus(status);
-    emp.allowPastReports = allowPastReports;
     
     saveDB();
     cancelEditEmployee();
@@ -9436,7 +7659,6 @@ function addEmployee(){
     doj:doj,
     state:state,
     status:normalizeEmployeeStatus(status),
-    allowPastReports:allowPastReports,
     leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
   });
   saveDB();
@@ -10692,23 +8914,17 @@ function updateSelectedDocsCount() {
   var selected = selectedDocs.size;
   var btn = document.getElementById('btn-bulk-delete-selected-docs');
   var btnReassign = document.getElementById('btn-bulk-reassign-selected-docs');
-  var btnChangeMgr = document.getElementById('btn-bulk-change-manager-docs');
   if (btn) {
     if (selected > 0) {
       btn.style.display = 'inline-block';
       btn.textContent = '🗑 Delete Selected (' + selected + ')';
       if (btnReassign) {
         btnReassign.style.display = 'inline-block';
-        btnReassign.textContent = '⟳ Reassign MR (' + selected + ')';
-      }
-      if (btnChangeMgr) {
-        btnChangeMgr.style.display = 'inline-block';
-        btnChangeMgr.textContent = '⟳ Change Manager (' + selected + ')';
+        btnReassign.textContent = '⟳ Reassign Selected (' + selected + ')';
       }
     } else {
       btn.style.display = 'none';
       if (btnReassign) btnReassign.style.display = 'none';
-      if (btnChangeMgr) btnChangeMgr.style.display = 'none';
     }
   }
 }
@@ -10720,34 +8936,12 @@ function bulkReassignSelectedDoctors() {
   newEmpId = newEmpId.trim().toUpperCase();
   var idsToUpdate = Array.from(selectedDocs);
   DB.doctors.forEach(function(d) {
-    if (idsToUpdate.includes(d.id)) {
-      d.assignTo = newEmpId;
-      persistLocalAssignTo('doctors', d.id, newEmpId);
-    }
+    if (idsToUpdate.includes(d.id)) d.assignTo = newEmpId;
   });
   saveDB();
   selectedDocs.clear();
   renderAdminDocList();
   showToast(idsToUpdate.length + ' doctors reassigned successfully.');
-}
-
-function bulkChangeManagerSelectedDoctors() {
-  if (!selectedDocs.size) return;
-  var newMgrName = prompt('Enter the new Reporting Manager name to assign to these ' + selectedDocs.size + ' selected doctor records:');
-  if (newMgrName === null) return;
-  newMgrName = newMgrName.trim();
-  var idsToUpdate = Array.from(selectedDocs);
-  DB.doctors.forEach(function(d) {
-    if (idsToUpdate.includes(d.id)) {
-      d.managerName = newMgrName;
-      persistLocalManagerName('doctors', d.id, newMgrName);
-    }
-  });
-  saveDB();
-  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
-  selectedDocs.clear();
-  renderAdminDocList();
-  showToast(idsToUpdate.length + ' doctors reporting manager updated successfully.');
 }
 
 async function bulkDeleteSelectedDoctors() {
@@ -10759,13 +8953,6 @@ async function bulkDeleteSelectedDoctors() {
   if (btn) { btn.disabled = true; btn.textContent = "Deleting..."; }
   
   try {
-    var repRes = await runSupabaseDelete('reports', function(q) {
-      return q.in('doc_id', idsToDelete);
-    });
-    if (repRes && repRes.error) {
-      console.warn("Failed to delete related reports: " + repRes.error.message);
-    }
-    
     var res = await runSupabaseDelete('doctors', function(q) {
       return q.in('id', idsToDelete);
     });
@@ -10792,7 +8979,7 @@ async function bulkDeleteSelectedDoctors() {
   if (btn) { btn.disabled = false; btn.textContent = "Delete Selected"; }
 }
 
-async function bulkDeleteAllDoctors() {
+function bulkDeleteAllDoctors() {
   if (DB.doctors.length === 0) {
     showToast('Doctor list is already empty.');
     return;
@@ -10801,11 +8988,6 @@ async function bulkDeleteAllDoctors() {
   DB.doctors = [];
   saveDB();
   renderAdminDocList();
-  
-  await runSupabaseDelete('reports', function(q) {
-    return q.not('doc_id', 'is', null);
-  });
-  
   runSupabaseDelete('doctors', function(q) {
     return q.neq('id', 'dummy_value_to_delete_all');
   });
@@ -14303,300 +12485,8 @@ function renderAnnouncementHistory() {
 // Observe dynamic additions
 /* emojiObserver disabled */
 
-// ===== 14 EMPLOYEE MIS REPORTS ENGINE =====
-var currentEmpMISData=[];
-var currentEmpReportType='doc_calls';
-
-function updateEmpReportHeadersAndFilters(){
-  currentEmpReportType=document.getElementById('emp-rep-selector').value;
-  var thead=document.getElementById('emp-mis-report-thead');
-  var tbody=document.getElementById('emp-mis-report-tbody');
-  thead.innerHTML='';
-  tbody.innerHTML='<tr><td class="empty">Click "Run Query" to fetch data</td></tr>';
-}
-
-function runEmpMISReport(){
-    var empId=SESSION.user.id;
-    var from=document.getElementById('emp-rep-from').value;
-    var to=document.getElementById('emp-rep-to').value;
-    
-    var thead=document.getElementById('emp-mis-report-thead');
-    var tbody=document.getElementById('emp-mis-report-tbody');
-    
-    // Filter base calls reports for this specific employee
-    var baseReports=DB.reports.filter(function(r){
-      if(r.empId!==empId)return false;
-      if(from&&r.date<from)return false;
-      if(to&&r.date>to)return false;
-      return true;
-    });
-  
-  currentEmpMISData=[];
-  
-  if(currentEmpReportType==='doc_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
-    var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
-    currentEmpMISData=docCalls.map(function(r){
-      var emp = DB.employees.find(function(e){return e.id===r.empId;});
-      var hq = emp && emp.area ? emp.area : 'N/A';
-      var state = emp && emp.state ? emp.state : 'N/A';
-      var promoted = r.promotedProducts && r.promotedProducts.length ? r.promotedProducts.join(', ') : 'None';
-      var parsedSamples = parseJSONField(r.samples);
-      var parsedGifts = parseJSONField(r.gifts);
-      var parsedInputs = parseJSONField(r.inputs);
-      var samples = Object.keys(parsedSamples).map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', ') || 'None';
-      var gifts = Object.keys(parsedGifts).map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', ') || 'None';
-      var inputs = Object.keys(parsedInputs).map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', ') || 'None';
-      return [r.date, r.empId, r.empName, hq, state, r.docName, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
-    });
-    
-  } else if(currentEmpReportType==='chem_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th></tr>';
-    var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
-    currentEmpMISData=chemCalls.map(function(r){
-      var emp = DB.employees.find(function(e){return e.id===r.empId;});
-      var state = emp && emp.state ? emp.state : 'N/A';
-      return [r.date, r.empId, r.empName, state, r.chemName, r.classification, r.orderAmount, r.stockStatus, r.remarks];
-    });
-    
-  } else if(currentEmpReportType==='call_avg'){
-    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Total Doctor Calls</th><th>Working Days Checked</th><th>Call Average / Day</th></tr>';
-    var e=DB.employees.find(function(x){return x.id===empId;});
-    if (e) {
-      var empsReps = DB.reports.filter(function(r){
-        return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
-      });
-      var workingDates=[];
-      DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
-        if(!workingDates.includes(r.date)) workingDates.push(r.date);
-      });
-      var days = workingDates.length || 1;
-      var avg = (empsReps.length / days).toFixed(2);
-      var state = e.state || 'N/A';
-      currentEmpMISData.push([e.id, e.name, state, empsReps.length, days, avg]);
-    }
-    
-  } else if(currentEmpReportType==='missed_calls'){
-    thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>State</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
-    var myTPs=DB.tourPlans.filter(function(tp){
-      var statusUpper = String(tp.status || '').toUpperCase();
-      return (statusUpper==='APPROVED' || statusUpper==='SUBMITTED') && String(tp.empId || '').toUpperCase()===String(empId).toUpperCase();
-    });
-    myTPs.forEach(function(tp){
-      var emp = DB.employees.find(function(e){return String(e.id || '').toUpperCase() === String(tp.empId || '').toUpperCase();});
-      var state = emp && emp.state ? emp.state : 'N/A';
-      tp.days.forEach(function(d){
-        if(from && d.date < from) return;
-        if(to && d.date > to) return;
-        var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
-        plannedDocIds.forEach(function(docId){
-          var visited = DB.reports.find(function(r){
-            return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && r.docId===docId;
-          });
-          if(!visited){
-            var doc=DB.doctors.find(function(dc){return dc.id===docId;});
-            currentEmpMISData.push([tp.month, tp.empName, state, d.date, doc?doc.code:'', doc?doc.name:docId, 'Missed Call']);
-          }
-        });
-      });
-    });
-    
-  } else if(currentEmpReportType==='visit_freq'){
-    thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>MR State</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
-    DB.doctors.filter(function(d){return d.assignTo===empId;}).forEach(function(d){
-      var visits = DB.reports.filter(function(r){
-        return r.targetType==='Doctor' && r.docId===d.id && (!from||r.date>=from) && (!to||r.date<=to);
-      });
-      var emp = DB.employees.find(function(e){return e.id===d.assignTo;});
-      var state = emp && emp.state ? emp.state : 'N/A';
-      currentEmpMISData.push([d.code, d.name, emp?(emp.name+' ('+d.assignTo+')'):'Unassigned', state, d.spec, visits.length]);
-    });
-    
-  } else if(currentEmpReportType==='plan_vs_act'){
-    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Planned Doctor Calls</th><th>Actual Doctor Calls</th><th>Planned Chemist Calls</th><th>Actual Chemist Calls</th></tr>';
-    var e=DB.employees.find(function(x){return x.id===empId;});
-    if (e) {
-      var plannedDocs = 0;
-      var plannedChems = 0;
-      var state = e.state || 'N/A';
-      DB.tourPlans.filter(function(tp){
-        var statusUpper = String(tp.status || '').toUpperCase();
-        return String(tp.empId || '').toUpperCase()===String(e.id || '').toUpperCase() && (statusUpper==='APPROVED' || statusUpper==='SUBMITTED');
-      }).forEach(function(tp){
-        tp.days.forEach(function(d){
-          if(from && d.date < from) return;
-          if(to && d.date > to) return;
-          var area=d.areaTerritory||d.toLocation||'';
-          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
-          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
-          plannedDocs += docIds.length;
-          plannedChems += chemIds.length;
-        });
-      });
-      var actualDocs = DB.reports.filter(function(r){
-        return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
-      }).length;
-      var actualChems = DB.reports.filter(function(r){
-        return r.empId===e.id && r.targetType==='Chemist' && (!from||r.date>=from) && (!to||r.date<=to);
-      }).length;
-      currentEmpMISData.push([e.id, e.name, state, plannedDocs, actualDocs, plannedChems, actualChems]);
-    }
-    
-  } else if(currentEmpReportType==='jfw_days'){
-    thead.innerHTML='<tr><th>MR Employee</th><th>MR State</th><th>Accompanying Manager ID</th><th>Manager Name</th><th>JFW Date</th><th>Work Remarks</th></tr>';
-    baseReports.filter(function(r){return r.jfwMgrId !== '';}).forEach(function(r){
-      var emp = DB.employees.find(function(e){return e.id===r.empId;});
-      var state = emp && emp.state ? emp.state : 'N/A';
-      currentEmpMISData.push([r.empName+' ('+r.empId+')', state, r.jfwMgrId, r.jfwMgrName, r.date, r.jfwRemarks ? (r.remarks + ' | JFW: ' + r.jfwRemarks) : r.remarks]);
-    });
-    
-  } else if(currentEmpReportType==='mgr_accomp'){
-    thead.innerHTML='<tr><th>Manager Name</th><th>MR Employee</th><th>MR State</th><th>Coaching &amp; Accompanist Days</th></tr>';
-    var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN';});
-    var mr=DB.employees.find(function(x){return x.id===empId;});
-    if (mr) {
-      managers.forEach(function(m){
-        var accompDays=DB.reports.filter(function(r){
-          return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
-        }).length;
-        var state = mr.state || 'N/A';
-        currentEmpMISData.push([m.name+' ('+m.id+')', mr.name+' ('+mr.id+')', state, accompDays]);
-      });
-    }
-    
-  } else if(currentEmpReportType==='samples_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
-    var e = DB.employees.find(function(x){ return x.id === empId; });
-    if (e) {
-      var state = e.state || 'N/A';
-      var myInv = DB.samplesInventory.filter(function(s){ return s.empId === e.id; });
-      var itemsMap = {};
-      myInv.forEach(function(s){
-        itemsMap[s.prodName] = { opening: s.opening, received: s.received, balance: s.balance, distributed: 0 };
-      });
-      var myReports = DB.reports.filter(function(r){
-        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
-      });
-      myReports.forEach(function(r) {
-        var parsedSamples = parseJSONField(r.samples);
-        for (var p in parsedSamples) {
-          if (!itemsMap[p]) itemsMap[p] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-          itemsMap[p].distributed += parsedSamples[p];
-        }
-      });
-      for (var p in itemsMap) {
-        if (itemsMap[p].opening > 0 || itemsMap[p].received > 0 || itemsMap[p].distributed > 0 || itemsMap[p].balance > 0) {
-          currentEmpMISData.push([e.name, state, p, itemsMap[p].opening, itemsMap[p].received, itemsMap[p].distributed, itemsMap[p].balance]);
-        }
-      }
-    }
-    
-  } else if(currentEmpReportType==='gifts_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
-    var e = DB.employees.find(function(x){ return x.id === empId; });
-    if (e) {
-      var state = e.state || 'N/A';
-      var myInv = DB.giftsInventory.filter(function(g){ return g.empId === e.id; });
-      var itemsMap = {};
-      myInv.forEach(function(g){
-        itemsMap[g.giftName] = { opening: g.opening, received: g.received, balance: g.balance, distributed: 0 };
-      });
-      var myReports = DB.reports.filter(function(r){
-        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
-      });
-      myReports.forEach(function(r) {
-        var parsedGifts = parseJSONField(r.gifts);
-        for (var g in parsedGifts) {
-          if (!itemsMap[g]) itemsMap[g] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-          itemsMap[g].distributed += parsedGifts[g];
-        }
-      });
-      for (var g in itemsMap) {
-        if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
-          currentEmpMISData.push([e.name, state, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
-        }
-      }
-    }
-    
-  } else if(currentEmpReportType==='expenses_rep'){
-    thead.innerHTML='<tr><th>Employee</th><th>State</th><th>Month</th><th>Approved Claims (&#x20B9;)</th><th>Receipt Upload</th><th>Status</th></tr>';
-    var claims=DB.expenses.filter(function(ex){
-      return ex.empId===empId;
-    });
-    currentEmpMISData=claims.map(function(ex){
-      var emp = DB.employees.find(function(e){return e.id===ex.empId;});
-      var state = emp && emp.state ? emp.state : 'N/A';
-      return [ex.empName+' ('+ex.empId+')', state, ex.month, ex.total, ex.receiptFile, ex.status];
-    });
-    
-  } else if(currentEmpReportType==='leaves_rep'){
-    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>CL Balance</th><th>SL Balance</th><th>EL Balance</th><th>LWP Used</th></tr>';
-    var e = DB.employees.find(function(x){return x.id===empId;});
-    if (e) {
-      var state = e.state || 'N/A';
-      currentEmpMISData.push([e.id, e.name, state, e.leaves.CL - e.leaves.CL_used, e.leaves.SL - e.leaves.SL_used, e.leaves.EL - e.leaves.EL_used, e.leaves.LWP_used]);
-    }
-    
-  } else if(currentEmpReportType==='doc_coverage'){
-    thead.innerHTML='<tr><th>MR ID</th><th>MR Name</th><th>State</th><th>Total Active Doctors</th><th>Visited Doctors</th><th>Doctors Not Visited</th><th>Coverage Rate %</th></tr>';
-    var e = DB.employees.find(function(x){return x.id===empId;});
-    if (e) {
-      var assigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
-      var visitedIds=[];
-      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor';}).forEach(function(r){
-        if(!visitedIds.includes(r.docId)) visitedIds.push(r.docId);
-      });
-      var missed = Math.max(0, assigned - visitedIds.length);
-      var pct = assigned ? Math.round((visitedIds.length / assigned)*100) : 0;
-      var state = e.state || 'N/A';
-      currentEmpMISData.push([e.id, e.name, state, assigned, visitedIds.length, missed, pct+'%']);
-    }
-    
-  } else if(currentEmpReportType==='transit_rep'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Work Type</th><th>Territory</th><th>City/HQ</th><th>Patch</th><th>Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th></tr>';
-    var transitReps=baseReports.filter(function(r){return r.workType==='TRANSIT';});
-    currentEmpMISData=transitReps.map(function(r){
-      var emp = DB.employees.find(function(e){return e.id===r.empId;});
-      var state = emp && emp.state ? emp.state : 'N/A';
-      return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||''];
-    });
-  }
-  
-  if(!currentEmpMISData.length){
-    var colCount = thead.querySelectorAll('th').length || 10;
-    tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">No matching records found for this query parameters</td></tr>';
-    return;
-  }
-  
-  tbody.innerHTML=currentEmpMISData.map(function(row){
-    return '<tr>'+row.map(function(val){return '<td>'+val+'</td>';}).join('')+'</tr>';
-  }).join('');
-}
-
-function exportEmpReportToCSV(){
-  if(!currentEmpMISData.length){showToast('No data to export! Please run a query first.');return;}
-  var thead=document.getElementById('emp-mis-report-thead');
-  var headers=[];
-  thead.querySelectorAll('th').forEach(function(th){
-    headers.push(th.textContent);
-  });
-  
-  var csv=[headers.join(',')];
-  currentEmpMISData.forEach(function(row){
-    csv.push(row.map(function(val){
-      return '"'+(val||'').toString().replace(/"/g,'""')+'"';
-    }).join(','));
-  });
-  
-  downloadData(csv.join('\n'), 'my_mis_report_'+currentEmpReportType+'.csv');
-}
-
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', beautifyEmojis);
 } else {
   beautifyEmojis();
 }
-</script>
-</body>
-</html>

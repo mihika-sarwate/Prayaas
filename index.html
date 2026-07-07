@@ -2180,37 +2180,20 @@ async function initSupabaseData(isSilent) {
   try {
     const emps = await fetchAllFromSupabase('employees');
     
-    const [
-      doctors,
-      chemists,
-      reports,
-      tourPlans,
-      expenses,
-      leaves,
-      sfc,
-      samplesInv,
-      giftsInv,
-      inputsInv,
-      stockists,
-      announcements,
-      attendanceData,
-      weeklyOffData
-    ] = await Promise.all([
-      fetchAllFromSupabase('doctors'),
-      fetchAllFromSupabase('chemists'),
-      fetchAllFromSupabase('reports'),
-      fetchAllFromSupabase('tour_plans'),
-      fetchAllFromSupabase('expenses'),
-      fetchAllFromSupabase('leaves'),
-      fetchAllFromSupabase('sfc'),
-      fetchAllFromSupabase('samples_inventory'),
-      fetchAllFromSupabase('gifts_inventory'),
-      fetchAllFromSupabase('inputs_inventory'),
-      fetchAllFromSupabase('stockists'),
-      fetchAllFromSupabase('announcements', { allowMissing: true }),
-      fetchAllFromSupabase('attendance', { allowMissing: true }),
-      fetchAllFromSupabase('weekly_off_config', { allowMissing: true })
-    ]);
+    const doctors = await fetchAllFromSupabase('doctors');
+    const chemists = await fetchAllFromSupabase('chemists');
+    const reports = await fetchAllFromSupabase('reports');
+    const tourPlans = await fetchAllFromSupabase('tour_plans');
+    const expenses = await fetchAllFromSupabase('expenses');
+    const leaves = await fetchAllFromSupabase('leaves');
+    const sfc = await fetchAllFromSupabase('sfc');
+    const samplesInv = await fetchAllFromSupabase('samples_inventory');
+    const giftsInv = await fetchAllFromSupabase('gifts_inventory');
+    const inputsInv = await fetchAllFromSupabase('inputs_inventory');
+    const stockists = await fetchAllFromSupabase('stockists');
+    const announcements = await fetchAllFromSupabase('announcements', { allowMissing: true });
+    const attendanceData = await fetchAllFromSupabase('attendance', { allowMissing: true });
+    const weeklyOffData = await fetchAllFromSupabase('weekly_off_config', { allowMissing: true });
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
     

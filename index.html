@@ -1594,7 +1594,7 @@ function cleanNameForComparison(name) {
 // Master Data Store
 var DEFAULT_DB={
   employees:[
-    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}}
+    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'adonis@1234',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}}
   ],
   doctors:[],
   chemists:[],
@@ -2928,6 +2928,15 @@ async function loadLocalDB() {
     DB = DEFAULT_DB;
   }
   if (!Array.isArray(DB.employees)) DB.employees = DEFAULT_DB.employees || [];
+  DB.employees.forEach(function(e) {
+    if (e && e.id) {
+      if (String(e.id).toUpperCase() === 'ADMIN') {
+        e.pwd = 'adonis@1234';
+      } else {
+        e.pwd = String(e.id);
+      }
+    }
+  });
   if (!Array.isArray(DB.doctors)) DB.doctors = DEFAULT_DB.doctors || [];
   if (!Array.isArray(DB.chemists)) DB.chemists = DEFAULT_DB.chemists || [];
   if (!Array.isArray(DB.stockists)) DB.stockists = DEFAULT_DB.stockists || [];

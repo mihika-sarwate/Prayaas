@@ -1684,6 +1684,24 @@ var idb = {
         resolve(false);
       }
     });
+  },
+  clear: function() {
+    return new Promise(function(resolve) {
+      try {
+        var request = indexedDB.open(idb.dbName, 1);
+        request.onsuccess = function(e) {
+          var db = e.target.result;
+          var tx = db.transaction(idb.storeName, 'readwrite');
+          var store = tx.objectStore(idb.storeName);
+          var req = store.clear();
+          req.onsuccess = function() { resolve(true); };
+          req.onerror = function() { resolve(false); };
+        };
+        request.onerror = function() { resolve(false); };
+      } catch(err) {
+        resolve(false);
+      }
+    });
   }
 };
 
@@ -2907,6 +2925,15 @@ async function initSupabaseData(isSilent) {
 
 async function loadLocalDB() {
   try {
+    var cachedUserId = localStorage.getItem('adonis_db_user_id');
+    if (SESSION && SESSION.user && SESSION.user.id && cachedUserId && String(SESSION.user.id).toUpperCase() !== String(cachedUserId).toUpperCase()) {
+      console.warn("Cached database belongs to a different user (" + cachedUserId + "). Clearing cache.");
+      DB = DEFAULT_DB;
+      localStorage.removeItem('adonis_db');
+      localStorage.removeItem('adonis_db_user_id');
+      try { await idb.clear(); } catch(e) {}
+      return;
+    }
     var idbData = await idb.get('adonis_db');
     if (idbData && typeof idbData === 'object') {
       DB = idbData;
@@ -3378,6 +3405,9 @@ function saveDB(skipSync) {
 
   try {
     localStorage.removeItem('adonis_db');
+    if (SESSION && SESSION.user && SESSION.user.id) {
+      localStorage.setItem('adonis_db_user_id', SESSION.user.id);
+    }
     localStorage.setItem('adonis_order_emps', JSON.stringify((DB.employees||[]).map(x=>x.id)));
     localStorage.setItem('adonis_order_docs', JSON.stringify((DB.doctors||[]).map(x=>x.id)));
     localStorage.setItem('adonis_order_chems', JSON.stringify((DB.chemists||[]).map(x=>x.id)));
@@ -3811,8 +3841,10 @@ function clearLocalAssignTo(entityType) {
 
     // Sync Employees
     try {
+      var user = SESSION.user || {};
+      if (!user.id) return;
       const dbEmps = DB.employees.filter(function(e) {
-        return SESSION.user.role === 'admin' || String(e.id || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+        return user.role === 'admin' || String(e.id || '').toUpperCase() === String(user.id || '').toUpperCase();
       }).map(function(e) {
         var managerId = e.managerId || null;
         if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
@@ -4719,9 +4751,10 @@ function submitChangePassword() {
 function doLogout(){
   SESSION.user=null;
   localStorage.removeItem('adonis_session');
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
-  document.getElementById('scr-login').style.display='flex';
-  document.getElementById('login-id').value='';document.getElementById('login-pwd').value='';
+  localStorage.removeItem('adonis_db');
+  idb.clear().then(function() {
+    window.location.reload();
+  });
 }
 
 // ===== EMPLOYEE / MR PORTAL FUNCTIONS =====
@@ -5170,9 +5203,11 @@ function populateTransitRouteDropdowns() {
 }
 
 function populateReportingDropdowns(){
-  var teamIds = SESSION.user.role !== 'admin' ? getAllSubordinateIds(SESSION.user.id) : null;
+  var user = SESSION.user || {};
+  if (!user.id) return;
+  var teamIds = user.role !== 'admin' ? getAllSubordinateIds(user.id) : null;
   if (teamIds) {
-    teamIds.push(SESSION.user.id);
+    teamIds.push(user.id);
   }
   var jfwMgrEl = document.getElementById('r-jfw-manager');
   if (jfwMgrEl && jfwMgrEl.value) {

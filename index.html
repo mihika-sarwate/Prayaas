@@ -1881,9 +1881,7 @@ function initSupabaseClient() {
         headers['x-employee-password'] = String(SESSION.user.pwd);
       }
       supabase = lib.createClient(supabaseUrl, supabaseKey, {
-        global: {
-          headers: headers
-        }
+        auth: { persistSession: false }, global: { headers: headers }
       });
       useSupabase = true;
       return true;

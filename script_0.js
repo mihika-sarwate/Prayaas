@@ -4571,10 +4571,17 @@ function submitReport(){
   
   var isEditing = window.currentEditReportId;
   
+  // Past reports are automatically final
+  if (date < getTodayDateString()) {
+    repObj.isFinal = true;
+  }
+  
   if (isEditing) {
     var existingIdx = DB.reports.findIndex(function(r) { return r.id === window.currentEditReportId; });
     if (existingIdx !== -1) {
       repObj.id = window.currentEditReportId;
+      // Preserve isFinal if it was already final
+      if (DB.reports[existingIdx].isFinal) repObj.isFinal = true;
       DB.reports[existingIdx] = repObj;
     } else {
       DB.reports.unshift(repObj);
@@ -5150,16 +5157,14 @@ function getAttendanceStatusMeta(emp, dateStr) {
     if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
   }
   
-  // Check if they have submitted a FINAL daily call report (DCR) for this date
-  var hasFinalReport = (DB.reports || []).some(function(r) {
-    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && r.isFinal;
+  // Check if they have submitted ANY reports for this date
+  var hasReports = (DB.reports || []).some(function(r) {
+    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
   });
-  if (hasFinalReport) {
-    return { status: 'P', remarks: 'Present via Final DCR Submission' };
+  if (hasReports) {
+    return { status: 'P', remarks: 'Present (Reports Submitted)' };
   }
   
-  var existing = getAttendanceRecord(emp.id, dateStr);
-  if (existing && (existing.attendanceStatus === 'P' || existing.attendanceStatus === 'A')) return { status: existing.attendanceStatus, remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
   return { status: 'NS', remarks: 'Attendance Not Submitted' };
 }
 

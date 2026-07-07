@@ -4420,6 +4420,10 @@ function submitReport(){
     repObj.orderAmount=parseFloat(document.getElementById('r-stockist-order').value)||0;
     repObj.stockStatus=document.getElementById('r-stockist-stock').value;
   }
+  // Past reports are automatically final
+  if (date < getTodayDateString()) {
+    repObj.isFinal = true;
+  }
   
   DB.reports.unshift(repObj);
   saveDB();
@@ -5086,7 +5090,6 @@ function updateMTPAnalytics(month){
   var missedChemCalls=0;
   var actualDocVisited=0;
   var actualChemVisited=0;
-  
   var allMyReports = DB.reports.filter(function(r){
     return r.empId===SESSION.user.id && r.date.slice(0,7)===month;
   });

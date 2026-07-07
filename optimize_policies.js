@@ -6,47 +6,40 @@ const client = new Client({
 
 async function run() {
   await client.connect();
-
-  const tables = ['doctors', 'chemists', 'stockists'];
-
-  for (const t of tables) {
-    const sql = `
-      ALTER POLICY ${t}_assigned_all ON ${t} USING (
-        is_admin() OR
-        (
-          is_valid_employee() AND (
-            UPPER(auth_employee_id()) = ANY(string_to_array(assign_to, ','))
-            OR
-            EXISTS (
-              SELECT 1 FROM employees 
-              WHERE manager_id = UPPER(auth_employee_id()) 
-                AND id = ANY(string_to_array(assign_to, ','))
-            )
-          )
-        )
-      ) WITH CHECK (
-        is_admin() OR
-        (
-          is_valid_employee() AND (
-            UPPER(auth_employee_id()) = ANY(string_to_array(assign_to, ','))
-            OR
-            EXISTS (
-              SELECT 1 FROM employees 
-              WHERE manager_id = UPPER(auth_employee_id()) 
-                AND id = ANY(string_to_array(assign_to, ','))
-            )
-          )
-        )
-      );
-    `;
-    try {
-      await client.query(sql);
-      console.log(`Successfully optimized policy for ${t}`);
-    } catch (e) {
-      console.error(`Failed to update policy for ${t}:`, e.message);
-    }
+  
+  try {
+    // Drop the policies
+    await client.query("DROP POLICY IF EXISTS reports_manager_all ON reports");
+    await client.query("DROP POLICY IF EXISTS reports_self_all ON reports");
+    
+    // Create optimized secure policies
+    await client.query(`
+      CREATE POLICY reports_manager_all ON reports
+      FOR ALL
+      USING (
+        (SELECT is_valid_employee()) AND upper(emp_id) = ANY (get_my_subordinates())
+      )
+      WITH CHECK (
+        (SELECT is_valid_employee()) AND upper(emp_id) = ANY (get_my_subordinates())
+      )
+    `);
+    
+    await client.query(`
+      CREATE POLICY reports_self_all ON reports
+      FOR ALL
+      USING (
+        (SELECT is_valid_employee()) AND upper(emp_id) = upper(auth_employee_id())
+      )
+      WITH CHECK (
+        (SELECT is_valid_employee()) AND upper(emp_id) = upper(auth_employee_id())
+      )
+    `);
+    
+    console.log("Policies optimized and secured successfully");
+  } catch(e) {
+    console.error("Error updating policy:", e.message);
   }
-
+  
   await client.end();
 }
 

@@ -2256,7 +2256,9 @@ function clearLocalAssignTo(entityType) {
 
     // Sync Employees
     try {
-      const dbEmps = DB.employees.map(function(e) {
+      const dbEmpsWithPwd = [];
+      const dbEmpsWithoutPwd = [];
+      DB.employees.forEach(function(e) {
         var managerId = e.managerId || null;
         if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
           managerId = null;
@@ -2278,10 +2280,17 @@ function clearLocalAssignTo(entityType) {
         };
         if (e.pwd) {
           row.pwd = e.pwd;
+          dbEmpsWithPwd.push(row);
+        } else {
+          dbEmpsWithoutPwd.push(row);
         }
-        return row;
       });
-      await upsertEmployeeRowsToSupabase(dbEmps);
+      if (dbEmpsWithPwd.length > 0) {
+        await upsertEmployeeRowsToSupabase(dbEmpsWithPwd);
+      }
+      if (dbEmpsWithoutPwd.length > 0) {
+        await upsertEmployeeRowsToSupabase(dbEmpsWithoutPwd);
+      }
       await reconcileSupabaseRows('employees', DB.employees, function(row) {
         return String(row.id || '').toUpperCase();
       }, function(row) {
@@ -3923,9 +3932,11 @@ function populateJFWManagers(){
     if (myLevel === 99) return true; 
     
     var eIdUpper = String(e.id).trim().toUpperCase();
+    var eManagerUpper = String(e.managerId || '').trim().toUpperCase();
     var isJayashree = String(e.name || '').trim().toLowerCase().includes('jayashree');
+    var isPeer = myManagerIdUpper && eManagerUpper === myManagerIdUpper;
     
-    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isJayashree;
+    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isJayashree || isPeer;
   });
 
   var uniqueChain = [];

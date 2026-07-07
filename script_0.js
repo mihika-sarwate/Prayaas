@@ -316,6 +316,7 @@ function initSupabaseClient() {
   if (window.supabase) {
     if (!supabaseUrl || !supabaseKey) {
       console.warn("Supabase URL or Key is missing. Skipping client initialization.");
+      useSupabase = false;
       return false;
     }
     try {
@@ -329,12 +330,15 @@ function initSupabaseClient() {
           headers: headers
         }
       });
+      useSupabase = true;
       return true;
     } catch (e) {
       console.error("Failed to initialize Supabase client:", e);
+      useSupabase = false;
       return false;
     }
   }
+  useSupabase = false;
   return false;
 }
 

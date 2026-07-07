@@ -1867,7 +1867,16 @@ function initSupabaseClient() {
       return false;
     }
     try {
-      supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+      var headers = {};
+      if (typeof SESSION !== 'undefined' && SESSION && SESSION.user && SESSION.user.id && SESSION.user.pwd) {
+        headers['x-employee-id'] = String(SESSION.user.id);
+        headers['x-employee-password'] = String(SESSION.user.pwd);
+      }
+      supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: headers
+        }
+      });
       return true;
     } catch (e) {
       console.error("Failed to initialize Supabase client:", e);
@@ -2071,6 +2080,13 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
 }
 
 async function initSupabaseData(isSilent) {
+  if (typeof SESSION === 'undefined' || !SESSION || !SESSION.user) {
+    console.log("No active session found. Deferring Supabase data fetch until login.");
+    isLoadingData = false;
+    var scrLogin = document.getElementById('scr-login');
+    if (scrLogin) scrLogin.style.display = 'block';
+    return;
+  }
   if (isLoadingData) {
     console.log("initSupabaseData ignored because load is already in progress.");
     return;
@@ -4516,87 +4532,125 @@ function doLogin(){
     return;
   }
 
-  ensureAttendanceSchedulerUpToDate();
   console.log("=== Sankalp Login Attempt ===");
   console.log("Input Employee ID/Name:", id);
-  console.log("Input Password:", pwd);
-  console.log("All Employees in DB:", DB.employees);
-  var emp=DB.employees.find(function(e){
-    var matchId = (e.id || '').trim().toUpperCase() === id;
-    var matchName = e.name && (e.name.trim().toUpperCase() === id);
-    var matchPwd = e.pwd && (e.pwd.trim() === pwd);
-    return (matchId || matchName) && matchPwd;
-  });
-  if(!emp){
-    showToast('Invalid Employee ID/Name or Password');
-    return;
-  }
-  normalizeEmployeeRecord(emp);
-  if (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
-    // Local cache shows BLOCKED — do a fresh pull from Supabase in case admin already unblocked
-    if (useSupabase && supabase) {
-      showToast('Verifying account status with server...');
-      supabase.from('employees').select('account_status, blocked_date, blocked_reason').eq('id', emp.id).single()
-        .then(function(res) {
-          var freshStatus = res && res.data ? normalizeAccountStatus(res.data.account_status) : 'BLOCKED';
-          emp.accountStatus = freshStatus;
-          if (freshStatus === 'ACTIVE') {
-            emp.blockedDate = '';
-            emp.blockedReason = '';
-          }
-          saveDB(); // Persist the unblocked status locally so subsequent schedulers don't re-block
+  
+  if (useSupabase && supabaseUrl && supabaseKey) {
+    showToast('Authenticating with server...');
+    var tempSupabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: {
+          'x-employee-id': id,
+          'x-employee-password': pwd
+        }
+      }
+    });
 
-          if (freshStatus !== 'BLOCKED') {
-            // Admin unblocked them — proceed with login
-            // Continue with login
-            recordAttendanceOnSuccessfulLogin(emp);
-            SESSION.user = emp;
-            localStorage.setItem('adonis_session', JSON.stringify(SESSION));
-            document.getElementById('scr-login').style.display = 'none';
-            if (emp.role === 'emp') {
-              document.getElementById('scr-emp').classList.add('on');
-              initEmpApp();
-            } else {
-              document.getElementById('scr-admin').classList.add('on');
-              document.getElementById('adm-panel-title').textContent = (emp.role === 'admin' ? 'Admin Panel' : 'Manager Panel') + ' - ' + emp.name;
-              document.getElementById('adm-badge').textContent = emp.role.toUpperCase();
-              if (emp.role !== 'admin') {
-                document.getElementById('adm-sfc-section').style.display = 'none';
-              } else {
-                document.getElementById('adm-sfc-section').style.display = '';
-              }
-              initAdminApp();
-            }
-          } else {
-            showToast('Your account has been temporarily blocked because attendance was not submitted for the previous working day. Please contact the administrator.');
-          }
-        })
-        .catch(function() {
-          showToast('Your account has been temporarily blocked because attendance was not submitted for the previous working day. Please contact the administrator.');
-        });
+    var query = tempSupabase.from('employees').select('*');
+    if (id.startsWith('AD') || id.startsWith('TEMP')) {
+      query = query.eq('id', id);
+    } else {
+      query = query.ilike('name', id);
+    }
+    
+    query.single().then(async function(res) {
+      if (res.error || !res.data) {
+        console.error("Login failed or invalid credentials:", res.error);
+        showToast('Invalid Employee ID/Name or Password');
+        return;
+      }
+      var emp = {
+        id: res.data.id,
+        name: res.data.name,
+        pwd: res.data.pwd,
+        area: res.data.area || '',
+        role: (res.data.role || 'emp').trim().toLowerCase(),
+        managerId: res.data.manager_id || '',
+        doj: res.data.doj || '',
+        state: res.data.state || '',
+        status: res.data.status || 'Active',
+        accountStatus: normalizeAccountStatus(res.data.account_status),
+        blockedDate: res.data.blocked_date || '',
+        blockedReason: res.data.blocked_reason || '',
+        designation: res.data.designation || '',
+        allowedPastDates: (res.data.leaves && res.data.leaves._allowedPastDates) || [],
+        leaves: res.data.leaves || {}
+      };
+      
+      if (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
+        showToast('Your account has been temporarily blocked because attendance was not submitted for the previous working day. Please contact the administrator.');
+        return;
+      }
+      
+      // Valid login! Set session
+      SESSION.user = emp;
+      localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+      
+      // Initialize the global supabase client with these valid credentials
+      initSupabaseClient();
+      
+      // Fetch the rest of the database authorized for this user
+      showToast('Loading database...');
+      hasInitializedData = false;
+      isLoadingData = false; // reset flag
+      await initSupabaseData(false);
+      
+      // Proceed with UI navigation
+      document.getElementById('scr-login').style.display = 'none';
+      if (emp.role === 'emp') {
+        document.getElementById('scr-emp').classList.add('on');
+        initEmpApp();
+      } else {
+        document.getElementById('scr-admin').classList.add('on');
+        document.getElementById('adm-panel-title').textContent = (emp.role === 'admin' ? 'Admin Panel' : 'Manager Panel') + ' - ' + emp.name;
+        document.getElementById('adm-badge').textContent = emp.role.toUpperCase();
+        if (emp.role !== 'admin') {
+          document.getElementById('adm-sfc-section').style.display = 'none';
+        } else {
+          document.getElementById('adm-sfc-section').style.display = '';
+        }
+        initAdminApp();
+      }
+    }).catch(function(err) {
+      console.error("Login exception:", err);
+      showToast('Error connecting to server. Please try again.');
+    });
+  } else {
+    // Offline/Local database authentication fallback
+    ensureAttendanceSchedulerUpToDate();
+    var emp = DB.employees.find(function(e) {
+      var matchId = (e.id || '').trim().toUpperCase() === id;
+      var matchName = e.name && (e.name.trim().toUpperCase() === id);
+      var matchPwd = e.pwd && (e.pwd.trim() === pwd);
+      return (matchId || matchName) && matchPwd;
+    });
+    if (!emp) {
+      showToast('Invalid Employee ID/Name or Password');
       return;
     }
-    showToast('Your account has been temporarily blocked because attendance was not submitted for the previous working day. Please contact the administrator.');
-    return;
-  }
-  recordAttendanceOnSuccessfulLogin(emp);
-  SESSION.user=emp;
-  localStorage.setItem('adonis_session', JSON.stringify(SESSION));
-  document.getElementById('scr-login').style.display='none';
-  
-  if (emp.role === 'emp') {
-    document.getElementById('scr-emp').classList.add('on');
-    initEmpApp();
-  } else {
-    document.getElementById('scr-admin').classList.add('on');
-    document.getElementById('adm-panel-title').textContent=(emp.role==='admin'?'Admin Panel':'Manager Panel') + ' - ' + emp.name;
-    document.getElementById('adm-badge').textContent=emp.role.toUpperCase();
-    if(emp.role!=='admin'){
-      document.getElementById('adm-sfc-section').style.display='none';
-    } else {
-      document.getElementById('adm-sfc-section').style.display='';
+    normalizeEmployeeRecord(emp);
+    if (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
+      showToast('Your account has been temporarily blocked because attendance was not submitted for the previous working day. Please contact the administrator.');
+      return;
     }
-    initAdminApp();
+    recordAttendanceOnSuccessfulLogin(emp);
+    SESSION.user = emp;
+    localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+    document.getElementById('scr-login').style.display = 'none';
+    if (emp.role === 'emp') {
+      document.getElementById('scr-emp').classList.add('on');
+      initEmpApp();
+    } else {
+      document.getElementById('scr-admin').classList.add('on');
+      document.getElementById('adm-panel-title').textContent = (emp.role === 'admin' ? 'Admin Panel' : 'Manager Panel') + ' - ' + emp.name;
+      document.getElementById('adm-badge').textContent = emp.role.toUpperCase();
+      if (emp.role !== 'admin') {
+        document.getElementById('adm-sfc-section').style.display = 'none';
+      } else {
+        document.getElementById('adm-sfc-section').style.display = '';
+      }
+      initAdminApp();
+    }
   }
 }
 

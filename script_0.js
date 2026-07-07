@@ -155,6 +155,7 @@ if (localStorage.getItem('adonis_db_project_version') !== MIGRATION_VERSION) {
 var supabaseUrl = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.supabaseUrl) || localStorage.getItem('adonis_supabase_url') || '';
 var supabaseKey = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.supabaseKey) || localStorage.getItem('adonis_supabase_key') || '';
 var supabase = null;
+var supabaseLib = null;
 var useSupabase = false;
 var isLoadingData = false;
 
@@ -314,6 +315,12 @@ async function insertEmployeeRowsToSupabase(rows) {
 
 function initSupabaseClient() {
   if (window.supabase) {
+    if (typeof window.supabase.createClient === 'function') {
+      supabaseLib = window.supabase;
+    }
+  }
+  var lib = supabaseLib || window.supabase;
+  if (lib) {
     if (!supabaseUrl || !supabaseKey) {
       console.warn("Supabase URL or Key is missing. Skipping client initialization.");
       useSupabase = false;
@@ -325,7 +332,7 @@ function initSupabaseClient() {
         headers['x-employee-id'] = String(SESSION.user.id);
         headers['x-employee-password'] = String(SESSION.user.pwd);
       }
-      supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+      supabase = lib.createClient(supabaseUrl, supabaseKey, {
         global: {
           headers: headers
         }
@@ -2993,7 +3000,8 @@ function doLogin(){
   
   if (useSupabase && supabaseUrl && supabaseKey) {
     showToast('Authenticating with server...');
-    var tempSupabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+    var lib = supabaseLib || window.supabase;
+    var tempSupabase = lib.createClient(supabaseUrl, supabaseKey, {
       global: {
         headers: {
           'x-employee-id': id,

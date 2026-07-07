@@ -4999,8 +4999,8 @@ function getAttendanceStatusMeta(emp, dateStr) {
         }
         
         var existing = getAttendanceRecord(emp.id, dateStr);
-        if (existing && existing.attendanceStatus === 'P') {
-          return { status: 'P', remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
+        if (existing && (existing.attendanceStatus === 'P' || existing.attendanceStatus === 'A')) {
+          return { status: existing.attendanceStatus, remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
         }
         
         return { status: 'NS', remarks: 'Attendance Not Submitted' };
@@ -5028,7 +5028,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
   }
   
   var existing = getAttendanceRecord(emp.id, dateStr);
-  if (existing && existing.attendanceStatus === 'P') return { status: 'P', remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
+  if (existing && (existing.attendanceStatus === 'P' || existing.attendanceStatus === 'A')) return { status: existing.attendanceStatus, remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
   return { status: 'NS', remarks: 'Attendance Not Submitted' };
 }
 

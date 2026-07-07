@@ -5190,7 +5190,7 @@ function ensureAttendanceSchedulerUpToDate() {
     if (!cursor || cursor.indexOf('NaN') !== -1) break;
   }
   localStorage.setItem('adonis_attendance_last_validated_date', targetEnd);
-  if (changed) saveDB();
+  if (changed && !isLoadingData) saveDB();
 }
 
 function scheduleNextAttendanceValidation() {

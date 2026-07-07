@@ -5039,6 +5039,11 @@ function getAttendanceStatusMeta(emp, dateStr) {
     return { status: 'P', remarks: 'Present (Reports Submitted)' };
   }
   
+  var existing = getAttendanceRecord(emp.id, dateStr);
+  if (existing && existing.remarks === 'Present (Manually Unblocked by Admin)') {
+    return { status: 'P', remarks: existing.remarks, loginTime: existing.loginTime || '' };
+  }
+  
   return { status: 'NS', remarks: 'Attendance Not Submitted' };
 }
 
@@ -8067,7 +8072,7 @@ function setEmployeeAccountStatus(empId, status, preventModalOpen) {
     var cursor = start;
     var safety = 0;
     var recordsToUpsert = [];
-    while (cursor <= today && safety < 100) {
+    while (cursor < today && safety < 100) {
       safety++;
       var existing = getAttendanceRecord(emp.id, cursor);
       if (!existing || existing.attendanceStatus === 'A' || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {

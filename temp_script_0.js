@@ -5363,9 +5363,8 @@ function unblockAllBlocked() {
     return;
   }
   if (!confirm('Are you sure you want to unblock all ' + blockedRows.length + ' blocked employees?')) return;
-  blockedRows.forEach(function(emp) {
-    setEmployeeAccountStatus(emp.id, 'ACTIVE', true);
-  });
+  var idsToUnblock = blockedRows.map(function(emp) { return emp.id; });
+  batchUnblockEmployees(idsToUnblock);
   showToast('All blocked employees unblocked successfully.', 3000);
   var masterCheck = document.getElementById('check-all-blocked');
   if (masterCheck) masterCheck.checked = false;

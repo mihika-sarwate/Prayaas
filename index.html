@@ -6971,14 +6971,91 @@ function updateSelectedBlockedCount() {
   }
 }
 
+function batchUnblockEmployees(empIds) {
+  if (!empIds || !empIds.length) return;
+  ensureAttendanceArrays();
+  var employeeRowsToUpsert = [];
+  var attendanceRowsToUpsert = [];
+  empIds.forEach(function(empId) {
+    var emp = DB.employees.find(function(e) { return e && e.id === empId; });
+    if (!emp) return;
+    var oldBlockedDate = emp.blockedDate;
+    emp.accountStatus = 'ACTIVE';
+    emp.blockedDate = '';
+    emp.blockedReason = '';
+    _pendingLocalEmpIds.add(String(emp.id).toUpperCase());
+    employeeRowsToUpsert.push({
+      id: emp.id,
+      account_status: 'ACTIVE',
+      blocked_date: null,
+      blocked_reason: null,
+      status: normalizeEmployeeStatus(emp.status),
+      name: emp.name,
+      pwd: emp.pwd,
+      area: emp.area || '',
+      role: emp.role || 'emp',
+      manager_id: emp.managerId || null,
+      state: emp.state || null,
+      designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role),
+      doj: formatDateForPostgres(emp.doj) || null,
+      leaves: Object.assign({}, parseJSONField(emp.leaves), { _designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role), _allowedPastDates: emp.allowedPastDates || [] })
+    });
+    if (oldBlockedDate) {
+      var cursor = oldBlockedDate;
+      var today = getTodayDateString();
+      var safety = 0;
+      while (cursor <= today && safety < 100) {
+        safety++;
+        var existing = getAttendanceRecord(emp.id, cursor);
+        if (!existing || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
+          var attRecord = upsertAttendanceRecord({
+            employeeId: emp.id,
+            date: cursor,
+            loginTime: '',
+            attendanceStatus: 'P',
+            remarks: 'Present (Manually Unblocked by Admin)'
+          });
+          attendanceRowsToUpsert.push({
+            id: attRecord.id,
+            employee_id: attRecord.employeeId,
+            date: formatDateForPostgres(attRecord.date) || attRecord.date,
+            login_time: attRecord.loginTime || null,
+            attendance_status: attRecord.attendanceStatus || '',
+            remarks: attRecord.remarks || null,
+            created_at: attRecord.createdAt || null
+          });
+        }
+        cursor = offsetDate(cursor, 1);
+      }
+    }
+  });
+  idb.set('adonis_db', DB);
+  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
+  if (useSupabase && supabase) {
+    if (employeeRowsToUpsert.length > 0) {
+      supabase.from('employees').upsert(employeeRowsToUpsert, { onConflict: 'id' }).then(function(res) {
+        if (res && res.error) console.error('Error batch unblocking employees:', res.error);
+        else {
+          employeeRowsToUpsert.forEach(row => _pendingLocalEmpIds.delete(String(row.id).toUpperCase()));
+        }
+      });
+    }
+    if (attendanceRowsToUpsert.length > 0) {
+      supabase.from('attendance').upsert(attendanceRowsToUpsert, { onConflict: 'id' }).then(function(res) {
+        if (res && res.error) console.error('Error batch unblocking attendance:', res.error);
+      });
+    }
+  }
+  renderEmpTable();
+  renderAttendanceDashboard();
+}
+
 function unblockSelectedBlocked() {
   var checked = document.querySelectorAll('.blocked-row-check:checked');
   if (!checked.length) return;
   var idsToUnblock = Array.from(checked).map(function(cb) { return cb.value; });
   if (!confirm('Are you sure you want to unblock the ' + idsToUnblock.length + ' selected employees?')) return;
-  idsToUnblock.forEach(function(id) {
-    setEmployeeAccountStatus(id, 'ACTIVE', true);
-  });
+  batchUnblockEmployees(idsToUnblock);
   showToast('Selected employees unblocked successfully.', 3000);
   var masterCheck = document.getElementById('check-all-blocked');
   if (masterCheck) masterCheck.checked = false;
@@ -7006,9 +7083,8 @@ function unblockAllBlocked() {
     return;
   }
   if (!confirm('Are you sure you want to unblock all ' + blockedRows.length + ' blocked employees?')) return;
-  blockedRows.forEach(function(emp) {
-    setEmployeeAccountStatus(emp.id, 'ACTIVE', true);
-  });
+  var idsToUnblock = blockedRows.map(function(emp) { return emp.id; });
+  batchUnblockEmployees(idsToUnblock);
   showToast('All blocked employees unblocked successfully.', 3000);
   var masterCheck = document.getElementById('check-all-blocked');
   if (masterCheck) masterCheck.checked = false;

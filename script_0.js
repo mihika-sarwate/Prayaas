@@ -630,7 +630,7 @@ async function initSupabaseData(isSilent) {
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
-    const emps = await fetchAllFromSupabase('employees');
+    const emps = await fetchAllFromSupabase('employees', { select: 'id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves' });
     
     const doctors = await fetchAllFromSupabase('doctors');
     const chemists = await fetchAllFromSupabase('chemists');
@@ -1881,7 +1881,6 @@ async function pushEmployeeToSupabase(emp) {
       blocked_reason: emp.blockedReason || null,
       status: normalizeEmployeeStatus(emp.status),
       name: emp.name,
-      pwd: emp.pwd,
       area: emp.area || '',
       role: emp.role || 'emp',
       manager_id: emp.managerId || null,
@@ -1890,6 +1889,9 @@ async function pushEmployeeToSupabase(emp) {
       doj: formatDateForPostgres(emp.doj) || null,
       leaves: Object.assign({}, parseJSONField(emp.leaves), { _designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role), _allowedPastDates: emp.allowedPastDates || [] })
     };
+    if (emp.pwd) {
+      row.pwd = emp.pwd;
+    }
     var res = await supabase.from('employees').upsert([row], { onConflict: 'id' });
     if (res && res.error) {
       console.error('pushEmployeeToSupabase error:', res.error);
@@ -2257,10 +2259,9 @@ function clearLocalAssignTo(entityType) {
         if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
           managerId = null;
         }
-        return {
+        var row = {
           id: e.id || undefined,
           name: e.name || '',
-          pwd: e.pwd || '',
           area: e.area || '',
           role: e.role || '',
           manager_id: managerId,
@@ -2273,6 +2274,10 @@ function clearLocalAssignTo(entityType) {
           designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
           leaves: Object.assign({}, parseJSONField(e.leaves), { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role), _allowedPastDates: e.allowedPastDates || [] })
         };
+        if (e.pwd) {
+          row.pwd = e.pwd;
+        }
+        return row;
       });
       await upsertEmployeeRowsToSupabase(dbEmps);
       await reconcileSupabaseRows('employees', DB.employees, function(row) {
@@ -2993,7 +2998,7 @@ function doLogin(){
       }
     });
 
-    var query = tempSupabase.from('employees').select('*');
+    var query = tempSupabase.from('employees').select('id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves');
     if (id.startsWith('AD') || id.startsWith('TEMP')) {
       query = query.eq('id', id);
     } else {
@@ -7966,14 +7971,15 @@ function addEmployee(){
   var status=document.getElementById('adm-emp-status').value;
   var allowPastReports = document.getElementById('adm-emp-allow-past-reports') ? document.getElementById('adm-emp-allow-past-reports').checked : false;
   
-  if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
-  
   if (editingEmpId) {
+    if(!id||!name){showToast('Please fill ID and Name');return;}
     var emp = DB.employees.find(function(e) { return e && e.id === editingEmpId; });
     if (!emp) { showToast('Employee not found'); return; }
     
     emp.name = name;
-    emp.pwd = pwd;
+    if (pwd) {
+      emp.pwd = pwd;
+    }
     emp.area = area;
     emp.designation = designation;
     emp.role = role;
@@ -7991,6 +7997,7 @@ function addEmployee(){
     return;
   }
   
+  if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
   if(DB.employees.find(function(e){return e.id===id;})){showToast('Employee ID already exists');return;}
   
   DB.employees.push({
@@ -8250,7 +8257,6 @@ function renderEmpTable(){
     thead.innerHTML = '<tr><th style="vertical-align:top;width:40px"><input type="checkbox" id="check-all-emps" class="admin-only" onclick="toggleSelectAllEmps(this)"></th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'id', 'ID') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'name', 'Name') + '</th>' +
-      '<th style="vertical-align:top">' + renderSortHead('employees', 'pwd', 'Password') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'area', 'Territory') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'designation', 'Designation') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'role', 'Role') + '</th>' +
@@ -8272,14 +8278,14 @@ function renderEmpTable(){
     // Global search
     if (q) {
       var haystack = [
-        e.id, e.name, e.pwd, e.role, e.designation, e.area, e.state,
+        e.id, e.name, e.role, e.designation, e.area, e.state,
         normalizeEmployeeStatus(e.status), mgrName, mgr ? mgr.id : ''
       ].join(' ').toLowerCase();
       if (haystack.indexOf(q) === -1) return false;
     }
     
     // Column filters
-    var cols = ['id', 'name', 'pwd', 'area', 'designation', 'role', 'managerId', 'doj', 'state', 'status'];
+    var cols = ['id', 'name', 'area', 'designation', 'role', 'managerId', 'doj', 'state', 'status'];
     for (var i = 0; i < cols.length; i++) {
       var c = cols[i];
       if (filters[c]) {
@@ -8317,7 +8323,7 @@ function renderEmpTable(){
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;
   if (!emps.length) {
-    tbody.innerHTML = '<tr><td colspan="12" class="empty">No matching employee records found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="empty">No matching employee records found</td></tr>';
     var masterCheckEmpty = document.getElementById('check-all-emps');
     if (masterCheckEmpty) masterCheckEmpty.checked = false;
     updateSelectedEmpsCount();
@@ -8329,7 +8335,7 @@ function renderEmpTable(){
       if (!e) return '';
       var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
       var roleName = (e.role || 'emp').toUpperCase();
-      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td><code>'+(e.pwd||'')+'</code></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px;background-color:#0284c7;color:white" onclick="editEmployee(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px;background-color:#0284c7;color:white" onclick="editEmployee(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
     }).join('');
   } catch (err) {
     console.error("Error rendering employee table:", err);

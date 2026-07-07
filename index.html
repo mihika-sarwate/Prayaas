@@ -3843,9 +3843,11 @@ function clearLocalAssignTo(entityType) {
     try {
       var user = SESSION.user || {};
       if (!user.id) return;
-      const dbEmps = DB.employees.filter(function(e) {
+      const dbEmpsWithPwd = [];
+      const dbEmpsWithoutPwd = [];
+      DB.employees.filter(function(e) {
         return user.role === 'admin' || String(e.id || '').toUpperCase() === String(user.id || '').toUpperCase();
-      }).map(function(e) {
+      }).forEach(function(e) {
         var managerId = e.managerId || null;
         if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
           managerId = null;
@@ -3867,10 +3869,17 @@ function clearLocalAssignTo(entityType) {
         };
         if (e.pwd) {
           row.pwd = e.pwd;
+          dbEmpsWithPwd.push(row);
+        } else {
+          dbEmpsWithoutPwd.push(row);
         }
-        return row;
       });
-      await upsertEmployeeRowsToSupabase(dbEmps);
+      if (dbEmpsWithPwd.length > 0) {
+        await upsertEmployeeRowsToSupabase(dbEmpsWithPwd);
+      }
+      if (dbEmpsWithoutPwd.length > 0) {
+        await upsertEmployeeRowsToSupabase(dbEmpsWithoutPwd);
+      }
       await reconcileSupabaseRows('employees', DB.employees, function(row) {
         return String(row.id || '').toUpperCase();
       }, function(row) {

@@ -4947,6 +4947,7 @@ function getAttendanceStatusBadgeClass(status) {
   if (status === 'H') return 'orange';
   if (status === 'WO') return 'grey';
   if (status === 'NS') return 'red';
+  if (status === 'A') return 'red';
   return 'grey';
 }
 
@@ -5080,6 +5081,10 @@ function validateAttendanceForDate(dateStr) {
       return;
     }
     var statusMeta = getAttendanceStatusMeta(emp, dateStr);
+    if (statusMeta.status === 'NS') {
+      statusMeta.status = 'A';
+      statusMeta.remarks = 'Absent';
+    }
     var before = getAttendanceRecord(emp.id, dateStr);
     var beforeStatus = before ? before.attendanceStatus : '';
     var beforeRemarks = before ? before.remarks : '';
@@ -5095,18 +5100,13 @@ function validateAttendanceForDate(dateStr) {
     attendance.attendanceStatus = statusMeta.status;
     attendance.remarks = statusMeta.remarks;
     if (statusMeta.status !== 'P') attendance.loginTime = '';
-    if (statusMeta.status === 'NS') {
+    if (statusMeta.status === 'A') {
       if (emp.accountStatus !== 'BLOCKED' || emp.blockedDate !== dateStr || emp.blockedReason !== 'Attendance Not Submitted') {
         emp.accountStatus = 'BLOCKED';
         emp.blockedDate = dateStr;
         emp.blockedReason = 'Attendance Not Submitted';
         changed = true;
       }
-    } else if (emp.accountStatus === 'BLOCKED' && emp.blockedReason === 'Attendance Not Submitted') {
-      emp.accountStatus = 'ACTIVE';
-      emp.blockedDate = '';
-      emp.blockedReason = '';
-      changed = true;
     }
   });
   return changed;

@@ -550,6 +550,10 @@ async function initSupabaseData(isSilent) {
     if (scrLogin) scrLogin.style.display = 'block';
     return;
   }
+  
+  // Re-initialize Supabase client with current session headers
+  initSupabaseClient();
+
   if (isLoadingData) {
     console.log("initSupabaseData ignored because load is already in progress.");
     return;

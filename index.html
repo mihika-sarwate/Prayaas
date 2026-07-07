@@ -5524,11 +5524,13 @@ function populateJFWManagers(){
     
     var eIdUpper = String(e.id).trim().toUpperCase();
     var eNameLower = String(e.name || '').trim().toLowerCase();
+    var eManagerUpper = String(e.managerId || '').trim().toUpperCase();
     var isJayashree = eNameLower.includes('jayashree');
     var isPankaj = eNameLower.includes('pankaj');
     var isMilind = eNameLower.includes('milind');
+    var isPeer = myManagerIdUpper && eManagerUpper === myManagerIdUpper;
     
-    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isJayashree || isPankaj || isMilind;
+    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isJayashree || isPankaj || isMilind || isPeer;
   });
 
   var uniqueChain = [];

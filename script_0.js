@@ -1268,7 +1268,9 @@ async function initSupabaseData(isSilent) {
     if (SESSION.user) {
       var freshUser = DB.employees.find(function(e) { return String(e.id || '').trim().toUpperCase() === String(SESSION.user.id || '').trim().toUpperCase(); });
       if (freshUser) {
+        var currentPwd = SESSION.user.pwd;
         SESSION.user = freshUser;
+        SESSION.user.pwd = currentPwd;
         localStorage.setItem('adonis_session', JSON.stringify(SESSION));
       }
 
@@ -2925,7 +2927,11 @@ function restoreSessionWhenReady() {
     var freshEmp = DB.employees && DB.employees.find(function(e) {
       return String(e.id || '').trim().toUpperCase() === String(SESSION.user.id || '').trim().toUpperCase();
     });
-    if (freshEmp) SESSION.user = freshEmp;
+    if (freshEmp) {
+      var currentPwd = SESSION.user.pwd;
+      SESSION.user = freshEmp;
+      SESSION.user.pwd = currentPwd;
+    }
 
     document.getElementById('scr-login').style.display = 'none';
     if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {

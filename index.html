@@ -6983,33 +6983,32 @@ function batchUnblockEmployees(empIds) {
     emp.blockedDate = '';
     emp.blockedReason = '';
     _pendingLocalEmpIds.add(String(emp.id).toUpperCase());
-    if (oldBlockedDate) {
-      var cursor = oldBlockedDate;
-      var today = getTodayDateString();
-      var safety = 0;
-      while (cursor <= today && safety < 100) {
-        safety++;
-        var existing = getAttendanceRecord(emp.id, cursor);
-        if (!existing || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
-          var attRecord = upsertAttendanceRecord({
-            employeeId: emp.id,
-            date: cursor,
-            loginTime: '',
-            attendanceStatus: 'P',
-            remarks: 'Present (Manually Unblocked by Admin)'
-          });
-          attendanceRowsToUpsert.push({
-            id: attRecord.id,
-            employee_id: attRecord.employeeId,
-            date: formatDateForPostgres(attRecord.date) || attRecord.date,
-            login_time: attRecord.loginTime || null,
-            attendance_status: attRecord.attendanceStatus || '',
-            remarks: attRecord.remarks || null,
-            created_at: attRecord.createdAt || null
-          });
-        }
-        cursor = offsetDate(cursor, 1);
+    var today = getTodayDateString();
+    var start = offsetDate(today, -30);
+    var cursor = start;
+    var safety = 0;
+    while (cursor <= today && safety < 100) {
+      safety++;
+      var existing = getAttendanceRecord(emp.id, cursor);
+      if (!existing || existing.attendanceStatus === 'A' || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
+        var attRecord = upsertAttendanceRecord({
+          employeeId: emp.id,
+          date: cursor,
+          loginTime: '',
+          attendanceStatus: 'P',
+          remarks: 'Present (Manually Unblocked by Admin)'
+        });
+        attendanceRowsToUpsert.push({
+          id: attRecord.id,
+          employee_id: attRecord.employeeId,
+          date: formatDateForPostgres(attRecord.date) || attRecord.date,
+          login_time: attRecord.loginTime || null,
+          attendance_status: attRecord.attendanceStatus || '',
+          remarks: attRecord.remarks || null,
+          created_at: attRecord.createdAt || null
+        });
       }
+      cursor = offsetDate(cursor, 1);
     }
   });
   idb.set('adonis_db', DB);
@@ -9898,15 +9897,16 @@ function setEmployeeAccountStatus(empId, status, preventModalOpen) {
     emp.blockedReason = '';
   }
 
-  if (status === 'ACTIVE' && oldBlockedDate) {
-    var cursor = oldBlockedDate;
+  if (status === 'ACTIVE') {
     var today = getTodayDateString();
+    var start = offsetDate(today, -30);
+    var cursor = start;
     var safety = 0;
     var recordsToUpsert = [];
     while (cursor <= today && safety < 100) {
       safety++;
       var existing = getAttendanceRecord(emp.id, cursor);
-      if (!existing || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
+      if (!existing || existing.attendanceStatus === 'A' || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
         var attRecord = upsertAttendanceRecord({
           employeeId: emp.id,
           date: cursor,

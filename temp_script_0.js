@@ -8056,15 +8056,16 @@ function setEmployeeAccountStatus(empId, status, preventModalOpen) {
     emp.blockedReason = '';
   }
 
-  if (status === 'ACTIVE' && oldBlockedDate) {
-    var cursor = oldBlockedDate;
+  if (status === 'ACTIVE') {
     var today = getTodayDateString();
+    var start = offsetDate(today, -30);
+    var cursor = start;
     var safety = 0;
     var recordsToUpsert = [];
     while (cursor <= today && safety < 100) {
       safety++;
       var existing = getAttendanceRecord(emp.id, cursor);
-      if (!existing || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
+      if (!existing || existing.attendanceStatus === 'A' || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
         var attRecord = upsertAttendanceRecord({
           employeeId: emp.id,
           date: cursor,

@@ -4562,7 +4562,7 @@ function doLogin(){
       var emp = {
         id: res.data.id,
         name: res.data.name,
-        pwd: res.data.pwd,
+        pwd: pwd,
         area: res.data.area || '',
         role: (res.data.role || 'emp').trim().toLowerCase(),
         managerId: res.data.manager_id || '',

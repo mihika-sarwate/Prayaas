@@ -5514,9 +5514,12 @@ function populateJFWManagers(){
     if (myLevel === 99) return true; 
     
     var eIdUpper = String(e.id).trim().toUpperCase();
-    var isJayashree = String(e.name || '').trim().toLowerCase().includes('jayashree');
+    var eNameLower = String(e.name || '').trim().toLowerCase();
+    var isJayashree = eNameLower.includes('jayashree');
+    var isPankaj = eNameLower.includes('pankaj');
+    var isMilind = eNameLower.includes('milind');
     
-    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isJayashree;
+    return myManagerChainIds.includes(eIdUpper) || subs.includes(eIdUpper) || isJayashree || isPankaj || isMilind;
   });
 
   var uniqueChain = [];
@@ -5587,10 +5590,11 @@ function getAllSubordinateIds(managerId) {
   while (toCheck.length > 0) {
     let currentId = toCheck.pop();
     subIds.add(currentId);
-    DB.employees.forEach(emp => {
+    (DB.employees || []).forEach(emp => {
       if (!emp || !emp.id) return;
       var empIdUpper = String(emp.id).trim().toUpperCase();
-      var mId = String(emp.managerId || '').trim().toUpperCase();
+      var resolvedMgrId = resolveManagerId(emp.managerId);
+      var mId = resolvedMgrId ? String(resolvedMgrId).toUpperCase() : String(emp.managerId || '').trim().toUpperCase();
       if (mId === currentId && !subIds.has(empIdUpper)) {
         toCheck.push(empIdUpper);
       }
@@ -8661,7 +8665,7 @@ function renderAdminDashTeamList(){
   var tbody=document.getElementById('adm-dash-team-body');
   var u=SESSION.user;
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
-  var team=DB.employees.filter(function(e){return e.role==='emp' && (!teamIds || teamIds.includes(e.id));});
+  var team=DB.employees.filter(function(e){return e.id !== u.id && e.role!=='admin' && (!teamIds || teamIds.includes(e.id));});
   
   tbody.innerHTML=team.map(function(e){
     var reportsCount=DB.reports.filter(function(r){return r.empId===e.id;}).length;
@@ -10213,8 +10217,10 @@ function addDoctorManual(){
   document.getElementById('md-address').value='';
   document.getElementById('md-phone').value='';
   
+  var u = SESSION.user || {};
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var sel=document.getElementById('md-assign');
-  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id));}).map(function(e){
     return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
   }).join('');
   
@@ -10242,8 +10248,10 @@ function editDoctor(id){
   document.getElementById('md-phone').value=doc.phone;
   document.getElementById('md-status').value=doc.status||'Active';
   
+  var u = SESSION.user || {};
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var sel=document.getElementById('md-assign');
-  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id));}).map(function(e){
     return '<option value="'+e.id+'" '+(e.id===doc.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
   }).join('');
   
@@ -11020,8 +11028,10 @@ function addChemistManual(){
   document.getElementById('mc-area').value='';
   document.getElementById('mc-state').value='';
   
+  var u = SESSION.user || {};
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var sel=document.getElementById('mc-assign');
-  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id));}).map(function(e){
     return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
   }).join('');
   
@@ -11039,8 +11049,10 @@ function editChemist(id){
   document.getElementById('mc-area').value=chem.area;
   document.getElementById('mc-state').value=chem.state||'';
   
+  var u = SESSION.user || {};
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var sel=document.getElementById('mc-assign');
-  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+  sel.innerHTML='<option value="">-- Unassigned --</option>'+DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id));}).map(function(e){
     return '<option value="'+e.id+'" '+(e.id===chem.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
   }).join('');
   
@@ -11428,8 +11440,10 @@ function addStockistManual() {
   document.getElementById('ms-area').value = '';
   document.getElementById('ms-state').value = '';
   
+  var u = SESSION.user || {};
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var sel = document.getElementById('ms-assign');
-  sel.innerHTML = '<option value="">-- Assign MR --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+  sel.innerHTML = '<option value="">-- Assign MR --</option>' + DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id));}).map(function(e){
     return '<option value="'+e.id+'">'+e.name+' ('+e.id+')</option>';
   }).join('');
   
@@ -11448,8 +11462,10 @@ function editStockist(id) {
   document.getElementById('ms-area').value = stockist.area;
   document.getElementById('ms-state').value = stockist.state||'';
   
+  var u = SESSION.user || {};
+  var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var sel = document.getElementById('ms-assign');
-  sel.innerHTML = '<option value="">-- Unassigned --</option>' + DB.employees.filter(function(e){return e.role==='emp';}).map(function(e){
+  sel.innerHTML = '<option value="">-- Unassigned --</option>' + DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id));}).map(function(e){
     return '<option value="'+e.id+'" '+(e.id===stockist.assignTo?'selected':'')+'>'+e.name+' ('+e.id+')</option>';
   }).join('');
   
@@ -13444,7 +13460,7 @@ function runMISReport(){
     
   } else if(currentReportType==='call_avg'){
     thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Total Doctor Calls</th><th>Working Days Checked</th><th>Call Average / Day</th></tr>';
-    var team=DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
+    var team=DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id)) && (!empId||e.id===empId);});
     team.forEach(function(e){
       var empsReps = DB.reports.filter(function(r){
         return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
@@ -13464,6 +13480,7 @@ function runMISReport(){
     thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>State</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
     var myTPs=DB.tourPlans.filter(function(tp){
       var statusUpper = String(tp.status || '').toUpperCase();
+      if(teamIds && !teamIds.includes(tp.empId)) return false;
       return (statusUpper==='APPROVED' || statusUpper==='SUBMITTED') && (!empId||String(tp.empId || '').toUpperCase()===String(empId).toUpperCase());
     });
     myTPs.forEach(function(tp){
@@ -13490,7 +13507,17 @@ function runMISReport(){
     
   } else if(currentReportType==='visit_freq'){
     thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>MR State</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
-    DB.doctors.filter(function(d){return !empId||d.assignTo===empId;}).forEach(function(d){
+    DB.doctors.filter(function(d){
+      var rawAssign = String(d.assignTo || '').toUpperCase();
+      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
+      var assignedList = cleanAssign.split(',');
+      if (teamIds) {
+        var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+        var match = assignedList.some(function(a){ return teamIdsUpper.includes(a); });
+        if (!match) return false;
+      }
+      return !empId || assignedList.includes(String(empId).toUpperCase().replace(/[^A-Z0-9]/g, ''));
+    }).forEach(function(d){
       var visits = DB.reports.filter(function(r){
         return r.targetType==='Doctor' && r.docId===d.id && (!from||r.date>=from) && (!to||r.date<=to);
       });
@@ -13502,7 +13529,7 @@ function runMISReport(){
     
   } else if(currentReportType==='plan_vs_act'){
     thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Planned Doctor Calls</th><th>Actual Doctor Calls</th><th>Planned Chemist Calls</th><th>Actual Chemist Calls</th></tr>';
-    DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);}).forEach(function(e){
+    DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id)) && (!empId||e.id===empId);}).forEach(function(e){
       var plannedDocs = 0;
       var plannedChems = 0;
       var state = e.state || 'N/A';
@@ -13542,9 +13569,9 @@ function runMISReport(){
     
   } else if(currentReportType==='mgr_accomp'){
     thead.innerHTML='<tr><th>Manager Name</th><th>MR Employee</th><th>MR State</th><th>Coaching &amp; Accompanist Days</th></tr>';
-    var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN';});
+    var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN' && (!teamIds || teamIds.includes(e.id));});
     managers.forEach(function(m){
-      DB.employees.filter(function(e){return e.role==='emp' && resolveManagerId(e.managerId)===m.id && (!empId||e.id===empId);}).forEach(function(mr){
+      DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id)) && resolveManagerId(e.managerId)===m.id && (!empId||e.id===empId);}).forEach(function(mr){
         var accompDays=DB.reports.filter(function(r){
           return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
         }).length;
@@ -13556,7 +13583,7 @@ function runMISReport(){
     
   } else if(currentReportType==='samples_util'){
     thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
-    var empsToProcess = DB.employees.filter(function(e){ return e.role === 'emp' && (!empId || e.id === empId); });
+    var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
     
     empsToProcess.forEach(function(e) {
       var state = e.state || 'N/A';
@@ -13591,7 +13618,7 @@ function runMISReport(){
     
   } else if(currentReportType==='gifts_util'){
     thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
-    var empsToProcess = DB.employees.filter(function(e){ return e.role === 'emp' && (!empId || e.id === empId); });
+    var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
     
     empsToProcess.forEach(function(e) {
       var state = e.state || 'N/A';
@@ -13628,6 +13655,7 @@ function runMISReport(){
     currentMISTableType='expenses';
     thead.innerHTML='<tr><th>Employee</th><th>State</th><th>Month</th><th>Approved Claims (&#x20B9;)</th><th>Receipt Upload</th><th>Status</th><th>Actions</th></tr>';
     var claims=DB.expenses.filter(function(ex){
+      if(teamIds && !teamIds.includes(ex.empId)) return false;
       if(empId&&ex.empId!==empId)return false;
       return true;
     });
@@ -13640,7 +13668,7 @@ function runMISReport(){
     
   } else if(currentReportType==='leaves_rep'){
     thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>CL Balance</th><th>SL Balance</th><th>EL Balance</th><th>LWP Used</th></tr>';
-    var emps = DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
+    var emps = DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id)) && (!empId||e.id===empId);});
     currentMISData=emps.map(function(e){
       var state = e.state || 'N/A';
       return [e.id, e.name, state, e.leaves.CL - e.leaves.CL_used, e.leaves.SL - e.leaves.SL_used, e.leaves.EL - e.leaves.EL_used, e.leaves.LWP_used];
@@ -13648,7 +13676,7 @@ function runMISReport(){
     
   } else if(currentReportType==='doc_coverage'){
     thead.innerHTML='<tr><th>MR ID</th><th>MR Name</th><th>State</th><th>Total Active Doctors</th><th>Visited Doctors</th><th>Doctors Not Visited</th><th>Coverage Rate %</th></tr>';
-    var mrs=DB.employees.filter(function(e){return e.role==='emp' && (!empId||e.id===empId);});
+    var mrs=DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id)) && (!empId||e.id===empId);});
     mrs.forEach(function(e){
       var assigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
       var visitedIds=[];

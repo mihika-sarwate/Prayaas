@@ -4543,8 +4543,7 @@ function doLogin(){
   if (useSupabase && supabaseUrl && supabaseKey) {
     showToast('Authenticating with server...');
     var lib = supabaseLib || window.supabase;
-    var tempSupabase = lib.createClient(supabaseUrl, supabaseKey, {
-      global: {
+    var tempSupabase = lib.createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false }, global: {
         headers: {
           'x-employee-id': id,
           'x-employee-password': pwd

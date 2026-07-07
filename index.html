@@ -4498,10 +4498,10 @@ function restoreSessionWhenReady() {
       if(SESSION.user.role !== 'admin'){
         document.getElementById('adm-sfc-section').style.display = 'none';
       }
-      initAdminApp();
+      initAdminApp(SESSION.user);
     } else {
       document.getElementById('scr-emp').classList.add('on');
-      initEmpApp();
+      initEmpApp(SESSION.user);
     }
   }
 }
@@ -4613,7 +4613,7 @@ function doLogin(){
       document.getElementById('scr-login').style.display = 'none';
       if (emp.role === 'emp') {
         document.getElementById('scr-emp').classList.add('on');
-        initEmpApp();
+        initEmpApp(emp);
       } else {
         document.getElementById('scr-admin').classList.add('on');
         document.getElementById('adm-panel-title').textContent = (emp.role === 'admin' ? 'Admin Panel' : 'Manager Panel') + ' - ' + emp.name;
@@ -4623,7 +4623,7 @@ function doLogin(){
         } else {
           document.getElementById('adm-sfc-section').style.display = '';
         }
-        initAdminApp();
+        initAdminApp(emp);
       }
     }).catch(function(err) {
       console.error("Login exception:", err);
@@ -4653,7 +4653,7 @@ function doLogin(){
     document.getElementById('scr-login').style.display = 'none';
     if (emp.role === 'emp') {
       document.getElementById('scr-emp').classList.add('on');
-      initEmpApp();
+      initEmpApp(emp);
     } else {
       document.getElementById('scr-admin').classList.add('on');
       document.getElementById('adm-panel-title').textContent = (emp.role === 'admin' ? 'Admin Panel' : 'Manager Panel') + ' - ' + emp.name;
@@ -4663,7 +4663,7 @@ function doLogin(){
       } else {
         document.getElementById('adm-sfc-section').style.display = '';
       }
-      initAdminApp();
+      initAdminApp(emp);
     }
   }
 }
@@ -4725,9 +4725,9 @@ function doLogout(){
 }
 
 // ===== EMPLOYEE / MR PORTAL FUNCTIONS =====
-function initEmpApp(){
-  var u=SESSION.user;
-  document.getElementById('emp-greeting').textContent='Welcome, '+u.name+' ('+u.id+')';
+function initEmpApp(userObj){
+  var u = userObj || SESSION.user || {};
+  document.getElementById('emp-greeting').textContent='Welcome, '+(u.name||'')+' ('+(u.id||'')+')';
   
   var isBroadcaster = canSendAnnouncement(u);
   var bcBtn = document.getElementById('nb-announcements');
@@ -8492,12 +8492,13 @@ function goMasterSubTab(id) {
   else if (id === 'holiday') renderHolidayTable();
 }
 
-function initAdminApp(){
-  document.body.classList.toggle('is-admin', SESSION.user.role === 'admin');
+function initAdminApp(userObj){
+  var user = userObj || SESSION.user || {};
+  document.body.classList.toggle('is-admin', user.role === 'admin');
   var attendanceTab = document.getElementById('tab-adm-attendance');
-  if (attendanceTab) attendanceTab.style.display = SESSION.user.role === 'admin' ? 'block' : 'none';
+  if (attendanceTab) attendanceTab.style.display = user.role === 'admin' ? 'block' : 'none';
   
-  var isBroadcaster = canSendAnnouncement(SESSION.user);
+  var isBroadcaster = canSendAnnouncement(user);
   var bcTab = document.getElementById('tab-adm-announcements');
   if (bcTab) bcTab.style.display = isBroadcaster ? 'block' : 'none';
 

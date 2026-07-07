@@ -5426,7 +5426,6 @@ function updateSelectedBlockedCount() {
 function batchUnblockEmployees(empIds) {
   if (!empIds || !empIds.length) return;
   ensureAttendanceArrays();
-  var employeeRowsToUpsert = [];
   var attendanceRowsToUpsert = [];
   empIds.forEach(function(empId) {
     var emp = DB.employees.find(function(e) { return e && e.id === empId; });
@@ -5436,22 +5435,6 @@ function batchUnblockEmployees(empIds) {
     emp.blockedDate = '';
     emp.blockedReason = '';
     _pendingLocalEmpIds.add(String(emp.id).toUpperCase());
-    employeeRowsToUpsert.push({
-      id: emp.id,
-      account_status: 'ACTIVE',
-      blocked_date: null,
-      blocked_reason: null,
-      status: normalizeEmployeeStatus(emp.status),
-      name: emp.name,
-      pwd: emp.pwd,
-      area: emp.area || '',
-      role: emp.role || 'emp',
-      manager_id: emp.managerId || null,
-      state: emp.state || null,
-      designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role),
-      doj: formatDateForPostgres(emp.doj) || null,
-      leaves: Object.assign({}, parseJSONField(emp.leaves), { _designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role), _allowedPastDates: emp.allowedPastDates || [] })
-    });
     if (oldBlockedDate) {
       var cursor = oldBlockedDate;
       var today = getTodayDateString();
@@ -5484,13 +5467,18 @@ function batchUnblockEmployees(empIds) {
   idb.set('adonis_db', DB);
   try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
   if (useSupabase && supabase) {
-    if (employeeRowsToUpsert.length > 0) {
-      supabase.from('employees').upsert(employeeRowsToUpsert, { onConflict: 'id' }).then(function(res) {
-        if (res && res.error) console.error('Error batch unblocking employees:', res.error);
-        else {
-          employeeRowsToUpsert.forEach(row => _pendingLocalEmpIds.delete(String(row.id).toUpperCase()));
-        }
-      });
+    if (empIds.length > 0) {
+      supabase.from('employees')
+        .update({ account_status: 'ACTIVE', blocked_date: null, blocked_reason: null })
+        .in('id', empIds)
+        .then(function(res) {
+          if (res && res.error) {
+            console.error('Error batch unblocking employees:', res.error);
+          } else {
+            console.log('Batch unblocked employees in Supabase successfully.');
+            empIds.forEach(id => _pendingLocalEmpIds.delete(String(id).toUpperCase()));
+          }
+        });
     }
     if (attendanceRowsToUpsert.length > 0) {
       supabase.from('attendance').upsert(attendanceRowsToUpsert, { onConflict: 'id' }).then(function(res) {

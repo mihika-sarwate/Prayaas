@@ -3802,7 +3802,9 @@ function clearLocalAssignTo(entityType) {
 
     // Sync Employees
     try {
-      const dbEmps = DB.employees.map(function(e) {
+      const dbEmps = DB.employees.filter(function(e) {
+        return SESSION.user.role === 'admin' || String(e.id || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+      }).map(function(e) {
         var managerId = e.managerId || null;
         if (managerId && !DB.employees.find(function(x) { return x.id === managerId; })) {
           managerId = null;

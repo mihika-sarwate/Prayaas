@@ -2921,13 +2921,9 @@ function clearLocalAssignTo(entityType) {
     }
   }
 
-  initSupabaseData();
-
-
 var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};
 
-// Wait for data to be initialized before restoring session (Supabase may take time)
-(function restoreSessionWhenReady() {
+function restoreSessionWhenReady() {
   if (isLoadingData) {
     setTimeout(restoreSessionWhenReady, 300);
     return;
@@ -2953,7 +2949,7 @@ var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};
       initEmpApp();
     }
   }
-})();
+}
 var currentTPId=null;
 var currentExpId=null;
 var currentLeaveId=null;
@@ -13179,7 +13175,13 @@ function exportEmpReportToCSV(){
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', beautifyEmojis);
+  document.addEventListener('DOMContentLoaded', function() {
+    beautifyEmojis();
+    initSupabaseData();
+    restoreSessionWhenReady();
+  });
 } else {
   beautifyEmojis();
+  initSupabaseData();
+  restoreSessionWhenReady();
 }

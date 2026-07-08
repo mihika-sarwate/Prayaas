@@ -2224,7 +2224,7 @@ async function initSupabaseData(isSilent) {
     if (holData && holData.length > 0) {
       setHolidayDeletionFlag(false);
       setHolidayTableMissingFlag(false);
-      holidays = holData.map(h => ({ date: h.date, name: h.name, state: h.state || 'All' }));
+      holidays = holData.map(h => ({ date: h.date ? String(h.date).substring(0, 10) : null, name: h.name, state: h.state || 'All' }));
     } else {
       holidays = getHolidayDeletionFlag() ? [] : (DB.holidays || DEFAULT_DB.holidays || []);
     }
@@ -2493,7 +2493,7 @@ async function initSupabaseData(isSilent) {
             id: r.id,
             empId: r.emp_id,
             empName: r.emp_name,
-            date: r.date,
+            date: r.date ? String(r.date).substring(0, 10) : null,
             time: r.time,
             targetType: r.target_type,
             classification: r.classification,
@@ -6385,6 +6385,14 @@ function renderHomeStats(){
   var u=SESSION.user;
   var myR=DB.reports.filter(function(r){return r.empId===u.id;});
   var today=getTodayDateString();
+  
+  // Sort descending by date and time to show the most recent reports
+  myR.sort(function(a, b) {
+    var dtA = a.date + (a.time || '00:00');
+    var dtB = b.date + (b.time || '00:00');
+    return dtA < dtB ? 1 : (dtA > dtB ? -1 : 0);
+  });
+  
   var todayR=myR.filter(function(r){return r.date===today;});
   
   document.getElementById('stat-today').textContent=todayR.length;
@@ -13453,6 +13461,13 @@ function runMISReport(){
       if(to&&r.date>to)return false;
       return true;
     });
+    
+    // Sort descending by date and time
+    baseReports.sort(function(a, b) {
+      var dtA = a.date + (a.time || '00:00');
+      var dtB = b.date + (b.time || '00:00');
+      return dtA < dtB ? 1 : (dtA > dtB ? -1 : 0);
+    });
   
   currentMISData=[];
   currentMISRowIds=[];
@@ -14593,6 +14608,13 @@ function runEmpMISReport(){
       if(from&&r.date<from)return false;
       if(to&&r.date>to)return false;
       return true;
+    });
+    
+    // Sort descending by date and time
+    baseReports.sort(function(a, b) {
+      var dtA = a.date + (a.time || '00:00');
+      var dtB = b.date + (b.time || '00:00');
+      return dtA < dtB ? 1 : (dtA > dtB ? -1 : 0);
     });
   
   currentEmpMISData=[];

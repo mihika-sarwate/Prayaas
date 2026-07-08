@@ -12087,6 +12087,16 @@ function runMISReport(){
       var state = emp && emp.state ? emp.state : 'N/A';
       return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||'', '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
+  } else if(currentReportType==='meeting_rep'){
+    currentMISTableType='reports';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Work Type</th><th>Territory</th><th>City/HQ</th><th>Patch</th><th>Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
+    var meetingReps=baseReports.filter(function(r){return r.workType==='MEETING';});
+    currentMISData=meetingReps.map(function(r){
+      currentMISRowIds.push(r.id);
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var state = emp && emp.state ? emp.state : 'N/A';
+      return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||'', '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
+    });
   }
   
   if(!currentMISData.length){
@@ -13167,6 +13177,14 @@ function runEmpMISReport(){
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Work Type</th><th>Territory</th><th>City/HQ</th><th>Patch</th><th>Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th></tr>';
     var transitReps=baseReports.filter(function(r){return r.workType==='TRANSIT';});
     currentEmpMISData=transitReps.map(function(r){
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var state = emp && emp.state ? emp.state : 'N/A';
+      return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||''];
+    });
+  } else if(currentEmpReportType==='meeting_rep'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Work Type</th><th>Territory</th><th>City/HQ</th><th>Patch</th><th>Classification</th><th>Call Type</th><th>GPS Location</th><th>Remarks</th></tr>';
+    var meetingReps=baseReports.filter(function(r){return r.workType==='MEETING';});
+    currentEmpMISData=meetingReps.map(function(r){
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var state = emp && emp.state ? emp.state : 'N/A';
       return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||''];

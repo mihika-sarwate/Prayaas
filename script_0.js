@@ -3449,7 +3449,11 @@ function populateReportTerritoryDropdowns() {
   }
   var jfwMgrEl = document.getElementById('r-jfw-manager');
   if (jfwMgrEl && jfwMgrEl.value) {
-    teamIds = [jfwMgrEl.value];
+    if (teamIds) {
+      if (!teamIds.includes(jfwMgrEl.value)) teamIds.push(jfwMgrEl.value);
+    } else {
+      teamIds = [SESSION.user.id, jfwMgrEl.value];
+    }
   }
   
   var userHq = (SESSION.user.area || SESSION.user.hq || '').trim().toLowerCase();
@@ -3629,7 +3633,11 @@ function populateReportingDropdowns(){
   }
   var jfwMgrEl = document.getElementById('r-jfw-manager');
   if (jfwMgrEl && jfwMgrEl.value) {
-    teamIds = [jfwMgrEl.value];
+    if (teamIds) {
+      if (!teamIds.includes(jfwMgrEl.value)) teamIds.push(jfwMgrEl.value);
+    } else {
+      teamIds = [SESSION.user.id, jfwMgrEl.value];
+    }
   }
 
   var docSel=document.getElementById('r-doctor');

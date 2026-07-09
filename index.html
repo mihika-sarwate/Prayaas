@@ -7694,12 +7694,59 @@ async function revokePastReportAccess() {
 }
 
 
-function runAttendanceValidationNow() {
+async function runServerAttendanceValidation(dateStr, isSilent) {
+  if (!dateStr) return false;
+  try {
+    var res = await fetch('/api/attendance-midnight?date=' + encodeURIComponent(dateStr), {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      var errText = '';
+      try { errText = await res.text(); } catch (e) {}
+      throw new Error(errText || ('HTTP ' + res.status));
+    }
+    var payload = null;
+    try { payload = await res.json(); } catch (e) {}
+    if (payload && payload.ok === false) {
+      throw new Error(payload.error || 'Attendance validation failed');
+    }
+    if (typeof initSupabaseData === 'function') {
+      await initSupabaseData(true);
+    }
+    if (isSilent !== true) {
+      showToast('Attendance validation completed for ' + dateStr + '.');
+    }
+    return true;
+  } catch (err) {
+    console.warn('Server attendance validation failed, falling back to local validation:', err);
+    if (isSilent !== true) {
+      showToast('Server validation unavailable, using local fallback.');
+    }
+    return false;
+  }
+}
+
+async function reconcileYesterdayAttendanceSilently() {
+  if (!SESSION.user || SESSION.user.role !== 'admin') return;
+  var dateStr = getYesterdayDateString();
+  var key = 'adonis_attendance_server_reconcile_' + dateStr;
+  if (sessionStorage.getItem(key) === '1') return;
+  sessionStorage.setItem(key, '1');
+  await runServerAttendanceValidation(dateStr, true);
+}
+
+async function runAttendanceValidationNow() {
   if (!SESSION.user || SESSION.user.role !== 'admin') {
     showToast('403 Forbidden: Attendance is available only to administrators.');
     return;
   }
   var dateStr = getYesterdayDateString();
+  var serverOk = await runServerAttendanceValidation(dateStr, false);
+  if (serverOk) {
+    renderAttendanceDashboard();
+    renderEmpTable();
+    return;
+  }
   if (validateAttendanceForDate(dateStr)) {
     saveDB();
   }
@@ -8939,6 +8986,14 @@ function initAdminApp(userObj){
   renderAdminLeaveApprovals();
   populateAttendanceEmployeeFilter();
   renderAttendanceDashboard();
+  if (user.role === 'admin') {
+    reconcileYesterdayAttendanceSilently().then(function() {
+      renderAttendanceDashboard();
+      renderEmpTable();
+    }).catch(function(err) {
+      console.warn('Silent attendance reconciliation failed:', err);
+    });
+  }
   renderEmpTable();
   renderAdminDocList();
   renderAdminChemistList();

@@ -2525,64 +2525,7 @@ async function initSupabaseData(isSilent) {
       // Without this, the 30-second poller would wipe out newly submitted reports that
       // are still in-flight to Supabase.
       reports: (function() {
-        var cloudReports = (reports || []).map(r => {
-          var cleanRemarks = r.remarks || '';
-          var workType = 'FIELD WORK';
-          var territory = '';
-          var city = '';
-          var patch = '';
-          var isFinal = false;
-          if (cleanRemarks.indexOf('\n===METADATA===\n') !== -1) {
-            var parts = cleanRemarks.split('\n===METADATA===\n');
-            cleanRemarks = parts[0];
-            try {
-              var meta = JSON.parse(parts[1]);
-              workType = meta.workType || 'FIELD WORK';
-              territory = meta.territory || '';
-              city = meta.city || '';
-              patch = meta.patch || '';
-              isFinal = meta.isFinal === true;
-            } catch(e){}
-          }
-          return {
-            id: r.id,
-            empId: r.emp_id,
-            empName: r.emp_name,
-            date: r.date ? normalizeReportDateValue(r.date) : null,
-            time: r.time,
-            targetType: r.target_type,
-            classification: r.classification,
-            callType: r.call_type,
-            docId: r.doc_id,
-            docName: r.doc_name,
-            docSpec: r.doc_spec,
-            docArea: r.doc_area,
-            promotedProducts: r.promoted_products || [],
-            samples: parseJSONField(r.samples),
-            gifts: parseJSONField(r.gifts),
-            inputs: parseJSONField(r.inputs),
-            chemId: r.chem_id,
-            chemName: r.chem_name,
-            chemArea: r.chem_area,
-            stockId: r.stock_id,
-            stockName: r.stock_name,
-            stockArea: r.stock_area,
-            orderAmount: parseFloat(r.order_amount) || 0,
-            stockStatus: r.stock_status,
-            jfwMgrId: r.jfw_mgr_id,
-            jfwMgrName: r.jfw_mgr_name,
-            jfwRemarks: r.jfw_remarks,
-            lat: r.lat,
-            lng: r.lng,
-            remarks: cleanRemarks,
-            workType: workType,
-            territory: territory,
-            city: city,
-            patch: patch,
-            isFinal: isFinal,
-            nextVisit: r.next_visit ? normalizeReportDateValue(r.next_visit) : null
-          };
-        });
+        var cloudReports = (reports || []).map(mapSupabaseReportRow);
         // Keep any locally pending reports not yet confirmed in cloud
         if (_pendingLocalReportIds.size > 0 && typeof DB !== 'undefined' && DB && Array.isArray(DB.reports)) {
           var cloudIds = new Set(cloudReports.map(function(r) { return String(r.id); }));
@@ -6698,6 +6641,93 @@ function getReportScopeEmployeeIds(user, includeSelf) {
   ids = ids.slice();
   if (includeSelf !== false && user.id && !ids.includes(user.id)) ids.push(user.id);
   return ids;
+}
+
+function mapSupabaseReportRow(r) {
+  var cleanRemarks = r.remarks || '';
+  var workType = 'FIELD WORK';
+  var territory = '';
+  var city = '';
+  var patch = '';
+  var isFinal = false;
+  if (cleanRemarks.indexOf('\n===METADATA===\n') !== -1) {
+    var parts = cleanRemarks.split('\n===METADATA===\n');
+    cleanRemarks = parts[0];
+    try {
+      var meta = JSON.parse(parts[1]);
+      workType = meta.workType || 'FIELD WORK';
+      territory = meta.territory || '';
+      city = meta.city || '';
+      patch = meta.patch || '';
+      isFinal = meta.isFinal === true;
+    } catch(e){}
+  }
+  return {
+    id: r.id,
+    empId: r.emp_id,
+    empName: r.emp_name,
+    date: r.date ? normalizeReportDateValue(r.date) : null,
+    time: r.time,
+    targetType: r.target_type,
+    classification: r.classification,
+    callType: r.call_type,
+    docId: r.doc_id,
+    docName: r.doc_name,
+    docSpec: r.doc_spec,
+    docArea: r.doc_area,
+    promotedProducts: r.promoted_products || [],
+    samples: parseJSONField(r.samples),
+    gifts: parseJSONField(r.gifts),
+    inputs: parseJSONField(r.inputs),
+    chemId: r.chem_id,
+    chemName: r.chem_name,
+    chemArea: r.chem_area,
+    stockId: r.stock_id,
+    stockName: r.stock_name,
+    stockArea: r.stock_area,
+    orderAmount: parseFloat(r.order_amount) || 0,
+    stockStatus: r.stock_status,
+    jfwMgrId: r.jfw_mgr_id,
+    jfwMgrName: r.jfw_mgr_name,
+    jfwRemarks: r.jfw_remarks,
+    lat: r.lat,
+    lng: r.lng,
+    remarks: cleanRemarks,
+    workType: workType,
+    territory: territory,
+    city: city,
+    patch: patch,
+    isFinal: isFinal,
+    nextVisit: r.next_visit ? normalizeReportDateValue(r.next_visit) : null
+  };
+}
+
+async function fetchReportsForMIS(empIds, from, to) {
+  if (!useSupabase || !supabase) return null;
+  var normalizedIds = Array.isArray(empIds) ? empIds.filter(Boolean) : [];
+  var fromDate = from ? (formatDateForPostgres(from) || from) : null;
+  var toDate = to ? (formatDateForPostgres(to) || to) : null;
+  var allRows = [];
+  var page = 0;
+  var pageSize = 1000;
+  while (true) {
+    var query = supabase.from('reports').select(REPORTS_SELECT_CLAUSE);
+    if (normalizedIds.length === 1) {
+      query = query.eq('emp_id', normalizedIds[0]);
+    } else if (normalizedIds.length > 1) {
+      query = query.in('emp_id', normalizedIds);
+    }
+    if (fromDate) query = query.gte('date', fromDate);
+    if (toDate) query = query.lte('date', toDate);
+    query = query.order('date', { ascending: false }).order('time', { ascending: false }).range(page * pageSize, (page + 1) * pageSize - 1);
+    var res = await query;
+    if (res.error) throw res.error;
+    var rows = res.data || [];
+    allRows = allRows.concat(rows);
+    if (rows.length < pageSize) break;
+    page++;
+  }
+  return allRows.map(mapSupabaseReportRow);
 }
 
 function getISTDateObj(dateObj) {
@@ -13616,7 +13646,7 @@ function updateReportHeadersAndFilters(){
   tbody.innerHTML='<tr><td class="empty">Click "Run Query" to fetch data</td></tr>';
 }
 
-function runMISReport(){
+async function runMISReport(){
     var empId=document.getElementById('rep-filter-emp').value;
     var from=normalizeReportDateValue(document.getElementById('rep-from').value);
     var to=normalizeReportDateValue(document.getElementById('rep-to').value);
@@ -13625,15 +13655,25 @@ function runMISReport(){
     var tbody=document.getElementById('mis-report-tbody');
     var u=SESSION.user;
     var teamIds = getReportScopeEmployeeIds(u, true);
+    var scopeIds = empId ? [empId] : teamIds;
     
     // Filter base calls reports
-    var baseReports=DB.reports.filter(function(r){
-      if(teamIds && !teamIds.includes(r.empId)) return false;
-      if(empId&&r.empId!==empId)return false;
-      if(from&&r.date<from)return false;
-      if(to&&r.date>to)return false;
-      return true;
-    });
+    var baseReports = null;
+    try {
+      var freshReports = await fetchReportsForMIS(scopeIds, from, to);
+      if (Array.isArray(freshReports)) baseReports = freshReports;
+    } catch (misFetchErr) {
+      console.warn('MIS live report fetch failed, falling back to local cache:', misFetchErr);
+    }
+    if (!Array.isArray(baseReports)) {
+      baseReports=DB.reports.filter(function(r){
+        if(teamIds && !teamIds.includes(r.empId)) return false;
+        if(empId&&r.empId!==empId)return false;
+        if(from&&r.date<from)return false;
+        if(to&&r.date>to)return false;
+        return true;
+      });
+    }
     
     // Sort descending by date and time
     baseReports.sort(function(a, b) {
@@ -13651,6 +13691,12 @@ function runMISReport(){
     currentMISTableType='reports';
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
+    if (docCalls.length === 0 && baseReports.length > 0) {
+      tbody.innerHTML = '<tr><td colspan="15" class="empty">No doctor call reports match this filter. Other report types exist for this employee/date range. Try the Chemist report.</td></tr>';
+      currentMISData = [];
+      currentMISRowIds = [];
+      return;
+    }
     currentMISData=docCalls.map(function(r){
       currentMISRowIds.push(r.id);
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
@@ -13670,6 +13716,12 @@ function runMISReport(){
     currentMISTableType='reports';
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th><th>Actions</th></tr>';
     var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
+    if (chemCalls.length === 0 && baseReports.length > 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="empty">No chemist call reports match this filter. Other report types exist for this employee/date range. Try the Doctor report.</td></tr>';
+      currentMISData = [];
+      currentMISRowIds = [];
+      return;
+    }
     currentMISData=chemCalls.map(function(r){
       currentMISRowIds.push(r.id);
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
@@ -14767,7 +14819,7 @@ function updateEmpReportHeadersAndFilters(){
   tbody.innerHTML='<tr><td class="empty">Click "Run Query" to fetch data</td></tr>';
 }
 
-function runEmpMISReport(){
+async function runEmpMISReport(){
     var empId=SESSION.user.id;
     var from=normalizeReportDateValue(document.getElementById('emp-rep-from').value);
     var to=normalizeReportDateValue(document.getElementById('emp-rep-to').value);
@@ -14776,12 +14828,21 @@ function runEmpMISReport(){
     var tbody=document.getElementById('emp-mis-report-tbody');
     
     // Filter base calls reports for this specific employee
-    var baseReports=DB.reports.filter(function(r){
-      if(r.empId!==empId)return false;
-      if(from&&r.date<from)return false;
-      if(to&&r.date>to)return false;
-      return true;
-    });
+    var baseReports = null;
+    try {
+      var freshReports = await fetchReportsForMIS([empId], from, to);
+      if (Array.isArray(freshReports)) baseReports = freshReports;
+    } catch (empMisFetchErr) {
+      console.warn('Employee MIS live report fetch failed, falling back to local cache:', empMisFetchErr);
+    }
+    if (!Array.isArray(baseReports)) {
+      baseReports=DB.reports.filter(function(r){
+        if(r.empId!==empId)return false;
+        if(from&&r.date<from)return false;
+        if(to&&r.date>to)return false;
+        return true;
+      });
+    }
     
     // Sort descending by date and time
     baseReports.sort(function(a, b) {
@@ -14795,6 +14856,11 @@ function runEmpMISReport(){
   if(currentEmpReportType==='doc_calls'){
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
+    if (docCalls.length === 0 && baseReports.length > 0) {
+      tbody.innerHTML = '<tr><td colspan="14" class="empty">No doctor call reports match this filter. Other report types exist for this date range. Try the Chemist report.</td></tr>';
+      currentEmpMISData = [];
+      return;
+    }
     currentEmpMISData=docCalls.map(function(r){
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var hq = emp && emp.area ? emp.area : 'N/A';
@@ -14812,6 +14878,11 @@ function runEmpMISReport(){
   } else if(currentEmpReportType==='chem_calls'){
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th></tr>';
     var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
+    if (chemCalls.length === 0 && baseReports.length > 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">No chemist call reports match this filter. Other report types exist for this date range. Try the Doctor report.</td></tr>';
+      currentEmpMISData = [];
+      return;
+    }
     currentEmpMISData=chemCalls.map(function(r){
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var state = emp && emp.state ? emp.state : 'N/A';

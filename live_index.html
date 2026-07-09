@@ -4107,7 +4107,8 @@ function normalizeHolidayKey(row) {
 }
 
 async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn, options) {
-  var isPruningAllowed = SESSION && SESSION.user && SESSION.user.role === 'admin';
+  if (_missingSupabaseTables[table]) return; // Skip for known-missing tables
+  var isPruningAllowed = false; // Disabled to prevent accidental data loss on partial syncs
   try {
     const remoteRows = await fetchAllFromSupabase(table, options);
     const localKeys = new Set((localRows || []).map(localKeyFn));

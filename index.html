@@ -841,7 +841,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="hdr-sub">Adonis Laboratories</div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="hdr-badge" style="background:#0284c7;color:white" onclick="openChangePasswordModal()">Change Password</button>
+        <button class="hdr-badge admin-only" style="background:#0284c7;color:white" onclick="openChangePasswordModal()">Change Password</button>
         <button class="hdr-badge" onclick="doLogout()">Logout</button>
       </div>
     </div>
@@ -1334,8 +1334,8 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
           <span id="rep-table-title">Query Results</span>
           <div id="mis-delete-actions" style="display:none; gap:10px;">
-            <button class="btn danger sm" onclick="deleteSelectedMISRecords()">Delete Selected</button>
-            <button class="btn danger outline sm" onclick="deleteAllFilteredMISRecords()">Delete All Filtered</button>
+            <button class="btn danger sm admin-only" onclick="deleteSelectedMISRecords()">Delete Selected</button>
+            <button class="btn danger outline sm admin-only" onclick="deleteAllFilteredMISRecords()">Delete All Filtered</button>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -5765,7 +5765,7 @@ function normalizeHolidayKey(row) {
 
 async function reconcileSupabaseRows(table, localRows, localKeyFn, deleteRowFn, options) {
   if (_missingSupabaseTables[table]) return; // Skip for known-missing tables
-  var isPruningAllowed = SESSION && SESSION.user && SESSION.user.role === 'admin';
+  var isPruningAllowed = false; // Disabled to prevent accidental data loss on partial syncs
   try {
     const remoteRows = await fetchAllFromSupabase(table, options);
     const localRowsMap = new Map();

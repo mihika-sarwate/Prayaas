@@ -4549,6 +4549,8 @@ function restoreSessionWhenReady() {
       SESSION.user.pwd = currentPwd;
     }
 
+    recordAttendanceOnSuccessfulLogin(SESSION.user);
+
     document.getElementById('scr-login').style.display = 'none';
     if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
       document.getElementById('scr-admin').classList.add('on');
@@ -4667,6 +4669,8 @@ function doLogin(){
       hasInitializedData = false;
       isLoadingData = false; // reset flag
       await initSupabaseData(false);
+      
+      recordAttendanceOnSuccessfulLogin(emp);
       
       // Proceed with UI navigation
       document.getElementById('scr-login').style.display = 'none';
@@ -6769,7 +6773,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
         
         var existing = getAttendanceRecord(emp.id, dateStr);
         if (existing && (existing.attendanceStatus === 'P' || existing.attendanceStatus === 'A')) {
-          return { status: existing.attendanceStatus, remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
+          return { status: existing.attendanceStatus, remarks: existing.remarks || '', loginTime: existing.loginTime || '' };
         }
         
         return { status: 'NS', remarks: 'Attendance Not Submitted' };
@@ -6808,15 +6812,15 @@ function recordAttendanceOnSuccessfulLogin(emp) {
   if (!isAttendanceTrackedEmployee(emp)) return;
   var today = getTodayDateString();
   var existing = getAttendanceRecord(emp.id, today);
-  if (existing && existing.attendanceStatus === 'P') return;
+  if (existing && (existing.attendanceStatus === 'P' || existing.loginTime)) return;
   var statusMeta = getAttendanceStatusMeta(emp, today);
   if (statusMeta.status === 'NS' || statusMeta.status === 'P') {
     upsertAttendanceRecord({
       employeeId: emp.id,
       date: today,
       loginTime: getAttendanceLoginTimeValue(new Date()),
-      attendanceStatus: 'P',
-      remarks: 'Present via first successful login'
+      attendanceStatus: 'NS',
+      remarks: 'Logged in but report not submitted'
     });
     saveDB();
     return;

@@ -2410,14 +2410,14 @@ async function initSupabaseData(isSilent) {
             area: e.area || '',
             role: safeRole,
             managerId: e.manager_id || '',
-            doj: (function(d){ if(!d) return ''; var p=d.split('-'); if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; return d; })(e.doj),
+            doj: normalizeReportDateValue(e.doj) || '',
             state: e.state || '',
             status: e.status || 'Active',
             accountStatus: normalizeAccountStatus(e.account_status),
-            blockedDate: e.blocked_date || '',
+            blockedDate: normalizeReportDateValue(e.blocked_date) || '',
             blockedReason: e.blocked_reason || '',
             designation: (typeof cloudDesig !== 'undefined' && cloudDesig !== null && cloudDesig !== '') ? cloudDesig : (typeof localDesig !== 'undefined' && localDesig !== '' ? localDesig : ''),
-            allowedPastDates: parsedLeaves._allowedPastDates || [],
+            allowedPastDates: normalizeDateArray(parsedLeaves._allowedPastDates || []),
             leaves: parsedLeaves
           };
         }),
@@ -2602,11 +2602,11 @@ async function initSupabaseData(isSilent) {
         month: tp.month,
         managerId: tp.manager_id,
         managerName: tp.manager_name,
-        days: typeof tp.days === 'string' ? JSON.parse(tp.days) : (tp.days || []),
+        days: normalizeDateArray(typeof tp.days === 'string' ? JSON.parse(tp.days) : (tp.days || [])),
         status: tp.status,
         remarks: tp.remarks,
         submittedAt: tp.submitted_at,
-        approvedDate: tp.approved_date,
+        approvedDate: tp.approved_date ? normalizeReportDateValue(tp.approved_date) : null,
         approvedBy: tp.approved_by,
         revisionHistory: typeof tp.revision_history === 'string' ? JSON.parse(tp.revision_history) : (tp.revision_history || [])
       })),
@@ -2635,8 +2635,8 @@ async function initSupabaseData(isSilent) {
         empId: lv.emp_id,
         empName: lv.emp_name,
         type: lv.type,
-        start: lv.start,
-        end: lv.end,
+        start: lv.start ? normalizeReportDateValue(lv.start) : null,
+        end: lv.end ? normalizeReportDateValue(lv.end) : null,
         days: lv.days,
         reason: lv.reason,
         managerId: lv.manager_id,
@@ -2790,7 +2790,7 @@ async function initSupabaseData(isSilent) {
         return {
           id: a.id,
           employeeId: a.employee_id,
-          date: a.date,
+          date: a.date ? normalizeReportDateValue(a.date) : null,
           loginTime: a.login_time || '',
           attendanceStatus: a.attendance_status || '',
           remarks: a.remarks || '',
@@ -3019,6 +3019,9 @@ async function loadLocalDB() {
       } else {
         e.pwd = String(e.id);
       }
+      if (e.doj) e.doj = normalizeReportDateValue(e.doj);
+      if (e.blockedDate) e.blockedDate = normalizeReportDateValue(e.blockedDate);
+      if (Array.isArray(e.allowedPastDates)) e.allowedPastDates = normalizeDateArray(e.allowedPastDates);
     }
   });
   if (!Array.isArray(DB.doctors)) DB.doctors = DEFAULT_DB.doctors || [];
@@ -3029,6 +3032,11 @@ async function loadLocalDB() {
   if (!Array.isArray(DB.inputs)) DB.inputs = DEFAULT_DB.inputs || [];
   if (!Array.isArray(DB.reports)) DB.reports = DEFAULT_DB.reports || [];
   if (!Array.isArray(DB.tourPlans)) DB.tourPlans = DEFAULT_DB.tourPlans || [];
+  DB.tourPlans.forEach(function(tp) {
+    if (!tp) return;
+    if (Array.isArray(tp.days)) tp.days = normalizeDateArray(tp.days);
+    if (tp.approvedDate) tp.approvedDate = normalizeReportDateValue(tp.approvedDate);
+  });
   if (!Array.isArray(DB.expenses)) DB.expenses = DEFAULT_DB.expenses || [];
   DB.expenses.forEach(function(ex) {
     if (ex && typeof ex.lines === 'string') {
@@ -3043,12 +3051,23 @@ async function loadLocalDB() {
     }
   });
   if (!Array.isArray(DB.leaves)) DB.leaves = DEFAULT_DB.leaves || [];
+  DB.leaves.forEach(function(lv) {
+    if (!lv) return;
+    if (lv.start) lv.start = normalizeReportDateValue(lv.start);
+    if (lv.end) lv.end = normalizeReportDateValue(lv.end);
+  });
   if (!Array.isArray(DB.holidays)) DB.holidays = DEFAULT_DB.holidays || [];
+  DB.holidays.forEach(function(h) {
+    if (h && h.date) h.date = normalizeReportDateValue(h.date);
+  });
   if (!Array.isArray(DB.samplesInventory)) DB.samplesInventory = DEFAULT_DB.samplesInventory || [];
   if (!Array.isArray(DB.giftsInventory)) DB.giftsInventory = DEFAULT_DB.giftsInventory || [];
   if (!Array.isArray(DB.inputsInventory)) DB.inputsInventory = DEFAULT_DB.inputsInventory || [];
   if (!Array.isArray(DB.sfc)) DB.sfc = DEFAULT_DB.sfc || [];
   if (!Array.isArray(DB.attendance)) DB.attendance = DEFAULT_DB.attendance || [];
+  DB.attendance.forEach(function(a) {
+    if (a && a.date) a.date = normalizeReportDateValue(a.date);
+  });
   if (!Array.isArray(DB.weeklyOffConfig)) DB.weeklyOffConfig = DEFAULT_DB.weeklyOffConfig || [];
 
   // Align products list and replace any ALL CAPS or misaligned names with Title Case standard
@@ -6666,6 +6685,11 @@ function formatSupabaseDateToIST(dateStr) {
 function normalizeReportDateValue(dateStr) {
   if (!dateStr) return null;
   return formatSupabaseDateToIST(dateStr) || formatDateForPostgres(dateStr) || String(dateStr).trim();
+}
+
+function normalizeDateArray(values) {
+  if (!Array.isArray(values)) return [];
+  return values.map(function(v) { return normalizeReportDateValue(v); }).filter(Boolean);
 }
 
 function getISTDateObj(dateObj) {

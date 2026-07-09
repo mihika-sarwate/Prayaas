@@ -2277,7 +2277,7 @@ async function initSupabaseData(isSilent) {
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
-    const emps = await fetchAllFromSupabase('employees', { select: 'id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves' });
+    const emps = await fetchAllFromSupabase('employees', { select: 'id, name, pwd, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves' });
     var scopedEmpIds = getScopedEmployeeIdsForSession(emps);
     var scopedByEmployee = function(fieldName, extraOptions) {
       var opts = extraOptions ? Object.assign({}, extraOptions) : {};

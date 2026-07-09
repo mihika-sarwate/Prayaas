@@ -6931,7 +6931,7 @@ function hasCompletedFinalDCRSubmission(employeeId, dateStr) {
     return String(r.empId || '').trim().toUpperCase() === targetId &&
       (formatDateForPostgres(r.date) || r.date) === targetDate;
   });
-  return matchingReports.length > 0 && matchingReports.every(function(r) { return !!r.isFinal; });
+  return matchingReports.length > 0 && matchingReports.some(function(r) { return !!r.isFinal; });
 }
 
 function getNextISTMidnightValidationTime() {

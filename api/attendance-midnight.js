@@ -240,7 +240,7 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
   }
 
   const reports = context.reportMap.get(`${empId}|${dateStr}`) || [];
-  if (reports.length > 0 && reports.every((row) => !!row.is_final)) {
+  if (reports.length > 0 && reports.some((row) => !!row.is_final)) {
     return { status: 'P', remarks: 'Present via Final DCR Submission' };
   }
 

@@ -160,47 +160,62 @@ var isLoadingData = false;
 
 function formatDateForPostgres(dateStr) {
   if (!dateStr) return null;
-  // If it's already YYYY-MM-DD, return it
+  dateStr = String(dateStr).trim();
+  
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr;
   }
   
-  // Try to parse different formats
-  // Format: DD-MM-YY or DD-MM-YYYY or DD/MM/YY or DD/MM/YYYY
+  // Handle MMDDYYYY or DDMMYYYY (8 digits)
+  if (/^\d{8}$/.test(dateStr)) {
+    var d1 = dateStr.substring(0, 2);
+    var d2 = dateStr.substring(2, 4);
+    var d3 = dateStr.substring(4, 8);
+    
+    if (parseInt(d1, 10) > 12) {
+      return d3 + "-" + d2 + "-" + d1; // DDMMYYYY
+    } else if (parseInt(d2, 10) > 12) {
+      return d3 + "-" + d1 + "-" + d2; // MMDDYYYY
+    }
+    // Ambiguous, default to MM-DD-YYYY
+    return d3 + "-" + d1 + "-" + d2;
+  }
+  
   var parts = dateStr.split(/[-/]/);
   if (parts.length === 3) {
     var day = parts[0];
     var month = parts[1];
     var year = parts[2];
     
-    // If year is 2 digits, convert to 4 digits (e.g., 21 -> 2021)
     if (year.length === 2) {
       year = "20" + year;
     }
     
-    // Check if parts are numbers
     if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-      // Ensure month and day are 2 digits
       if (day.length === 1) day = "0" + day;
       if (month.length === 1) month = "0" + month;
       
-      // Let's assume standard order is YYYY-MM-DD or DD-MM-YYYY.
-      // If the first part is 4 digits, it's YYYY-MM-DD
       if (day.length === 4) {
         return day + "-" + month + "-" + year;
       }
       
-      // Otherwise assume it is DD-MM-YYYY
-      if (parseInt(month, 10) > 12 && parseInt(day, 10) <= 12) { var temp = month; month = day; day = temp; }
+      if (parseInt(month, 10) > 12 && parseInt(day, 10) <= 12) {
+        var temp = month;
+        month = day;
+        day = temp;
+      }
+      
       return year + "-" + month + "-" + day;
     }
   }
   
-  // Fallback to trying new Date()
   try {
     var d = new Date(dateStr);
     if (!isNaN(d.getTime())) {
-      return formatLocalDate(d);
+      var y = d.getFullYear();
+      var m = d.getMonth() + 1;
+      var dd = d.getDate();
+      return y + '-' + (m < 10 ? '0'+m : m) + '-' + (dd < 10 ? '0'+dd : dd);
     }
   } catch (e) {}
   

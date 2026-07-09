@@ -1808,6 +1808,27 @@ function normalizeAccountStatus(status) {
   return String(status || 'ACTIVE').trim().toUpperCase() === 'BLOCKED' ? 'BLOCKED' : 'ACTIVE';
 }
 
+function getEmployeeLeavesMeta(emp) {
+  var leaves = parseJSONField(emp && emp.leaves);
+  return (leaves && typeof leaves === 'object') ? leaves : {};
+}
+
+function setEmployeeAttendanceResetFrom(emp, dateStr) {
+  if (!emp) return;
+  var leavesMeta = getEmployeeLeavesMeta(emp);
+  if (dateStr) {
+    leavesMeta._attendanceResetFrom = formatDateForPostgres(dateStr) || dateStr;
+  } else {
+    delete leavesMeta._attendanceResetFrom;
+  }
+  emp.leaves = leavesMeta;
+}
+
+function getEmployeeAttendanceResetFrom(emp) {
+  var leavesMeta = getEmployeeLeavesMeta(emp);
+  return normalizeReportDateValue(leavesMeta._attendanceResetFrom || '');
+}
+
 function createSupabaseClientWithHeaders(headers, storageKey) {
   var lib = supabaseLib || window.supabase;
   if (!lib || typeof lib.createClient !== 'function') return null;
@@ -3562,7 +3583,8 @@ async function pushReportToSupabase(rep) {
       workType: rep.workType || 'FIELD WORK',
       territory: rep.territory || '',
       city: rep.city || '',
-      patch: rep.patch || ''
+      patch: rep.patch || '',
+      isFinal: rep.isFinal === true
     };
     var row = {
       id: rep.id,
@@ -7168,6 +7190,8 @@ function validateAttendanceForDate(dateStr) {
     if (normalizeEmployeeStatus(emp.status) !== 'Active') return;
     var doj = formatDateForPostgres(emp.doj) || '';
     if (doj && dateStr < doj) return;
+    var resetFrom = getEmployeeAttendanceResetFrom(emp);
+    if (resetFrom && dateStr < resetFrom) return;
     if (isExecutiveAttendanceExempt(emp)) {
       if (emp.accountStatus !== 'ACTIVE') {
         emp.accountStatus = 'ACTIVE';
@@ -7472,62 +7496,30 @@ function updateSelectedBlockedCount() {
 function batchUnblockEmployees(empIds) {
   if (!empIds || !empIds.length) return;
   ensureAttendanceArrays();
-  var attendanceRowsToUpsert = [];
   empIds.forEach(function(empId) {
     var emp = DB.employees.find(function(e) { return e && e.id === empId; });
     if (!emp) return;
-    var oldBlockedDate = emp.blockedDate;
     emp.accountStatus = 'ACTIVE';
     emp.blockedDate = '';
     emp.blockedReason = '';
+    setEmployeeAttendanceResetFrom(emp, getTodayDateString());
     _pendingLocalEmpIds.add(String(emp.id).toUpperCase());
-    var today = getTodayDateString();
-    var start = offsetDate(today, -30);
-    var cursor = start;
-    var safety = 0;
-    while (cursor < today && safety < 100) {
-      safety++;
-      var existing = getAttendanceRecord(emp.id, cursor);
-      if (!existing || existing.attendanceStatus === 'A' || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
-        var attRecord = upsertAttendanceRecord({
-          employeeId: emp.id,
-          date: cursor,
-          loginTime: '',
-          attendanceStatus: 'P',
-          remarks: 'Present (Manually Unblocked by Admin)'
-        });
-        attendanceRowsToUpsert.push({
-          id: attRecord.id,
-          employee_id: attRecord.employeeId,
-          date: formatDateForPostgres(attRecord.date) || attRecord.date,
-          login_time: attRecord.loginTime || null,
-          attendance_status: attRecord.attendanceStatus || '',
-          remarks: attRecord.remarks || null,
-          created_at: attRecord.createdAt || null
-        });
-      }
-      cursor = offsetDate(cursor, 1);
-    }
   });
   idb.set('adonis_db', DB);
   try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
   if (useSupabase && supabase) {
     if (empIds.length > 0) {
-      supabase.from('employees')
-        .update({ account_status: 'ACTIVE', blocked_date: null, blocked_reason: null })
-        .in('id', empIds)
-        .then(function(res) {
-          if (res && res.error) {
-            console.error('Error batch unblocking employees:', res.error);
-          } else {
-            console.log('Batch unblocked employees in Supabase successfully.');
-            empIds.forEach(id => _pendingLocalEmpIds.delete(String(id).toUpperCase()));
-          }
-        });
-    }
-    if (attendanceRowsToUpsert.length > 0) {
-      supabase.from('attendance').upsert(attendanceRowsToUpsert, { onConflict: 'id' }).then(function(res) {
-        if (res && res.error) console.error('Error batch unblocking attendance:', res.error);
+      var rows = empIds.map(function(id) {
+        var emp = DB.employees.find(function(e) { return e && e.id === id; });
+        return emp ? buildEmployeeSupabaseRow(emp, true) : null;
+      }).filter(Boolean);
+      supabase.from('employees').upsert(rows, { onConflict: 'id' }).then(function(res) {
+        if (res && res.error) {
+          console.error('Error batch unblocking employees:', res.error);
+        } else {
+          console.log('Batch unblocked employees in Supabase successfully.');
+          empIds.forEach(function(id) { _pendingLocalEmpIds.delete(String(id).toUpperCase()); });
+        }
       });
     }
   }
@@ -10409,7 +10401,6 @@ function setEmployeeStatus(empId, status) {
 function setEmployeeAccountStatus(empId, status, preventModalOpen) {
   var emp = DB.employees.find(function(e) { return e && e.id === empId; });
   if (!emp) return;
-  var oldBlockedDate = emp.blockedDate;
   emp.accountStatus = normalizeAccountStatus(status);
   if (emp.accountStatus === 'BLOCKED') {
     emp.blockedDate = getTodayDateString();
@@ -10417,47 +10408,7 @@ function setEmployeeAccountStatus(empId, status, preventModalOpen) {
   } else {
     emp.blockedDate = '';
     emp.blockedReason = '';
-  }
-
-  if (status === 'ACTIVE') {
-    var today = getTodayDateString();
-    var start = offsetDate(today, -30);
-    var cursor = start;
-    var safety = 0;
-    var recordsToUpsert = [];
-    while (cursor < today && safety < 100) {
-      safety++;
-      var existing = getAttendanceRecord(emp.id, cursor);
-      if (!existing || existing.attendanceStatus === 'A' || existing.attendanceStatus === 'NS' || !existing.attendanceStatus) {
-        var attRecord = upsertAttendanceRecord({
-          employeeId: emp.id,
-          date: cursor,
-          loginTime: '',
-          attendanceStatus: 'P',
-          remarks: 'Present (Manually Unblocked by Admin)'
-        });
-        recordsToUpsert.push({
-          id: attRecord.id,
-          employee_id: attRecord.employeeId,
-          date: formatDateForPostgres(attRecord.date) || attRecord.date,
-          login_time: attRecord.loginTime || null,
-          attendance_status: attRecord.attendanceStatus || '',
-          remarks: attRecord.remarks || null,
-          created_at: attRecord.createdAt || null
-        });
-      }
-      cursor = offsetDate(cursor, 1);
-    }
-    // Push attendance overrides to Supabase immediately
-    if (recordsToUpsert.length > 0 && useSupabase && supabase) {
-      supabase.from('attendance').upsert(recordsToUpsert, { onConflict: 'id' }).then(function(res) {
-        if (res && res.error) {
-          console.error('Error pushing attendance to Supabase:', res.error);
-        } else {
-          console.log('Attendance pushed to Supabase successfully.');
-        }
-      });
-    }
+    setEmployeeAttendanceResetFrom(emp, getTodayDateString());
   }
 
   // Mark pending so the poller does not revert the change before the cloud write finishes.

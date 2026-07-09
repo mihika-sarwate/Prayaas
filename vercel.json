@@ -1,4 +1,10 @@
 {
   "buildCommand": "node generate-config.js",
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "crons": [
+    {
+      "path": "/api/attendance-midnight",
+      "schedule": "35 18 * * *"
+    }
+  ]
 }

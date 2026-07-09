@@ -14104,6 +14104,7 @@ async function runMISReport(){
       emptyMsg += '. Recent available dates for this employee: ' + recentDatesSummary;
     }
     tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">' + emptyMsg + '</td></tr>';
+    document.getElementById('rep-table-title').textContent = 'Query Results (0 items)';
     var deleteActions = document.getElementById('mis-delete-actions');
     if (deleteActions) deleteActions.style.display = 'none';
     return;
@@ -14130,6 +14131,7 @@ async function runMISReport(){
   if (deleteActions) {
     deleteActions.style.display = (currentMISTableType && currentMISData.length) ? 'flex' : 'none';
   }
+  document.getElementById('rep-table-title').textContent = 'Query Results (' + currentMISData.length + ' items)';
 }
 
 function deleteAdminReport(id) {

@@ -1781,10 +1781,8 @@ function formatDateForPostgres(dateStr) {
   try {
     var d = new Date(dateStr);
     if (!isNaN(d.getTime())) {
-      var y = d.getFullYear();
-      var m = d.getMonth() + 1;
-      var dd = d.getDate();
-      return y + '-' + (m < 10 ? '0'+m : m) + '-' + (dd < 10 ? '0'+dd : dd);
+      var ist = getISTDateObj(d);
+      return ist.year + '-' + String(ist.month).padStart(2, '0') + '-' + String(ist.day).padStart(2, '0');
     }
   } catch (e) {}
   
@@ -2240,7 +2238,7 @@ async function initSupabaseData(isSilent) {
     if (holData && holData.length > 0) {
       setHolidayDeletionFlag(false);
       setHolidayTableMissingFlag(false);
-      holidays = holData.map(h => ({ date: h.date ? String(h.date).substring(0, 10) : null, name: h.name, state: h.state || 'All' }));
+      holidays = holData.map(h => ({ date: h.date ? formatSupabaseDateToIST(h.date) : null, name: h.name, state: h.state || 'All' }));
     } else {
       holidays = getHolidayDeletionFlag() ? [] : (DB.holidays || DEFAULT_DB.holidays || []);
     }
@@ -2492,6 +2490,7 @@ async function initSupabaseData(isSilent) {
           var workType = 'FIELD WORK';
           var territory = '';
           var city = '';
+          var patch = '';
           var isFinal = false;
           if (cleanRemarks.indexOf('\n===METADATA===\n') !== -1) {
             var parts = cleanRemarks.split('\n===METADATA===\n');
@@ -2509,7 +2508,7 @@ async function initSupabaseData(isSilent) {
             id: r.id,
             empId: r.emp_id,
             empName: r.emp_name,
-            date: r.date ? String(r.date).substring(0, 10) : null,
+            date: r.date ? formatSupabaseDateToIST(r.date) : null,
             time: r.time,
             targetType: r.target_type,
             classification: r.classification,
@@ -6603,13 +6602,51 @@ var ATTENDANCE_STATUS_LABELS = { P: 'Present', SL: 'Sick Leave', CL: 'Casual Lea
 var ATTENDANCE_WEEKDAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 var attendanceSchedulerTimer = null;
 
+function formatSupabaseDateToIST(dateStr) {
+  if (!dateStr) return null;
+  if (String(dateStr).length === 10 && String(dateStr).indexOf('-') === 4) return String(dateStr);
+  var d = getISTDateObj(dateStr);
+  var yyyy = d.getUTCFullYear();
+  var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  var dd = String(d.getUTCDate()).padStart(2, '0');
+  return yyyy + '-' + mm + '-' + dd;
+}
+
+function getISTDateObj(dateObj) {
+  var d = dateObj ? new Date(dateObj) : new Date();
+  var formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+  });
+  var parts = formatter.formatToParts(d);
+  var p = {};
+  for (var i = 0; i < parts.length; i++) {
+      p[parts[i].type] = parts[i].value;
+  }
+  return {
+      year: parseInt(p.year, 10),
+      month: parseInt(p.month, 10),
+      day: parseInt(p.day, 10),
+      hour: parseInt(p.hour, 10),
+      minute: parseInt(p.minute, 10),
+      second: parseInt(p.second, 10)
+  };
+}
+
 function getTodayDateString() {
-  var now = new Date();
-  return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  var ist = getISTDateObj();
+  return ist.year + '-' + String(ist.month).padStart(2, '0') + '-' + String(ist.day).padStart(2, '0');
 }
 
 function formatLocalDate(dateObj) {
-  return dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0');
+  var ist = getISTDateObj(dateObj);
+  return ist.year + '-' + String(ist.month).padStart(2, '0') + '-' + String(ist.day).padStart(2, '0');
 }
 
 function parseDateAtLocalMidnight(dateStr) {
@@ -6630,7 +6667,8 @@ function getYesterdayDateString() {
 }
 
 function getAttendanceLoginTimeValue(dateObj) {
-  return String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
+  var ist = getISTDateObj(dateObj);
+  return String(ist.hour).padStart(2, '0') + ':' + String(ist.minute).padStart(2, '0');
 }
 
 function isAttendanceTrackedEmployee(emp) {

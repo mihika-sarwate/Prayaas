@@ -907,7 +907,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <!-- ADMIN ATTENDANCE PANEL -->
     <div id="sec-adm-attendance" style="display:none">
       <div class="info-box">
-        Attendance is auto-generated from first login, approved leave, holidays, and weekly offs. Daily attendance validation runs for the previous day and blocks non-exempt employees only when attendance is not submitted for a working day.
+        Attendance is auto-generated from final DCR submission, approved leave, holidays, and weekly offs. Daily attendance validation runs on the previous IST working day and blocks non-exempt employees when the final DCR is not submitted by 12:00 AM IST.
       </div>
       <div class="card">
         <div class="row3">
@@ -4558,6 +4558,13 @@ function restoreSessionWhenReady() {
       SESSION.user.pwd = currentPwd;
     }
 
+    try { ensureAttendanceSchedulerUpToDate(); } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
+    if (normalizeAccountStatus((SESSION.user || {}).accountStatus) === 'BLOCKED') {
+      showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
+      logout();
+      return;
+    }
+
     recordAttendanceOnSuccessfulLogin(SESSION.user);
 
     document.getElementById('scr-login').style.display = 'none';
@@ -4662,7 +4669,7 @@ function doLogin(){
       };
       
       if (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
-        showToast('Your account has been temporarily blocked because attendance was not submitted for the previous working day. Please contact the administrator.');
+        showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
         return;
       }
       
@@ -4678,6 +4685,22 @@ function doLogin(){
       hasInitializedData = false;
       isLoadingData = false; // reset flag
       await initSupabaseData(false);
+      try { ensureAttendanceSchedulerUpToDate(); } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
+      var validatedEmp = DB.employees && DB.employees.find(function(e) {
+        return String(e.id || '').trim().toUpperCase() === String(emp.id || '').trim().toUpperCase();
+      });
+      if (validatedEmp) {
+        var currentPwd = emp.pwd;
+        emp = validatedEmp;
+        emp.pwd = currentPwd;
+        SESSION.user = emp;
+        localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+      }
+      if (normalizeAccountStatus((emp || {}).accountStatus) === 'BLOCKED') {
+        showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
+        logout();
+        return;
+      }
       
       recordAttendanceOnSuccessfulLogin(emp);
       
@@ -4716,7 +4739,7 @@ function doLogin(){
     }
     normalizeEmployeeRecord(emp);
     if (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
-      showToast('Your account has been temporarily blocked because attendance was not submitted for the previous working day. Please contact the administrator.');
+      showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
       return;
     }
     recordAttendanceOnSuccessfulLogin(emp);
@@ -6239,14 +6262,6 @@ function submitReport(){
   pushReportToSupabase(repObj);
   pushUserInventoryToSupabase(SESSION.user.id);
   
-  // Record attendance as present when any report is submitted
-  upsertAttendanceRecord({
-    employeeId: SESSION.user.id,
-    date: date,
-    loginTime: getAttendanceLoginTimeValue(new Date()),
-    attendanceStatus: 'P',
-    remarks: 'Present (Report Submitted)'
-  });
   if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
 
   showToast(isEditing ? 'Report updated! Syncing to cloud...' : 'Report submitted! Syncing to cloud...');
@@ -6873,6 +6888,27 @@ function isAttendanceTrackedEmployee(emp) {
   return !!(emp && emp.id && String(emp.role || '').toLowerCase() !== 'admin');
 }
 
+function hasFinalDCRSubmission(employeeId, dateStr) {
+  var targetId = String(employeeId || '').trim().toUpperCase();
+  var targetDate = formatDateForPostgres(dateStr) || dateStr;
+  return (DB.reports || []).some(function(r) {
+    return String(r.empId || '').trim().toUpperCase() === targetId &&
+      (formatDateForPostgres(r.date) || r.date) === targetDate &&
+      !!r.isFinal;
+  });
+}
+
+function getNextISTMidnightValidationTime() {
+  var nextDay = offsetDate(getTodayDateString(), 1);
+  var parts = String(nextDay || '').split('-');
+  if (parts.length !== 3) return new Date(Date.now() + 60000);
+  var year = parseInt(parts[0], 10);
+  var month = parseInt(parts[1], 10);
+  var day = parseInt(parts[2], 10);
+  var istOffsetMs = ((5 * 60) + 30) * 60 * 1000;
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 5, 0) - istOffsetMs);
+}
+
 function isExecutiveAttendanceExempt(emp) {
   if (!emp || !Array.isArray(ATTENDANCE_EXECUTIVE_EXEMPT_NAMES)) return false;
   return ATTENDANCE_EXECUTIVE_EXEMPT_NAMES.indexOf(String(emp.name || '').trim().toUpperCase()) !== -1;
@@ -7018,15 +7054,19 @@ function getAttendanceStatusMeta(emp, dateStr) {
         
         // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
         // Check DCR report submission or login attendance record.
-        var hasFinalReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && r.isFinal;
-        });
+        var hasFinalReport = hasFinalDCRSubmission(emp.id, dateStr);
         if (hasFinalReport) {
           return { status: 'P', remarks: 'Present via Final DCR Submission' };
         }
         
         var existing = getAttendanceRecord(emp.id, dateStr);
-        if (existing && (existing.attendanceStatus === 'P' || existing.attendanceStatus === 'A')) {
+        if (existing && (
+          existing.attendanceStatus === 'A' ||
+          (existing.attendanceStatus === 'P' && (
+            existing.remarks === 'Present via Final DCR Submission' ||
+            existing.remarks === 'Present (Manually Unblocked by Admin)'
+          ))
+        )) {
           return { status: existing.attendanceStatus, remarks: existing.remarks || '', loginTime: existing.loginTime || '' };
         }
         
@@ -7046,17 +7086,19 @@ function getAttendanceStatusMeta(emp, dateStr) {
     if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
   }
   
-  // Check if they have submitted ANY reports for this date
-  var hasReports = (DB.reports || []).some(function(r) {
-    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
-  });
-  if (hasReports) {
-    return { status: 'P', remarks: 'Present (Reports Submitted)' };
+  var hasFinalReport = hasFinalDCRSubmission(emp.id, dateStr);
+  if (hasFinalReport) {
+    return { status: 'P', remarks: 'Present via Final DCR Submission' };
   }
   
   var existing = getAttendanceRecord(emp.id, dateStr);
-  if (existing && existing.remarks === 'Present (Manually Unblocked by Admin)') {
-    return { status: 'P', remarks: existing.remarks, loginTime: existing.loginTime || '' };
+  if (existing && (
+    existing.remarks === 'Present (Manually Unblocked by Admin)' ||
+    existing.remarks === 'Present via Final DCR Submission' ||
+    existing.attendanceStatus === 'A'
+  )) {
+    var statusValue = existing.attendanceStatus === 'A' ? 'A' : 'P';
+    return { status: statusValue, remarks: existing.remarks, loginTime: existing.loginTime || '' };
   }
   
   return { status: 'NS', remarks: 'Attendance Not Submitted' };
@@ -7163,6 +7205,7 @@ function ensureAttendanceSchedulerUpToDate() {
   
   localStorage.setItem('adonis_attendance_last_validated_date', targetEnd);
   if (changed && !isLoadingData) saveDB();
+  return changed;
 }
 
 function scheduleNextAttendanceValidation() {
@@ -7171,7 +7214,7 @@ function scheduleNextAttendanceValidation() {
     attendanceSchedulerTimer = null;
   }
   var now = new Date();
-  var next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5, 0);
+  var next = getNextISTMidnightValidationTime();
   attendanceSchedulerTimer = setTimeout(function() {
     ensureAttendanceSchedulerUpToDate();
     scheduleNextAttendanceValidation();

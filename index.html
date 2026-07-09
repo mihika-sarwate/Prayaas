@@ -6643,6 +6643,51 @@ function getReportScopeEmployeeIds(user, includeSelf) {
   return ids;
 }
 
+function getCurrentISTTimestamp() {
+  var ist = getISTDateObj();
+  return ist.year + '-' + String(ist.month).padStart(2, '0') + '-' + String(ist.day).padStart(2, '0') +
+    'T' + String(ist.hour).padStart(2, '0') + ':' + String(ist.minute).padStart(2, '0') + ':' + String(ist.second).padStart(2, '0') + '+05:30';
+}
+
+function getCurrentISTMonthString() {
+  return getTodayDateString().slice(0, 7);
+}
+
+function formatTimestampToIST(value) {
+  if (!value) return '';
+  var d = new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(d);
+}
+
+function getISTWeekdayLabel(dateStr, format) {
+  if (!dateStr) return '';
+  var safe = normalizeReportDateValue(dateStr);
+  var d = new Date(safe + 'T00:00:00+05:30');
+  if (isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    weekday: format || 'short'
+  }).format(d);
+}
+
+function getCurrentISTMonthYearLabel() {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date());
+}
+
 function mapSupabaseReportRow(r) {
   var cleanRemarks = r.remarks || '';
   var workType = 'FIELD WORK';
@@ -6820,7 +6865,7 @@ function upsertAttendanceRecord(record) {
     existing.loginTime = record.loginTime !== undefined ? record.loginTime : existing.loginTime;
     existing.attendanceStatus = record.attendanceStatus || existing.attendanceStatus;
     existing.remarks = record.remarks !== undefined ? record.remarks : existing.remarks;
-    existing.createdAt = record.createdAt || existing.createdAt || new Date().toISOString();
+    existing.createdAt = record.createdAt || existing.createdAt || getCurrentISTTimestamp();
     return existing;
   }
   var entry = {
@@ -6830,7 +6875,7 @@ function upsertAttendanceRecord(record) {
     loginTime: record.loginTime || '',
     attendanceStatus: record.attendanceStatus || '',
     remarks: record.remarks || '',
-    createdAt: record.createdAt || new Date().toISOString()
+    createdAt: record.createdAt || getCurrentISTTimestamp()
   };
   DB.attendance.push(entry);
   return entry;
@@ -7723,7 +7768,7 @@ function renderMTPDaysUI(isReadOnly, existing){
       }
     }
     
-    var dow=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'});
+    var dow=getISTWeekdayLabel(d.date, 'short');
     
     var holiday = getHolidayForDateAndState(d.date, SESSION.user ? SESSION.user.state : '');
     var holidayText = '';
@@ -8005,7 +8050,7 @@ function saveOrSubmitTourPlan(status){
     tpObj.managerName = mgrObj ? mgrObj.name : '';
     if(status === 'Submitted') {
       tpObj.remarks = '';
-      tpObj.submittedAt = new Date().toISOString();
+      tpObj.submittedAt = getCurrentISTTimestamp();
     }
   } else {
     tpObj = {
@@ -8017,7 +8062,7 @@ function saveOrSubmitTourPlan(status){
       managerName:mgrObj?mgrObj.name:'',
       days:JSON.parse(JSON.stringify(plannedDays)),
       status:status,
-      submittedAt:status === 'Submitted' ? new Date().toISOString() : '',
+      submittedAt:status === 'Submitted' ? getCurrentISTTimestamp() : '',
       remarks:'',
       revisionHistory:[]
     };
@@ -8410,7 +8455,7 @@ function submitExpense(){
     total:grand,
     receiptFile:filename,
     status:'Submitted',
-    submittedAt:new Date().toISOString(),
+    submittedAt:getCurrentISTTimestamp(),
     remarks:''
   });
   
@@ -8459,8 +8504,8 @@ function submitLeave(){
   if(!start||!end){showToast('Please set both start & end dates');return;}
   
   // Calculate total days
-  var dStart = new Date(start);
-  var dEnd = new Date(end);
+  var dStart = parseDateAtLocalMidnight(start);
+  var dEnd = parseDateAtLocalMidnight(end);
   var diffTime = Math.abs(dEnd - dStart);
   var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   
@@ -8490,7 +8535,7 @@ function submitLeave(){
     reason:reason,
     managerId:SESSION.user.managerId,
     status:'Submitted',
-    submittedAt:new Date().toISOString(),
+    submittedAt:getCurrentISTTimestamp(),
     remarks:''
   });
   
@@ -8855,7 +8900,7 @@ function goAdminTab(name){
       
       var tpmVal = document.getElementById('tp-month');
       if (tpmVal && !tpmVal.value) {
-        tpmVal.value = new Date().toISOString().slice(0,7);
+        tpmVal.value = getCurrentISTMonthString();
       }
 
       renderMyTourPlans();
@@ -9107,7 +9152,7 @@ function approveTP(){
     var u = SESSION.user;
     tp.status = processApproval(tp.status, tp.managerId, u);
     tp.approvedBy=u.id;
-    tp.approvedDate=new Date().toISOString().slice(0,10);
+    tp.approvedDate=getTodayDateString();
   }
   saveDB();
   closeModal('modal-tp-detail');
@@ -9125,7 +9170,7 @@ function rejectTP(){
     tp.revisionHistory=tp.revisionHistory||[];
     tp.revisionHistory.push({
       rejectedBy:SESSION.user.id,
-      date:new Date().toISOString().slice(0,10),
+      date:getTodayDateString(),
       reason:reason
     });
   }
@@ -12091,7 +12136,7 @@ function bulkDeleteAllStockists() {
 function renderLeaveBalanceTable(){
   var thead = document.getElementById('leave-bal-table-head');
   if(thead) {
-    var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    var monthYear = getCurrentISTMonthYearLabel();
     thead.innerHTML = '<tr><th colspan="8" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th><th style="border:none"></th></tr>' +
       '<tr><th rowspan="2"><input type="checkbox" id="check-all-leaves" class="admin-only" onclick="toggleSelectAllLeaves(this)"></th><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2" style="vertical-align:top">' + renderSortHead('leaves', 'designation', 'Designation') + '</th><th rowspan="2" style="vertical-align:top">' + renderSortHead('leaves', 'hq', 'HQ') + '</th><th rowspan="2" style="vertical-align:top">' + renderSortHead('leaves', 'state', 'State') + '</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th><th rowspan="2">Action</th></tr>' +
       '<tr><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th></tr>';
@@ -12270,7 +12315,7 @@ function deleteLeaveBalance(id) {
 }
 
 function downloadLeaveBalanceData(){
-  var monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  var monthYear = getCurrentISTMonthYearLabel();
   var csv = ',,,,,,,' + monthYear + ',,,,,,,,,,,\n';
   csv += 'S.No,Employee id,FieldForce Name,Designation,HQ,State,Joining Date,Leave Eligibilty,,,Leave Taken,,,Leave Balance,,\n';
   csv += ',,,,,,CL,PL,SL,LOP,CL,PL,SL,LOP,CL,PL,SL,LOP\n';
@@ -14757,7 +14802,7 @@ function renderAnnouncementHistory() {
     if (a.id && a.id.startsWith('ann_')) {
       var ms = parseInt(a.id.split('_')[1]);
       if (!isNaN(ms)) {
-        dateStr = new Date(ms).toLocaleString();
+        dateStr = formatTimestampToIST(ms);
       }
     }
     if (!dateStr) dateStr = '—';

@@ -785,8 +785,9 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title">&#128269; My MIS Reports</div>
         <div class="fw"><label class="lbl">Select Report Category</label>
           <select id="emp-rep-selector" onchange="updateEmpReportHeadersAndFilters()">
-            <option value="doc_calls">1. Total Doctor Calls Report</option>
-            <option value="chem_calls">2. Total Chemist Calls Report</option>
+            <option value="all_calls">1. All Calls Report</option>
+            <option value="doc_calls">2. Total Doctor Calls Report</option>
+            <option value="chem_calls">3. Total Chemist Calls Report</option>
             <option value="call_avg">3. Doctor Call Average Report</option>
             <option value="missed_calls">4. Missed Doctor Calls Report</option>
             <option value="visit_freq">5. Doctor Visit Frequency Report</option>
@@ -1303,8 +1304,9 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title">&#128269; Master Report Filter &amp; Selection</div>
         <div class="fw"><label class="lbl">Select Report Category</label>
           <select id="rep-selector" onchange="updateReportHeadersAndFilters()">
-            <option value="doc_calls">1. Total Doctor Calls Report</option>
-            <option value="chem_calls">2. Total Chemist Calls Report</option>
+            <option value="all_calls">1. All Calls Report</option>
+            <option value="doc_calls">2. Total Doctor Calls Report</option>
+            <option value="chem_calls">3. Total Chemist Calls Report</option>
             <option value="call_avg">3. Doctor Call Average Report</option>
             <option value="missed_calls">4. Missed Doctor Calls Report</option>
             <option value="visit_freq">5. Doctor Visit Frequency Report</option>
@@ -13681,7 +13683,7 @@ function populateAdminEmpFilters(){
 var currentMISData=[];
 var currentMISRowIds=[];
 var currentMISTableType=null;
-var currentReportType='doc_calls';
+var currentReportType='all_calls';
 
 function updateReportHeadersAndFilters(){
   currentReportType=document.getElementById('rep-selector').value;
@@ -13689,6 +13691,17 @@ function updateReportHeadersAndFilters(){
   var tbody=document.getElementById('mis-report-tbody');
   thead.innerHTML='';
   tbody.innerHTML='<tr><td class="empty">Click "Run Query" to fetch data</td></tr>';
+}
+
+function buildCallTypeSummaryText(rows) {
+  var counts = {};
+  (rows || []).forEach(function(r) {
+    var key = r && r.targetType ? r.targetType : 'Other';
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return Object.keys(counts).sort().map(function(key) {
+    return key + ': ' + counts[key];
+  }).join(' | ');
 }
 
 async function runMISReport(){
@@ -13732,12 +13745,31 @@ async function runMISReport(){
   currentMISTableType=null;
   var html='';
   
-  if(currentReportType==='doc_calls'){
+  if(currentReportType==='all_calls'){
+    currentMISTableType='reports';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
+    currentMISData=baseReports.map(function(r){
+      currentMISRowIds.push(r.id);
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var hq = emp && emp.area ? emp.area : 'N/A';
+      var state = emp && emp.state ? emp.state : 'N/A';
+      var promoted = r.promotedProducts && r.promotedProducts.length ? r.promotedProducts.join(', ') : 'None';
+      var parsedSamples = parseJSONField(r.samples);
+      var parsedGifts = parseJSONField(r.gifts);
+      var parsedInputs = parseJSONField(r.inputs);
+      var samples = Object.keys(parsedSamples).map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', ') || 'None';
+      var gifts = Object.keys(parsedGifts).map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', ') || 'None';
+      var inputs = Object.keys(parsedInputs).map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', ') || 'None';
+      var targetName = r.targetType === 'Doctor' ? r.docName : (r.targetType === 'Chemist' ? r.chemName : (r.targetType === 'Stockist' ? r.stockName : 'N/A'));
+      return [r.date, r.empId, r.empName, r.targetType || 'N/A', targetName || 'N/A', hq, state, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
+    });
+    
+  } else if(currentReportType==='doc_calls'){
     currentMISTableType='reports';
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
     if (docCalls.length === 0 && baseReports.length > 0) {
-      tbody.innerHTML = '<tr><td colspan="15" class="empty">No doctor call reports match this filter. Other report types exist for this employee/date range. Try the Chemist report.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="15" class="empty">No doctor call reports match this filter. Available in this range: ' + buildCallTypeSummaryText(baseReports) + '.</td></tr>';
       currentMISData = [];
       currentMISRowIds = [];
       return;
@@ -13762,7 +13794,7 @@ async function runMISReport(){
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th><th>Actions</th></tr>';
     var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
     if (chemCalls.length === 0 && baseReports.length > 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="empty">No chemist call reports match this filter. Other report types exist for this employee/date range. Try the Doctor report.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="empty">No chemist call reports match this filter. Available in this range: ' + buildCallTypeSummaryText(baseReports) + '.</td></tr>';
       currentMISData = [];
       currentMISRowIds = [];
       return;
@@ -14854,7 +14886,7 @@ function renderAnnouncementHistory() {
 
 // ===== 14 EMPLOYEE MIS REPORTS ENGINE =====
 var currentEmpMISData=[];
-var currentEmpReportType='doc_calls';
+var currentEmpReportType='all_calls';
 
 function updateEmpReportHeadersAndFilters(){
   currentEmpReportType=document.getElementById('emp-rep-selector').value;
@@ -14898,11 +14930,28 @@ async function runEmpMISReport(){
   
   currentEmpMISData=[];
   
-  if(currentEmpReportType==='doc_calls'){
+  if(currentEmpReportType==='all_calls'){
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
+    currentEmpMISData=baseReports.map(function(r){
+      var emp = DB.employees.find(function(e){return e.id===r.empId;});
+      var hq = emp && emp.area ? emp.area : 'N/A';
+      var state = emp && emp.state ? emp.state : 'N/A';
+      var promoted = r.promotedProducts && r.promotedProducts.length ? r.promotedProducts.join(', ') : 'None';
+      var parsedSamples = parseJSONField(r.samples);
+      var parsedGifts = parseJSONField(r.gifts);
+      var parsedInputs = parseJSONField(r.inputs);
+      var samples = Object.keys(parsedSamples).map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', ') || 'None';
+      var gifts = Object.keys(parsedGifts).map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', ') || 'None';
+      var inputs = Object.keys(parsedInputs).map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', ') || 'None';
+      var targetName = r.targetType === 'Doctor' ? r.docName : (r.targetType === 'Chemist' ? r.chemName : (r.targetType === 'Stockist' ? r.stockName : 'N/A'));
+      return [r.date, r.empId, r.empName, r.targetType || 'N/A', targetName || 'N/A', hq, state, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
+    });
+    
+  } else if(currentEmpReportType==='doc_calls'){
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>Doctor Name</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
     var docCalls=baseReports.filter(function(r){return r.targetType==='Doctor';});
     if (docCalls.length === 0 && baseReports.length > 0) {
-      tbody.innerHTML = '<tr><td colspan="14" class="empty">No doctor call reports match this filter. Other report types exist for this date range. Try the Chemist report.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="14" class="empty">No doctor call reports match this filter. Available in this range: ' + buildCallTypeSummaryText(baseReports) + '.</td></tr>';
       currentEmpMISData = [];
       return;
     }
@@ -14924,7 +14973,7 @@ async function runEmpMISReport(){
     thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Chemist Name</th><th>Classification</th><th>Order Value (&#x20B9;)</th><th>Stock Availability</th><th>Remarks</th></tr>';
     var chemCalls=baseReports.filter(function(r){return r.targetType==='Chemist';});
     if (chemCalls.length === 0 && baseReports.length > 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="empty">No chemist call reports match this filter. Other report types exist for this date range. Try the Doctor report.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">No chemist call reports match this filter. Available in this range: ' + buildCallTypeSummaryText(baseReports) + '.</td></tr>';
       currentEmpMISData = [];
       return;
     }

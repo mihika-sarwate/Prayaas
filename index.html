@@ -6367,6 +6367,9 @@ function finalSubmitToday() {
     remarks: 'Present via Final DCR Submission'
   });
   
+  saveDB();
+  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
+  
   renderHomeStats();
   showToast('Final submit successful! Reports locked.');
 }
@@ -6823,6 +6826,7 @@ function recordAttendanceOnSuccessfulLogin(emp) {
       remarks: 'Logged in but report not submitted'
     });
     saveDB();
+    if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
     return;
   }
   if (!existing) {

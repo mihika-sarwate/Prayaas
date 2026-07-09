@@ -1756,7 +1756,13 @@ function formatDateForPostgres(dateStr) {
       // Let's assume standard order is YYYY-MM-DD or DD-MM-YYYY.
       // If the first part is 4 digits, it's YYYY-MM-DD
       if (day.length === 4) {
-        return day + "-" + month + "-" + year;
+        return day + "-" + month + "-" + year; // Was actually YYYY-MM-DD
+      }
+      
+      if (parseInt(month, 10) > 12 && parseInt(day, 10) <= 12) {
+        var temp = month;
+        month = day;
+        day = temp;
       }
       
       // Otherwise assume it is DD-MM-YYYY

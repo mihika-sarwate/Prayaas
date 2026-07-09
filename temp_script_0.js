@@ -191,6 +191,7 @@ function formatDateForPostgres(dateStr) {
       }
       
       // Otherwise assume it is DD-MM-YYYY
+      if (parseInt(month, 10) > 12 && parseInt(day, 10) <= 12) { var temp = month; month = day; day = temp; }
       return year + "-" + month + "-" + day;
     }
   }

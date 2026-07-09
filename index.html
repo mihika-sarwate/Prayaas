@@ -6955,6 +6955,7 @@ function renderAttendanceDashboard() {
       // Find all unique dates present in the filtered rows, sorted chronologically ascending
       var datesSet = {};
       rows.forEach(function(r) { if (r.date) datesSet[r.date] = true; });
+      datesSet[getTodayDateString()] = true;
       var dates = Object.keys(datesSet).sort();
       
       // Find all unique employee IDs in the filtered rows

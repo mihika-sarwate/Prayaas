@@ -5628,6 +5628,7 @@ function getAllSubordinateIds(managerId) {
 function resolveManagerId(rawMgr) {
   if (!rawMgr) return null;
   var str = rawMgr.trim().toLowerCase();
+      if (str === "none") return "";
   var e = DB.employees.find(function(x) { return (x.id||'').trim().toLowerCase() === str || (x.name||'').trim().toLowerCase() === str; });
   return e ? e.id : null;
 }
@@ -9839,9 +9840,9 @@ function uploadEmployees(inp){
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
       
       var eId = cols[idCol].toUpperCase();
+      var finalMgrId = resolveManagerIdFromUpload(cols[mgrCol] || "");
       var existing=DB.employees.find(function(em){return em && em.id===eId;});
       var newEmp;
-      var finalMgrId = resolveManagerIdFromUpload(cols[mgrCol] || '');
       
       if(existing){
         existing.name=cols[nameCol];

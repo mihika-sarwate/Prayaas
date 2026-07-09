@@ -8200,6 +8200,27 @@ function uploadEmployees(inp){
     }
     
     var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
+    var csvEmpMap = {};
+    dataLines.forEach(function(line){
+      var cols=parseCSVLine(line);
+      if(!cols[idCol]||!cols[nameCol])return;
+      var eId = cols[idCol].toUpperCase().trim();
+      var name = cols[nameCol].trim();
+      csvEmpMap[name.toLowerCase()] = eId;
+      csvEmpMap[eId.toLowerCase()] = eId;
+    });
+
+    function resolveManagerIdFromUpload(rawMgr) {
+      if (!rawMgr) return '';
+      var str = rawMgr.trim().toLowerCase();
+      if (str === 'none') return '';
+      if (csvEmpMap[str]) return csvEmpMap[str];
+      var e = DB.employees.find(function(x) { 
+        return x && ((x.id||'').trim().toLowerCase() === str || (x.name||'').trim().toLowerCase() === str); 
+      });
+      return e ? e.id : rawMgr;
+    }
+
     var newEmps = [];
     var touchedIds = [];
     dataLines.forEach(function(line){
@@ -8212,6 +8233,7 @@ function uploadEmployees(inp){
       var role = validRoles.indexOf(rawRole) !== -1 ? rawRole : 'emp';
       
       var eId = cols[idCol].toUpperCase();
+      var finalMgrId = resolveManagerIdFromUpload(cols[mgrCol] || "");
       var existing=DB.employees.find(function(em){return em && em.id===eId;});
       var newEmp;
       if(existing){
@@ -8220,7 +8242,7 @@ function uploadEmployees(inp){
         existing.area=cols[terrCol]||'';
         existing.designation = typeof cols[desigCol] !== 'undefined' ? cols[desigCol].trim() : existing.designation;
         existing.role=role;
-        existing.managerId=cols[mgrCol]||'';
+        existing.managerId=finalMgrId;
         existing.doj=cols[dojCol]||'';
         existing.state=cols[stateCol]||'';
         existing.status=normalizeEmployeeStatus(cols[statusCol]||'Active');
@@ -8233,7 +8255,7 @@ function uploadEmployees(inp){
           area:cols[terrCol]||'',
           designation:designation,
           role:role,
-          managerId:cols[mgrCol]||'',
+          managerId:finalMgrId,
           doj:cols[dojCol]||'',
           state:cols[stateCol]||'',
           status:normalizeEmployeeStatus(cols[statusCol]||'Active'),

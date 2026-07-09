@@ -6856,7 +6856,17 @@ function validateAttendanceForDate(dateStr) {
     attendance.remarks = statusMeta.remarks;
     if (statusMeta.status !== 'P') attendance.loginTime = '';
     if (statusMeta.status === 'A') {
-      if (emp.accountStatus !== 'BLOCKED' || emp.blockedDate !== dateStr || emp.blockedReason !== 'Attendance Not Submitted') {
+      var manualUnblockValid = false;
+      var last30 = offsetDate(dateStr, -30);
+      for (var d = dateStr; d >= last30; d = offsetDate(d, -1)) {
+        var prevAtt = getAttendanceRecord(emp.id, d);
+        if (prevAtt && prevAtt.remarks === 'Present (Manually Unblocked by Admin)') {
+          manualUnblockValid = true;
+          break;
+        }
+      }
+      
+      if (!manualUnblockValid && (emp.accountStatus !== 'BLOCKED' || emp.blockedDate !== dateStr || emp.blockedReason !== 'Attendance Not Submitted')) {
         emp.accountStatus = 'BLOCKED';
         emp.blockedDate = dateStr;
         emp.blockedReason = 'Attendance Not Submitted';

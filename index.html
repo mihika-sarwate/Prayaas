@@ -4450,48 +4450,52 @@ function clearLocalAssignTo(entityType) {
       hasSyncError = true;
     }
 
-    // Sync Weekly Off Configuration
+    // Sync Weekly Off Configuration (Admins only)
     try {
-      const dbWeeklyOff = (DB.weeklyOffConfig || []).map(function(w) {
-        var row = {
-          employee_id: w.employeeId || null,
-          weekday: typeof w.weekday === 'number' ? w.weekday : parseInt(w.weekday || '0', 10) || 0
-        };
-        if (w.id !== undefined && w.id !== null && w.id !== '') row.id = w.id;
-        return row;
-      });
-      await upsertInBatches('weekly_off_config', dbWeeklyOff);
-      await reconcileSupabaseRows('weekly_off_config', DB.weeklyOffConfig || [], function(row) {
-        return String((row.employeeId || '') + '|' + row.weekday).toUpperCase();
-      }, function(row) {
-        return supabase.from('weekly_off_config').delete()
-          .eq('employee_id', row.employeeId || null)
-          .eq('weekday', typeof row.weekday === 'number' ? row.weekday : parseInt(row.weekday || '0', 10) || 0);
-      }, { select: 'id,employee_id,weekday' });
+      if (SESSION.user && SESSION.user.role === 'admin') {
+        const dbWeeklyOff = (DB.weeklyOffConfig || []).map(function(w) {
+          var row = {
+            employee_id: w.employeeId || null,
+            weekday: typeof w.weekday === 'number' ? w.weekday : parseInt(w.weekday || '0', 10) || 0
+          };
+          if (w.id !== undefined && w.id !== null && w.id !== '') row.id = w.id;
+          return row;
+        });
+        await upsertInBatches('weekly_off_config', dbWeeklyOff);
+        await reconcileSupabaseRows('weekly_off_config', DB.weeklyOffConfig || [], function(row) {
+          return String((row.employeeId || '') + '|' + row.weekday).toUpperCase();
+        }, function(row) {
+          return supabase.from('weekly_off_config').delete()
+            .eq('employee_id', row.employeeId || null)
+            .eq('weekday', typeof row.weekday === 'number' ? row.weekday : parseInt(row.weekday || '0', 10) || 0);
+        }, { select: 'id,employee_id,weekday' });
+      }
     } catch (e) {
       console.error("Error syncing weekly off configuration:", e);
       hasSyncError = true;
     }
 
 
-    // Sync Holidays
+    // Sync Holidays (Admins only)
     try {
-      if (getHolidayTableMissingFlag()) {
-        // Keep using the local holiday cache when the cloud table doesn't exist.
-      } else if (DB.holidays && DB.holidays.length > 0) {
-        const dbHols = DB.holidays.map(h => ({
-          date: formatDateForPostgres(h.date) || h.date,
-          name: h.name,
-          state: h.state || 'All'
-        }));
-        await upsertInBatches('holidays', dbHols);
-      }
-      if (!getHolidayTableMissingFlag()) {
-        await reconcileSupabaseRows('holidays', DB.holidays || [], normalizeHolidayKey, function(row) {
-          return supabase.from('holidays').delete()
-            .eq('date', formatDateForPostgres(row.date) || row.date)
-            .eq('state', normalizeHolidayState(row.state));
-        }, { select: 'date,state' });
+      if (SESSION.user && SESSION.user.role === 'admin') {
+        if (getHolidayTableMissingFlag()) {
+          // Keep using the local holiday cache when the cloud table doesn't exist.
+        } else if (DB.holidays && DB.holidays.length > 0) {
+          const dbHols = DB.holidays.map(h => ({
+            date: formatDateForPostgres(h.date) || h.date,
+            name: h.name,
+            state: h.state || 'All'
+          }));
+          await upsertInBatches('holidays', dbHols);
+        }
+        if (!getHolidayTableMissingFlag()) {
+          await reconcileSupabaseRows('holidays', DB.holidays || [], normalizeHolidayKey, function(row) {
+            return supabase.from('holidays').delete()
+              .eq('date', formatDateForPostgres(row.date) || row.date)
+              .eq('state', normalizeHolidayState(row.state));
+          }, { select: 'date,state' });
+        }
       }
     } catch (holErr) {
       if (holErr && (holErr.code === 'PGRST205' || /could not find the table/i.test(holErr.message || ''))) {

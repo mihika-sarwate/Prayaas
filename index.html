@@ -6872,18 +6872,11 @@ function ensureAttendanceSchedulerUpToDate() {
   var targetEnd = getYesterdayDateString();
   if (!targetEnd || targetEnd < '2000-01-01' || targetEnd.indexOf('NaN') !== -1) return;
   
-  // Always retroactively validate the last 30 days to correctly apply late Tour Plan approvals, leaves, and DCRs
-  var start = offsetDate(targetEnd, -29);
-  if (!start || start.indexOf('NaN') !== -1) return;
-  var cursor = start;
+  // Only validate yesterday's attendance to decide whether to block the user.
+  // We no longer retroactively validate 30 days to avoid repeatedly blocking manually unblocked users.
   var changed = false;
-  var safetyCounter = 0;
-  while (cursor <= targetEnd && safetyCounter < 100) {
-    safetyCounter++;
-    if (validateAttendanceForDate(cursor)) changed = true;
-    cursor = offsetDate(cursor, 1);
-    if (!cursor || cursor.indexOf('NaN') !== -1) break;
-  }
+  if (validateAttendanceForDate(targetEnd)) changed = true;
+  
   localStorage.setItem('adonis_attendance_last_validated_date', targetEnd);
   if (changed && !isLoadingData) saveDB();
 }

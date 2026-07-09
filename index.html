@@ -1726,6 +1726,7 @@ var supabase = null;
 var supabaseLib = null;
 var useSupabase = false;
 var isLoadingData = false;
+var REPORTS_SELECT_CLAUSE = 'id, emp_id, emp_name, date, time, target_type, classification, call_type, doc_id, doc_name, doc_spec, doc_area, promoted_products, samples, gifts, inputs, chem_id, chem_name, chem_area, order_amount, stock_status, jfw_mgr_id, jfw_mgr_name, jfw_remarks, lat, lng, remarks, next_visit, created_at, stock_id, stock_name, stock_area';
 
 function formatDateForPostgres(dateStr) {
   if (!dateStr) return null;
@@ -2003,6 +2004,9 @@ async function fetchAllFromSupabase(table, options) {
     let query = supabase
       .from(table)
       .select(selectClause);
+    if (options && typeof options.applyQuery === 'function') {
+      query = options.applyQuery(query) || query;
+    }
       
     if (table === 'holidays') {
       query = query.order('date');
@@ -2034,6 +2038,32 @@ async function fetchAllFromSupabase(table, options) {
     setHolidayTableMissingFlag(false);
   }
   return allData;
+}
+
+function getScopedEmployeeIdsForSession(allEmployees) {
+  if (typeof SESSION === 'undefined' || !SESSION || !SESSION.user || !Array.isArray(allEmployees)) return null;
+  var currentUser = SESSION.user;
+  var currentId = String(currentUser.id || '').trim().toUpperCase();
+  if (!currentId) return null;
+  if (currentUser.role === 'admin') return null;
+  if (currentUser.role === 'emp') return [currentId];
+
+  var scoped = {};
+  scoped[currentId] = true;
+  var added = true;
+  while (added) {
+    added = false;
+    for (var i = 0; i < allEmployees.length; i++) {
+      var emp = allEmployees[i] || {};
+      var empId = String(emp.id || '').trim().toUpperCase();
+      var managerId = String(emp.manager_id || emp.managerId || '').trim().toUpperCase();
+      if (managerId && scoped[managerId] && empId && !scoped[empId]) {
+        scoped[empId] = true;
+        added = true;
+      }
+    }
+  }
+  return Object.keys(scoped);
 }
 
 async function upsertInBatches(table, dataArray, chunkSize = 200) {
@@ -2211,21 +2241,31 @@ async function initSupabaseData(isSilent) {
   
   try {
     const emps = await fetchAllFromSupabase('employees', { select: 'id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves' });
+    var scopedEmpIds = getScopedEmployeeIdsForSession(emps);
+    var scopedByEmployee = function(fieldName, extraOptions) {
+      var opts = extraOptions ? Object.assign({}, extraOptions) : {};
+      if (scopedEmpIds && scopedEmpIds.length > 0) {
+        opts.applyQuery = function(query) {
+          return query.in(fieldName, scopedEmpIds);
+        };
+      }
+      return opts;
+    };
     
     const doctors = await fetchAllFromSupabase('doctors');
     const chemists = await fetchAllFromSupabase('chemists');
-    const reports = await fetchAllFromSupabase('reports');
-    const tourPlans = await fetchAllFromSupabase('tour_plans');
-    const expenses = await fetchAllFromSupabase('expenses');
-    const leaves = await fetchAllFromSupabase('leaves');
+    const reports = await fetchAllFromSupabase('reports', scopedByEmployee('emp_id', { select: REPORTS_SELECT_CLAUSE }));
+    const tourPlans = await fetchAllFromSupabase('tour_plans', scopedByEmployee('emp_id'));
+    const expenses = await fetchAllFromSupabase('expenses', scopedByEmployee('emp_id'));
+    const leaves = await fetchAllFromSupabase('leaves', scopedByEmployee('emp_id'));
     const sfc = await fetchAllFromSupabase('sfc');
-    const samplesInv = await fetchAllFromSupabase('samples_inventory');
-    const giftsInv = await fetchAllFromSupabase('gifts_inventory');
-    const inputsInv = await fetchAllFromSupabase('inputs_inventory');
+    const samplesInv = await fetchAllFromSupabase('samples_inventory', scopedByEmployee('emp_id'));
+    const giftsInv = await fetchAllFromSupabase('gifts_inventory', scopedByEmployee('emp_id'));
+    const inputsInv = await fetchAllFromSupabase('inputs_inventory', scopedByEmployee('emp_id'));
     const stockists = await fetchAllFromSupabase('stockists');
     const announcements = await fetchAllFromSupabase('announcements', { allowMissing: true });
-    const attendanceData = await fetchAllFromSupabase('attendance', { allowMissing: true });
-    const weeklyOffData = await fetchAllFromSupabase('weekly_off_config', { allowMissing: true });
+    const attendanceData = await fetchAllFromSupabase('attendance', scopedByEmployee('employee_id', { allowMissing: true }));
+    const weeklyOffData = await fetchAllFromSupabase('weekly_off_config', scopedByEmployee('employee_id', { allowMissing: true }));
 
     const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
     
@@ -2508,7 +2548,7 @@ async function initSupabaseData(isSilent) {
             id: r.id,
             empId: r.emp_id,
             empName: r.emp_name,
-            date: r.date ? formatSupabaseDateToIST(r.date) : null,
+            date: r.date ? normalizeReportDateValue(r.date) : null,
             time: r.time,
             targetType: r.target_type,
             classification: r.classification,
@@ -2540,7 +2580,7 @@ async function initSupabaseData(isSilent) {
             city: city,
             patch: patch,
             isFinal: isFinal,
-            nextVisit: r.next_visit
+            nextVisit: r.next_visit ? normalizeReportDateValue(r.next_visit) : null
           };
         });
         // Keep any locally pending reports not yet confirmed in cloud
@@ -3074,6 +3114,8 @@ async function loadLocalDB() {
     DB.reports = JSON.parse(JSON.stringify(DEFAULT_DB.reports || []));
   } else {
     DB.reports.forEach(function(r) {
+      r.date = normalizeReportDateValue(r.date);
+      if (r.nextVisit) r.nextVisit = normalizeReportDateValue(r.nextVisit);
       r.samples = parseJSONField(r.samples);
       r.gifts = parseJSONField(r.gifts);
       r.inputs = parseJSONField(r.inputs);
@@ -6604,12 +6646,26 @@ var attendanceSchedulerTimer = null;
 
 function formatSupabaseDateToIST(dateStr) {
   if (!dateStr) return null;
-  if (String(dateStr).length === 10 && String(dateStr).indexOf('-') === 4) return String(dateStr);
-  var d = getISTDateObj(dateStr);
-  var yyyy = d.getUTCFullYear();
-  var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-  var dd = String(d.getUTCDate()).padStart(2, '0');
-  return yyyy + '-' + mm + '-' + dd;
+  var raw = String(dateStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  var d = new Date(raw);
+  if (isNaN(d.getTime())) return formatDateForPostgres(raw);
+  var parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(d);
+  var map = {};
+  for (var i = 0; i < parts.length; i++) {
+    map[parts[i].type] = parts[i].value;
+  }
+  return map.year + '-' + map.month + '-' + map.day;
+}
+
+function normalizeReportDateValue(dateStr) {
+  if (!dateStr) return null;
+  return formatSupabaseDateToIST(dateStr) || formatDateForPostgres(dateStr) || String(dateStr).trim();
 }
 
 function getISTDateObj(dateObj) {

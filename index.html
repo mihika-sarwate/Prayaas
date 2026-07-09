@@ -912,7 +912,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="row3">
           <div><label class="lbl">Employee</label><select id="attendance-employee-filter" onchange="renderAttendanceDashboard()"><option value="">All Employees</option></select></div>
-          <div><label class="lbl">Status</label><select id="attendance-status-filter" onchange="renderAttendanceDashboard()"><option value="">All Statuses</option><option value="P">Present</option><option value="SL">Sick Leave</option><option value="CL">Casual Leave</option><option value="H">Holiday</option><option value="WO">Weekly Off</option><option value="NS">Not Submitted</option></select></div>
+          <div><label class="lbl">Status</label><select id="attendance-status-filter" onchange="renderAttendanceDashboard()"><option value="">All Statuses</option><option value="P">Present</option><option value="A">Absent</option><option value="SL">Sick Leave</option><option value="CL">Casual Leave</option><option value="H">Holiday</option><option value="WO">Weekly Off</option><option value="NS">Not Submitted</option></select></div>
           <div><label class="lbl">Search</label><input type="text" id="attendance-search" placeholder="Search employee, date, status, remarks..." oninput="renderAttendanceDashboard()"></div>
         </div>
         <div class="btn-row" style="margin-top:0">
@@ -925,7 +925,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="stat"><div class="stat-l">Total Present</div><div class="stat-v green" id="attendance-stat-present">0</div></div>
       </div>
       <div class="stats">
-        <div class="stat"><div class="stat-l">Not Submitted Days</div><div class="stat-v orange" id="attendance-stat-ns">0</div></div>
+        <div class="stat"><div class="stat-l">Absent / Not Submitted Days</div><div class="stat-v orange" id="attendance-stat-ns">0</div></div>
         <div class="stat"><div class="stat-l">Approved Leaves</div><div class="stat-v" id="attendance-stat-leaves">0</div></div>
       </div>
       <div class="stats">
@@ -1808,6 +1808,22 @@ function normalizeAccountStatus(status) {
   return String(status || 'ACTIVE').trim().toUpperCase() === 'BLOCKED' ? 'BLOCKED' : 'ACTIVE';
 }
 
+function createSupabaseClientWithHeaders(headers, storageKey) {
+  var lib = supabaseLib || window.supabase;
+  if (!lib || typeof lib.createClient !== 'function') return null;
+  return lib.createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: storageKey || 'adonis-supabase-auth'
+    },
+    global: {
+      headers: headers || {}
+    }
+  });
+}
+
 function normalizeEmployeeRecord(emp) {
   if (!emp) return emp;
   emp.role = (emp.role || 'emp').trim().toLowerCase();
@@ -1917,9 +1933,7 @@ function initSupabaseClient() {
         headers['x-employee-id'] = String(SESSION.user.id);
         headers['x-employee-password'] = String(SESSION.user.pwd);
       }
-      supabase = lib.createClient(supabaseUrl, supabaseKey, {
-        auth: { persistSession: false }, global: { headers: headers }
-      });
+      supabase = createSupabaseClientWithHeaders(headers, 'adonis-main-supabase-auth');
       useSupabase = true;
       return true;
     } catch (e) {
@@ -4628,14 +4642,14 @@ function doLogin(){
   
   if (useSupabase && supabaseUrl && supabaseKey) {
     showToast('Authenticating with server...');
-    var lib = supabaseLib || window.supabase;
-    var tempSupabase = lib.createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false }, global: {
-        headers: {
-          'x-employee-id': id,
-          'x-employee-password': pwd
-        }
-      }
-    });
+    var tempSupabase = createSupabaseClientWithHeaders({
+      'x-employee-id': id,
+      'x-employee-password': pwd
+    }, 'adonis-login-supabase-auth');
+    if (!tempSupabase) {
+      showToast('Error connecting to server. Please refresh and try again.');
+      return;
+    }
 
     var query = tempSupabase.from('employees').select('id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves');
     if (id.startsWith('AD') || id.startsWith('TEMP')) {
@@ -6619,7 +6633,7 @@ function getHolidayForDateAndState(dateStr, state) {
 }
 
 var ATTENDANCE_EXECUTIVE_EXEMPT_NAMES = ['MILIND SARWATE', 'PANKAJ UNDWAR'];
-var ATTENDANCE_STATUS_LABELS = { P: 'Present', SL: 'Sick Leave', CL: 'Casual Leave', H: 'Holiday', WO: 'Weekly Off', NS: 'Not Submitted' };
+var ATTENDANCE_STATUS_LABELS = { P: 'Present', A: 'Absent', SL: 'Sick Leave', CL: 'Casual Leave', H: 'Holiday', WO: 'Weekly Off', NS: 'Not Submitted' };
 var ATTENDANCE_WEEKDAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 var attendanceSchedulerTimer = null;
 
@@ -6888,14 +6902,14 @@ function isAttendanceTrackedEmployee(emp) {
   return !!(emp && emp.id && String(emp.role || '').toLowerCase() !== 'admin');
 }
 
-function hasFinalDCRSubmission(employeeId, dateStr) {
+function hasCompletedFinalDCRSubmission(employeeId, dateStr) {
   var targetId = String(employeeId || '').trim().toUpperCase();
   var targetDate = formatDateForPostgres(dateStr) || dateStr;
-  return (DB.reports || []).some(function(r) {
+  var matchingReports = (DB.reports || []).filter(function(r) {
     return String(r.empId || '').trim().toUpperCase() === targetId &&
-      (formatDateForPostgres(r.date) || r.date) === targetDate &&
-      !!r.isFinal;
+      (formatDateForPostgres(r.date) || r.date) === targetDate;
   });
+  return matchingReports.length > 0 && matchingReports.every(function(r) { return !!r.isFinal; });
 }
 
 function getNextISTMidnightValidationTime() {
@@ -6907,6 +6921,18 @@ function getNextISTMidnightValidationTime() {
   var day = parseInt(parts[2], 10);
   var istOffsetMs = ((5 * 60) + 30) * 60 * 1000;
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 5, 0) - istOffsetMs);
+}
+
+function shouldUseLiveMISFetch(empIds, from, to) {
+  if (!useSupabase || !supabase) return false;
+  var normalizedIds = Array.isArray(empIds) ? empIds.filter(Boolean) : [];
+  if (!normalizedIds.length || normalizedIds.length > 25) return false;
+  if (!from || !to) return false;
+  var start = parseDateAtLocalMidnight(from);
+  var end = parseDateAtLocalMidnight(to);
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return false;
+  var days = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+  return days <= 31;
 }
 
 function isExecutiveAttendanceExempt(emp) {
@@ -7054,7 +7080,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
         
         // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
         // Check DCR report submission or login attendance record.
-        var hasFinalReport = hasFinalDCRSubmission(emp.id, dateStr);
+        var hasFinalReport = hasCompletedFinalDCRSubmission(emp.id, dateStr);
         if (hasFinalReport) {
           return { status: 'P', remarks: 'Present via Final DCR Submission' };
         }
@@ -7086,7 +7112,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
     if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
   }
   
-  var hasFinalReport = hasFinalDCRSubmission(emp.id, dateStr);
+  var hasFinalReport = hasCompletedFinalDCRSubmission(emp.id, dateStr);
   if (hasFinalReport) {
     return { status: 'P', remarks: 'Present via Final DCR Submission' };
   }
@@ -7154,7 +7180,7 @@ function validateAttendanceForDate(dateStr) {
     var statusMeta = getAttendanceStatusMeta(emp, dateStr);
     if (statusMeta.status === 'NS') {
       statusMeta.status = 'A';
-      statusMeta.remarks = 'Absent';
+      statusMeta.remarks = 'Absent - Final DCR not submitted by 12:00 AM IST';
     }
     var before = getAttendanceRecord(emp.id, dateStr);
     var beforeStatus = before ? before.attendanceStatus : '';
@@ -7182,10 +7208,10 @@ function validateAttendanceForDate(dateStr) {
         }
       }
       
-      if (!manualUnblockValid && (emp.accountStatus !== 'BLOCKED' || emp.blockedDate !== dateStr || emp.blockedReason !== 'Attendance Not Submitted')) {
+      if (!manualUnblockValid && (emp.accountStatus !== 'BLOCKED' || emp.blockedDate !== dateStr || emp.blockedReason !== 'Final DCR not submitted by 12:00 AM IST')) {
         emp.accountStatus = 'BLOCKED';
         emp.blockedDate = dateStr;
-        emp.blockedReason = 'Attendance Not Submitted';
+        emp.blockedReason = 'Final DCR not submitted by 12:00 AM IST';
         changed = true;
       }
     }
@@ -13792,21 +13818,20 @@ async function runMISReport(){
     var scopeIds = empId ? [empId] : teamIds;
     
     // Filter base calls reports
-    var baseReports = null;
-    try {
-      var freshReports = await fetchReportsForMIS(scopeIds, from, to);
-      if (Array.isArray(freshReports)) baseReports = freshReports;
-    } catch (misFetchErr) {
-      console.warn('MIS live report fetch failed, falling back to local cache:', misFetchErr);
-    }
-    if (!Array.isArray(baseReports)) {
-      baseReports=DB.reports.filter(function(r){
-        if(teamIds && !teamIds.includes(r.empId)) return false;
-        if(empId&&r.empId!==empId)return false;
-        if(from&&r.date<from)return false;
-        if(to&&r.date>to)return false;
-        return true;
-      });
+    var baseReports=DB.reports.filter(function(r){
+      if(teamIds && !teamIds.includes(r.empId)) return false;
+      if(empId&&r.empId!==empId)return false;
+      if(from&&r.date<from)return false;
+      if(to&&r.date>to)return false;
+      return true;
+    });
+    if (shouldUseLiveMISFetch(scopeIds, from, to)) {
+      try {
+        var freshReports = await fetchReportsForMIS(scopeIds, from, to);
+        if (Array.isArray(freshReports)) baseReports = freshReports;
+      } catch (misFetchErr) {
+        console.warn('MIS live report fetch failed, falling back to local cache:', misFetchErr);
+      }
     }
     
     // Sort descending by date and time
@@ -14991,20 +15016,19 @@ async function runEmpMISReport(){
     var tbody=document.getElementById('emp-mis-report-tbody');
     
     // Filter base calls reports for this specific employee
-    var baseReports = null;
-    try {
-      var freshReports = await fetchReportsForMIS([empId], from, to);
-      if (Array.isArray(freshReports)) baseReports = freshReports;
-    } catch (empMisFetchErr) {
-      console.warn('Employee MIS live report fetch failed, falling back to local cache:', empMisFetchErr);
-    }
-    if (!Array.isArray(baseReports)) {
-      baseReports=DB.reports.filter(function(r){
-        if(r.empId!==empId)return false;
-        if(from&&r.date<from)return false;
-        if(to&&r.date>to)return false;
-        return true;
-      });
+    var baseReports=DB.reports.filter(function(r){
+      if(r.empId!==empId)return false;
+      if(from&&r.date<from)return false;
+      if(to&&r.date>to)return false;
+      return true;
+    });
+    if (shouldUseLiveMISFetch([empId], from, to)) {
+      try {
+        var freshReports = await fetchReportsForMIS([empId], from, to);
+        if (Array.isArray(freshReports)) baseReports = freshReports;
+      } catch (empMisFetchErr) {
+        console.warn('Employee MIS live report fetch failed, falling back to local cache:', empMisFetchErr);
+      }
     }
     
     // Sort descending by date and time

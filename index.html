@@ -6815,30 +6815,28 @@ function recordAttendanceOnSuccessfulLogin(emp) {
   if (!isAttendanceTrackedEmployee(emp)) return;
   var today = getTodayDateString();
   var existing = getAttendanceRecord(emp.id, today);
-  if (existing && (existing.attendanceStatus === 'P' || existing.loginTime)) return;
+  if (existing) return;
+  
   var statusMeta = getAttendanceStatusMeta(emp, today);
-  if (statusMeta.status === 'NS' || statusMeta.status === 'P') {
-    upsertAttendanceRecord({
-      employeeId: emp.id,
-      date: today,
-      loginTime: getAttendanceLoginTimeValue(new Date()),
-      attendanceStatus: statusMeta.status,
-      remarks: statusMeta.remarks || 'Logged in'
-    });
-    saveDB();
-    if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
+  
+  // As per requirement: "THERE SHOULD BE P IF THEIR FINAL DCR IS SUBMITTED... AND NOTHING IF NOT"
+  // Do NOT insert an automatic record for normal working days (NS) on login. 
+  // 'P' will be granted exclusively by finalSubmitToday.
+  // Overnight validation will mark 'A' if no report was submitted by 12 AM.
+  if (statusMeta.status === 'NS' || statusMeta.status === 'P' || statusMeta.status === 'A') {
     return;
   }
-  if (!existing) {
-    upsertAttendanceRecord({
-      employeeId: emp.id,
-      date: today,
-      loginTime: '',
-      attendanceStatus: statusMeta.status,
-      remarks: statusMeta.remarks
-    });
-    saveDB();
-  }
+  
+  // Only auto-insert statuses for Holidays, Leaves, and Weekly Offs
+  upsertAttendanceRecord({
+    employeeId: emp.id,
+    date: today,
+    loginTime: '',
+    attendanceStatus: statusMeta.status,
+    remarks: statusMeta.remarks
+  });
+  saveDB();
+  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
 }
 
 function validateAttendanceForDate(dateStr) {

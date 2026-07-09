@@ -6777,6 +6777,39 @@ async function fetchReportsForMIS(empIds, from, to) {
   return allRows.map(mapSupabaseReportRow);
 }
 
+async function fetchRecentReportDateSummary(empId, limitRows) {
+  if (!useSupabase || !supabase || !empId) return '';
+  try {
+    var res = await supabase.from('reports')
+      .select('date,target_type')
+      .eq('emp_id', empId)
+      .order('date', { ascending: false })
+      .limit(limitRows || 200);
+    if (res.error) throw res.error;
+    var rows = (res.data || []).map(function(r) {
+      return {
+        date: r.date ? normalizeReportDateValue(r.date) : '',
+        targetType: r.target_type || 'Other'
+      };
+    }).filter(function(r) { return !!r.date; });
+    if (!rows.length) return '';
+    var byDate = {};
+    rows.forEach(function(r) {
+      if (!byDate[r.date]) byDate[r.date] = {};
+      byDate[r.date][r.targetType] = (byDate[r.date][r.targetType] || 0) + 1;
+    });
+    return Object.keys(byDate).sort().reverse().slice(0, 5).map(function(dateKey) {
+      var parts = Object.keys(byDate[dateKey]).sort().map(function(type) {
+        return type + ': ' + byDate[dateKey][type];
+      }).join(', ');
+      return dateKey + ' (' + parts + ')';
+    }).join(' | ');
+  } catch (e) {
+    console.warn('Could not fetch recent report date summary:', e);
+    return '';
+  }
+}
+
 function getISTDateObj(dateObj) {
   var d = dateObj ? new Date(dateObj) : new Date();
   var formatter = new Intl.DateTimeFormat('en-US', {
@@ -14062,7 +14095,15 @@ async function runMISReport(){
   
   if(!currentMISData.length){
     var colCount = thead.querySelectorAll('th').length || 12;
-    tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">No matching records found for this query parameters</td></tr>';
+    var recentDatesSummary = '';
+    if (empId) {
+      recentDatesSummary = await fetchRecentReportDateSummary(empId, 200);
+    }
+    var emptyMsg = 'No matching records found for this query parameters';
+    if (recentDatesSummary) {
+      emptyMsg += '. Recent available dates for this employee: ' + recentDatesSummary;
+    }
+    tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">' + emptyMsg + '</td></tr>';
     var deleteActions = document.getElementById('mis-delete-actions');
     if (deleteActions) deleteActions.style.display = 'none';
     return;
@@ -15197,7 +15238,12 @@ async function runEmpMISReport(){
   
   if(!currentEmpMISData.length){
     var colCount = thead.querySelectorAll('th').length || 10;
-    tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">No matching records found for this query parameters</td></tr>';
+    var recentDatesSummary = await fetchRecentReportDateSummary(empId, 200);
+    var emptyMsg = 'No matching records found for this query parameters';
+    if (recentDatesSummary) {
+      emptyMsg += '. Recent available dates for this employee: ' + recentDatesSummary;
+    }
+    tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">' + emptyMsg + '</td></tr>';
     return;
   }
   

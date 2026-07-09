@@ -6822,8 +6822,8 @@ function recordAttendanceOnSuccessfulLogin(emp) {
       employeeId: emp.id,
       date: today,
       loginTime: getAttendanceLoginTimeValue(new Date()),
-      attendanceStatus: 'NS',
-      remarks: 'Logged in but report not submitted'
+      attendanceStatus: statusMeta.status,
+      remarks: statusMeta.remarks || 'Logged in'
     });
     saveDB();
     if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();

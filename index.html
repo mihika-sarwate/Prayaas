@@ -6692,6 +6692,14 @@ function normalizeDateArray(values) {
   return values.map(function(v) { return normalizeReportDateValue(v); }).filter(Boolean);
 }
 
+function getReportScopeEmployeeIds(user, includeSelf) {
+  if (!user || user.role === 'admin') return null;
+  var ids = getAllSubordinateIds(user.id) || [];
+  ids = ids.slice();
+  if (includeSelf !== false && user.id && !ids.includes(user.id)) ids.push(user.id);
+  return ids;
+}
+
 function getISTDateObj(dateObj) {
   var d = dateObj ? new Date(dateObj) : new Date();
   var formatter = new Intl.DateTimeFormat('en-US', {
@@ -13566,7 +13574,7 @@ function exportInventoryBalancesCSV() {
 function populateAdminEmpFilters(){
     var selectList=['inv-issue-emp', 'inv-filter-emp', 'rep-filter-emp'];
     var u=SESSION.user;
-    var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+    var teamIds = getReportScopeEmployeeIds(u, true);
   selectList.forEach(function(selId){
     var sel=document.getElementById(selId);
     if(sel){
@@ -13610,13 +13618,13 @@ function updateReportHeadersAndFilters(){
 
 function runMISReport(){
     var empId=document.getElementById('rep-filter-emp').value;
-    var from=document.getElementById('rep-from').value;
-    var to=document.getElementById('rep-to').value;
+    var from=normalizeReportDateValue(document.getElementById('rep-from').value);
+    var to=normalizeReportDateValue(document.getElementById('rep-to').value);
     
     var thead=document.getElementById('mis-report-thead');
     var tbody=document.getElementById('mis-report-tbody');
     var u=SESSION.user;
-    var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
+    var teamIds = getReportScopeEmployeeIds(u, true);
     
     // Filter base calls reports
     var baseReports=DB.reports.filter(function(r){
@@ -14761,8 +14769,8 @@ function updateEmpReportHeadersAndFilters(){
 
 function runEmpMISReport(){
     var empId=SESSION.user.id;
-    var from=document.getElementById('emp-rep-from').value;
-    var to=document.getElementById('emp-rep-to').value;
+    var from=normalizeReportDateValue(document.getElementById('emp-rep-from').value);
+    var to=normalizeReportDateValue(document.getElementById('emp-rep-to').value);
     
     var thead=document.getElementById('emp-mis-report-thead');
     var tbody=document.getElementById('emp-mis-report-tbody');

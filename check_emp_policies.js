@@ -1,18 +1,11 @@
 const { Client } = require('pg');
-
-const client = new Client({
-  connectionString: "postgresql://postgres.mmxdvruucggeixjqwsqr:Adonisgroma%402026@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
-});
-
-async function run() {
-  await client.connect();
+const client = new Client({ connectionString: 'postgresql://postgres.mmxdvruucggeixjqwsqr:Adonisgroma%402026@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres' });
+client.connect().then(async () => {
   const res = await client.query(`
-    SELECT polname, pg_get_expr(polqual, polrelid) as qual
-    FROM pg_policy
-    WHERE polrelid = 'employees'::regclass
+    SELECT tablename, policyname, permissive, roles, cmd, qual, with_check 
+    FROM pg_policies 
+    WHERE tablename = 'employees';
   `);
-  console.log(res.rows);
+  console.log('Policies on employees:', res.rows);
   await client.end();
-}
-
-run().catch(console.error);
+}).catch(console.error);

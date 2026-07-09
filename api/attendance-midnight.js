@@ -1,5 +1,32 @@
 const { Client } = require('pg');
 
+// Try loading environment variables from local .env file if DATABASE_URL is not set (useful for local development)
+if (!process.env.DATABASE_URL) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const possiblePaths = [
+      path.join(process.cwd(), '.env'),
+      path.join(__dirname, '.env'),
+      path.join(__dirname, '..', '.env'),
+      path.join(__dirname, '..', '..', '.env')
+    ];
+    for (const envPath of possiblePaths) {
+      if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        const match = envContent.match(/DATABASE_URL\s*=\s*([^\r\n]*)/);
+        if (match) {
+          process.env.DATABASE_URL = match[1].trim();
+          console.log(`Loaded DATABASE_URL from ${envPath}`);
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load local .env file:', e);
+  }
+}
+
 const BLOCK_REASON = 'Final DCR not submitted by 12:00 AM IST';
 const EXECUTIVE_EXEMPT_NAMES = new Set(['MILIND SARWATE', 'PANKAJ UNDWAR']);
 const WEEKDAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

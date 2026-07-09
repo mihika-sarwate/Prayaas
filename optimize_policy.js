@@ -1,35 +1,18 @@
 const { Client } = require('pg');
-
-const client = new Client({
-  connectionString: "postgresql://postgres.mmxdvruucggeixjqwsqr:Adonisgroma%402026@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
-});
-
-async function run() {
-  await client.connect();
-  
-  try {
-    // Drop the slow policy
-    await client.query("DROP POLICY IF EXISTS reports_manager_all ON reports");
-    
-    // Create an optimized policy using ANY(get_my_subordinates())
-    // This evaluates get_my_subordinates() once instead of triggering nested RLS for every row
-    await client.query(`
-      CREATE POLICY reports_manager_all ON reports
-      FOR ALL
-      USING (
-        upper(emp_id) = ANY (get_my_subordinates())
-      )
-      WITH CHECK (
-        upper(emp_id) = ANY (get_my_subordinates())
-      )
-    `);
-    
-    console.log("Policy reports_manager_all optimized successfully");
-  } catch(e) {
-    console.error("Error updating policy:", e.message);
-  }
-  
+const client = new Client({ connectionString: 'postgresql://postgres.mmxdvruucggeixjqwsqr:Adonisgroma%402026@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres' });
+client.connect().then(async () => {
+  console.log('Altering reports_manager_all policy...');
+  await client.query(`
+    ALTER POLICY reports_manager_all ON reports 
+    USING (
+      (SELECT is_valid_employee()) AND 
+      (upper(emp_id) IN (SELECT unnest(get_my_subordinates())))
+    )
+    WITH CHECK (
+      (SELECT is_valid_employee()) AND 
+      (upper(emp_id) IN (SELECT unnest(get_my_subordinates())))
+    );
+  `);
+  console.log('Policy altered successfully!');
   await client.end();
-}
-
-run().catch(console.error);
+}).catch(console.error);

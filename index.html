@@ -2372,7 +2372,7 @@ async function initSupabaseData(isSilent) {
             area: e.area || '',
             role: safeRole,
             managerId: e.manager_id || '',
-            doj: e.doj || '',
+            doj: (function(d){ if(!d) return ''; var p=d.split('-'); if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; return d; })(e.doj),
             state: e.state || '',
             status: e.status || 'Active',
             accountStatus: normalizeAccountStatus(e.account_status),
@@ -9727,7 +9727,7 @@ async function pushEmployeesToGitHub() {
         des,
         e.role || '',
         e.managerId || '',
-        e.doj || '',
+        (function(d){ if(!d) return ''; var p=d.split('-'); if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; return d; })(e.doj),
         e.state || '',
         normalizeEmployeeStatus(e.status)
       ].map(function(val) {
@@ -9923,14 +9923,14 @@ function downloadEmpTemplate(){
         typeof e.designation !== 'undefined' ? e.designation : getDefaultEmployeeDesignation(e.role),
         e.role || '',
         e.managerId || '',
-        e.doj || '',
+        (function(d){ if(!d) return ''; var p=d.split('-'); if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; return d; })(e.doj),
         e.state || '',
         normalizeEmployeeStatus(e.status)
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'employees_master.csv');
   } else {
-    csv += 'EMP004,Vikas Malhotra,pass123,Pune,Medical Representative,emp,FLM001,2026-01-01,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,First Line Manager,manager,RM001,2026-01-01,West Bengal,Active\n';
+    csv += 'EMP004,Vikas Malhotra,pass123,Pune,Medical Representative,emp,FLM001,01/01/2026,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,First Line Manager,manager,RM001,01/01/2026,West Bengal,Active\n';
     downloadData(csv,'employees_template.csv');
   }
 }

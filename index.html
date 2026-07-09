@@ -5500,8 +5500,9 @@ function populateReportingDropdowns(){
 
 function populateJFWManagers(){
   var jfwSel=document.getElementById('r-jfw-manager');
-  jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
+  if (jfwSel) jfwSel.innerHTML='<option value="">-- Working Alone --</option>';
   
+  if (!SESSION || !SESSION.user) return;
   var myLevel = getLevel(SESSION.user.role, SESSION.user.designation);
   
   var myManagerChainIds = [];

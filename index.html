@@ -6229,6 +6229,17 @@ function submitReport(){
   // Push directly to Supabase now — do NOT wait for the debounced full sync
   pushReportToSupabase(repObj);
   pushUserInventoryToSupabase(SESSION.user.id);
+  
+  // Record attendance as present when any report is submitted
+  upsertAttendanceRecord({
+    employeeId: SESSION.user.id,
+    date: date,
+    loginTime: getAttendanceLoginTimeValue(new Date()),
+    attendanceStatus: 'P',
+    remarks: 'Present (Report Submitted)'
+  });
+  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
+
   showToast(isEditing ? 'Report updated! Syncing to cloud...' : 'Report submitted! Syncing to cloud...');
   
   // Clear inputs

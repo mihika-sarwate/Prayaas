@@ -7022,6 +7022,89 @@ function getAttendanceStatusBadgeClass(status) {
   return 'grey';
 }
 
+function getAttendanceStatusMeta(emp, dateStr) {
+  if (emp && dateStr) {
+    var monthStr = dateStr.slice(0, 7);
+    var tp = (DB.tourPlans || []).find(function(t) {
+      var statusUpper = String(t.status || '').toUpperCase();
+      var approved = (statusUpper === 'APPROVED' || statusUpper === 'APPROVED BY MANAGER' || statusUpper === 'APPROVED BY ADMIN');
+      return String(t.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
+             t.month === monthStr && 
+             approved;
+    });
+    
+    if (tp && Array.isArray(tp.days)) {
+      var dayInfo = tp.days.find(function(d) { return d.date === dateStr; });
+      if (dayInfo) {
+        var wt = String(dayInfo.workType || '').toUpperCase();
+        if (wt === 'WEEKLY OFF') {
+          return { status: 'WO', remarks: 'Weekly Off (from Tour Plan)' };
+        }
+        if (wt === 'HOLIDAY') {
+          return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
+        }
+        if (wt === 'LEAVE') {
+          var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
+          var leaveTypeLabel = 'Approved Leave';
+          var statusVal = 'CL'; // Default fallback
+          if (approvedLeave) {
+            var leaveType = String(approvedLeave.type || '').toLowerCase();
+            if (leaveType.indexOf('sick') !== -1) {
+              statusVal = 'SL';
+              leaveTypeLabel = 'Approved Sick Leave';
+            } else {
+              statusVal = 'CL';
+              leaveTypeLabel = 'Approved Casual Leave';
+            }
+          }
+          return { status: statusVal, remarks: leaveTypeLabel + ' (from Tour Plan)' };
+        }
+        
+        // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
+        // Check DCR report submission or login attendance record.
+        var hasFinalReport = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && r.isFinal;
+        });
+        if (hasFinalReport) {
+          return { status: 'P', remarks: 'Present via Final DCR Submission' };
+        }
+        
+        var existing = getAttendanceRecord(emp.id, dateStr);
+        if (existing && (existing.attendanceStatus === 'P' || existing.attendanceStatus === 'A')) {
+          return { status: existing.attendanceStatus, remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
+        }
+        
+        return { status: 'NS', remarks: 'Attendance Not Submitted' };
+      }
+    }
+  }
+
+  // Only fall back to default configurations if no approved Tour Plan exists for the month
+  var holiday = getHolidayForDateAndState(dateStr, emp ? emp.state : '');
+  if (holiday) return { status: 'H', remarks: 'Holiday' + (holiday.name ? ': ' + holiday.name : '') };
+  if (isWeeklyOffForEmployee(emp, dateStr)) return { status: 'WO', remarks: 'Weekly Off' };
+  var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
+  if (approvedLeave) {
+    var leaveType = String(approvedLeave.type || '').toLowerCase();
+    if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: 'Approved Sick Leave' };
+    if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
+  }
+  
+  // Check if they have submitted ANY reports for this date
+  var hasReports = (DB.reports || []).some(function(r) {
+    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+  });
+  if (hasReports) {
+    return { status: 'P', remarks: 'Present (Reports Submitted)' };
+  }
+  
+  var existing = getAttendanceRecord(emp.id, dateStr);
+  if (existing && existing.remarks === 'Present (Manually Unblocked by Admin)') {
+    return { status: 'P', remarks: existing.remarks, loginTime: existing.loginTime || '' };
+  }
+  
+  return { status: 'NS', remarks: 'Attendance Not Submitted' };
+}
 
 function recordAttendanceOnSuccessfulLogin(emp) {
   if (!isAttendanceTrackedEmployee(emp)) return;

@@ -2483,6 +2483,10 @@ async function initSupabaseData(isSilent) {
         restoreLocalAssignTo('doctors', cloudDocs);
         restoreLocalManagerName('doctors', cloudDocs);
         
+        if (SESSION.user && SESSION.user.role !== 'admin') {
+          return cloudDocs;
+        }
+        
         var cloudIds = new Set(cloudDocs.map(function(d){ return String(d.id); }));
         var missingLocal = localDocs.filter(function(d) {
           return !cloudIds.has(String(d.id)) && !_pendingDeletedDocIds.has(String(d.id));
@@ -2515,6 +2519,9 @@ async function initSupabaseData(isSilent) {
         var localChems = (typeof DB !== 'undefined' && DB && DB.chemists) ? DB.chemists : [];
         restoreLocalAssignTo('chemists', cloudChems);
         restoreLocalAssignTo('chemists', cloudChems);
+        if (SESSION.user && SESSION.user.role !== 'admin') {
+          return cloudChems;
+        }
         if (cloudChems.length === 0 && localChems.length > 0) {
           console.warn('Supabase returned 0 chemists but local DB has ' + localChems.length + '. Keeping local data.');
           return localChems;
@@ -2544,6 +2551,9 @@ async function initSupabaseData(isSilent) {
         var localStockists = (typeof DB !== 'undefined' && DB && DB.stockists) ? DB.stockists : [];
         restoreLocalAssignTo('stockists', cloudStockists);
         restoreLocalAssignTo('stockists', cloudStockists);
+        if (SESSION.user && SESSION.user.role !== 'admin') {
+          return cloudStockists;
+        }
         if (cloudStockists.length === 0 && localStockists.length > 0) {
           console.warn('Supabase returned 0 stockists but local DB has ' + localStockists.length + '. Keeping local data.');
           return localStockists;
@@ -3805,97 +3815,101 @@ function clearLocalAssignTo(entityType) {
 
     try { // outer try — all individual syncs handle their own errors internally
 
-    // Sync SFC
-    try {
-      var sfcKeysLocal = new Set();
-      DB.sfc = DB.sfc.filter(function(s) {
-        var k = normalizeSfcKey(s);
-        if (sfcKeysLocal.has(k)) return false;
-        sfcKeysLocal.add(k);
-        return true;
-      });
-
-      const dbSfc = DB.sfc.map(s => {
-        var row = {
-          emp_id: s.empId || '',
-          working_days: s.workingDays || '',
-          emp_name: s.empName || '',
-          hq: s.hq || '',
-          state: s.state || '',
-          from_loc: s.from || '',
-          to_loc: s.to || '',
-          category: s.category || '',
-          distance: s.distance || 0,
-          mode: s.mode || '',
-          fare: s.fare || 0,
-          da: s.da || 0,
-          total: s.total || (s.fare + s.da),
-          doctors: s.doctors || '',
-          business: s.business || '',
-          lodge: s.lodge || 0,
-          other: s.other || 0
-        };
-        if (s.id !== undefined && s.id !== null) {
-          row.id = s.id;
-        }
-        return row;
-      });
-      var resRows = await upsertInBatches('sfc', dbSfc);
-      if (resRows && resRows.length > 0) {
-        var resMap = {};
-        resRows.forEach(function(row) {
-          var key = normalizeSfcKey({
-            empId: row.emp_id,
-            from: row.from_loc,
-            to: row.to_loc,
-            distance: row.distance,
-            mode: row.mode,
-            category: row.category,
-            fare: row.fare,
-            da: row.da,
-            workingDays: row.working_days,
-            empName: row.emp_name,
-            hq: row.hq,
-            state: row.state,
-            doctors: row.doctors,
-            business: row.business
-          });
-          resMap[key] = row.id;
-        });
-        DB.sfc.forEach(function(s) {
+    // Sync SFC (Admins only)
+    if (SESSION.user && SESSION.user.role === 'admin') {
+      try {
+        var sfcKeysLocal = new Set();
+        DB.sfc = DB.sfc.filter(function(s) {
           var k = normalizeSfcKey(s);
-          if (resMap[k] !== undefined) {
-            s.id = resMap[k];
-          }
+          if (sfcKeysLocal.has(k)) return false;
+          sfcKeysLocal.add(k);
+          return true;
         });
-        saveDB(true);
+
+        const dbSfc = DB.sfc.map(s => {
+          var row = {
+            emp_id: s.empId || '',
+            working_days: s.workingDays || '',
+            emp_name: s.empName || '',
+            hq: s.hq || '',
+            state: s.state || '',
+            from_loc: s.from || '',
+            to_loc: s.to || '',
+            category: s.category || '',
+            distance: s.distance || 0,
+            mode: s.mode || '',
+            fare: s.fare || 0,
+            da: s.da || 0,
+            total: s.total || (s.fare + s.da),
+            doctors: s.doctors || '',
+            business: s.business || '',
+            lodge: s.lodge || 0,
+            other: s.other || 0
+          };
+          if (s.id !== undefined && s.id !== null) {
+            row.id = s.id;
+          }
+          return row;
+        });
+        var resRows = await upsertInBatches('sfc', dbSfc);
+        if (resRows && resRows.length > 0) {
+          var resMap = {};
+          resRows.forEach(function(row) {
+            var key = normalizeSfcKey({
+              empId: row.emp_id,
+              from: row.from_loc,
+              to: row.to_loc,
+              distance: row.distance,
+              mode: row.mode,
+              category: row.category,
+              fare: row.fare,
+              da: row.da,
+              workingDays: row.working_days,
+              empName: row.emp_name,
+              hq: row.hq,
+              state: row.state,
+              doctors: row.doctors,
+              business: row.business
+            });
+            resMap[key] = row.id;
+          });
+          DB.sfc.forEach(function(s) {
+            var k = normalizeSfcKey(s);
+            if (resMap[k] !== undefined) {
+              s.id = resMap[k];
+            }
+          });
+          saveDB(true);
+        }
+        // Removed prune step to prevent empty local state from clearing populated cloud database rows.
+      } catch (e) {
+        console.error("Error syncing SFC:", e);
+        hasSyncError = true;
       }
-      // Removed prune step to prevent empty local state from clearing populated cloud database rows.
-    } catch (e) {
-      console.error("Error syncing SFC:", e);
-      hasSyncError = true;
     }
 
-    // Sync Announcements
-    try {
-      const dbAnnouncements = (DB.announcements || []).map(a => ({
-        id: a.id,
-        sender_id: a.senderId || '',
-        sender_name: a.senderName || '',
-        title: a.title || 'Namaskaram!',
-        message: a.message || '',
-        target_type: a.targetType || '',
-        target_value: a.targetValue || '',
-        acknowledged_by: a.acknowledgedBy || [],
-        file_data: a.fileData || '',
-        file_type: a.fileType || ''
-      }));
-      await upsertInBatches('announcements', dbAnnouncements);
-      await reconcileSupabaseRows('announcements', DB.announcements, function(row) { return row.id; }, function(row) {
-        return row.id ? supabase.from('announcements').delete().eq('id', row.id) : Promise.resolve();
-      }, { select: 'id' });
-    } catch (e) {
-      console.error("Error syncing announcements:", e);
+    // Sync Announcements (Admins only)
+    if (SESSION.user && SESSION.user.role === 'admin') {
+      try {
+        const dbAnnouncements = (DB.announcements || []).map(a => ({
+          id: a.id,
+          sender_id: a.senderId || '',
+          sender_name: a.senderName || '',
+          title: a.title || 'Namaskaram!',
+          message: a.message || '',
+          target_type: a.targetType || '',
+          target_value: a.targetValue || '',
+          acknowledged_by: a.acknowledgedBy || [],
+          file_data: a.fileData || '',
+          file_type: a.fileType || ''
+        }));
+        await upsertInBatches('announcements', dbAnnouncements);
+        await reconcileSupabaseRows('announcements', DB.announcements, function(row) { return row.id; }, function(row) {
+          return row.id ? supabase.from('announcements').delete().eq('id', row.id) : Promise.resolve();
+        }, { select: 'id' });
+      } catch (e) {
+        console.error("Error syncing announcements:", e);
+      }
     }
 
     // Sync Employees
@@ -3965,181 +3979,185 @@ function clearLocalAssignTo(entityType) {
       console.error("Error fetching active employees for foreign key check:", e);
     }
 
-    // Sync Doctors
-    try {
-      const dbDocs = DB.doctors.map(d => {
-        var assignTo = d.assignTo || null;
-                if (assignTo) {
-          var normAssignStr = String(assignTo).toUpperCase().trim();
-                    var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
-          var validList = [];
-          
-          if (normAssignList.length > 0) {
-            normAssignList.forEach(function(a) {
-              if (activeEmpIds.size > 0) {
-                if (activeEmpIds.has(a)) validList.push(a);
-              } else {
-                if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
+    // Sync Doctors, Chemists, Stockists (Admins only)
+    if (SESSION.user && SESSION.user.role === 'admin') {
+      // Sync Doctors
+      try {
+        const dbDocs = DB.doctors.map(d => {
+          var assignTo = d.assignTo || null;
+          if (assignTo) {
+            var normAssignStr = String(assignTo).toUpperCase().trim();
+            var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+            var validList = [];
+            
+            if (normAssignList.length > 0) {
+              normAssignList.forEach(function(a) {
+                if (activeEmpIds.size > 0) {
+                  if (activeEmpIds.has(a)) validList.push(a);
+                } else {
+                  if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
+                }
+              });
+              if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
+                validList = normAssignList;
               }
-            });
-            if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
-              validList = normAssignList;
             }
+            assignTo = validList.length > 0 ? validList.join(',') : null;
           }
-          assignTo = validList.length > 0 ? validList.join(',') : null;
+          return {
+            id: d.id || undefined,
+            code: d.code || '',
+            name: d.name || '',
+            be_name: d.beName || '',
+            hq: d.hq || '',
+            manager_name: d.managerName || '',
+            spec: d.spec || '',
+            qual: d.qual || '',
+            address: d.address || '',
+            city: d.city || '',
+            area: d.area || '',
+            state: d.state || '',
+            territory_type: d.territoryType || '',
+            phone: d.phone || '',
+            assign_to: assignTo,
+            status: d.status || 'active'
+          };
+        });
+        await upsertInBatches('doctors', dbDocs);
+        clearLocalAssignTo('doctors');
+        clearLocalManagerName('doctors');
+        // Automatic deletion reconciliation re-enabled as requested
+        await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
+          return String(row.id || '').toUpperCase();
+        }, function(row) {
+          return supabase.from('doctors').delete().eq('id', row.id);
+        });
+      } catch (e) {
+        console.error("Error syncing doctors:", e);
+        showToast('⚠️ Doctor sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
+      }
+
+      // Sync Chemists
+      try {
+        const dbChems = DB.chemists.map(c => {
+          var assignTo = c.assignTo || null;
+          if (assignTo) {
+            var normAssignStr = String(assignTo).toUpperCase().trim();
+            var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+            var validList = [];
+            
+            if (normAssignList.length > 0) {
+              normAssignList.forEach(function(a) {
+                if (activeEmpIds.size > 0) {
+                  if (activeEmpIds.has(a)) validList.push(a);
+                } else {
+                  if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
+                }
+              });
+              if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
+                validList = normAssignList;
+              }
+            }
+            assignTo = validList.length > 0 ? validList.join(',') : null;
+          }
+          return {
+            id: c.id || undefined,
+            name: c.name || '',
+            area: c.area || '',
+            assign_to: assignTo,
+            state: c.state || ''
+          };
+        });
+        try {
+          await upsertInBatches('chemists', dbChems);
+          clearLocalAssignTo('chemists');
+          clearLocalAssignTo('chemists');
+        } catch (upsertErr) {
+          var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
+          if (errMsg.indexOf('state') !== -1) {
+            console.warn("Chemist sync failed with state column error. Retrying without state column...");
+            const fallbackChems = dbChems.map(function(c) {
+              var copy = Object.assign({}, c);
+              delete copy.state;
+              return copy;
+            });
+            await upsertInBatches('chemists', fallbackChems);
+          } else {
+            throw upsertErr;
+          }
         }
-        return {
-          id: d.id || undefined,
-          code: d.code || '',
-          name: d.name || '',
-          be_name: d.beName || '',
-          hq: d.hq || '',
-          manager_name: d.managerName || '',
-          spec: d.spec || '',
-          qual: d.qual || '',
-          address: d.address || '',
-          city: d.city || '',
-          area: d.area || '',
-          state: d.state || '',
-          territory_type: d.territoryType || '',
-          phone: d.phone || '',
-          assign_to: assignTo,
-          status: d.status || 'active'
-        };
-      });
-      await upsertInBatches('doctors', dbDocs);
-      clearLocalAssignTo('doctors');
-      clearLocalManagerName('doctors');
-      // Automatic deletion reconciliation re-enabled as requested
-      await reconcileSupabaseRows('doctors', DB.doctors, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('doctors').delete().eq('id', row.id);
-      });
-    } catch (e) {
-      console.error("Error syncing doctors:", e);
-      showToast('⚠️ Doctor sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
+        // Automatic deletion reconciliation re-enabled as requested
+        await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
+          return String(row.id || '').toUpperCase();
+        }, function(row) {
+          return supabase.from('chemists').delete().eq('id', row.id);
+        });
+      } catch (e) {
+        console.error("Error syncing chemists:", e);
+        showToast('⚠️ Chemist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
+      }
+
+      // Sync Stockists
+      try {
+        const dbStockists = DB.stockists.map(s => {
+          var assignTo = s.assignTo || null;
+          if (assignTo) {
+            var normAssignStr = String(assignTo).toUpperCase().trim();
+            var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+            var validList = [];
+            
+            if (normAssignList.length > 0) {
+              normAssignList.forEach(function(a) {
+                if (activeEmpIds.size > 0) {
+                  if (activeEmpIds.has(a)) validList.push(a);
+                } else {
+                  if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
+                }
+              });
+              if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
+                validList = normAssignList;
+              }
+            }
+            assignTo = validList.length > 0 ? validList.join(',') : null;
+          }
+          return {
+            id: s.id || undefined,
+            name: s.name || '',
+            area: s.area || '',
+            assign_to: assignTo,
+            state: s.state || ''
+          };
+        });
+        try {
+          await upsertInBatches('stockists', dbStockists);
+          clearLocalAssignTo('stockists');
+          clearLocalAssignTo('stockists');
+        } catch (upsertErr) {
+          var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
+          if (errMsg.indexOf('state') !== -1) {
+            console.warn("Stockist sync failed with state column error. Retrying without state column...");
+            const fallbackStockists = dbStockists.map(function(stk) {
+              var copy = Object.assign({}, stk);
+              delete copy.state;
+              return copy;
+            });
+            await upsertInBatches('stockists', fallbackStockists);
+          } else {
+            throw upsertErr;
+          }
+        }
+        // Automatic deletion reconciliation re-enabled as requested
+        await reconcileSupabaseRows('stockists', DB.stockists, function(row) {
+          return String(row.id || '').toUpperCase();
+        }, function(row) {
+          return supabase.from('stockists').delete().eq('id', row.id);
+        });
+      } catch (e) {
+        console.error("Error syncing stockists:", e);
+        showToast('⚠️ Stockist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
+      }
     }
 
-    // Sync Chemists
-    try {
-      const dbChems = DB.chemists.map(c => {
-        var assignTo = c.assignTo || null;
-                if (assignTo) {
-          var normAssignStr = String(assignTo).toUpperCase().trim();
-                    var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
-          var validList = [];
-          
-          if (normAssignList.length > 0) {
-            normAssignList.forEach(function(a) {
-              if (activeEmpIds.size > 0) {
-                if (activeEmpIds.has(a)) validList.push(a);
-              } else {
-                if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
-              }
-            });
-            if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
-              validList = normAssignList;
-            }
-          }
-          assignTo = validList.length > 0 ? validList.join(',') : null;
-        }
-        return {
-          id: c.id || undefined,
-          name: c.name || '',
-          area: c.area || '',
-          assign_to: assignTo,
-          state: c.state || ''
-        };
-      });
-      try {
-        await upsertInBatches('chemists', dbChems);
-      clearLocalAssignTo('chemists');
-      clearLocalAssignTo('chemists');
-      } catch (upsertErr) {
-        var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
-        if (errMsg.indexOf('state') !== -1) {
-          console.warn("Chemist sync failed with state column error. Retrying without state column...");
-          const fallbackChems = dbChems.map(function(c) {
-            var copy = Object.assign({}, c);
-            delete copy.state;
-            return copy;
-          });
-          await upsertInBatches('chemists', fallbackChems);
-        } else {
-          throw upsertErr;
-        }
-      }
-      // Automatic deletion reconciliation re-enabled as requested
-      await reconcileSupabaseRows('chemists', DB.chemists, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('chemists').delete().eq('id', row.id);
-      });
-    } catch (e) {
-      console.error("Error syncing chemists:", e);
-      showToast('⚠️ Chemist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
-    }
-
-    // Sync Stockists
-    try {
-      const dbStockists = DB.stockists.map(s => {
-        var assignTo = s.assignTo || null;
-                if (assignTo) {
-          var normAssignStr = String(assignTo).toUpperCase().trim();
-                    var normAssignList = normAssignStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
-          var validList = [];
-          
-          if (normAssignList.length > 0) {
-            normAssignList.forEach(function(a) {
-              if (activeEmpIds.size > 0) {
-                if (activeEmpIds.has(a)) validList.push(a);
-              } else {
-                if (DB.employees.find(x => String(x.id || '').toUpperCase().trim() === a)) validList.push(a);
-              }
-            });
-            if (activeEmpIds.size === 0 && (!DB.employees || DB.employees.length === 0)) {
-              validList = normAssignList;
-            }
-          }
-          assignTo = validList.length > 0 ? validList.join(',') : null;
-        }
-        return {
-          id: s.id || undefined,
-          name: s.name || '',
-          area: s.area || '',
-          assign_to: assignTo,
-          state: s.state || ''
-        };
-      });
-      try {
-        await upsertInBatches('stockists', dbStockists);
-      clearLocalAssignTo('stockists');
-      clearLocalAssignTo('stockists');
-      } catch (upsertErr) {
-        var errMsg = String(upsertErr && (upsertErr.message || upsertErr.details || upsertErr || '')).toLowerCase();
-        if (errMsg.indexOf('state') !== -1) {
-          console.warn("Stockist sync failed with state column error. Retrying without state column...");
-          const fallbackStockists = dbStockists.map(function(stk) {
-            var copy = Object.assign({}, stk);
-            delete copy.state;
-            return copy;
-          });
-          await upsertInBatches('stockists', fallbackStockists);
-        } else {
-          throw upsertErr;
-        }
-      }
-      // Automatic deletion reconciliation re-enabled as requested
-      await reconcileSupabaseRows('stockists', DB.stockists, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('stockists').delete().eq('id', row.id);
-      });
-    } catch (e) {
-      console.error("Error syncing stockists:", e);
-      showToast('⚠️ Stockist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
-    }
 
     // Sync Reports
     try {

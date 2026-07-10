@@ -67,9 +67,14 @@ function parseLocalMidnight(dateStr) {
 }
 
 function offsetDate(dateStr, offsetDays) {
-  const d = parseLocalMidnight(dateStr);
-  d.setDate(d.getDate() + offsetDays);
-  return formatISTDate(d);
+  const parts = String(dateStr || '').split('-');
+  if (parts.length !== 3) return dateStr;
+  
+  // Use UTC math to prevent any local timezone interference
+  const d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
 function normalizeDate(value) {
@@ -274,6 +279,41 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
   return { status: 'A', remarks: `Absent - ${BLOCK_REASON}` };
 }
 
+// PHASE 1: NEW STRICT BUSINESS RULES IMPLEMENTATION
+function getNewAttendanceStatusMeta(employee, dateStr, context) {
+  const empId = String(employee.id || '').trim().toUpperCase();
+
+  // Rule 1: Final DCR
+  const reports = context.reportMap.get(`${empId}|${dateStr}`) || [];
+  if (reports.length > 0 && reports.some((row) => !!row.is_final)) {
+    return { status: 'P', remarks: 'Present via Final DCR Submission' };
+  }
+
+  // Rule 2: Approved Leave
+  const approvedLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
+  if (approvedLeave) {
+    const leaveType = String(approvedLeave.type || '').toLowerCase();
+    return leaveType.includes('sick')
+      ? { status: 'SL', remarks: 'Approved Sick Leave' }
+      : { status: 'CL', remarks: 'Approved Casual Leave' };
+  }
+
+  // Rule 3: Holiday
+  const holiday = getHolidayForDateAndState(context.holidayMap, dateStr, employee.state);
+  if (holiday) return { status: 'H', remarks: holiday.name ? `Holiday: ${holiday.name}` : 'Holiday' };
+
+  // Rule 4: Weekly Off
+  const parts = String(dateStr || '').split('-');
+  const weekday = parts.length === 3 ? new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))).getUTCDay() : 0;
+  const weeklyOffs = context.weeklyOffMap.get(empId);
+  if ((weeklyOffs && weeklyOffs.has(weekday)) || (!weeklyOffs && weekday === 0)) {
+    return { status: 'WO', remarks: 'Weekly Off' };
+  }
+
+  // Rule 5: Absent & Blocked
+  return { status: 'A', remarks: `Absent - ${BLOCK_REASON}` };
+}
+
 function isAuthorized(req) {
   const cronHeader = req.headers['x-vercel-cron'];
   if (cronHeader) return true;
@@ -303,6 +343,7 @@ module.exports = async (req, res) => {
   const targetDate = requestedDate || offsetDate(formatISTDate(), -1);
   const targetMonth = targetDate.slice(0, 7);
   const dryRun = String((req.query && req.query.dryRun) || '').trim() === '1';
+  const qaOnly = String((req.query && req.query.qaOnly) || '').trim() === '1'; // SAFE MODE flag
   const client = new Client({ connectionString: process.env.DATABASE_URL });
 
   try {
@@ -375,9 +416,43 @@ module.exports = async (req, res) => {
       }
 
       summary.scanned += 1;
-      const statusMeta = getAttendanceStatusMeta(employee, targetDate, context);
+      
+      // Calculate both old and new logic for comparison
+      const oldStatusMeta = getAttendanceStatusMeta(employee, targetDate, context);
+      const newStatusMeta = getNewAttendanceStatusMeta(employee, targetDate, context);
+      
+      // Log differences for root cause analysis and QA verification
+      if (oldStatusMeta.status !== newStatusMeta.status) {
+        summary.differences = summary.differences || [];
+        summary.differences.push({
+          employeeId: empId,
+          name: employee.name,
+          oldStatus: oldStatusMeta.status,
+          newStatus: newStatusMeta.status,
+          oldRemarks: oldStatusMeta.remarks,
+          newRemarks: newStatusMeta.remarks
+        });
+      }
+
+      // SAFE MODE ROUTING
+      const isQaAccount = empId.startsWith('QA-') || empId.startsWith('QA_');
+      let statusMetaToApply = oldStatusMeta;
+      let shouldApplyToDb = true;
+
+      if (qaOnly) {
+        if (isQaAccount) {
+          statusMetaToApply = newStatusMeta;
+        } else {
+          shouldApplyToDb = false; // Never modify production accounts during QA mode
+        }
+      }
+
+      if (!shouldApplyToDb) continue;
+
+      const statusMeta = statusMetaToApply;
       const existingAttendance = context.attendanceMap.get(`${empId}|${targetDate}`);
       const attendanceId = existingAttendance && existingAttendance.id ? existingAttendance.id : `ATT-${empId}-${targetDate}`;
+      
       attendanceRows.push({
         id: attendanceId,
         employee_id: employee.id,
@@ -390,12 +465,14 @@ module.exports = async (req, res) => {
 
       if (statusMeta.status === 'A' && normalizeAccountStatus(employee.account_status) !== 'BLOCKED') {
         employeesToBlock.push(employee.id);
+        const weekdayParts = targetDate.split('-');
+        const weekdayIndex = weekdayParts.length === 3 ? new Date(Date.UTC(Number(weekdayParts[0]), Number(weekdayParts[1]) - 1, Number(weekdayParts[2]))).getUTCDay() : 0;
         summary.blocked.push({
           employeeId: employee.id,
           name: employee.name,
           blockedDate: targetDate,
           reason: BLOCK_REASON,
-          weekday: WEEKDAY_LABELS[parseLocalMidnight(targetDate).getDay()]
+          weekday: WEEKDAY_LABELS[weekdayIndex]
         });
       }
     }

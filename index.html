@@ -2840,7 +2840,7 @@ async function initSupabaseData(isSilent) {
     
     hasInitializedData = true;
     // Wrap in try/catch so a crash here doesn't overwrite fresh Supabase data with stale local cache
-    try { ensureAttendanceSchedulerUpToDate(); } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
+    try {  } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
     try { scheduleNextAttendanceValidation(); } catch(e) {}
 
     // Save synchronized DB to IndexedDB
@@ -3202,7 +3202,7 @@ async function loadLocalDB() {
   var indicator = document.getElementById('db-status-indicator');
   if (indicator) indicator.textContent = 'Database Connection: Offline Mode (Cached)';
   try {
-    ensureAttendanceSchedulerUpToDate();
+    
   } catch(e) {
     console.error("ensureAttendanceSchedulerUpToDate failed:", e);
   }
@@ -4465,32 +4465,6 @@ function clearLocalAssignTo(entityType) {
       localStorage.setItem('adonis_db', JSON.stringify(DB));
     } catch (e) {}
 
-    // Sync Attendance
-    try {
-      const dbAttendance = (DB.attendance || []).map(function(a) {
-        return {
-          id: a.id || undefined,
-          employee_id: a.employeeId || '',
-          date: formatDateForPostgres(a.date) || a.date,
-          login_time: a.loginTime || null,
-          attendance_status: a.attendanceStatus || '',
-          remarks: a.remarks || null,
-          created_at: a.createdAt || null
-        };
-      });
-      await upsertInBatches('attendance', dbAttendance);
-      await reconcileSupabaseRows('attendance', DB.attendance || [], function(row) {
-        return String((row.employeeId || '') + '|' + (formatDateForPostgres(row.date) || row.date)).toUpperCase();
-      }, function(row) {
-        return supabase.from('attendance').delete()
-          .eq('employee_id', row.employeeId)
-          .eq('date', formatDateForPostgres(row.date) || row.date);
-      }, { select: 'employee_id,date' });
-    } catch (e) {
-      console.error("Error syncing attendance:", e);
-      hasSyncError = true;
-    }
-
     // Sync Weekly Off Configuration (Admins only)
     try {
       if (SESSION.user && SESSION.user.role === 'admin') {
@@ -4594,8 +4568,8 @@ function restoreSessionWhenReady() {
       SESSION.user.pwd = currentPwd;
     }
 
-    try { ensureAttendanceSchedulerUpToDate(); } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
-    if (normalizeAccountStatus((SESSION.user || {}).accountStatus) === 'BLOCKED') {
+    try {  } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
+    if ((SESSION.user || {}).role !== 'admin' && normalizeAccountStatus((SESSION.user || {}).accountStatus) === 'BLOCKED') {
       showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
       logout();
       return;
@@ -4637,6 +4611,11 @@ function togglePasswordVisibility() {
   }
 }
 
+function logout() {
+  localStorage.removeItem('adonis_session');
+  location.reload();
+}
+
 function doLogin(){
   var id=document.getElementById('login-id').value.trim().toUpperCase();
   var pwd=document.getElementById('login-pwd').value.trim();
@@ -4674,7 +4653,7 @@ function doLogin(){
     }
 
     var query = tempSupabase.from('employees').select('id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves');
-    if (id.startsWith('AD') || id.startsWith('TEMP')) {
+    if (/^(AD|TEMP|EMP|FLM|RM|ZM|NSM)/.test(id)) {
       query = query.eq('id', id);
     } else {
       query = query.ilike('name', id);
@@ -4704,7 +4683,7 @@ function doLogin(){
         leaves: res.data.leaves || {}
       };
       
-      if (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
+      if (emp.role !== 'admin' && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
         showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
         return;
       }
@@ -4721,7 +4700,7 @@ function doLogin(){
       hasInitializedData = false;
       isLoadingData = false; // reset flag
       await initSupabaseData(false);
-      try { ensureAttendanceSchedulerUpToDate(); } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
+      try {  } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
       var validatedEmp = DB.employees && DB.employees.find(function(e) {
         return String(e.id || '').trim().toUpperCase() === String(emp.id || '').trim().toUpperCase();
       });
@@ -4732,7 +4711,7 @@ function doLogin(){
         SESSION.user = emp;
         localStorage.setItem('adonis_session', JSON.stringify(SESSION));
       }
-      if (normalizeAccountStatus((emp || {}).accountStatus) === 'BLOCKED') {
+      if ((emp || {}).role !== 'admin' && normalizeAccountStatus((emp || {}).accountStatus) === 'BLOCKED') {
         showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
         logout();
         return;
@@ -4762,7 +4741,7 @@ function doLogin(){
     });
   } else {
     // Offline/Local database authentication fallback
-    ensureAttendanceSchedulerUpToDate();
+    
     var emp = DB.employees.find(function(e) {
       var matchId = (e.id || '').trim().toUpperCase() === id;
       var matchName = e.name && (e.name.trim().toUpperCase() === id);
@@ -4774,7 +4753,7 @@ function doLogin(){
       return;
     }
     normalizeEmployeeRecord(emp);
-    if (normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
+    if (emp.role !== 'admin' && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
       showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
       return;
     }
@@ -6414,31 +6393,35 @@ function editReport(id) {
   window.scrollTo(0, 0);
 }
 
-function finalSubmitToday() {
+async function finalSubmitToday() {
   if (!confirm('Are you sure you want to final submit all reports for today? Once submitted, they cannot be edited.')) return;
   
   var u = SESSION.user;
   var today = getTodayDateString();
   var myTodayReports = DB.reports.filter(function(r){ return r.empId === u.id && r.date === today && !r.isFinal; });
   
+  if (myTodayReports.length === 0) {
+    showToast('No pending reports to submit for today.', 3000);
+    return;
+  }
+
+  showToast('Submitting Final DCR... Please wait.', 4000);
+  
   myTodayReports.forEach(function(r) {
     r.isFinal = true;
-    pushReportToSupabase(r);
-  });
-  
-  idb.set('adonis_db', DB);
-  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
-  
-  // Record attendance as present
-  upsertAttendanceRecord({
-    employeeId: u.id,
-    date: today,
-    loginTime: getAttendanceLoginTimeValue(new Date()),
-    attendanceStatus: 'P',
-    remarks: 'Present via Final DCR Submission'
+    if (typeof _pendingLocalReportIds !== 'undefined') {
+      _pendingLocalReportIds.add(String(r.id));
+    }
   });
   
   saveDB();
+  
+  var pushPromises = myTodayReports.map(function(r) {
+    return pushReportToSupabase(r).catch(function(e) { console.error(e); });
+  });
+  
+  await Promise.all(pushPromises);
+  
   if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
   
   renderHomeStats();
@@ -6976,29 +6959,6 @@ function getAttendanceRecord(employeeId, dateStr) {
   }) || null;
 }
 
-function upsertAttendanceRecord(record) {
-  ensureAttendanceArrays();
-  var dateStr = formatDateForPostgres(record.date) || record.date;
-  var existing = getAttendanceRecord(record.employeeId, dateStr);
-  if (existing) {
-    existing.loginTime = record.loginTime !== undefined ? record.loginTime : existing.loginTime;
-    existing.attendanceStatus = record.attendanceStatus || existing.attendanceStatus;
-    existing.remarks = record.remarks !== undefined ? record.remarks : existing.remarks;
-    existing.createdAt = record.createdAt || existing.createdAt || getCurrentISTTimestamp();
-    return existing;
-  }
-  var entry = {
-    id: record.id || ('ATT-' + String(record.employeeId || '').toUpperCase() + '-' + dateStr),
-    employeeId: record.employeeId,
-    date: dateStr,
-    loginTime: record.loginTime || '',
-    attendanceStatus: record.attendanceStatus || '',
-    remarks: record.remarks || '',
-    createdAt: record.createdAt || getCurrentISTTimestamp()
-  };
-  DB.attendance.push(entry);
-  return entry;
-}
 
 function getEmployeeWeeklyOffWeekdays(emp) {
   ensureAttendanceArrays();
@@ -7062,95 +7022,6 @@ function getAttendanceStatusBadgeClass(status) {
   return 'grey';
 }
 
-function getAttendanceStatusMeta(emp, dateStr) {
-  if (emp && dateStr) {
-    var monthStr = dateStr.slice(0, 7);
-    var tp = (DB.tourPlans || []).find(function(t) {
-      var statusUpper = String(t.status || '').toUpperCase();
-      var approved = (statusUpper === 'APPROVED' || statusUpper === 'APPROVED BY MANAGER' || statusUpper === 'APPROVED BY ADMIN');
-      return String(t.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
-             t.month === monthStr && 
-             approved;
-    });
-    
-    if (tp && Array.isArray(tp.days)) {
-      var dayInfo = tp.days.find(function(d) { return d.date === dateStr; });
-      if (dayInfo) {
-        var wt = String(dayInfo.workType || '').toUpperCase();
-        if (wt === 'WEEKLY OFF') {
-          return { status: 'WO', remarks: 'Weekly Off (from Tour Plan)' };
-        }
-        if (wt === 'HOLIDAY') {
-          return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
-        }
-        if (wt === 'LEAVE') {
-          var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
-          var leaveTypeLabel = 'Approved Leave';
-          var statusVal = 'CL'; // Default fallback
-          if (approvedLeave) {
-            var leaveType = String(approvedLeave.type || '').toLowerCase();
-            if (leaveType.indexOf('sick') !== -1) {
-              statusVal = 'SL';
-              leaveTypeLabel = 'Approved Sick Leave';
-            } else {
-              statusVal = 'CL';
-              leaveTypeLabel = 'Approved Casual Leave';
-            }
-          }
-          return { status: statusVal, remarks: leaveTypeLabel + ' (from Tour Plan)' };
-        }
-        
-        // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
-        // Check DCR report submission or login attendance record.
-        var hasFinalReport = hasCompletedFinalDCRSubmission(emp.id, dateStr);
-        if (hasFinalReport) {
-          return { status: 'P', remarks: 'Present via Final DCR Submission' };
-        }
-        
-        var existing = getAttendanceRecord(emp.id, dateStr);
-        if (existing && (
-          existing.attendanceStatus === 'A' ||
-          (existing.attendanceStatus === 'P' && (
-            existing.remarks === 'Present via Final DCR Submission' ||
-            existing.remarks === 'Present (Manually Unblocked by Admin)'
-          ))
-        )) {
-          return { status: existing.attendanceStatus, remarks: existing.remarks || '', loginTime: existing.loginTime || '' };
-        }
-        
-        return { status: 'NS', remarks: 'Attendance Not Submitted' };
-      }
-    }
-  }
-
-  // Only fall back to default configurations if no approved Tour Plan exists for the month
-  var holiday = getHolidayForDateAndState(dateStr, emp ? emp.state : '');
-  if (holiday) return { status: 'H', remarks: 'Holiday' + (holiday.name ? ': ' + holiday.name : '') };
-  if (isWeeklyOffForEmployee(emp, dateStr)) return { status: 'WO', remarks: 'Weekly Off' };
-  var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
-  if (approvedLeave) {
-    var leaveType = String(approvedLeave.type || '').toLowerCase();
-    if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: 'Approved Sick Leave' };
-    if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
-  }
-  
-  var hasFinalReport = hasCompletedFinalDCRSubmission(emp.id, dateStr);
-  if (hasFinalReport) {
-    return { status: 'P', remarks: 'Present via Final DCR Submission' };
-  }
-  
-  var existing = getAttendanceRecord(emp.id, dateStr);
-  if (existing && (
-    existing.remarks === 'Present (Manually Unblocked by Admin)' ||
-    existing.remarks === 'Present via Final DCR Submission' ||
-    existing.attendanceStatus === 'A'
-  )) {
-    var statusValue = existing.attendanceStatus === 'A' ? 'A' : 'P';
-    return { status: statusValue, remarks: existing.remarks, loginTime: existing.loginTime || '' };
-  }
-  
-  return { status: 'NS', remarks: 'Attendance Not Submitted' };
-}
 
 function recordAttendanceOnSuccessfulLogin(emp) {
   if (!isAttendanceTrackedEmployee(emp)) return;
@@ -7180,68 +7051,6 @@ function recordAttendanceOnSuccessfulLogin(emp) {
   if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
 }
 
-function validateAttendanceForDate(dateStr) {
-  if (!dateStr) return false;
-  ensureAttendanceArrays();
-  var changed = false;
-  (DB.employees || []).forEach(function(emp) {
-    if (!isAttendanceTrackedEmployee(emp)) return;
-    normalizeEmployeeRecord(emp);
-    if (normalizeEmployeeStatus(emp.status) !== 'Active') return;
-    var doj = formatDateForPostgres(emp.doj) || '';
-    if (doj && dateStr < doj) return;
-    var resetFrom = getEmployeeAttendanceResetFrom(emp);
-    if (resetFrom && dateStr < resetFrom) return;
-    if (isExecutiveAttendanceExempt(emp)) {
-      if (emp.accountStatus !== 'ACTIVE') {
-        emp.accountStatus = 'ACTIVE';
-        emp.blockedDate = '';
-        emp.blockedReason = '';
-        changed = true;
-      }
-      return;
-    }
-    var statusMeta = getAttendanceStatusMeta(emp, dateStr);
-    if (statusMeta.status === 'NS') {
-      statusMeta.status = 'A';
-      statusMeta.remarks = 'Absent - Final DCR not submitted by 12:00 AM IST';
-    }
-    var before = getAttendanceRecord(emp.id, dateStr);
-    var beforeStatus = before ? before.attendanceStatus : '';
-    var beforeRemarks = before ? before.remarks : '';
-    var beforeLoginTime = before ? before.loginTime : '';
-    var attendance = upsertAttendanceRecord({
-      employeeId: emp.id,
-      date: dateStr,
-      loginTime: statusMeta.status === 'P' ? beforeLoginTime : '',
-      attendanceStatus: statusMeta.status,
-      remarks: statusMeta.remarks
-    });
-    if (beforeStatus !== statusMeta.status || beforeRemarks !== statusMeta.remarks || (statusMeta.status !== 'P' && beforeLoginTime !== '')) changed = true;
-    attendance.attendanceStatus = statusMeta.status;
-    attendance.remarks = statusMeta.remarks;
-    if (statusMeta.status !== 'P') attendance.loginTime = '';
-    if (statusMeta.status === 'A') {
-      var manualUnblockValid = false;
-      var last30 = offsetDate(dateStr, -30);
-      for (var d = dateStr; d >= last30; d = offsetDate(d, -1)) {
-        var prevAtt = getAttendanceRecord(emp.id, d);
-        if (prevAtt && prevAtt.remarks === 'Present (Manually Unblocked by Admin)') {
-          manualUnblockValid = true;
-          break;
-        }
-      }
-      
-      if (!manualUnblockValid && (emp.accountStatus !== 'BLOCKED' || emp.blockedDate !== dateStr || emp.blockedReason !== 'Final DCR not submitted by 12:00 AM IST')) {
-        emp.accountStatus = 'BLOCKED';
-        emp.blockedDate = dateStr;
-        emp.blockedReason = 'Final DCR not submitted by 12:00 AM IST';
-        changed = true;
-      }
-    }
-  });
-  return changed;
-}
 
 function ensureAttendanceSchedulerUpToDate() {
   if (!DB || !Array.isArray(DB.employees)) return;
@@ -7266,7 +7075,7 @@ function scheduleNextAttendanceValidation() {
   var now = new Date();
   var next = getNextISTMidnightValidationTime();
   attendanceSchedulerTimer = setTimeout(function() {
-    ensureAttendanceSchedulerUpToDate();
+    
     scheduleNextAttendanceValidation();
   }, Math.max(1000, next.getTime() - now.getTime()));
 }
@@ -7718,9 +7527,9 @@ async function runServerAttendanceValidation(dateStr, isSilent) {
     }
     return true;
   } catch (err) {
-    console.warn('Server attendance validation failed, falling back to local validation:', err);
+    console.error('Server attendance validation failed:', err);
     if (isSilent !== true) {
-      showToast('Server validation unavailable, using local fallback.');
+      showToast('Server validation failed.');
     }
     return false;
   }
@@ -7747,9 +7556,7 @@ async function runAttendanceValidationNow() {
     renderEmpTable();
     return;
   }
-  if (validateAttendanceForDate(dateStr)) {
-    saveDB();
-  }
+
   localStorage.setItem('adonis_attendance_last_validated_date', dateStr);
   renderAttendanceDashboard();
   renderEmpTable();
@@ -8987,12 +8794,8 @@ function initAdminApp(userObj){
   populateAttendanceEmployeeFilter();
   renderAttendanceDashboard();
   if (user.role === 'admin') {
-    reconcileYesterdayAttendanceSilently().then(function() {
-      renderAttendanceDashboard();
-      renderEmpTable();
-    }).catch(function(err) {
-      console.warn('Silent attendance reconciliation failed:', err);
-    });
+    renderAttendanceDashboard();
+    renderEmpTable();
   }
   renderEmpTable();
   renderAdminDocList();
@@ -9061,7 +8864,7 @@ function goAdminTab(name){
   
   if(name==='dash') renderAdminDashTeamList();
   if(name==='attendance') {
-    ensureAttendanceSchedulerUpToDate();
+    
     renderAttendanceDashboard();
   }
   if(name==='reports') updateReportHeadersAndFilters();

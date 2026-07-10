@@ -6786,14 +6786,22 @@ function uploadDoctors(inp){
     }
     
     var idCol=0, empIdCol=1, beNameCol=2, hqCol=3, mgrNameCol=4, nameCol=5, specCol=6, qualCol=7, addCol=8, cityCol=9, areaCol=10, stateCol=11, typeCol=12, phoneCol=13;
+    var hasDocCode = false;
+    var hasDocName = false;
     if (headers.length > 0) {
       headers.forEach(function(h, idx) {
-        if (h.indexOf('doctorcode') !== -1 || h === 'code' || h === 'id') idCol = idx;
+        if (h.indexOf('doctorcode') !== -1 || h === 'code' || h === 'id') {
+          idCol = idx;
+          hasDocCode = true;
+        }
         else if (h.indexOf('emp id') !== -1 || h === 'emp id' || h.indexOf('assign') !== -1) empIdCol = idx;
         else if (h.indexOf('name of be') !== -1 || h.indexOf('be name') !== -1) beNameCol = idx;
         else if (h === 'hq' || (h.indexOf('hq') !== -1 && h.indexOf('territory') === -1)) hqCol = idx;
         else if (h.indexOf('reporting manager') !== -1 || h.indexOf('manager') !== -1) mgrNameCol = idx;
-        else if (h.indexOf('name of doctor') !== -1 || h === 'name' || h.indexOf('doctor') !== -1) nameCol = idx;
+        else if (h.indexOf('name of doctor') !== -1 || h === 'name' || h.indexOf('doctor') !== -1) {
+          nameCol = idx;
+          hasDocName = true;
+        }
         else if (h.indexOf('speciality') !== -1 || h === 'spec') specCol = idx;
         else if (h.indexOf('qualification') !== -1 || h === 'qual') qualCol = idx;
         else if (h.indexOf('address') !== -1) addCol = idx;
@@ -6803,6 +6811,12 @@ function uploadDoctors(inp){
         else if (h === 'state') stateCol = idx;
         else if (h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) phoneCol = idx;
       });
+    }
+    
+    if (headerLineIndex === -1 || !hasDocCode || !hasDocName) {
+      showToast('❌ Invalid CSV format. Make sure the CSV contains "DoctorCode" (or "code") and "Name of Doctor" columns.', 6000);
+      inp.value = '';
+      return;
     }
     
     var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;

@@ -1,4 +1,12 @@
-const { Client } = require('pg');
+const pg = require('pg');
+const { Client } = pg;
+
+// FIX: Ensure Postgres DATE columns are returned as exact strings (YYYY-MM-DD)
+// and not parsed into JS Date objects which get mangled by timezone offsets.
+pg.types.setTypeParser(1082, function(stringValue) {
+  return stringValue;
+});
+
 
 // Try loading environment variables from local .env file if DATABASE_URL is not set (useful for local development)
 if (!process.env.DATABASE_URL) {
@@ -223,64 +231,10 @@ function getApprovedLeaveForDate(leaveMap, employeeId, dateStr) {
   return rows.find((row) => row.start <= dateStr && row.end >= dateStr) || null;
 }
 
-function getAttendanceStatusMeta(employee, dateStr, context) {
-  const empId = String(employee.id || '').trim().toUpperCase();
-  const existingAttendance = context.attendanceMap.get(`${empId}|${dateStr}`);
-  if (existingAttendance) {
-    const existingStatus = normalizeStatus(existingAttendance.attendance_status);
-    const existingRemarks = String(existingAttendance.remarks || '');
-    if (existingStatus === 'P' && (
-      existingRemarks === 'Present via Final DCR Submission' ||
-      existingRemarks === 'Present (Manually Unblocked by Admin)'
-    )) {
-      return { status: 'P', remarks: existingRemarks };
-    }
-    if (existingStatus === 'A') {
-      return { status: 'A', remarks: existingRemarks || `Absent - ${BLOCK_REASON}` };
-    }
-  }
 
-  const tpDay = context.tourPlanDayMap.get(`${empId}|${dateStr}`);
-  if (tpDay) {
-    const workType = normalizeStatus(tpDay.workType || tpDay.areaTerritory || tpDay.territory);
-    if (workType === 'WEEKLY OFF') return { status: 'WO', remarks: 'Weekly Off (from Tour Plan)' };
-    if (workType === 'HOLIDAY') return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
-    if (workType === 'LEAVE') {
-      const leave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
-      const leaveType = String((leave && leave.type) || '').toLowerCase();
-      return leaveType.includes('sick')
-        ? { status: 'SL', remarks: 'Approved Sick Leave (from Tour Plan)' }
-        : { status: 'CL', remarks: 'Approved Casual Leave (from Tour Plan)' };
-    }
-  }
-
-  const holiday = getHolidayForDateAndState(context.holidayMap, dateStr, employee.state);
-  if (holiday) return { status: 'H', remarks: holiday.name ? `Holiday: ${holiday.name}` : 'Holiday' };
-
-  const weekday = parseLocalMidnight(dateStr).getDay();
-  const weeklyOffs = context.weeklyOffMap.get(empId);
-  if ((weeklyOffs && weeklyOffs.has(weekday)) || (!weeklyOffs && weekday === 0)) {
-    return { status: 'WO', remarks: 'Weekly Off' };
-  }
-
-  const approvedLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
-  if (approvedLeave) {
-    const leaveType = String(approvedLeave.type || '').toLowerCase();
-    return leaveType.includes('sick')
-      ? { status: 'SL', remarks: 'Approved Sick Leave' }
-      : { status: 'CL', remarks: 'Approved Casual Leave' };
-  }
-
-  const reports = context.reportMap.get(`${empId}|${dateStr}`) || [];
-  if (reports.length > 0 && reports.some((row) => !!row.is_final)) {
-    return { status: 'P', remarks: 'Present via Final DCR Submission' };
-  }
-
-  return { status: 'A', remarks: `Absent - ${BLOCK_REASON}` };
-}
 
 // PHASE 1: NEW STRICT BUSINESS RULES IMPLEMENTATION
-function getNewAttendanceStatusMeta(employee, dateStr, context) {
+function getAttendanceStatusMeta(employee, dateStr, context) {
   const empId = String(employee.id || '').trim().toUpperCase();
 
   // Rule 1: Final DCR
@@ -343,8 +297,7 @@ module.exports = async (req, res) => {
   const targetDate = requestedDate || offsetDate(formatISTDate(), -1);
   const targetMonth = targetDate.slice(0, 7);
   const dryRun = String((req.query && req.query.dryRun) || '').trim() === '1';
-  const qaOnly = String((req.query && req.query.qaOnly) || '').trim() === '1'; // SAFE MODE flag
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
 
   try {
     await client.connect();
@@ -381,7 +334,7 @@ module.exports = async (req, res) => {
       weeklyOffMap: getWeeklyOffSet(weeklyOffRes.rows),
       holidayMap: getHolidayMap(holidaysRes.rows),
       leaveMap: getApprovedLeaveMap(leavesRes.rows),
-      reportMap: getReportMap(reportsRes.rows),
+      reportMap: getReportMap(reportsRes.rows, targetDate),
       attendanceMap: getAttendanceMap(attendanceRes.rows),
       tourPlanDayMap: getTourPlanDayMap(tourPlansRes.rows)
     };
@@ -416,40 +369,7 @@ module.exports = async (req, res) => {
       }
 
       summary.scanned += 1;
-      
-      // Calculate both old and new logic for comparison
-      const oldStatusMeta = getAttendanceStatusMeta(employee, targetDate, context);
-      const newStatusMeta = getNewAttendanceStatusMeta(employee, targetDate, context);
-      
-      // Log differences for root cause analysis and QA verification
-      if (oldStatusMeta.status !== newStatusMeta.status) {
-        summary.differences = summary.differences || [];
-        summary.differences.push({
-          employeeId: empId,
-          name: employee.name,
-          oldStatus: oldStatusMeta.status,
-          newStatus: newStatusMeta.status,
-          oldRemarks: oldStatusMeta.remarks,
-          newRemarks: newStatusMeta.remarks
-        });
-      }
-
-      // SAFE MODE ROUTING
-      const isQaAccount = empId.startsWith('QA-') || empId.startsWith('QA_');
-      let statusMetaToApply = oldStatusMeta;
-      let shouldApplyToDb = true;
-
-      if (qaOnly) {
-        if (isQaAccount) {
-          statusMetaToApply = newStatusMeta;
-        } else {
-          shouldApplyToDb = false; // Never modify production accounts during QA mode
-        }
-      }
-
-      if (!shouldApplyToDb) continue;
-
-      const statusMeta = statusMetaToApply;
+      const statusMeta = getAttendanceStatusMeta(employee, targetDate, context);
       const existingAttendance = context.attendanceMap.get(`${empId}|${targetDate}`);
       const attendanceId = existingAttendance && existingAttendance.id ? existingAttendance.id : `ATT-${empId}-${targetDate}`;
       

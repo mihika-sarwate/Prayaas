@@ -4313,6 +4313,21 @@ function clearLocalAssignTo(entityType) {
           var matchedAppr = DB.employees.find(x => String(x.id || '').toUpperCase() === String(approvedBy).toUpperCase());
           approvedBy = matchedAppr ? matchedAppr.id : null;
         }
+        
+        let parsedDays = [];
+        if (Array.isArray(tp.days)) {
+          parsedDays = tp.days;
+        } else if (typeof tp.days === 'string' && tp.days.trim() !== '') {
+          try { parsedDays = JSON.parse(tp.days); } catch(e) {}
+        }
+        
+        let parsedHistory = [];
+        if (Array.isArray(tp.revisionHistory)) {
+          parsedHistory = tp.revisionHistory;
+        } else if (typeof tp.revisionHistory === 'string' && tp.revisionHistory.trim() !== '') {
+          try { parsedHistory = JSON.parse(tp.revisionHistory); } catch(e) {}
+        }
+
         return {
           id: tp.id || undefined,
           emp_id: empId,
@@ -4320,13 +4335,13 @@ function clearLocalAssignTo(entityType) {
           month: tp.month || '',
           manager_id: resolveManagerId(tp.managerId),
           manager_name: tp.managerName || null,
-          days: Array.isArray(tp.days) ? tp.days : (typeof tp.days === 'string' ? JSON.parse(tp.days) : []),
+          days: parsedDays,
           status: tp.status || 'draft',
           remarks: tp.remarks || null,
           submitted_at: tp.submittedAt || null,
           approved_date: formatDateForPostgres(tp.approvedDate) || null,
           approved_by: approvedBy,
-          revision_history: Array.isArray(tp.revisionHistory) ? tp.revisionHistory : (typeof tp.revisionHistory === 'string' ? JSON.parse(tp.revisionHistory) : [])
+          revision_history: parsedHistory
         };
       });
       await upsertInBatches('tour_plans', dbTourPlans);

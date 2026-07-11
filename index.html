@@ -4734,7 +4734,7 @@ function doLogin(){
 
     var query = tempSupabase.from('employees')
       .select('id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves')
-      .or(`id.eq."${id}",name.ilike."${id}"`);
+      .or(`id.eq.${id},name.ilike.${id}`);
     
     query.single().then(async function(res) {
       if (res.error || !res.data) {

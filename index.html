@@ -8671,6 +8671,22 @@ function submitLeave(){
     return;
   }
   
+  // Check for overlapping leaves
+  var overlap = DB.leaves.find(function(l) {
+    if (l.empId !== SESSION.user.id) return false;
+    var st = String(l.status || '').toUpperCase();
+    if (st === 'REJECTED' || st === 'CANCELLED') return false;
+    
+    var lStart = parseDateAtLocalMidnight(l.start);
+    var lEnd = parseDateAtLocalMidnight(l.end);
+    return dStart <= lEnd && dEnd >= lStart;
+  });
+  
+  if (overlap) {
+    showToast('A leave request already exists for these dates.');
+    return;
+  }
+  
   DB.leaves.push({
     id:'LV'+Date.now(),
     empId:SESSION.user.id,

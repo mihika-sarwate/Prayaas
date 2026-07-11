@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sankalp - Field Force Management System (Adonis Laboratories)</title>
+<script>
+    try {
+      if (!localStorage.getItem('adonis_db_wiped_july10_v2')) {
+        localStorage.removeItem('adonis_db');
+        localStorage.removeItem('sfa_db');
+        if (window.indexedDB) indexedDB.deleteDatabase('adonis_db');
+        localStorage.setItem('adonis_db_wiped_july10_v2', '1');
+        console.log("Wiped local DB to allow clean sync from Supabase.");
+      }
+    } catch(e){}
+</script>
 <link rel="icon" type="image/jpeg" href="logo.jpg">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
@@ -2036,7 +2047,7 @@ async function fetchAllFromSupabase(table, options) {
   if (_missingSupabaseTables[table] && options && options.allowMissing) return [];
   let allData = [];
   let page = 0;
-  const pageSize = 1000;
+  const pageSize = 500;
   const selectClause = (options && options.select) ? options.select : '*';
   while (true) {
     let query = supabase
@@ -2052,7 +2063,20 @@ async function fetchAllFromSupabase(table, options) {
       query = query.order('id');
     }
     
-    const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+    let data = null, error = null;
+    let retries = 3;
+    while (retries > 0) {
+      let res = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+      data = res.data;
+      error = res.error;
+      if (!error) break;
+      var missingTable = error && (error.code === 'PGRST205' || /could not find the table/i.test(error.message || ''));
+      if (missingTable) break;
+      console.warn("Retrying fetch for " + table + " page " + page + "...", error);
+      retries--;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    
     if (error) {
       var missingTable = error && (error.code === 'PGRST205' || /could not find the table/i.test(error.message || ''));
       if (missingTable) {
@@ -2593,7 +2617,7 @@ async function initSupabaseData(isSilent) {
         month: tp.month,
         managerId: tp.manager_id,
         managerName: tp.manager_name,
-        days: normalizeDateArray(typeof tp.days === 'string' ? JSON.parse(tp.days) : (tp.days || [])),
+        days: typeof tp.days === 'string' ? JSON.parse(tp.days) : (tp.days || []),
         status: tp.status,
         remarks: tp.remarks,
         submittedAt: tp.submitted_at,
@@ -3025,7 +3049,44 @@ async function loadLocalDB() {
   if (!Array.isArray(DB.tourPlans)) DB.tourPlans = DEFAULT_DB.tourPlans || [];
   DB.tourPlans.forEach(function(tp) {
     if (!tp) return;
-    if (Array.isArray(tp.days)) tp.days = normalizeDateArray(tp.days);
+    // removed normalizeDateArray for tp.days because days is an array of objects, not dates
+    
+    // AUTO RECOVERY for corrupted [object Object] days
+    var isCorrupt = tp.days && tp.days.some(function(d) { return typeof d === 'string' && d.includes('[object Object]'); });
+    if (isCorrupt) {
+      var year = parseInt(tp.month.split('-')[0]);
+      var mIndex = parseInt(tp.month.split('-')[1]) - 1;
+      var date = new Date(year, mIndex, 1);
+      var newDays = [];
+      var empObj = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(tp.empId || '').toUpperCase(); });
+      var assignedDocs = DB.doctors.filter(function(d) { return String(d.assignTo||'').toUpperCase().includes(String(tp.empId||'').toUpperCase()) && d.status === 'Active'; });
+      var areas = Array.from(new Set(assignedDocs.map(function(d){ return d.area; }).filter(Boolean)));
+      var i = 1;
+      while (date.getMonth() === mIndex) {
+        var dayStr = i < 10 ? '0' + i : i;
+        var fullDateStr = tp.month + '-' + dayStr;
+        var dayObj = {
+          date: fullDateStr, dayNum: i, category: 'HQ', workType: 'FIELD WORK', territory: 'HQ',
+          fromLocation: empObj ? empObj.area : '', toLocation: '', areaTerritory: '', stayCity: '', objective: '', plannedDocs: [], plannedChems: []
+        };
+        if (date.getDay() === 0) {
+          dayObj.workType = 'WEEKLY OFF';
+        } else {
+          var assignedArea = areas.length > 0 ? areas[(i-1) % areas.length] : '';
+          dayObj.areaTerritory = assignedArea;
+          dayObj.toLocation = assignedArea;
+          if (assignedArea) {
+             dayObj.plannedDocs = DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase() === String(tp.empId || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===assignedArea.toLowerCase();}).map(function(doc){return doc.id;});
+             dayObj.plannedChems = DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase() === String(tp.empId || '').toUpperCase() && chem.area.toLowerCase()===assignedArea.toLowerCase();}).map(function(chem){return chem.id;});
+          }
+        }
+        newDays.push(dayObj);
+        i++;
+        date.setDate(date.getDate() + 1);
+      }
+      tp.days = newDays;
+    }
+
     if (tp.approvedDate) tp.approvedDate = normalizeReportDateValue(tp.approvedDate);
   });
   if (!Array.isArray(DB.expenses)) DB.expenses = DEFAULT_DB.expenses || [];
@@ -4671,12 +4732,9 @@ function doLogin(){
       return;
     }
 
-    var query = tempSupabase.from('employees').select('id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves');
-    if (/^(AD|TEMP|EMP|FLM|RM|ZM|NSM)/.test(id)) {
-      query = query.eq('id', id);
-    } else {
-      query = query.ilike('name', id);
-    }
+    var query = tempSupabase.from('employees')
+      .select('id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves')
+      .or(`id.eq."${id}",name.ilike."${id}"`);
     
     query.single().then(async function(res) {
       if (res.error || !res.data) {
@@ -8162,18 +8220,30 @@ function renderCalendarView(){
   }
   
   currentMTPDays.forEach(function(day){
-    var area=day.areaTerritory||day.toLocation||'';
+    var area=day.areaTerritory||day.toLocation||day.stayCity||'';
     var docCount=getAssignedDoctorsForArea(area).length;
     var chemCount=getAssignedChemistsForArea(area).length;
-    var color = area ? '#E3F9F1' : '#F1F5F9';
-    var txtColor = area ? '#005c3a' : '#6B7A99';
+    
+    var displayTxt = '';
+    var workType = day.workType || 'FIELD WORK';
+    
+    if (workType !== 'FIELD WORK') {
+      displayTxt = workType;
+      if (area) displayTxt += ': ' + area;
+    } else {
+      displayTxt = area || 'No Plan';
+    }
+    
+    var hasContent = (displayTxt !== 'No Plan');
+    var color = hasContent ? '#E3F9F1' : '#F1F5F9';
+    var txtColor = hasContent ? '#005c3a' : '#6B7A99';
     
     html += '<div style="background:'+color+';color:'+txtColor+';border:1px solid rgba(0,0,0,0.05);border-radius:6px;min-height:70px;padding:4px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer" onclick="scrollToMTPDay('+day.dayNum+')">'+
       '<div style="font-weight:700;font-size:11px">'+day.dayNum+'</div>'+
-      '<div style="font-size:9px;font-weight:700;margin-top:2px">'+(area||'No Plan')+'</div>'+
+      '<div style="font-size:9px;font-weight:700;margin-top:2px">'+displayTxt+'</div>'+
       '<div style="font-size:9px;margin-top:2px;font-weight:600">'+
-        (docCount ? '&#128101;'+docCount+' ' : '')+
-        (chemCount ? '&#128221;'+chemCount : '')+
+        (workType === 'FIELD WORK' && area && docCount ? '&#128101;'+docCount+' ' : '')+
+        (workType === 'FIELD WORK' && area && chemCount ? '&#128221;'+chemCount : '')+
       '</div>'+
     '</div>';
   });
@@ -9166,7 +9236,7 @@ function viewTP(id){
   }
 
   daysToRender.forEach(function(d){
-    var area=d.areaTerritory||d.toLocation||'';
+    var area=d.areaTerritory||d.toLocation||d.stayCity||'';
     var workType=d.workType;
     if (!workType) {
       if (getHolidayForDateAndState(d.date, empObj ? empObj.state : '')) {
@@ -14321,6 +14391,33 @@ function createMultiSelect(container, options, selectedString, placeholder, onch
   
   var dropdown = document.createElement('div');
   dropdown.className = 'multiselect-dropdown';
+  
+  var customInputWrap = document.createElement('div');
+  customInputWrap.style.padding = '4px 8px';
+  var customInput = document.createElement('input');
+  customInput.type = 'text';
+  customInput.placeholder = 'Type and press Enter to add...';
+  customInput.style.width = '100%';
+  customInput.style.padding = '4px';
+  customInput.style.border = '1px solid var(--border)';
+  customInput.style.borderRadius = '4px';
+  customInput.onkeydown = function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      var val = customInput.value.trim();
+      if (val && !selected.includes(val)) {
+        selected.push(val);
+        customInput.value = '';
+        updateHeader();
+        updateDropdownCheckboxes();
+        if (onchange) onchange(selected.join(', '));
+        // Optionally close dropdown: document.body.removeChild(dropdown); dropdown.classList.remove('open');
+      }
+    }
+  };
+  customInputWrap.appendChild(customInput);
+  dropdown.appendChild(customInputWrap);
   
   function updateDropdownCheckboxes() {
     var checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');

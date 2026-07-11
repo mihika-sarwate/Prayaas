@@ -7207,6 +7207,26 @@ function getAttendanceStatusMeta(emp, dateStr) {
   
   return { status: 'NS', remarks: 'Attendance Not Submitted' };
 }
+function upsertAttendanceRecord(record) {
+  ensureAttendanceArrays();
+  var existing = getAttendanceRecord(record.employeeId, record.date);
+  if (existing) {
+    existing.loginTime = record.loginTime || existing.loginTime;
+    existing.attendanceStatus = record.attendanceStatus || existing.attendanceStatus;
+    existing.remarks = record.remarks || existing.remarks;
+    // ensure IDs exist
+    if (!existing.id) existing.id = 'ATT' + Date.now() + Math.floor(Math.random()*1000);
+  } else {
+    DB.attendance.push({
+      id: 'ATT' + Date.now() + Math.floor(Math.random()*1000),
+      employeeId: record.employeeId,
+      date: record.date,
+      loginTime: record.loginTime || '',
+      attendanceStatus: record.attendanceStatus || 'NS',
+      remarks: record.remarks || ''
+    });
+  }
+}
 
 function recordAttendanceOnSuccessfulLogin(emp) {
   if (!isAttendanceTrackedEmployee(emp)) return;

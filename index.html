@@ -6565,7 +6565,17 @@ function renderHomeStats(){
   document.getElementById('stat-coverage').textContent=cov+'%';
   
   var activeMTP=DB.tourPlans.filter(function(t){return String(t.empId || '').toUpperCase() === String(u.id || '').toUpperCase() && t.month===today.slice(0,7);});
-  document.getElementById('stat-tp').textContent=activeMTP.length ? activeMTP[activeMTP.length-1].status : 'No MTP';
+  var tpStatus = 'No MTP';
+  if (activeMTP.length) {
+    if (activeMTP.some(function(t) { return String(t.status).toLowerCase() === 'approved'; })) {
+      tpStatus = 'Approved';
+    } else if (activeMTP.some(function(t) { return String(t.status).toLowerCase() === 'submitted'; })) {
+      tpStatus = 'Submitted';
+    } else {
+      tpStatus = activeMTP[activeMTP.length-1].status;
+    }
+  }
+  document.getElementById('stat-tp').textContent = tpStatus;
   
   document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
   

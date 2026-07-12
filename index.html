@@ -7524,7 +7524,7 @@ function renderAttendanceDashboard() {
         var rowHtml = '<tr><td class="tbl-name" style="cursor:pointer; user-select:none;"' + rowClickAttr + ' title="Toggle Row">' + escapeHTML((emp ? emp.name : empId) || '-') + '<div style="font-size:11px;color:var(--text-muted)">' + escapeHTML(empId || '') + '</div></td>';
         
         dates.forEach(function(d) {
-          var record = DB.attendance.find(function(r) {
+          var record = rows.find(function(r) {
             return String(r.employeeId || '').toUpperCase() === empId.toUpperCase() && (formatDateForPostgres(r.date) || r.date) === d;
           });
           

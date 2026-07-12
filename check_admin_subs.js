@@ -1,0 +1,17 @@
+const { Client } = require('pg');
+
+const client = new Client({
+  connectionString: "postgresql://postgres.mmxdvruucggeixjqwsqr:Adonisgroma%402026@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
+});
+
+async function run() {
+  await client.connect();
+  const res = await client.query("SELECT count(*) FROM employees WHERE manager_id = 'ADLA100'");
+  console.log("Subordinates count:", res.rows[0].count);
+  
+  const allEmps = await client.query("SELECT count(*) FROM employees");
+  console.log("Total employees:", allEmps.rows[0].count);
+  await client.end();
+}
+
+run().catch(console.error);

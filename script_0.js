@@ -648,22 +648,27 @@ async function initSupabaseData(isSilent) {
   try {
     const emps = await fetchAllFromSupabase('employees', { select: 'id, name, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves' });
     
-    const doctors = await fetchAllFromSupabase('doctors');
-    const chemists = await fetchAllFromSupabase('chemists');
-    const reports = await fetchAllFromSupabase('reports');
-    const tourPlans = await fetchAllFromSupabase('tour_plans');
-    const expenses = await fetchAllFromSupabase('expenses');
-    const leaves = await fetchAllFromSupabase('leaves');
-    const sfc = await fetchAllFromSupabase('sfc');
-    const samplesInv = await fetchAllFromSupabase('samples_inventory');
-    const giftsInv = await fetchAllFromSupabase('gifts_inventory');
-    const inputsInv = await fetchAllFromSupabase('inputs_inventory');
-    const stockists = await fetchAllFromSupabase('stockists');
-    const announcements = await fetchAllFromSupabase('announcements', { allowMissing: true });
-    const attendanceData = await fetchAllFromSupabase('attendance', { allowMissing: true });
-    const weeklyOffData = await fetchAllFromSupabase('weekly_off_config', { allowMissing: true });
-
-    const holData = await fetchAllFromSupabase('holidays', { allowMissing: true });
+    const [
+      doctors, chemists, reports, tourPlans, expenses, leaves, sfc,
+      samplesInv, giftsInv, inputsInv, stockists, announcements,
+      attendanceData, weeklyOffData, holData
+    ] = await Promise.all([
+      fetchAllFromSupabase('doctors'),
+      fetchAllFromSupabase('chemists'),
+      fetchAllFromSupabase('reports', scopedByEmployee('emp_id', { select: REPORTS_SELECT_CLAUSE })),
+      fetchAllFromSupabase('tour_plans', scopedByEmployee('emp_id')),
+      fetchAllFromSupabase('expenses', scopedByEmployee('emp_id')),
+      fetchAllFromSupabase('leaves', scopedByEmployee('emp_id')),
+      fetchAllFromSupabase('sfc'),
+      fetchAllFromSupabase('samples_inventory', scopedByEmployee('emp_id')),
+      fetchAllFromSupabase('gifts_inventory', scopedByEmployee('emp_id')),
+      fetchAllFromSupabase('inputs_inventory', scopedByEmployee('emp_id')),
+      fetchAllFromSupabase('stockists'),
+      fetchAllFromSupabase('announcements', { allowMissing: true }),
+      fetchAllFromSupabase('attendance', scopedByEmployee('employee_id', { allowMissing: true })),
+      fetchAllFromSupabase('weekly_off_config', scopedByEmployee('employee_id', { allowMissing: true })),
+      fetchAllFromSupabase('holidays', { allowMissing: true })
+    ]);
     
     useSupabase = true;
     console.log("Connected to Supabase successfully.");

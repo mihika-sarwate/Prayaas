@@ -6510,43 +6510,9 @@ async function finalSubmitToday() {
   
   saveDB();
   
-  // NEW LOGIC: Immediate Attendance Update
-  var attendanceId = 'ATT-' + u.id + '-' + today;
-  if (!DB.attendance) DB.attendance = [];
-  var existingAtt = DB.attendance.find(function(a){return a.id === attendanceId;});
-  var now = new Date().toISOString();
-  if (!existingAtt) {
-    existingAtt = {
-      id: attendanceId,
-      employeeId: u.id,
-      date: today,
-      loginTime: null,
-      attendanceStatus: 'P',
-      remarks: 'Present via Final DCR Submission',
-      createdAt: now
-    };
-    DB.attendance.push(existingAtt);
-  } else {
-    existingAtt.attendanceStatus = 'P';
-    existingAtt.remarks = 'Present via Final DCR Submission';
-  }
-  
   var pushPromises = myTodayReports.map(function(r) {
     return pushReportToSupabase(r).catch(function(e) { console.error(e); });
   });
-  
-  if (typeof useSupabase !== 'undefined' && useSupabase && typeof supabase !== 'undefined' && supabase) {
-    var dbAtt = {
-      id: existingAtt.id,
-      employee_id: existingAtt.employeeId,
-      date: existingAtt.date,
-      login_time: existingAtt.loginTime,
-      attendance_status: existingAtt.attendanceStatus,
-      remarks: existingAtt.remarks,
-      created_at: existingAtt.createdAt
-    };
-    pushPromises.push(supabase.from('attendance').upsert(dbAtt, { onConflict: 'employee_id, date' }).select().catch(function(e){console.error(e)}));
-  }
   
   await Promise.all(pushPromises);
   

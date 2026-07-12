@@ -5392,47 +5392,60 @@ function getAttendanceDashboardRows() {
     var curDate = since;
     while (curDate <= today) {
       var existing = (DB.attendance || []).find(function(a) { return String(a.employeeId || '').toUpperCase() === String(emp.id || '').toUpperCase() && (formatDateForPostgres(a.date) || a.date) === curDate; });
+      
       if (existing) {
         virtualRows.push(existing);
       } else {
         var status = 'NS';
         var remarks = 'Not Submitted';
         
-        var activeLeave = (DB.leaves || []).find(function(l) {
-          return String(l.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() &&
-                 (l.status === 'APPROVED' || l.status === 'APPROVED BY ADMIN') &&
-                 (formatDateForPostgres(l.start) || l.start) <= curDate &&
-                 (formatDateForPostgres(l.end) || l.end) >= curDate;
+        // 0. Dynamic Final DCR Check
+        var finalDcrExists = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
+                 (formatDateForPostgres(r.date) || r.date) === curDate &&
+                 r.isFinal === true;
         });
         
-        if (activeLeave) {
-          var type = String(activeLeave.type || '').toLowerCase();
-          status = type.indexOf('sick') !== -1 ? 'SL' : 'CL';
-          remarks = type.indexOf('sick') !== -1 ? 'Approved Sick Leave' : 'Approved Casual Leave';
+        if (finalDcrExists) {
+          status = 'P';
+          remarks = 'Present via Final DCR Submission';
         } else {
-          var holiday = (DB.holidays || []).find(function(h) {
-            if ((formatDateForPostgres(h.date) || h.date) !== curDate) return false;
-            var hState = String(h.state || '').toLowerCase().trim();
-            var eState = String(emp.state || '').toLowerCase().trim();
-            return hState === 'all' || hState === 'national' || hState === eState;
+          var activeLeave = (DB.leaves || []).find(function(l) {
+            return String(l.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() &&
+                   (l.status === 'APPROVED' || l.status === 'APPROVED BY ADMIN') &&
+                   (formatDateForPostgres(l.start) || l.start) <= curDate &&
+                   (formatDateForPostgres(l.end) || l.end) >= curDate;
           });
-          if (holiday) {
-            status = 'H';
-            remarks = holiday.name ? 'Holiday: ' + holiday.name : 'Holiday';
+          
+          if (activeLeave) {
+            var type = String(activeLeave.type || '').toLowerCase();
+            status = type.indexOf('sick') !== -1 ? 'SL' : 'CL';
+            remarks = type.indexOf('sick') !== -1 ? 'Approved Sick Leave' : 'Approved Casual Leave';
           } else {
-            var dateObj = typeof parseLocalMidnight === 'function' ? parseLocalMidnight(curDate) : new Date(curDate + 'T00:00:00');
-            if (!isNaN(dateObj.getTime())) {
-              var weekday = dateObj.getDay();
-              var woConfig = (DB.weeklyOffConfig || []).find(function(w) { return String(w.employee_id || '').toUpperCase() === String(emp.id || '').toUpperCase(); });
-              var isOff = false;
-              if (woConfig) {
-                isOff = String(woConfig.weekday) === String(weekday);
-              } else {
-                isOff = weekday === 0;
-              }
-              if (isOff) {
-                status = 'WO';
-                remarks = 'Weekly Off';
+            var holiday = (DB.holidays || []).find(function(h) {
+              if ((formatDateForPostgres(h.date) || h.date) !== curDate) return false;
+              var hState = String(h.state || '').toLowerCase().trim();
+              var eState = String(emp.state || '').toLowerCase().trim();
+              return hState === 'all' || hState === 'national' || hState === eState;
+            });
+            if (holiday) {
+              status = 'H';
+              remarks = holiday.name ? 'Holiday: ' + holiday.name : 'Holiday';
+            } else {
+              var dateObj = typeof parseLocalMidnight === 'function' ? parseLocalMidnight(curDate) : new Date(curDate + 'T00:00:00');
+              if (!isNaN(dateObj.getTime())) {
+                var weekday = dateObj.getDay();
+                var woConfig = (DB.weeklyOffConfig || []).find(function(w) { return String(w.employee_id || '').toUpperCase() === String(emp.id || '').toUpperCase(); });
+                var isOff = false;
+                if (woConfig) {
+                  isOff = String(woConfig.weekday) === String(weekday);
+                } else {
+                  isOff = weekday === 0;
+                }
+                if (isOff) {
+                  status = 'WO';
+                  remarks = 'Weekly Off';
+                }
               }
             }
           }

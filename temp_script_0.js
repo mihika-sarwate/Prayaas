@@ -5197,11 +5197,92 @@ function getAttendanceDashboardRows() {
   var employeeFilter = (document.getElementById('attendance-employee-filter') || {}).value || '';
   var statusFilter = (document.getElementById('attendance-status-filter') || {}).value || '';
   var q = String((document.getElementById('attendance-search') || {}).value || '').trim().toLowerCase();
-  var since = offsetDate(getTodayDateString(), -29);
-  return (DB.attendance || []).filter(function(row) {
-    var dateStr = formatDateForPostgres(row.date) || row.date;
-    if (dateStr < since) return false;
-    if (employeeFilter && String(row.employeeId || '').toUpperCase() !== String(employeeFilter).toUpperCase()) return false;
+  
+  var today = getTodayDateString();
+  var since = today.substring(0, 8) + '01'; // "YYYY-MM-01"
+  
+  var virtualRows = [];
+  var employeesToCheck = employeeFilter ? [DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(employeeFilter).toUpperCase(); })].filter(Boolean) : (DB.employees || []).filter(isAttendanceTrackedEmployee);
+  
+  employeesToCheck.forEach(function(emp) {
+    var curDate = since;
+    while (curDate <= today) {
+      var existing = (DB.attendance || []).find(function(a) { return String(a.employeeId || '').toUpperCase() === String(emp.id || '').toUpperCase() && (formatDateForPostgres(a.date) || a.date) === curDate; });
+      
+      if (existing) {
+        virtualRows.push(existing);
+      } else {
+        var status = 'NS';
+        var remarks = 'Not Submitted';
+        
+        // 0. Dynamic Final DCR Check
+        var finalDcrExists = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
+                 (formatDateForPostgres(r.date) || r.date) === curDate &&
+                 r.isFinal === true;
+        });
+        
+        if (finalDcrExists) {
+          status = 'P';
+          remarks = 'Present via Final DCR Submission';
+        } else {
+          var activeLeave = (DB.leaves || []).find(function(l) {
+            return String(l.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() &&
+                   (l.status === 'APPROVED' || l.status === 'APPROVED BY ADMIN') &&
+                   (formatDateForPostgres(l.start) || l.start) <= curDate &&
+                   (formatDateForPostgres(l.end) || l.end) >= curDate;
+          });
+          
+          if (activeLeave) {
+            var type = String(activeLeave.type || '').toLowerCase();
+            status = type.indexOf('sick') !== -1 ? 'SL' : 'CL';
+            remarks = type.indexOf('sick') !== -1 ? 'Approved Sick Leave' : 'Approved Casual Leave';
+          } else {
+            var holiday = (DB.holidays || []).find(function(h) {
+              if ((formatDateForPostgres(h.date) || h.date) !== curDate) return false;
+              var hState = String(h.state || '').toLowerCase().trim();
+              var eState = String(emp.state || '').toLowerCase().trim();
+              return hState === 'all' || hState === 'national' || hState === eState;
+            });
+            if (holiday) {
+              status = 'H';
+              remarks = holiday.name ? 'Holiday: ' + holiday.name : 'Holiday';
+            } else {
+              var dateObj = typeof parseLocalMidnight === 'function' ? parseLocalMidnight(curDate) : new Date(curDate + 'T00:00:00');
+              if (!isNaN(dateObj.getTime())) {
+                var weekday = dateObj.getDay();
+                var woConfig = (DB.weeklyOffConfig || []).find(function(w) { return String(w.employee_id || '').toUpperCase() === String(emp.id || '').toUpperCase(); });
+                var isOff = false;
+                if (woConfig) {
+                  isOff = String(woConfig.weekday) === String(weekday);
+                } else {
+                  isOff = weekday === 0;
+                }
+                if (isOff) {
+                  status = 'WO';
+                  remarks = 'Weekly Off';
+                }
+              }
+            }
+          }
+        }
+        
+        if (status !== 'NS') {
+          virtualRows.push({
+            id: 'VIRTUAL-' + emp.id + '-' + curDate,
+            employeeId: emp.id,
+            date: curDate,
+            attendanceStatus: status,
+            remarks: remarks
+          });
+        }
+      }
+      curDate = typeof offsetDate === 'function' ? offsetDate(curDate, 1) : curDate;
+      if (curDate <= since) break; // safety
+    }
+  });
+
+  return virtualRows.filter(function(row) {
     if (statusFilter && row.attendanceStatus !== statusFilter) return false;
     var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(row.employeeId || '').toUpperCase(); });
     var haystack = [

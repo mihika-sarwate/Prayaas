@@ -4752,22 +4752,35 @@ function finalSubmitToday() {
   var today = getTodayDateString();
   var myTodayReports = DB.reports.filter(function(r){ return r.empId === u.id && r.date === today && !r.isFinal; });
   
-  myTodayReports.forEach(function(r) {
+  var pushPromises = myTodayReports.map(function(r) {
     r.isFinal = true;
-    pushReportToSupabase(r);
+    return pushReportToSupabase(r).catch(function(e) { console.error(e); });
   });
   
-  idb.set('adonis_db', DB);
-  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
-  
   // Record attendance as present
-  upsertAttendanceRecord({
+  var existingAtt = upsertAttendanceRecord({
     employeeId: u.id,
     date: today,
     loginTime: getAttendanceLoginTimeValue(new Date()),
     attendanceStatus: 'P',
     remarks: 'Present via Final DCR Submission'
   });
+  
+  if (typeof useSupabase !== 'undefined' && useSupabase && typeof supabase !== 'undefined' && supabase) {
+    var dbAtt = {
+      id: existingAtt.id,
+      employee_id: existingAtt.employeeId,
+      date: existingAtt.date,
+      login_time: existingAtt.loginTime,
+      attendance_status: existingAtt.attendanceStatus,
+      remarks: existingAtt.remarks,
+      created_at: existingAtt.createdAt
+    };
+    pushPromises.push(supabase.from('attendance').upsert(dbAtt, { onConflict: 'employee_id, date' }).select().catch(function(e){console.error(e)}));
+  }
+
+  idb.set('adonis_db', DB);
+  try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
   
   renderHomeStats();
   showToast('Final submit successful! Reports locked.');

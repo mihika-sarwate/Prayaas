@@ -5377,14 +5377,27 @@ function renderAttendanceDashboard() {
       }
       tbody.innerHTML = '<tr><td colspan="5" class="empty">No attendance records found for the latest 30 days.</td></tr>';
     } else {
-      // Find all unique dates present in the filtered rows, sorted chronologically ascending
-      var datesSet = {};
-      rows.forEach(function(r) { if (r.date) datesSet[r.date] = true; });
-      var dates = Object.keys(datesSet).sort();
+      // Generate continuous dates for the current month up to today
+      var todayStr = getTodayDateString();
+      var monthStart = todayStr.substring(0, 8) + '01';
+      var dates = [];
+      var curDate = monthStart;
+      while (curDate <= todayStr) {
+        dates.push(curDate);
+        curDate = offsetDate(curDate, 1);
+        if (dates.length > 40) break; // safety
+      }
       
-      // Find all unique employee IDs in the filtered rows
+      // Include all tracked employees, not just those with records
+      var employeeFilter = (document.getElementById('attendance-employee-filter') || {}).value || '';
       var empsSet = {};
-      rows.forEach(function(r) { if (r.employeeId) empsSet[r.employeeId] = true; });
+      if (employeeFilter) {
+        empsSet[employeeFilter] = true;
+      } else {
+        (DB.employees || []).filter(function(e) { return isAttendanceTrackedEmployee(e); }).forEach(function(e) {
+          if (e.id) empsSet[e.id] = true;
+        });
+      }
       var empIds = Object.keys(empsSet).sort(function(a, b) {
         var empA = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === a.toUpperCase(); });
         var empB = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === b.toUpperCase(); });

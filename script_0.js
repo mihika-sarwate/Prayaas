@@ -1213,7 +1213,7 @@ async function initSupabaseData(isSilent) {
         message: a.message,
         targetType: a.target_type,
         targetValue: a.target_value,
-        acknowledgedBy: a.acknowledged_by || [],
+        acknowledgedBy: (function(val){ if(Array.isArray(val)) return val; if(typeof val === 'string'){ try{var p=JSON.parse(val); return Array.isArray(p)?p:[];}catch(e){return [];} } return []; })(a.acknowledged_by),
         fileData: a.file_data || '',
         fileType: a.file_type || ''
       }))
@@ -8578,6 +8578,12 @@ function setEmployeeStatus(empId, status) {
   var emp = DB.employees.find(function(e) { return e && e.id === empId; });
   if (!emp) return;
   emp.status = normalizeEmployeeStatus(status);
+  if (typeof _pendingLocalEmpIds !== 'undefined') {
+    _pendingLocalEmpIds.add(String(empId).toUpperCase());
+  }
+  if (typeof pushEmployeeToSupabase === 'function') {
+    pushEmployeeToSupabase(emp);
+  }
   saveDB();
   renderEmpTable();
   closeModal('modal-emp-status');

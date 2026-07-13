@@ -14863,11 +14863,27 @@ async function acknowledgeAnnouncement() {
     if (!ann.acknowledgedBy.includes(userId)) {
       ann.acknowledgedBy.push(userId);
     }
+    
+    if (typeof useSupabase !== 'undefined' && useSupabase && typeof supabase !== 'undefined' && supabase) {
+      try {
+        var { data } = await supabase.from('announcements').select('acknowledged_by').eq('id', ann.id).single();
+        if (data && data.acknowledged_by) {
+          var serverAcks = typeof data.acknowledged_by === 'string' ? JSON.parse(data.acknowledged_by) : data.acknowledged_by;
+          if (!Array.isArray(serverAcks)) serverAcks = [];
+          serverAcks.forEach(id => {
+            if (!ann.acknowledgedBy.includes(id)) ann.acknowledgedBy.push(id);
+          });
+        }
+        await supabase.from('announcements').update({ acknowledged_by: ann.acknowledgedBy }).eq('id', ann.id);
+      } catch (e) {
+        console.error("Error updating acknowledgement:", e);
+      }
+    }
   }
   
   saveDB();
   if (typeof syncSupabaseDatabase === 'function') {
-    await syncSupabaseDatabase();
+    syncSupabaseDatabase();
   }
   
   var overlay = document.getElementById('announcement-overlay');

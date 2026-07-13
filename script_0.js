@@ -8544,6 +8544,7 @@ function renderEmpTable(){
   var masterCheck = document.getElementById('check-all-emps');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedEmpsCount();
+  if (typeof updateUIForRole === 'function') updateUIForRole();
 }
 
 function openEmployeeStatusModal(empId) {

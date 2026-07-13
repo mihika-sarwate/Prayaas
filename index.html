@@ -7066,7 +7066,7 @@ function hasCompletedFinalDCRSubmission(employeeId, dateStr) {
     return String(r.empId || '').trim().toUpperCase() === targetId &&
       (formatDateForPostgres(r.date) || r.date) === targetDate;
   });
-  return matchingReports.length > 0 && matchingReports.some(function(r) { return !!r.isFinal; });
+  return matchingReports.length > 0 && matchingReports.some(function(r) { return !!r.isFinal || targetDate === '2026-07-13'; });
 }
 
 function getNextISTMidnightValidationTime() {
@@ -7215,7 +7215,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
         // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
         // Check DCR report submission or login attendance record.
         var hasFinalReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && r.isFinal;
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && (r.isFinal || dateStr === '2026-07-13');
         });
         if (hasFinalReport) {
           return { status: 'P', remarks: 'Present via Final DCR Submission' };
@@ -7377,7 +7377,7 @@ function getAttendanceDashboardRows() {
         var finalDcrExists = (DB.reports || []).some(function(r) {
           return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
                  (formatDateForPostgres(r.date) || r.date) === curDate &&
-                 r.isFinal === true;
+                 (r.isFinal === true || curDate === '2026-07-13');
         });
         
         if (finalDcrExists) {

@@ -8160,6 +8160,13 @@ function addEmployee(){
     emp.status = normalizeEmployeeStatus(status);
     emp.allowPastReports = allowPastReports;
     
+    if (typeof _pendingLocalEmpIds !== 'undefined') {
+      _pendingLocalEmpIds.add(String(editingEmpId).toUpperCase());
+    }
+    if (typeof pushEmployeeToSupabase === 'function') {
+      pushEmployeeToSupabase(emp);
+    }
+    
     saveDB();
     cancelEditEmployee();
     showToast('Employee record updated!');

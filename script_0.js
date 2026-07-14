@@ -5547,6 +5547,17 @@ function renderAttendanceDashboard() {
           var accessIcon = hasAccess ? '<div title="Edit Access Granted" style="position:absolute; top:2px; right:2px; color:#34A853; font-size:10px;"><i class="fa fa-unlock"></i></div>' : '';
           var clickAttr = isPastDate(d) ? ' onclick="togglePastReportAccess(\'' + empId + '\', \'' + d + '\')"' : '';
 
+          if (!record && isPastDate(d)) {
+            var meta = getAttendanceStatusMeta(emp, d);
+            if (meta && meta.status) {
+              if (meta.status === 'NS') {
+                record = { attendanceStatus: 'A', remarks: 'Absent (Not Submitted)' };
+              } else {
+                record = { attendanceStatus: meta.status, remarks: meta.remarks };
+              }
+            }
+          }
+
           if (record) {
             var label = record.attendanceStatus || '-';
             var badgeClass = getAttendanceStatusBadgeClass(record.attendanceStatus);

@@ -761,10 +761,12 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
       <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
       <div class="admin-tab manager-only" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
+      <div class="admin-tab manager-only" id="tab-adm-leave-req" onclick="goAdminTab('leave-req')">Leave</div>
     </div>
 
     <!-- ADMIN SECTIONS -->
     <div id="sec-adm-visit" style="display:none"></div>
+    <div id="sec-adm-leave-req" style="display:none"></div>
     <!-- ADMIN DASHBOARD PANEL -->
     <div id="sec-adm-dash">
       <div class="stats">
@@ -5734,7 +5736,7 @@ function initAdminApp(){
 
 function goAdminTab(name){
   currentAdminTab=name;
-  ['dash','appr','master','inventory','reports','visit'].forEach(function(t){
+  ['dash','appr','master','inventory','reports','visit','leave-req'].forEach(function(t){
     var el=document.getElementById('sec-adm-'+t);
     if(el) el.style.display=t===name?'block':'none';
     var btn=document.getElementById('tab-adm-'+t);
@@ -5749,6 +5751,13 @@ function goAdminTab(name){
       populateReportingDropdowns();
       populateJFWManagers();
       checkMTPForSelectedDate();
+    }
+  }
+  if (name === 'leave-req') {
+    var tl = document.getElementById('tab-leave');
+    if(tl) {
+      document.getElementById('sec-adm-leave-req').appendChild(tl);
+      tl.style.display = 'block';
     }
   }
   

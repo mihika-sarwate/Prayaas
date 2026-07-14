@@ -869,12 +869,14 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="admin-tab" id="tab-adm-inventory" onclick="goAdminTab('inventory')">Inventory</div>
       <div class="admin-tab" id="tab-adm-reports" onclick="goAdminTab('reports')">MIS Reports</div>
       <div class="admin-tab manager-only" id="tab-adm-visit" onclick="goAdminTab('visit')">Report</div>
+      <div class="admin-tab manager-only" id="tab-adm-leave-req" onclick="goAdminTab('leave-req')">Leave</div>
       <div class="admin-tab" id="tab-adm-tour" onclick="goAdminTab('tour')">Tour Plan</div>
       <div class="admin-tab" id="tab-adm-announcements" onclick="goAdminTab('announcements')" style="display:none">Broadcasts</div>
     </div>
 
     <!-- ADMIN SECTIONS -->
     <div id="sec-adm-visit" style="display:none"></div>
+    <div id="sec-adm-leave-req" style="display:none"></div>
     <div id="sec-adm-tour" style="display:none"></div>
     <div id="sec-adm-announcements" style="display:none" class="body"></div>
     <!-- ADMIN DASHBOARD PANEL -->
@@ -9218,7 +9220,7 @@ function goAdminTab(name){
     name = 'dash';
   }
   currentAdminTab=name;
-  ['dash','appr','attendance','master','inventory','reports','visit','tour','announcements'].forEach(function(t){
+  ['dash','appr','attendance','master','inventory','reports','visit','tour','announcements','leave-req'].forEach(function(t){
     var el=document.getElementById('sec-adm-'+t);
     if(el) el.style.display=t===name?'block':'none';
     var btn=document.getElementById('tab-adm-'+t);
@@ -9235,6 +9237,13 @@ function goAdminTab(name){
       populateReportingDropdowns();
       populateJFWManagers();
       checkMTPForSelectedDate();
+    }
+  }
+  if (name === 'leave-req') {
+    var tl = document.getElementById('tab-leave');
+    if(tl) {
+      document.getElementById('sec-adm-leave-req').appendChild(tl);
+      tl.style.display = 'block';
     }
   }
   if (name === 'tour') {

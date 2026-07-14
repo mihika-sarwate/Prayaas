@@ -5088,13 +5088,7 @@ function calculateReportingBalance(type, idx, availableBal) {
   if (!distInp || !balSpan) return;
   var distVal = parseInt(distInp.value) || 0;
   
-  distInp.max = availableBal;
-  if (distVal > availableBal) {
-    distInp.value = availableBal;
-    distVal = availableBal;
-  }
-  
-  balSpan.textContent = Math.max(0, availableBal - distVal);
+  balSpan.textContent = availableBal - distVal;
 }
 
 function renderDoctorOptions(list) {
@@ -5605,14 +5599,8 @@ function populateReportingDropdowns(){
   if (stockSearchInp) stockSearchInp.value = '';
   
   // Product checklist grid
-  // Dynamically obtain the list of products from user's samples inventory, falling back to DB.products if empty
-  var userSamples = (DB.samplesInventory || []).filter(function(s){ return s.empId === SESSION.user.id; });
-  var activeProducts = userSamples.map(function(s){ return s.prodName; }).filter(Boolean);
-  if (activeProducts.length === 0) {
-    activeProducts = DB.products || [];
-  }
-  // Ensure unique values
-  activeProducts = activeProducts.filter(function(v, i, self) { return self.indexOf(v) === i; });
+  // Dynamically obtain the list of products from DB.products to show all unique products
+  var activeProducts = DB.products || [];
 
   var promoProductsGrid=document.getElementById('r-promo-products');
   promoProductsGrid.innerHTML=activeProducts.map(function(p, i){
@@ -5633,7 +5621,7 @@ function populateReportingDropdowns(){
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
+          '<input type="number" min="0" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
@@ -5644,13 +5632,8 @@ function populateReportingDropdowns(){
   }).join('');
 
   // Gifts
-  // Dynamically obtain the list of gifts from user's gifts inventory, falling back to DB.gifts if empty
-  var userGifts = (DB.giftsInventory || []).filter(function(g){ return g.empId === SESSION.user.id; });
-  var activeGifts = userGifts.map(function(g){ return g.giftName; }).filter(Boolean);
-  if (activeGifts.length === 0) {
-    activeGifts = DB.gifts || [];
-  }
-  activeGifts = activeGifts.filter(function(v, i, self) { return self.indexOf(v) === i; });
+  // Dynamically obtain the list of gifts from DB.gifts to show all unique gifts
+  var activeGifts = DB.gifts || [];
 
   document.getElementById('gifts-list').innerHTML=activeGifts.map(function(g,i){
     var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
@@ -5665,7 +5648,7 @@ function populateReportingDropdowns(){
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
+          '<input type="number" min="0" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
@@ -5676,13 +5659,8 @@ function populateReportingDropdowns(){
   }).join('');
 
   // Inputs
-  // Dynamically obtain the list of inputs from user's inputs inventory, falling back to DB.inputs if empty
-  var userInputs = (DB.inputsInventory || []).filter(function(ip){ return ip.empId === SESSION.user.id; });
-  var activeInputs = userInputs.map(function(ip){ return ip.inputName; }).filter(Boolean);
-  if (activeInputs.length === 0) {
-    activeInputs = DB.inputs || [];
-  }
-  activeInputs = activeInputs.filter(function(v, i, self) { return self.indexOf(v) === i; });
+  // Dynamically obtain the list of inputs from DB.inputs to show all unique inputs
+  var activeInputs = DB.inputs || [];
 
   document.getElementById('inputs-list').innerHTML=activeInputs.map(function(ip,i){
     var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
@@ -5697,7 +5675,7 @@ function populateReportingDropdowns(){
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
+          '<input type="number" min="0" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+

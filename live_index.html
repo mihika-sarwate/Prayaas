@@ -3401,13 +3401,7 @@ function calculateReportingBalance(type, idx, availableBal) {
   if (!distInp || !balSpan) return;
   var distVal = parseInt(distInp.value) || 0;
   
-  distInp.max = availableBal;
-  if (distVal > availableBal) {
-    distInp.value = availableBal;
-    distVal = availableBal;
-  }
-  
-  balSpan.textContent = Math.max(0, availableBal - distVal);
+  balSpan.textContent = availableBal - distVal;
 }
 
 function renderDoctorOptions(list) {
@@ -3815,7 +3809,7 @@ function populateReportingDropdowns(){
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
+          '<input type="number" min="0" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
@@ -3839,7 +3833,7 @@ function populateReportingDropdowns(){
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
+          '<input type="number" min="0" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
@@ -3863,7 +3857,7 @@ function populateReportingDropdowns(){
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
+          '<input type="number" min="0" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+

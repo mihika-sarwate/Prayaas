@@ -280,7 +280,13 @@ module.exports = async (req, res) => {
   // Use service role key if available for admin operations, fallback to anon key
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
   const supabase = createClient(process.env.SUPABASE_URL, supabaseKey, {
-    auth: { persistSession: false }
+    auth: { persistSession: false },
+    global: {
+      headers: {
+        'x-employee-id': 'ADMIN',
+        'x-employee-password': 'adonis@1234'
+      }
+    }
   });
 
   try {

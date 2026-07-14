@@ -9,13 +9,8 @@ async function run() {
   await client.connect();
   
   try {
-    // Simulate setting the headers for the session
-    await client.query("SET request.headers TO '{\"x-employee-id\":\"ADMIN\", \"x-employee-password\":\"adonis@1234\"}'");
-    
-    // Check if is_admin() returns true
-    const resAdmin = await client.query("SELECT is_admin()");
-    console.log('is_admin():', resAdmin.rows[0]);
-    
+    const res = await client.query("SELECT prosrc FROM pg_proc WHERE proname = 'is_valid_employee'");
+    console.log(res.rows[0].prosrc);
   } catch (err) {
     console.error('Error:', err.message);
   } finally {

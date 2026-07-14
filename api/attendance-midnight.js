@@ -1,7 +1,15 @@
-const { createClient } = require('@supabase/supabase-js');
+const pg = require('pg');
+const { Client } = pg;
 
-// Try loading environment variables from local .env file if SUPABASE_URL is not set
-if (!process.env.SUPABASE_URL) {
+// FIX: Ensure Postgres DATE columns are returned as exact strings (YYYY-MM-DD)
+// and not parsed into JS Date objects which get mangled by timezone offsets.
+pg.types.setTypeParser(1082, function(stringValue) {
+  return stringValue;
+});
+
+
+// Try loading environment variables from local .env file if DATABASE_URL is not set (useful for local development)
+if (!process.env.DATABASE_URL) {
   try {
     const fs = require('fs');
     const path = require('path');
@@ -13,9 +21,11 @@ if (!process.env.SUPABASE_URL) {
     ];
     for (const envPath of possiblePaths) {
       if (fs.existsSync(envPath)) {
-        require('dotenv').config({ path: envPath });
-        if (process.env.SUPABASE_URL) {
-          console.log(`Loaded environment from ${envPath}`);
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        const match = envContent.match(/DATABASE_URL\s*=\s*([^\r\n]*)/);
+        if (match) {
+          process.env.DATABASE_URL = match[1].trim();
+          console.log(`Loaded DATABASE_URL from ${envPath}`);
           break;
         }
       }
@@ -56,6 +66,12 @@ function getISTParts(date = new Date()) {
 function formatISTDate(date = new Date()) {
   const ist = getISTParts(date);
   return `${ist.year}-${String(ist.month).padStart(2, '0')}-${String(ist.day).padStart(2, '0')}`;
+}
+
+function parseLocalMidnight(dateStr) {
+  const parts = String(dateStr || '').split('-');
+  if (parts.length !== 3) return new Date(dateStr);
+  return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
 }
 
 function offsetDate(dateStr, offsetDays) {
@@ -184,6 +200,24 @@ function getAttendanceMap(rows) {
   return map;
 }
 
+function getTourPlanDayMap(rows) {
+  const map = new Map();
+  for (const row of rows || []) {
+    const status = normalizeStatus(row.status);
+    if (!['APPROVED', 'APPROVED BY MANAGER', 'APPROVED BY ADMIN'].includes(status)) continue;
+    const empId = String(row.emp_id || '').trim().toUpperCase();
+    const month = String(row.month || '').trim();
+    const days = Array.isArray(row.days) ? row.days : parseJsonField(row.days);
+    if (!empId || !month || !Array.isArray(days)) continue;
+    for (const day of days) {
+      const date = normalizeDate(day && day.date);
+      if (!date) continue;
+      map.set(`${empId}|${date}`, day);
+    }
+  }
+  return map;
+}
+
 function getHolidayForDateAndState(holidayMap, dateStr, state) {
   const rows = holidayMap.get(dateStr) || [];
   const stateKey = String(state || '').trim().toLowerCase();
@@ -197,6 +231,9 @@ function getApprovedLeaveForDate(leaveMap, employeeId, dateStr) {
   return rows.find((row) => row.start <= dateStr && row.end >= dateStr) || null;
 }
 
+
+
+// PHASE 1: NEW STRICT BUSINESS RULES IMPLEMENTATION
 function getAttendanceStatusMeta(employee, dateStr, context) {
   const empId = String(employee.id || '').trim().toUpperCase();
 
@@ -242,22 +279,6 @@ function isAuthorized(req) {
   return false;
 }
 
-// Fetch all rows from a Supabase table automatically handling pagination
-async function fetchAllRows(supabase, queryBuilder) {
-  let allRows = [];
-  let from = 0;
-  const step = 1000;
-  while (true) {
-    const { data, error } = await queryBuilder.range(from, from + step - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    allRows = allRows.concat(data);
-    if (data.length < step) break;
-    from += step;
-  }
-  return allRows;
-}
-
 module.exports = async (req, res) => {
   if (req.method && req.method !== 'GET' && req.method !== 'POST') {
     res.status(405).json({ ok: false, error: 'Method not allowed' });
@@ -267,8 +288,8 @@ module.exports = async (req, res) => {
     res.status(401).json({ ok: false, error: 'Unauthorized' });
     return;
   }
-  if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_KEY)) {
-    res.status(500).json({ ok: false, error: 'SUPABASE_URL or Key is not configured' });
+  if (!process.env.DATABASE_URL) {
+    res.status(500).json({ ok: false, error: 'DATABASE_URL is not configured' });
     return;
   }
 
@@ -276,42 +297,47 @@ module.exports = async (req, res) => {
   const targetDate = requestedDate || offsetDate(formatISTDate(), -1);
   const targetMonth = targetDate.slice(0, 7);
   const dryRun = String((req.query && req.query.dryRun) || '').trim() === '1';
-  
-  // Use service role key if available for admin operations, fallback to anon key
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
-  const supabase = createClient(process.env.SUPABASE_URL, supabaseKey, {
-    auth: { persistSession: false },
-    global: {
-      headers: {
-        'x-employee-id': 'ADMIN',
-        'x-employee-password': 'adonis@1234'
-      }
-    }
-  });
+  const dbUrl = process.env.DATABASE_URL.replace(':5432', ':6543');
+  const client = new Client({ connectionString: dbUrl, connectionTimeoutMillis: 30000 });
 
   try {
-    const [
-      employeesRes,
-      weeklyOffRes,
-      holidaysRes,
-      leavesRes,
-      reportsRes,
-      attendanceRes
-    ] = await Promise.all([
-      fetchAllRows(supabase, supabase.from('employees').select('id, name, role, doj, state, status, account_status, blocked_date, blocked_reason, leaves').neq('role', 'admin')),
-      fetchAllRows(supabase, supabase.from('weekly_off_config').select('employee_id, weekday')),
-      fetchAllRows(supabase, supabase.from('holidays').select('date, name, state').eq('date', targetDate)),
-      fetchAllRows(supabase, supabase.from('leaves').select('emp_id, type, start, end, status').lte('start', targetDate).gte('end', targetDate)),
-      fetchAllRows(supabase, supabase.from('reports').select('emp_id, date, remarks').eq('date', targetDate)),
-      fetchAllRows(supabase, supabase.from('attendance').select('id, employee_id, date, login_time, attendance_status, remarks, created_at').eq('date', targetDate))
-    ]);
+    await client.connect();
+
+    const employeesRes = await client.query(`
+      SELECT id, name, role, doj, state, status, account_status, blocked_date, blocked_reason, leaves
+      FROM employees
+      WHERE role <> 'admin'
+    `);
+    const weeklyOffRes = await client.query(`SELECT employee_id, weekday FROM weekly_off_config`);
+    const holidaysRes = await client.query(`SELECT date, name, state FROM holidays WHERE date = $1`, [targetDate]);
+    const leavesRes = await client.query(`
+      SELECT emp_id, type, start, "end", status
+      FROM leaves
+      WHERE start <= $1 AND "end" >= $1
+    `, [targetDate]);
+    const reportsRes = await client.query(`
+      SELECT emp_id, date, remarks
+      FROM reports
+      WHERE date = $1
+    `, [targetDate]);
+    const attendanceRes = await client.query(`
+      SELECT id, employee_id, date, login_time, attendance_status, remarks, created_at
+      FROM attendance
+      WHERE date = $1
+    `, [targetDate]);
+    const tourPlansRes = await client.query(`
+      SELECT emp_id, month, status, days
+      FROM tour_plans
+      WHERE month = $1
+    `, [targetMonth]);
 
     const context = {
-      weeklyOffMap: getWeeklyOffSet(weeklyOffRes),
-      holidayMap: getHolidayMap(holidaysRes),
-      leaveMap: getApprovedLeaveMap(leavesRes),
-      reportMap: getReportMap(reportsRes),
-      attendanceMap: getAttendanceMap(attendanceRes)
+      weeklyOffMap: getWeeklyOffSet(weeklyOffRes.rows),
+      holidayMap: getHolidayMap(holidaysRes.rows),
+      leaveMap: getApprovedLeaveMap(leavesRes.rows),
+      reportMap: getReportMap(reportsRes.rows, targetDate),
+      attendanceMap: getAttendanceMap(attendanceRes.rows),
+      tourPlanDayMap: getTourPlanDayMap(tourPlansRes.rows)
     };
 
     const attendanceRows = [];
@@ -324,7 +350,7 @@ module.exports = async (req, res) => {
       skipped: []
     };
 
-    for (const employee of employeesRes) {
+    for (const employee of employeesRes.rows) {
       const empId = String(employee.id || '').trim().toUpperCase();
       if (!empId) continue;
       if (normalizeEmployeeStatus(employee.status) !== 'active') continue;
@@ -373,44 +399,55 @@ module.exports = async (req, res) => {
     }
 
     if (!dryRun) {
-      // Upsert attendance records in batches
+      await client.query('BEGIN');
+
       if (attendanceRows.length > 0) {
-        const chunkSize = 500;
-        for (let i = 0; i < attendanceRows.length; i += chunkSize) {
-          const chunk = attendanceRows.slice(i, i + chunkSize);
-          const { error } = await supabase.from('attendance').upsert(chunk, { onConflict: 'employee_id, date' });
-          if (error) {
-             console.error('Error upserting attendance batch:', error);
-             throw error;
-          }
-        }
+        await client.query(`
+          INSERT INTO attendance (id, employee_id, date, login_time, attendance_status, remarks, created_at)
+          SELECT x.id, x.employee_id, x.date::date, x.login_time, x.attendance_status, x.remarks, x.created_at::timestamptz
+          FROM jsonb_to_recordset($1::jsonb) AS x(
+            id text,
+            employee_id text,
+            date text,
+            login_time text,
+            attendance_status text,
+            remarks text,
+            created_at text
+          )
+          ON CONFLICT (employee_id, date)
+          DO UPDATE SET
+            login_time = EXCLUDED.login_time,
+            attendance_status = EXCLUDED.attendance_status,
+            remarks = EXCLUDED.remarks
+        `, [JSON.stringify(attendanceRows)]);
       }
 
-      // Update blocked employees
       if (employeesToBlock.length > 0) {
-        const { error } = await supabase.from('employees')
-          .update({
-            account_status: 'BLOCKED',
-            blocked_date: targetDate,
-            blocked_reason: BLOCK_REASON
-          })
-          .in('id', employeesToBlock);
-          
-        if (error) {
-          console.error('Error blocking employees:', error);
-          throw error;
-        }
+        await client.query(`
+          UPDATE employees
+          SET account_status = 'BLOCKED',
+              blocked_date = $2::date,
+              blocked_reason = $3
+          WHERE id = ANY($1::text[])
+        `, [employeesToBlock, targetDate, BLOCK_REASON]);
       }
+
+      await client.query('COMMIT');
     }
 
     summary.attendanceUpserts = attendanceRows.length;
     summary.dryRun = dryRun;
     res.status(200).json({ ok: true, ...summary });
   } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {}
     console.error('attendance-midnight cron failed:', error);
     res.status(500).json({
       ok: false,
       error: error.message || 'Unknown error'
     });
+  } finally {
+    await client.end().catch(() => {});
   }
 };

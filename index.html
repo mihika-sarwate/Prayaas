@@ -7279,15 +7279,18 @@ function upsertAttendanceRecord(record) {
     existing.remarks = record.remarks || existing.remarks;
     // ensure IDs exist
     if (!existing.id) existing.id = 'ATT' + Date.now() + Math.floor(Math.random()*1000);
+    return existing;
   } else {
-    DB.attendance.push({
+    var entry = {
       id: 'ATT' + Date.now() + Math.floor(Math.random()*1000),
       employeeId: record.employeeId,
       date: record.date,
       loginTime: record.loginTime || '',
       attendanceStatus: record.attendanceStatus || 'NS',
       remarks: record.remarks || ''
-    });
+    };
+    DB.attendance.push(entry);
+    return entry;
   }
 }
 

@@ -1,9 +1,20 @@
-const { Client } = require('pg'); 
-const client = new Client({connectionString: 'postgresql://postgres.mmxdvruucggeixjqwsqr:Adonisgroma%402026@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres'}); 
-async function run() { 
-  await client.connect(); 
-  const res = await client.query("SELECT polname, polcmd, polqual FROM pg_policy WHERE polrelid = 'reports'::regclass"); 
-  console.log(res.rows); 
-  await client.end(); 
-} 
-run().catch(console.error);
+const { Client } = require('pg');
+const fs = require('fs');
+require('dotenv').config();
+
+async function run() {
+  const dbUrl = process.env.DATABASE_URL;
+  const client = new Client({ connectionString: dbUrl });
+  await client.connect();
+  
+  try {
+    const res = await client.query("SELECT * FROM pg_policies WHERE tablename = 'attendance'");
+    console.log(res.rows);
+  } catch (err) {
+    console.error('Error:', err.message);
+  } finally {
+    await client.end();
+  }
+}
+
+run();

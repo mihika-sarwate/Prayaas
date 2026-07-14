@@ -1,26 +1,18 @@
 const { Client } = require('pg');
 const fs = require('fs');
-
 async function run() {
   const env = fs.readFileSync('.env', 'utf8');
   const dbUrl = env.match(/DATABASE_URL=(.*)/)[1];
-  
   const client = new Client({ connectionString: dbUrl });
   await client.connect();
-  
   try {
-    // Simulate setting the headers for the session
-    await client.query("SET request.headers TO '{\"x-employee-id\":\"ADMIN\", \"x-employee-password\":\"adonis@1234\"}'");
-    
-    // Check if is_admin() returns true
-    const resAdmin = await client.query("SELECT is_admin()");
-    console.log('is_admin():', resAdmin.rows[0]);
-    
+    const res = await client.query("SELECT id, doj, status FROM employees");
+    const invalid = res.rows.filter(r => r.doj && isNaN(new Date(r.doj).getTime()));
+    console.log('Invalid DOJs:', invalid);
   } catch (err) {
     console.error('Error:', err.message);
   } finally {
     await client.end();
   }
 }
-
 run();

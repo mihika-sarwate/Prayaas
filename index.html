@@ -3746,7 +3746,18 @@ async function pushUserInventoryToSupabase(empId) {
       return row;
     });
     if (dbSamples.length > 0) {
-      await supabase.from('samples_inventory').upsert(dbSamples);
+      var resRows = await upsertInBatches('samples_inventory', dbSamples);
+      if (resRows && resRows.length > 0) {
+        var needsSave = false;
+        resRows.forEach(function(row) {
+          var localItem = userSamples.find(function(s) { return s.prodName === row.prod_name && s.empId === row.emp_id; });
+          if (localItem && String(localItem.id).startsWith('SAMPLEINV')) {
+            localItem.id = row.id;
+            needsSave = true;
+          }
+        });
+        if (needsSave) saveDB(true);
+      }
     }
   } catch(e) {
     console.error("Error pushing user samples inventory:", e);
@@ -3770,7 +3781,18 @@ async function pushUserInventoryToSupabase(empId) {
       return row;
     });
     if (dbGifts.length > 0) {
-      await supabase.from('gifts_inventory').upsert(dbGifts);
+      var resRows = await upsertInBatches('gifts_inventory', dbGifts);
+      if (resRows && resRows.length > 0) {
+        var needsSave = false;
+        resRows.forEach(function(row) {
+          var localItem = userGifts.find(function(g) { return g.giftName === row.gift_name && g.empId === row.emp_id; });
+          if (localItem && String(localItem.id).startsWith('GIFTINV')) {
+            localItem.id = row.id;
+            needsSave = true;
+          }
+        });
+        if (needsSave) saveDB(true);
+      }
     }
   } catch(e) {
     console.error("Error pushing user gifts inventory:", e);
@@ -3794,7 +3816,18 @@ async function pushUserInventoryToSupabase(empId) {
       return row;
     });
     if (dbInputs.length > 0) {
-      await supabase.from('inputs_inventory').upsert(dbInputs);
+      var resRows = await upsertInBatches('inputs_inventory', dbInputs);
+      if (resRows && resRows.length > 0) {
+        var needsSave = false;
+        resRows.forEach(function(row) {
+          var localItem = userInputs.find(function(i) { return i.inputName === row.input_name && i.empId === row.emp_id; });
+          if (localItem && String(localItem.id).startsWith('INPUTINV')) {
+            localItem.id = row.id;
+            needsSave = true;
+          }
+        });
+        if (needsSave) saveDB(true);
+      }
     }
   } catch(e) {
     console.error("Error pushing user inputs inventory:", e);

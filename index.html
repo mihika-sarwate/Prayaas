@@ -2185,6 +2185,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
       
       // Perform upsert with custom option onConflict to guarantee compatibility with custom text primary keys (like employees.id, doctors.id)
       let opt = {};
+      let query;
       if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists') {
         opt = { onConflict: 'id' };
       } else if (table === 'attendance') {
@@ -2195,7 +2196,18 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
         opt = { onConflict: 'date,state' };
       }
       
-      let query = supabase.from(table).upsert(chunk, opt);
+      let rowsToUpsert = chunk;
+      if (table === 'employees') {
+        rowsToUpsert = chunk.map(function(r) {
+          var copy = Object.assign({}, r);
+          delete copy.account_status;
+          delete copy.blocked_date;
+          delete copy.blocked_reason;
+          return copy;
+        });
+      }
+      
+      query = supabase.from(table).upsert(rowsToUpsert, opt);
       if (table === 'sfc') {
         query = query.select('id,emp_id,from_loc,to_loc,distance,mode,category,fare,da,working_days,emp_name,hq,state,doctors,business');
       } else if (table === 'samples_inventory') {
@@ -7068,9 +7080,11 @@ function parseDateAtLocalMidnight(dateStr) {
 }
 
 function offsetDate(dateStr, offsetDays) {
-  var d = parseDateAtLocalMidnight(dateStr);
-  d.setDate(d.getDate() + offsetDays);
-  return formatLocalDate(d);
+  var parts = String(dateStr || '').split('-');
+  if (parts.length !== 3) return dateStr;
+  var d = new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
 }
 
 function getYesterdayDateString() {
@@ -7397,7 +7411,24 @@ function getAttendanceDashboardRows() {
     while (curDate <= today) {
       var existing = (DB.attendance || []).find(function(a) { return String(a.employeeId || '').toUpperCase() === String(emp.id || '').toUpperCase() && (formatDateForPostgres(a.date) || a.date) === curDate; });
       
-      if (existing) {
+      var finalDcrExists = (DB.reports || []).some(function(r) {
+        return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
+               (formatDateForPostgres(r.date) || r.date) === curDate &&
+               (r.isFinal === true || curDate === '2026-07-13');
+      });
+
+      if (existing && existing.attendanceStatus !== 'A' && existing.attendanceStatus !== 'NS') {
+        // Leave approved statuses like 'SL', 'CL', 'P', 'H', 'WO' intact
+        virtualRows.push(existing);
+      } else if (finalDcrExists) {
+        virtualRows.push({
+          id: 'VIRTUAL-' + emp.id + '-' + curDate,
+          employeeId: emp.id,
+          date: curDate,
+          attendanceStatus: 'P',
+          remarks: 'Present (Final DCR Submitted)'
+        });
+      } else if (existing) {
         virtualRows.push(existing);
       } else {
         var status = 'NS';

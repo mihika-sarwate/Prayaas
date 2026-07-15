@@ -4717,6 +4717,11 @@ function restoreSessionWhenReady() {
     }
 
     try {  } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
+    if ((SESSION.user || {}).role !== 'admin' && String((SESSION.user || {}).status || '').toLowerCase() !== 'active') {
+      showToast('Your account status is not active. Please contact the administrator.');
+      logout();
+      return;
+    }
     if ((SESSION.user || {}).role !== 'admin' && normalizeAccountStatus((SESSION.user || {}).accountStatus) === 'BLOCKED') {
       showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
       logout();
@@ -4828,6 +4833,10 @@ function doLogin(){
         leaves: res.data.leaves || {}
       };
       
+      if (emp.role !== 'admin' && String(emp.status || '').toLowerCase() !== 'active') {
+        showToast('Your account status is not active. Please contact the administrator.');
+        return;
+      }
       if (emp.role !== 'admin' && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED') {
         showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
         return;
@@ -4855,6 +4864,11 @@ function doLogin(){
         emp.pwd = currentPwd;
         SESSION.user = emp;
         localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+      }
+      if ((emp || {}).role !== 'admin' && String((emp || {}).status || '').toLowerCase() !== 'active') {
+        showToast('Your account status is not active. Please contact the administrator.');
+        logout();
+        return;
       }
       if ((emp || {}).role !== 'admin' && normalizeAccountStatus((emp || {}).accountStatus) === 'BLOCKED') {
         showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');

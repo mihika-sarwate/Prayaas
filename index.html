@@ -7983,11 +7983,41 @@ async function runAttendanceValidationNow() {
     renderEmpTable();
     return;
   }
+  // Frontend Fallback
+  showToast('Server API failed. Running local attendance validation fallback...');
+  var rows = getAttendanceDashboardRows();
+  var targetRows = rows.filter(function(r) { return r.date === dateStr; });
+  
+  var updatedAttendance = false;
+  
+  targetRows.forEach(function(r) {
+    if (r.attendanceStatus === 'NS') {
+      var newId = 'ATT-' + r.employeeId + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      DB.attendance.push({
+        id: newId,
+        employeeId: r.employeeId,
+        date: dateStr,
+        loginTime: '',
+        attendanceStatus: 'A',
+        remarks: 'Absent (Final DCR not submitted)'
+      });
+      updatedAttendance = true;
+      
+      setEmployeeAccountStatus(r.employeeId, 'BLOCKED', true, true);
+    }
+  });
+
+  if (updatedAttendance) {
+    saveDB();
+    if (typeof syncDb === 'function') {
+      syncDb(true);
+    }
+  }
 
   localStorage.setItem('adonis_attendance_last_validated_date', dateStr);
   renderAttendanceDashboard();
   renderEmpTable();
-  showToast('Attendance validation completed for ' + dateStr + '.');
+  showToast('Local attendance validation completed for ' + dateStr + '.');
 }
 
 function exportAttendanceReport() {
@@ -10734,7 +10764,7 @@ function setEmployeeStatus(empId, status) {
   showToast((emp.name || emp.id) + ' marked as ' + emp.status);
 }
 
-function setEmployeeAccountStatus(empId, status, preventModalOpen) {
+function setEmployeeAccountStatus(empId, status, preventModalOpen, suppressToast) {
   var emp = DB.employees.find(function(e) { return e && e.id === empId; });
   if (!emp) return;
   emp.accountStatus = normalizeAccountStatus(status);
@@ -10759,7 +10789,9 @@ function setEmployeeAccountStatus(empId, status, preventModalOpen) {
   if (!preventModalOpen) {
     openEmployeeStatusModal(empId);
   }
-  showToast((emp.name || emp.id) + ' account is now ' + emp.accountStatus);
+  if (!suppressToast) {
+    showToast((emp.name || emp.id) + ' account is now ' + emp.accountStatus);
+  }
 }
 
 function saveEmployeeWeeklyOff(empId) {

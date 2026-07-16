@@ -6453,12 +6453,9 @@ function submitReport(){
   
   populateReportingDropdowns();
   renderHomeStats();
-  var adminScreen = document.getElementById('scr-admin');
-  if (adminScreen && adminScreen.classList.contains('on')) {
-    goAdminTab('dash');
-  } else {
-    goTab('home');
-  }
+  
+  // Do not navigate away, keep user on the same screen so they can submit another report without re-selecting date/patch etc.
+  window.scrollTo(0, 0);
 }
 
 window.currentEditReportId = null;

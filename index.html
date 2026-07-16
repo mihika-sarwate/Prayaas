@@ -7991,17 +7991,22 @@ async function runAttendanceValidationNow() {
   var updatedAttendance = false;
   
   targetRows.forEach(function(r) {
-    if (r.attendanceStatus === 'NS') {
-      var newId = 'ATT-' + r.employeeId + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-      DB.attendance.push({
-        id: newId,
-        employeeId: r.employeeId,
-        date: dateStr,
-        loginTime: '',
-        attendanceStatus: 'A',
-        remarks: 'Absent (Final DCR not submitted)'
-      });
-      updatedAttendance = true;
+    var emp = DB.employees.find(function(e) { return e && e.id === r.employeeId; });
+    var isBlocked = emp && typeof normalizeAccountStatus === 'function' && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED';
+
+    if (r.attendanceStatus === 'NS' || (r.attendanceStatus === 'A' && !isBlocked)) {
+      if (r.attendanceStatus === 'NS') {
+        var newId = 'ATT-' + r.employeeId + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        DB.attendance.push({
+          id: newId,
+          employeeId: r.employeeId,
+          date: dateStr,
+          loginTime: '',
+          attendanceStatus: 'A',
+          remarks: 'Absent (Final DCR not submitted)'
+        });
+        updatedAttendance = true;
+      }
       
       setEmployeeAccountStatus(r.employeeId, 'BLOCKED', true, true);
     }

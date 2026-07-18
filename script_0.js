@@ -7239,6 +7239,10 @@ function renderAdminStats(){
   var pendingLeave=DB.leaves.filter(function(l){return isPendingForUser(l.status, l.managerId, u);}).length;
   
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
+  
+  if(document.getElementById('adm-leave-bal')){
+    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+  }
 }
 
 function renderAdminDashTeamList(){

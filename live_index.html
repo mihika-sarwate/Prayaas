@@ -777,6 +777,9 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="stat"><div class="stat-l">Total Daily Call Reports</div><div class="stat-v green" id="adm-rep-count">0</div></div>
         <div class="stat"><div class="stat-l">Pending Approvals</div><div class="stat-v orange" id="adm-pending-count">0</div></div>
       </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-l">Leave Balance</div><div class="stat-v" id="adm-leave-bal">CL:0 SL:0</div></div>
+      </div>
       <div class="card">
         <div class="card-title">&#128101; Active Team Performance &amp; Coverage Summary</div>
         <div class="tbl-wrap">
@@ -5795,6 +5798,10 @@ function renderAdminStats(){
   var pendingLeave=DB.leaves.filter(function(l){return isPendingForUser(l.status, l.managerId, u);}).length;
   
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
+  
+  if(document.getElementById('adm-leave-bal')){
+    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+  }
 }
 
 function renderAdminDashTeamList(){

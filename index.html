@@ -900,6 +900,9 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="stat"><div class="stat-l">Total Daily Call Reports</div><div class="stat-v green" id="adm-rep-count">0</div></div>
         <div class="stat"><div class="stat-l">Pending Approvals</div><div class="stat-v orange" id="adm-pending-count">0</div></div>
       </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-l">Leave Balance</div><div class="stat-v" id="adm-leave-bal">CL:0 SL:0</div></div>
+      </div>
       <div class="card">
         <div class="card-title">&#128101; Active Team Performance &amp; Coverage Summary</div>
         <div class="tbl-wrap">
@@ -7985,31 +7988,62 @@ async function runAttendanceValidationNow() {
   }
   // Frontend Fallback
   showToast('Server API failed. Running local attendance validation fallback...');
-  var rows = getAttendanceDashboardRows();
-  var targetRows = rows.filter(function(r) { return r.date === dateStr; });
   
   var updatedAttendance = false;
   
-  targetRows.forEach(function(r) {
-    var emp = DB.employees.find(function(e) { return e && e.id === r.employeeId; });
-    var isBlocked = emp && typeof normalizeAccountStatus === 'function' && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED';
+  (DB.employees || []).forEach(function(emp) {
+    if (!isAttendanceTrackedEmployee(emp)) return;
+    
+    var existingAtt = (DB.attendance || []).find(function(a) {
+      return String(a.employeeId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
+             (formatDateForPostgres(a.date) || a.date) === dateStr;
+    });
 
-    if (r.attendanceStatus === 'NS' || (r.attendanceStatus === 'A' && !isBlocked)) {
-      if (r.attendanceStatus === 'NS') {
-        var newId = 'ATT-' + r.employeeId + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-        DB.attendance.push({
-          id: newId,
-          employeeId: r.employeeId,
-          date: dateStr,
-          loginTime: '',
-          attendanceStatus: 'A',
-          remarks: 'Absent (Final DCR not submitted)'
-        });
-        updatedAttendance = true;
+    var isBlocked = typeof normalizeAccountStatus === 'function' && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED';
+
+    if (existingAtt) {
+      if (existingAtt.attendanceStatus === 'A' && !isBlocked) {
+        setEmployeeAccountStatus(emp.id, 'BLOCKED', true, true);
       }
-      
-      setEmployeeAccountStatus(r.employeeId, 'BLOCKED', true, true);
+      return;
     }
+
+    var finalDcrExists = (DB.reports || []).some(function(r) {
+      return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
+             (formatDateForPostgres(r.date) || r.date) === dateStr &&
+             (r.isFinal === true || dateStr === '2026-07-13');
+    });
+
+    if (finalDcrExists) return;
+
+    var isHoliday = (DB.holidays || []).some(function(h) {
+      if ((formatDateForPostgres(h.date) || h.date) !== dateStr) return false;
+      var hState = String(h.state || '').toLowerCase().trim();
+      var eState = String(emp.state || '').toLowerCase().trim();
+      return hState === 'all' || hState === 'national' || hState === eState;
+    });
+    if (isHoliday) return;
+
+    var dateObj = typeof parseLocalMidnight === 'function' ? parseLocalMidnight(dateStr) : new Date(dateStr + 'T00:00:00');
+    if (!isNaN(dateObj.getTime())) {
+      var weekday = dateObj.getDay();
+      var woConfig = (DB.weeklyOffConfig || []).find(function(w) { return String(w.employee_id || '').toUpperCase() === String(emp.id || '').toUpperCase(); });
+      var isOff = woConfig ? String(woConfig.weekday) === String(weekday) : weekday === 0;
+      if (isOff) return;
+    }
+
+    var newId = 'ATT-' + emp.id + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    DB.attendance.push({
+      id: newId,
+      employeeId: emp.id,
+      date: dateStr,
+      loginTime: '',
+      attendanceStatus: 'A',
+      remarks: 'Absent (Final DCR not submitted)'
+    });
+    updatedAttendance = true;
+    
+    setEmployeeAccountStatus(emp.id, 'BLOCKED', true, true);
   });
 
   if (updatedAttendance) {
@@ -9397,6 +9431,10 @@ function renderAdminStats(){
   var pendingLeave=DB.leaves.filter(function(l){return isPendingForUser(l.status, l.managerId, u);}).length;
   
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
+  
+  if(document.getElementById('adm-leave-bal')){
+    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+  }
 }
 
 function renderAdminDashTeamList(){

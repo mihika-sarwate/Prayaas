@@ -8170,6 +8170,11 @@ function setEmployeeStatus(empId, status) {
   var emp = DB.employees.find(function(e) { return e && e.id === empId; });
   if (!emp) return;
   emp.status = normalizeEmployeeStatus(status);
+  if (typeof useSupabase !== 'undefined' && useSupabase && window.supabase) {
+    supabase.from('employees').update({ status: emp.status }).eq('id', empId).then(function(res) {
+      if (res.error) console.error("Failed to update status in Supabase", res.error);
+    });
+  }
   saveDB();
   renderEmpTable();
   closeModal('modal-emp-status');

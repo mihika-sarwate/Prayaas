@@ -6185,7 +6185,8 @@ function updateReportClassificationFromTarget(){
           document.getElementById('r-last-visit-content').innerHTML = content;
           lastVisitWrap.style.display = 'block';
         } else {
-          lastVisitWrap.style.display = 'none';
+          document.getElementById('r-last-visit-content').innerHTML = '<div style="grid-column: span 2; font-style: italic; color: #6c757d;">No previous visits recorded for this doctor.</div>';
+          lastVisitWrap.style.display = 'block';
         }
       } else {
         lastVisitWrap.style.display = 'none';

@@ -413,6 +413,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
       </div>
       <div class="hdr-brand"><div class="hdr-title">Sankalp MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
+      <button class="btn sm" onclick="openBroadcastHistory()" style="padding: 4px 8px; font-size: 14px; width: auto; height: auto; margin-right: 8px; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;" title="View Broadcast Messages">&#128276;</button>
       <button id="emp-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 4px 10px; font-size: 12px; width: auto; height: auto; line-height: 1.2; margin-right: 8px;">🔄 Sync</button>
       <button class="hdr-badge" onclick="doLogout()">Logout</button>
     </div>
@@ -15814,5 +15815,44 @@ if (document.readyState === 'loading') {
   restoreSessionWhenReady();
 }
 </script>
+<!-- Broadcast History Modal -->
+<div id="broadcast-history-modal" class="modal">
+  <div class="modal-content" style="max-width: 500px; border-radius: 12px; padding: 20px;">
+    <h3 style="margin-top:0; color:#004085; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">Broadcast Messages</h3>
+    <div id="broadcast-history-list" style="max-height: 400px; overflow-y: auto; margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+    </div>
+    <div class="fw" style="margin-top:20px; text-align:right;">
+      <button class="btn" onclick="document.getElementById('broadcast-history-modal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openBroadcastHistory() {
+  var listEl = document.getElementById('broadcast-history-list');
+  var announcements = (DB.announcements || []).sort(function(a,b) { return b.id.localeCompare(a.id); });
+  
+  if (announcements.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center; color:#64748B; padding:20px; font-style:italic;">No broadcast messages found.</div>';
+  } else {
+    listEl.innerHTML = announcements.map(function(a) {
+      var dateStr = new Date(parseInt(a.id.replace('ANN', ''))).toLocaleString();
+      var ackList = (a.acknowledgedBy || []);
+      var hasAcked = ackList.includes(SESSION.user.id);
+      
+      return '<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">' +
+             '<div style="font-size:11px; color:#64748B; margin-bottom:6px; display:flex; justify-content:space-between;">' +
+               '<span>' + dateStr + '</span>' +
+               (hasAcked ? '<span style="color:#10b981; font-weight:600;">&#10003; Read</span>' : '<span style="color:#f59e0b; font-weight:600;">Unread</span>') +
+             '</div>' +
+             '<div style="font-size:14px; color:#1e293b; white-space:pre-wrap; word-break:break-word;">' + escapeHTML(a.message) + '</div>' +
+             '</div>';
+    }).join('');
+  }
+  
+  document.getElementById('broadcast-history-modal').style.display = 'flex';
+}
+</script>
+
 </body>
 </html>

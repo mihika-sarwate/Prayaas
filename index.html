@@ -8593,8 +8593,24 @@ function renderCalendarView(){
   
   currentMTPDays.forEach(function(day){
     var area=day.areaTerritory||day.toLocation||day.stayCity||'';
-    var docCount=getAssignedDoctorsForArea(area).length;
-    var chemCount=getAssignedChemistsForArea(area).length;
+    
+    var docCount = 0;
+    if (day.plannedDocs && day.plannedDocs.length > 0) {
+      docCount = day.plannedDocs.length;
+    } else if (area) {
+      docCount = area.split(',').reduce(function(acc, patch) {
+        return acc + getAssignedDoctorsForArea(patch.trim()).length;
+      }, 0);
+    }
+    
+    var chemCount = 0;
+    if (day.plannedChems && day.plannedChems.length > 0) {
+      chemCount = day.plannedChems.length;
+    } else if (area) {
+      chemCount = area.split(',').reduce(function(acc, patch) {
+        return acc + getAssignedChemistsForArea(patch.trim()).length;
+      }, 0);
+    }
     
     var displayTxt = '';
     var workType = day.workType || 'FIELD WORK';

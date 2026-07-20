@@ -12706,19 +12706,19 @@ function renderLeaveBalanceTable(){
     return;
   }
   tbody.innerHTML=emps.map(function(e, idx){
-    var cl = e.leaves ? (e.leaves.CL || 0) : 0;
-    var cl_used = e.leaves ? (e.leaves.CL_used || 0) : 0;
-    var sl = e.leaves ? (e.leaves.SL || 0) : 0;
-    var sl_used = e.leaves ? (e.leaves.SL_used || 0) : 0;
-    var pl = e.leaves ? (e.leaves.EL || 0) : 0;
-    var pl_used = e.leaves ? (e.leaves.EL_used || 0) : 0;
-    var lop = e.leaves ? (e.leaves.LWP || 0) : 0;
-    var lop_used = e.leaves ? (e.leaves.LWP_used || 0) : 0;
-    
-    var cl_bal = cl - cl_used;
-    var sl_bal = sl - sl_used;
-    var pl_bal = pl - pl_used;
-    var lop_bal = lop - lop_used;
+    var ledger = getLeaveLedger(e);
+    var cl = ledger.cl.limit;
+    var cl_used = ledger.cl.used;
+    var cl_bal = ledger.cl.balance;
+    var sl = ledger.sl.limit;
+    var sl_used = ledger.sl.used;
+    var sl_bal = ledger.sl.balance;
+    var pl = ledger.pl.limit;
+    var pl_used = ledger.pl.used;
+    var pl_bal = ledger.pl.balance;
+    var lop = ledger.lop.limit;
+    var lop_used = ledger.lop.used;
+    var lop_bal = ledger.lop.balance;
 
     var desig = typeof e.designation !== 'undefined' ? e.designation : getDefaultEmployeeDesignation(e.role);
     var hq = e.area || 'HQ';

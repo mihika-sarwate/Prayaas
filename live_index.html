@@ -380,6 +380,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <img src="logo.jpg" alt="Adonis Logo" style="max-height: 36px; width: auto; object-fit: contain;">
       </div>
       <div class="hdr-brand"><div class="hdr-title">Sankalp MR Portal</div><div class="hdr-sub" id="emp-greeting">Welcome</div></div>
+      <button class="btn sm" onclick="openBroadcastHistory()" style="padding: 4px 8px; font-size: 14px; width: auto; height: auto; margin-right: 8px; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;" title="View Broadcast Messages">&#128276;</button>
       <button id="emp-sync-btn" class="btn sm success" onclick="initSupabaseData(false)" style="padding: 4px 10px; font-size: 12px; width: auto; height: auto; line-height: 1.2; margin-right: 8px;">🔄 Sync</button>
       <button class="hdr-badge" onclick="doLogout()">Logout</button>
     </div>
@@ -749,7 +750,10 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
         <div class="hdr-sub">Adonis Laboratories</div>
       </div>
-      <button class="hdr-badge" onclick="doLogout()">Logout</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn sm" onclick="openBroadcastHistory()" style="padding: 4px 8px; font-size: 14px; width: auto; height: auto; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;" title="View Broadcast Messages">&#128276;</button>
+        <button class="hdr-badge" onclick="doLogout()">Logout</button>
+      </div>
     </div>
   </div>
   <div class="body">

@@ -15816,13 +15816,13 @@ if (document.readyState === 'loading') {
 }
 </script>
 <!-- Broadcast History Modal -->
-<div id="broadcast-history-modal" class="modal">
-  <div class="modal-content" style="max-width: 500px; border-radius: 12px; padding: 20px;">
-    <h3 style="margin-top:0; color:#004085; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">Broadcast Messages</h3>
-    <div id="broadcast-history-list" style="max-height: 400px; overflow-y: auto; margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+<div id="broadcast-history-modal" class="modal-bg">
+  <div class="modal">
+    <div class="modal-title">
+      Broadcast Messages 
+      <button class="modal-close" onclick="document.getElementById('broadcast-history-modal').classList.remove('on')">&times;</button>
     </div>
-    <div class="fw" style="margin-top:20px; text-align:right;">
-      <button class="btn" onclick="document.getElementById('broadcast-history-modal').style.display='none'">Close</button>
+    <div id="broadcast-history-list" style="display: flex; flex-direction: column; gap: 10px;">
     </div>
   </div>
 </div>
@@ -15850,7 +15850,7 @@ function openBroadcastHistory() {
     }).join('');
   }
   
-  document.getElementById('broadcast-history-modal').style.display = 'flex';
+  document.getElementById('broadcast-history-modal').classList.add('on');
 }
 </script>
 

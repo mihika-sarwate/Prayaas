@@ -6061,10 +6061,10 @@ function getLeaveLedger(emp) {
     });
   }
 
-  if (clUsed === 0 && (parseFloat(leaves.CL_used) || 0) > 0) clUsed = parseFloat(leaves.CL_used) || 0;
-  if (plUsed === 0 && (parseFloat(leaves.EL_used) || 0) > 0) plUsed = parseFloat(leaves.EL_used) || 0;
-  if (slUsed === 0 && (parseFloat(leaves.SL_used) || 0) > 0) slUsed = parseFloat(leaves.SL_used) || 0;
-  if (lopUsed === 0 && (parseFloat(leaves.LWP_used) || 0) > 0) lopUsed = parseFloat(leaves.LWP_used) || 0;
+  clUsed += (parseFloat(leaves.CL_used) || 0);
+  plUsed += (parseFloat(leaves.EL_used) || 0);
+  slUsed += (parseFloat(leaves.SL_used) || 0);
+  lopUsed += (parseFloat(leaves.LWP_used) || 0);
 
   return {
     cl: { limit: clLimit, used: clUsed, balance: Math.max(0, clLimit - clUsed) },
@@ -10687,7 +10687,7 @@ function renderEmpTable(){
   var filters = adminTableState.employees.filters;
   var emps=DB.employees.filter(function(e){
     if (!e || e.id==='ADMIN') return false;
-    if (teamIds && !teamIds.includes(e.id)) return false;
+    if (teamIds && !teamIds.includes(String(e.id).toUpperCase())) return false;
     
     var mgr = e.managerId ? DB.employees.find(function(m){ return m && m.id===e.managerId; }) : null;
     var mgrName = mgr && mgr.name ? mgr.name : '';
@@ -12643,7 +12643,7 @@ function renderLeaveBalanceTable(){
     if (!e.leaves) return false;
     var keys = Object.keys(e.leaves).filter(function(k) { return k !== '_designation'; });
     if (keys.length === 0) return false;
-    if (teamIds && !teamIds.includes(e.id)) return false;
+    if (teamIds && !teamIds.includes(String(e.id).toUpperCase())) return false;
     if (!q) return true;
     var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
     var haystack = [

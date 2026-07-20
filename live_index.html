@@ -5782,6 +5782,8 @@ function goAdminTab(name){
     if(tl) {
       document.getElementById('sec-adm-leave-req').appendChild(tl);
       tl.style.display = 'block';
+      renderLeaveBalances();
+      renderMyLeaves();
     }
   }
   

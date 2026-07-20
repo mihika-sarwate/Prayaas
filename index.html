@@ -6172,7 +6172,7 @@ function updateReportClassificationFromTarget(){
     if (lastVisitWrap) {
       if (targetId && targetId !== 'UNLISTED') {
         var lastVisit = DB.reports
-          .filter(function(r) { return r.empId === SESSION.user.id && r.targetType === 'Doctor' && r.targetId === targetId; })
+          .filter(function(r) { return r.empId === SESSION.user.id && r.targetType === 'Doctor' && r.docId === targetId; })
           .sort(function(a, b) { return new Date(b.date) - new Date(a.date); })[0];
         
         if (lastVisit) {

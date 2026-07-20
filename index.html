@@ -517,6 +517,12 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
       </div>
       
+      <!-- Last Visit Details -->
+      <div class="fw" id="r-last-visit-wrap" style="display:none; margin-top: 10px; padding: 12px; background-color: #f1f8ff; border: 1px solid #cce5ff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="font-weight: 600; font-size: 11px; color: #004085; margin-bottom: 8px; letter-spacing: 0.5px;">&#128343; DOCTOR'S LAST VISIT DETAILS</div>
+        <div id="r-last-visit-content" style="font-size: 13px; color: #383d41; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+      </div>
+      
       <!-- Chemist Selection -->
       <div class="fw" id="r-chemist-wrap" style="display:none">
         <label class="lbl">Chemist</label>
@@ -6157,19 +6163,45 @@ function updateReportClassificationFromTarget(){
   var targetType=document.getElementById('r-target-type').value;
   var targetId='';
   var unlistedWrap = document.getElementById('r-unlisted-doctor-wrap');
+  var lastVisitWrap = document.getElementById('r-last-visit-wrap');
   if(targetType==='Doctor') {
     targetId = document.getElementById('r-doctor').value;
     if (unlistedWrap) {
       unlistedWrap.style.display = targetId === 'UNLISTED' ? 'block' : 'none';
     }
+    if (lastVisitWrap) {
+      if (targetId && targetId !== 'UNLISTED') {
+        var lastVisit = DB.reports
+          .filter(function(r) { return r.empId === SESSION.user.id && r.targetType === 'Doctor' && r.targetId === targetId; })
+          .sort(function(a, b) { return new Date(b.date) - new Date(a.date); })[0];
+        
+        if (lastVisit) {
+          var content = '<div style="grid-column: span 2;"><strong>Visit Date:</strong> ' + (lastVisit.date || 'N/A') + '</div>';
+          content += '<div><strong>Call Type:</strong> ' + (lastVisit.callType || 'N/A') + '</div>';
+          content += '<div><strong>Classification:</strong> ' + (lastVisit.classification || 'N/A') + '</div>';
+          if (lastVisit.samples) content += '<div><strong>Samples:</strong> ' + lastVisit.samples + '</div>';
+          if (lastVisit.gifts) content += '<div><strong>Gifts:</strong> ' + lastVisit.gifts + '</div>';
+          if (lastVisit.remarks) content += '<div style="grid-column: span 2;"><strong>Remarks:</strong> ' + lastVisit.remarks + '</div>';
+          document.getElementById('r-last-visit-content').innerHTML = content;
+          lastVisitWrap.style.display = 'block';
+        } else {
+          lastVisitWrap.style.display = 'none';
+        }
+      } else {
+        lastVisitWrap.style.display = 'none';
+      }
+    }
   } else if(targetType==='Chemist') {
     targetId = document.getElementById('r-chemist').value;
     if (unlistedWrap) unlistedWrap.style.display = 'none';
+    if (lastVisitWrap) lastVisitWrap.style.display = 'none';
   } else if(targetType==='Stockist') {
     targetId = document.getElementById('r-stockist') ? document.getElementById('r-stockist').value : '';
     if (unlistedWrap) unlistedWrap.style.display = 'none';
+    if (lastVisitWrap) lastVisitWrap.style.display = 'none';
   } else {
     if (unlistedWrap) unlistedWrap.style.display = 'none';
+    if (lastVisitWrap) lastVisitWrap.style.display = 'none';
   }
   var planned=false;
   if(plannedDay){

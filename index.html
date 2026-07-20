@@ -6048,6 +6048,7 @@ function getDesignationLabel(role) {
 
 function getLeaveLedger(emp) {
   var leaves = emp && emp.leaves ? emp.leaves : {};
+  if (typeof leaves === 'string') leaves = parseJSONField(leaves);
   var clLimit = parseFloat(leaves.CL) || 0;
   var plLimit = parseFloat(leaves.EL) || 0;
   var slLimit = parseFloat(leaves.SL) || 0;

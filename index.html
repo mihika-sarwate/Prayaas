@@ -4395,11 +4395,6 @@ function clearLocalAssignTo(entityType) {
         return row;
       });
       await upsertInBatches('reports', dbReports);
-      await reconcileSupabaseRows('reports', DB.reports, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('reports').delete().eq('id', row.id);
-      }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing reports:", e);
     }
@@ -4449,11 +4444,11 @@ function clearLocalAssignTo(entityType) {
         };
       });
       await upsertInBatches('tour_plans', dbTourPlans);
-      await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('tour_plans').delete().eq('id', row.id);
-      }, { select: 'id' });
+      // await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
+      //   return String(row.id || '').toUpperCase();
+      // }, function(row) {
+      //   return supabase.from('tour_plans').delete().eq('id', row.id);
+      // }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing tour plans:", e);
     }
@@ -4481,11 +4476,11 @@ function clearLocalAssignTo(entityType) {
         };
       });
       await upsertInBatches('expenses', dbExpenses);
-      await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('expenses').delete().eq('id', row.id);
-      }, { select: 'id' });
+      // await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
+      //   return String(row.id || '').toUpperCase();
+      // }, function(row) {
+      //   return supabase.from('expenses').delete().eq('id', row.id);
+      // }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing expenses:", e);
     }
@@ -4519,11 +4514,11 @@ function clearLocalAssignTo(entityType) {
         };
       });
       await upsertInBatches('leaves', dbLeaves);
-      await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
-        return String(row.id || '').toUpperCase();
-      }, function(row) {
-        return supabase.from('leaves').delete().eq('id', row.id);
-      }, { select: 'id' });
+      // await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
+      //   return String(row.id || '').toUpperCase();
+      // }, function(row) {
+      //   return supabase.from('leaves').delete().eq('id', row.id);
+      // }, { select: 'id' });
     } catch (e) {
       console.error("Error syncing leaves:", e);
       hasSyncError = true;

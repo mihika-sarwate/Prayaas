@@ -8703,7 +8703,7 @@ function updateMTPAnalytics(month){
     
     dayDocs.forEach(function(docId){
       var visited = allMyReports.find(function(r){
-        return r.date===d.date && r.docId===docId && r.targetType==='Doctor';
+        return r.date===d.date && String(r.docId)===String(docId) && r.targetType==='Doctor';
       });
       if(visited) actualDocVisited++;
       else missedDocCalls++;
@@ -8711,7 +8711,7 @@ function updateMTPAnalytics(month){
     
     dayChems.forEach(function(chemId){
       var visited = allMyReports.find(function(r){
-        return r.date===d.date && r.chemId===chemId && r.targetType==='Chemist';
+        return r.date===d.date && String(r.chemId)===String(chemId) && r.targetType==='Chemist';
       });
       if(visited) actualChemVisited++;
       else missedChemCalls++;
@@ -14371,7 +14371,7 @@ async function runMISReport(){
     var myTPs=DB.tourPlans.filter(function(tp){
       var statusUpper = String(tp.status || '').toUpperCase();
       if(teamIds && !teamIds.includes(tp.empId)) return false;
-      return (statusUpper==='APPROVED' || statusUpper==='SUBMITTED') && (!empId||String(tp.empId || '').toUpperCase()===String(empId).toUpperCase());
+      return (statusUpper.includes('APPROVED') || statusUpper==='SUBMITTED') && (!empId||String(tp.empId || '').toUpperCase()===String(empId).toUpperCase());
     });
     myTPs.forEach(function(tp){
       var emp = DB.employees.find(function(e){return String(e.id || '').toUpperCase() === String(tp.empId || '').toUpperCase();});
@@ -14380,11 +14380,11 @@ async function runMISReport(){
         if(from && d.date < from) return;
         if(to && d.date > to) return;
         var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
         plannedDocIds.forEach(function(docId){
           // Check if MR reported visit on this date to this doc
           var visited = DB.reports.find(function(r){
-            return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && r.docId===docId;
+            return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && String(r.docId)===String(docId);
           });
           if(!visited){
             var doc=DB.doctors.find(function(dc){return dc.id===docId;});
@@ -14425,13 +14425,13 @@ async function runMISReport(){
       var state = e.state || 'N/A';
       DB.tourPlans.filter(function(tp){
         var statusUpper = String(tp.status || '').toUpperCase();
-        return String(tp.empId || '').toUpperCase()===String(e.id || '').toUpperCase() && (statusUpper==='APPROVED' || statusUpper==='SUBMITTED');
+        return String(tp.empId || '').toUpperCase()===String(e.id || '').toUpperCase() && (statusUpper.includes('APPROVED') || statusUpper==='SUBMITTED');
       }).forEach(function(tp){
         tp.days.forEach(function(d){
           if(from && d.date < from) return;
           if(to && d.date > to) return;
           var area=d.areaTerritory||d.toLocation||'';
-          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
           var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(chem.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(chem){return chem.id;});
           plannedDocs += docIds.length;
           plannedChems += chemIds.length;
@@ -15598,7 +15598,7 @@ async function runEmpMISReport(){
     thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>State</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
     var myTPs=DB.tourPlans.filter(function(tp){
       var statusUpper = String(tp.status || '').toUpperCase();
-      return (statusUpper==='APPROVED' || statusUpper==='SUBMITTED') && String(tp.empId || '').toUpperCase()===String(empId).toUpperCase();
+      return (statusUpper.includes('APPROVED') || statusUpper==='SUBMITTED') && String(tp.empId || '').toUpperCase()===String(empId).toUpperCase();
     });
     myTPs.forEach(function(tp){
       var emp = DB.employees.find(function(e){return String(e.id || '').toUpperCase() === String(tp.empId || '').toUpperCase();});
@@ -15607,10 +15607,10 @@ async function runEmpMISReport(){
         if(from && d.date < from) return;
         if(to && d.date > to) return;
         var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
         plannedDocIds.forEach(function(docId){
           var visited = DB.reports.find(function(r){
-            return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && r.docId===docId;
+            return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && String(r.docId)===String(docId);
           });
           if(!visited){
             var doc=DB.doctors.find(function(dc){return dc.id===docId;});
@@ -15640,13 +15640,13 @@ async function runEmpMISReport(){
       var state = e.state || 'N/A';
       DB.tourPlans.filter(function(tp){
         var statusUpper = String(tp.status || '').toUpperCase();
-        return String(tp.empId || '').toUpperCase()===String(e.id || '').toUpperCase() && (statusUpper==='APPROVED' || statusUpper==='SUBMITTED');
+        return String(tp.empId || '').toUpperCase()===String(e.id || '').toUpperCase() && (statusUpper.includes('APPROVED') || statusUpper==='SUBMITTED');
       }).forEach(function(tp){
         tp.days.forEach(function(d){
           if(from && d.date < from) return;
           if(to && d.date > to) return;
           var area=d.areaTerritory||d.toLocation||'';
-          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
           var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(chem.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(chem){return chem.id;});
           plannedDocs += docIds.length;
           plannedChems += chemIds.length;

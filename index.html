@@ -2089,21 +2089,26 @@ async function fetchAllFromSupabase(table, options) {
       query = query.order('date');
     } else {
       query = query.order('id');
-      if (lastId !== null) {
-        query = query.gt('id', lastId);
-      }
-      query = query.limit(pageSize);
     }
+    
+    // Use keyset pagination only for reports to avoid deep offset 500 errors, 
+    // or if we already have a valid lastId.
+    let useKeyset = table === 'reports' || table === 'tour_plans';
     
     let data = null, error = null;
     let retries = 3;
     while (retries > 0) {
       let res;
-      if (table === 'holidays') {
-        res = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+      if (useKeyset) {
+         let keysetQuery = query.limit(pageSize);
+         if (lastId !== null && lastId !== undefined) {
+             keysetQuery = keysetQuery.gt('id', lastId);
+         }
+         res = await keysetQuery;
       } else {
-        res = await query; // limit and gt are already applied
+         res = await query.range(page * pageSize, (page + 1) * pageSize - 1);
       }
+      
       data = res.data;
       error = res.error;
       if (!error) break;
@@ -2130,7 +2135,7 @@ async function fetchAllFromSupabase(table, options) {
     }
     if (!data || data.length === 0) break;
     allData = allData.concat(data);
-    if (table !== 'holidays' && data.length > 0) {
+    if (useKeyset && data.length > 0) {
       lastId = data[data.length - 1].id;
     }
     if (data.length < pageSize) break;

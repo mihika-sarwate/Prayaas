@@ -2074,6 +2074,7 @@ async function fetchAllFromSupabase(table, options) {
   if (_missingSupabaseTables[table] && options && options.allowMissing) return [];
   let allData = [];
   let page = 0;
+  let lastId = null;
   const pageSize = 500;
   const selectClause = (options && options.select) ? options.select : '*';
   while (true) {
@@ -2088,12 +2089,21 @@ async function fetchAllFromSupabase(table, options) {
       query = query.order('date');
     } else {
       query = query.order('id');
+      if (lastId !== null) {
+        query = query.gt('id', lastId);
+      }
+      query = query.limit(pageSize);
     }
     
     let data = null, error = null;
     let retries = 3;
     while (retries > 0) {
-      let res = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+      let res;
+      if (table === 'holidays') {
+        res = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+      } else {
+        res = await query; // limit and gt are already applied
+      }
       data = res.data;
       error = res.error;
       if (!error) break;
@@ -2120,6 +2130,9 @@ async function fetchAllFromSupabase(table, options) {
     }
     if (!data || data.length === 0) break;
     allData = allData.concat(data);
+    if (table !== 'holidays' && data.length > 0) {
+      lastId = data[data.length - 1].id;
+    }
     if (data.length < pageSize) break;
     page++;
   }

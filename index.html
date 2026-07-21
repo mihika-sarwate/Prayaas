@@ -14380,7 +14380,7 @@ async function runMISReport(){
         if(from && d.date < from) return;
         if(to && d.date > to) return;
         var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
         plannedDocIds.forEach(function(docId){
           // Check if MR reported visit on this date to this doc
           var visited = DB.reports.find(function(r){
@@ -14431,8 +14431,8 @@ async function runMISReport(){
           if(from && d.date < from) return;
           if(to && d.date > to) return;
           var area=d.areaTerritory||d.toLocation||'';
-          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
-          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
+          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(chem.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(chem){return chem.id;});
           plannedDocs += docIds.length;
           plannedChems += chemIds.length;
         });
@@ -15607,7 +15607,7 @@ async function runEmpMISReport(){
         if(from && d.date < from) return;
         if(to && d.date > to) return;
         var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && doc.status==='Active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
         plannedDocIds.forEach(function(docId){
           var visited = DB.reports.find(function(r){
             return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && r.docId===docId;
@@ -15646,8 +15646,8 @@ async function runEmpMISReport(){
           if(from && d.date < from) return;
           if(to && d.date > to) return;
           var area=d.areaTerritory||d.toLocation||'';
-          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && doc.area.toLowerCase()===area.toLowerCase();}).map(function(doc){return doc.id;});
-          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && chem.area.toLowerCase()===area.toLowerCase();}).map(function(chem){return chem.id;});
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && doc.status==='Active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
+          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(chem.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(chem){return chem.id;});
           plannedDocs += docIds.length;
           plannedChems += chemIds.length;
         });

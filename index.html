@@ -6787,7 +6787,14 @@ function renderTPDaysForMonth(){
     return String(t.empId || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase() && t.month===month;
   });
   
-  var isReadOnly = false; // Always editable for MR resubmissions
+  var isReadOnly = false;
+  if(existing && String(existing.status).toUpperCase().includes('APPROVED')){
+    isReadOnly = true;
+  }
+  var actionBtnContainer=document.getElementById('tp-action-buttons');
+  if(actionBtnContainer) {
+    actionBtnContainer.style.display = isReadOnly ? 'none' : 'flex';
+  }
   var year=parseInt(month.split('-')[0]);
   var mIndex=parseInt(month.split('-')[1])-1;
   var date = new Date(year, mIndex, 1);
@@ -8149,9 +8156,11 @@ function exportAttendanceReport() {
 
 function renderMTPDaysUI(isReadOnly, existing){
   var c=document.getElementById('tp-days-container');
+  if(existing && String(existing.status).toUpperCase().includes('APPROVED')) {
+    isReadOnly = true;
+  }
   var readOnlyAttr = isReadOnly ? 'disabled' : '';
   var html = '';
-  isReadOnly = false;
   
   if (!existing) {
     var month = document.getElementById('tp-month').value;
@@ -14370,7 +14379,7 @@ async function runMISReport(){
     thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>State</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
     var myTPs=DB.tourPlans.filter(function(tp){
       var statusUpper = String(tp.status || '').toUpperCase();
-      if(teamIds && !teamIds.includes(tp.empId)) return false;
+      if(teamIds && !teamIds.some(function(tid){ return String(tid).toUpperCase() === String(tp.empId).toUpperCase(); })) return false;
       return (statusUpper.includes('APPROVED') || statusUpper==='SUBMITTED') && (!empId||String(tp.empId || '').toUpperCase()===String(empId).toUpperCase());
     });
     myTPs.forEach(function(tp){
@@ -14380,7 +14389,7 @@ async function runMISReport(){
         if(from && d.date < from) return;
         if(to && d.date > to) return;
         var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').trim().toLowerCase()===String(area || '').trim().toLowerCase();}).map(function(doc){return doc.id;});
         plannedDocIds.forEach(function(docId){
           // Check if MR reported visit on this date to this doc
           var visited = DB.reports.find(function(r){
@@ -14431,8 +14440,8 @@ async function runMISReport(){
           if(from && d.date < from) return;
           if(to && d.date > to) return;
           var area=d.areaTerritory||d.toLocation||'';
-          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
-          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(chem.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(chem){return chem.id;});
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').trim().toLowerCase()===String(area || '').trim().toLowerCase();}).map(function(doc){return doc.id;});
+          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(chem.area || '').trim().toLowerCase()===String(area || '').trim().toLowerCase();}).map(function(chem){return chem.id;});
           plannedDocs += docIds.length;
           plannedChems += chemIds.length;
         });
@@ -15607,7 +15616,7 @@ async function runEmpMISReport(){
         if(from && d.date < from) return;
         if(to && d.date > to) return;
         var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
+        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').trim().toLowerCase()===String(area || '').trim().toLowerCase();}).map(function(doc){return doc.id;});
         plannedDocIds.forEach(function(docId){
           var visited = DB.reports.find(function(r){
             return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && String(r.docId)===String(docId);
@@ -15646,8 +15655,8 @@ async function runEmpMISReport(){
           if(from && d.date < from) return;
           if(to && d.date > to) return;
           var area=d.areaTerritory||d.toLocation||'';
-          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(doc){return doc.id;});
-          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(chem.area || '').toLowerCase()===String(area || '').toLowerCase();}).map(function(chem){return chem.id;});
+          var docIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').trim().toLowerCase()===String(area || '').trim().toLowerCase();}).map(function(doc){return doc.id;});
+          var chemIds=(d.plannedChems&&d.plannedChems.length) ? d.plannedChems : DB.chemists.filter(function(chem){return String(chem.assignTo || '').toUpperCase()===String(e.id || '').toUpperCase() && String(chem.area || '').trim().toLowerCase()===String(area || '').trim().toLowerCase();}).map(function(chem){return chem.id;});
           plannedDocs += docIds.length;
           plannedChems += chemIds.length;
         });

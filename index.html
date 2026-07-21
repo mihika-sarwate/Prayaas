@@ -2077,6 +2077,10 @@ async function fetchAllFromSupabase(table, options) {
   let lastId = null;
   const pageSize = 500;
   const selectClause = (options && options.select) ? options.select : '*';
+  
+  // Decide initially if we want to try keyset pagination
+  let useKeyset = table === 'reports' || table === 'tour_plans';
+  
   while (true) {
     let query = supabase
       .from(table)
@@ -2090,10 +2094,6 @@ async function fetchAllFromSupabase(table, options) {
     } else {
       query = query.order('id');
     }
-    
-    // Use keyset pagination only for reports to avoid deep offset 500 errors, 
-    // or if we already have a valid lastId.
-    let useKeyset = table === 'reports' || table === 'tour_plans';
     
     let data = null, error = null;
     let retries = 3;
@@ -2135,9 +2135,18 @@ async function fetchAllFromSupabase(table, options) {
     }
     if (!data || data.length === 0) break;
     allData = allData.concat(data);
+    
+    // Bulletproof keyset pagination
     if (useKeyset && data.length > 0) {
-      lastId = data[data.length - 1].id;
+      const lastRow = data[data.length - 1];
+      if ('id' in lastRow && lastRow.id !== lastId) {
+        lastId = lastRow.id;
+      } else {
+        // Fallback to offset pagination if ID is missing or not advancing
+        useKeyset = false;
+      }
     }
+    
     if (data.length < pageSize) break;
     page++;
   }

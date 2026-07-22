@@ -6346,7 +6346,7 @@ function submitReport(){
   }
 
   // Non-Field Work working types do not require targets (Doctors/Chemists/Stockists)
-  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT'];
+  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT', 'ADMIN DAY', 'SALES CLOSING DAY'];
   if (nonFieldWorkTypes.indexOf(repObj.workType) !== -1) {
     // Skip doctor/chemist/stockist validation and clean targets
     repObj.targetType = '';
@@ -6779,7 +6779,7 @@ function repRow(r){
   var sub = '';
   var val = '';
   
-  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT'];
+  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT', 'ADMIN DAY', 'SALES CLOSING DAY'];
   if (nonFieldWorkTypes.indexOf(String(r.workType || '').toUpperCase()) !== -1) {
     title = String(r.workType || '').toUpperCase();
     sub = (r.city || r.patch) ? (r.city + (r.patch ? ' | ' + r.patch : '')) : 'Administrative / Non-Field Work';

@@ -8186,6 +8186,18 @@ function exportAttendanceReport() {
   downloadData(csv, 'attendance_report_latest_30_days.csv');
 }
 
+function switchToNextMonthMTP() {
+  var el = document.getElementById('tp-month');
+  if (el) {
+    var parts = getCurrentISTMonthString().split('-');
+    var nextDate = new Date(parseInt(parts[0]), parseInt(parts[1]), 1);
+    var nextVal = nextDate.getFullYear() + '-' + String(nextDate.getMonth()+1).padStart(2, '0');
+    el.value = nextVal;
+    renderTPDaysForMonth();
+    window.scrollTo(0,0);
+  }
+}
+
 function renderMTPDaysUI(isReadOnly, existing){
   var c=document.getElementById('tp-days-container');
   if(existing && String(existing.status).toUpperCase().includes('APPROVED')) {
@@ -8204,8 +8216,12 @@ function renderMTPDaysUI(isReadOnly, existing){
   }
 
   if (existing) {
-    html += '<div class="info-box '+(existing.status==='Approved'?'green':'orange')+'">Current Status: <strong style="text-transform:uppercase">'+existing.status+'</strong>'+
-            (existing.remarks ? '<br><strong>Manager Comments:</strong> ' + existing.remarks : '') + '</div>';
+    var isAppr = existing.status === 'Approved';
+    html += '<div class="info-box '+(isAppr?'green':'orange')+'" style="display:flex; justify-content:space-between; align-items:center;">'+
+            '<div>Current Status: <strong style="text-transform:uppercase">'+existing.status+'</strong>'+
+            (existing.remarks ? '<br><strong>Manager Comments:</strong> ' + existing.remarks : '') + '</div>' +
+            (isAppr ? '<div><button class="btn primary" onclick="switchToNextMonthMTP()">Plan Next Month</button></div>' : '') +
+            '</div>';
   }
 
   html += '<div class="card"><div class="card-title">Day-wise Area / Territory Plan</div>'+

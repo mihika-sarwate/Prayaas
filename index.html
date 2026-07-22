@@ -625,7 +625,7 @@ table.tbl tr:last-child td{border-bottom:none}
     <div class="card">
       <div class="card-title">&#128506; Monthly Tour Plan (MTP)</div>
       <div class="row2">
-        <div><label class="lbl">Month</label><input type="month" id="tp-month" onchange="renderTPDaysForMonth()"></div>
+        <div><label class="lbl">Month</label><select id="tp-month" onchange="renderTPDaysForMonth()"></select></div>
         <div><label class="lbl">Reporting Manager</label><select id="tp-manager" disabled></select></div>
       </div>
       <div class="info-box">Enter only the Area/Territory for working days. Empty dates will not be included when the MTP is saved or submitted.</div>
@@ -8787,10 +8787,41 @@ function renderMyTourPlans(){
   }).join('');
 }
 
+function populateTPMonthDropdown() {
+  var el = document.getElementById('tp-month');
+  if (!el || el.tagName !== 'SELECT') return;
+  var currVal = getCurrentISTMonthString();
+  var currText = currVal + ' (Current)';
+  
+  var parts = currVal.split('-');
+  var nextDate = new Date(parseInt(parts[0]), parseInt(parts[1]), 1); // JS Date gets the next month (0-indexed month means parts[1] is the next month!)
+  var nextVal = nextDate.getFullYear() + '-' + String(nextDate.getMonth()+1).padStart(2, '0');
+  var nextText = nextVal + ' (Next)';
+  
+  if (el.querySelector('option[value="' + currVal + '"]')) return;
+  
+  el.innerHTML = '<option value="' + currVal + '">' + currText + '</option>' +
+                 '<option value="' + nextVal + '">' + nextText + '</option>';
+}
+
 function loadMTPFromHistory(month){
-  document.getElementById('tp-month').value=month;
+  var el = document.getElementById('tp-month');
+  if (el && el.tagName === 'SELECT') {
+    var found = false;
+    for(var i=0; i<el.options.length; i++) {
+      if(el.options[i].value === month) { found = true; break; }
+    }
+    if(!found) {
+      var opt = document.createElement('option');
+      opt.value = month;
+      opt.textContent = month + ' (History)';
+      el.appendChild(opt);
+    }
+  }
+  if (el) el.value = month;
   renderTPDaysForMonth();
   showToast('Loaded MTP details for ' + month);
+  window.scrollTo(0,0);
 }
 
 // ===== EXPENSE CLAIM FUNCTIONS =====
@@ -9325,6 +9356,11 @@ function goTab(name){
       document.getElementById('scr-emp').appendChild(tp);
       tp.style.display = 'block';
     }
+    populateTPMonthDropdown();
+    var tpmVal = document.getElementById('tp-month');
+    if (tpmVal && !tpmVal.value) {
+      tpmVal.value = getCurrentISTMonthString();
+    }
     renderMyTourPlans();
     renderTPDaysForMonth();
   }
@@ -9479,6 +9515,7 @@ function goAdminTab(name){
       var tpm = document.getElementById('tp-manager');
       if (tpm) tpm.innerHTML = '<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
       
+      populateTPMonthDropdown();
       var tpmVal = document.getElementById('tp-month');
       if (tpmVal && !tpmVal.value) {
         tpmVal.value = getCurrentISTMonthString();

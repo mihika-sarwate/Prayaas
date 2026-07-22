@@ -620,6 +620,18 @@ table.tbl tr:last-child td{border-bottom:none}
     <div style="height:20px"></div>
   </div>
 
+  <script>
+    function populateReportWorkTypeOptions() {
+      var sel = document.getElementById('r-work-type');
+      if (sel && SESSION && SESSION.user && (SESSION.user.role === 'manager' || SESSION.user.role === 'admin')) {
+        if (!sel.querySelector('option[value="ADMIN DAY"]')) {
+          sel.insertAdjacentHTML('beforeend', '<option value="ADMIN DAY">ADMIN DAY</option>');
+          sel.insertAdjacentHTML('beforeend', '<option value="SALES CLOSING DAY">SALES CLOSING DAY</option>');
+        }
+      }
+    }
+  </script>
+
   <!-- MR TOUR PLAN TAB -->
   <div class="body" id="tab-tour" style="display:none">
     <div class="card">
@@ -8327,6 +8339,10 @@ function renderMTPDaysUI(isReadOnly, existing){
       patchSelect = '<span>' + (isFieldWork ? (area || '--') : '--') + '</span>';
     } else {
       // Work Type Dropdown
+      var adminOptions = (SESSION && SESSION.user && (SESSION.user.role === 'manager' || SESSION.user.role === 'admin')) ?
+                         '<option value="ADMIN DAY"' + (workType === 'ADMIN DAY' ? ' selected' : '') + '>ADMIN DAY</option>' +
+                         '<option value="SALES CLOSING DAY"' + (workType === 'SALES CLOSING DAY' ? ' selected' : '') + '>SALES CLOSING DAY</option>' : '';
+
       workTypeSelect = '<select style="width:100%" onchange="updateMTPWorkType('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
         '<option value="FIELD WORK"' + (workType === 'FIELD WORK' ? ' selected' : '') + '>FIELD WORK</option>' +
         '<option value="WEEKLY OFF"' + (workType === 'WEEKLY OFF' ? ' selected' : '') + '>WEEKLY OFF</option>' +
@@ -8334,6 +8350,7 @@ function renderMTPDaysUI(isReadOnly, existing){
         '<option value="HOLIDAY"' + (workType === 'HOLIDAY' ? ' selected' : '') + '>HOLIDAY</option>' +
         '<option value="MEETING"' + (workType === 'MEETING' ? ' selected' : '') + '>MEETING</option>' +
         '<option value="TRANSIT"' + (workType === 'TRANSIT' ? ' selected' : '') + '>TRANSIT</option>' +
+        adminOptions +
         '</select>';
         
       // Patch Dropdown Container
@@ -9356,6 +9373,7 @@ function goTab(name){
       document.getElementById('scr-emp').appendChild(tr);
       tr.style.display = 'block';
     }
+    populateReportWorkTypeOptions();
     populateReportingDropdowns();
     populateReportTerritoryDropdowns();
     populateJFWManagers();
@@ -9505,6 +9523,7 @@ function goAdminTab(name){
     if(tr) {
       document.getElementById('sec-adm-visit').appendChild(tr);
       tr.style.display = 'block';
+      populateReportWorkTypeOptions();
       populateReportingDropdowns();
       populateJFWManagers();
       checkMTPForSelectedDate();

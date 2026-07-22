@@ -6382,10 +6382,7 @@ function submitReport(){
     repObj.promotedProducts=promoted;
     
     // Samples issued deduction
-    var userSamples = (DB.samplesInventory || []).filter(function(s){ return s.empId === SESSION.user.id; });
-    var activeProducts = userSamples.map(function(s){ return s.prodName; }).filter(Boolean);
-    if (activeProducts.length === 0) activeProducts = DB.products || [];
-    activeProducts = activeProducts.filter(function(v, i, self) { return self.indexOf(v) === i; });
+    var activeProducts = DB.products || [];
 
     var samples={};
     activeProducts.forEach(function(p, i){
@@ -6404,10 +6401,7 @@ function submitReport(){
     repObj.samples = samples;
 
     // Gifts deduction
-    var userGifts = (DB.giftsInventory || []).filter(function(g){ return g.empId === SESSION.user.id; });
-    var activeGifts = userGifts.map(function(g){ return g.giftName; }).filter(Boolean);
-    if (activeGifts.length === 0) activeGifts = DB.gifts || [];
-    activeGifts = activeGifts.filter(function(v, i, self) { return self.indexOf(v) === i; });
+    var activeGifts = DB.gifts || [];
 
     var gifts={};
     activeGifts.forEach(function(g, i){
@@ -6425,10 +6419,7 @@ function submitReport(){
     repObj.gifts = gifts;
 
     // Inputs deduction
-    var userInputs = (DB.inputsInventory || []).filter(function(ip){ return ip.empId === SESSION.user.id; });
-    var activeInputs = userInputs.map(function(ip){ return ip.inputName; }).filter(Boolean);
-    if (activeInputs.length === 0) activeInputs = DB.inputs || [];
-    activeInputs = activeInputs.filter(function(v, i, self) { return self.indexOf(v) === i; });
+    var activeInputs = DB.inputs || [];
 
     var inputs={};
     activeInputs.forEach(function(ip, i){

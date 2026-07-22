@@ -6523,6 +6523,7 @@ function submitReport(){
   document.getElementById('r-lng').value='';
   
   populateReportingDropdowns();
+  filterReportingDropdownsByPatch();
   renderHomeStats();
   
   // Do not navigate away, keep user on the same screen so they can submit another report without re-selecting date/patch etc.

@@ -3366,6 +3366,13 @@ function renderChemistOptions(list) {
 
 function filterReportingDoctorsDropdown() {
   var filtered = window._allReportingDocs || [];
+  var searchDocInp = document.getElementById('r-doc-search');
+  var searchDocVal = searchDocInp ? searchDocInp.value.toLowerCase().trim() : '';
+  if (searchDocVal) {
+    filtered = filtered.filter(function(d) {
+      return (d.name || '').toLowerCase().includes(searchDocVal) || (d.area || '').toLowerCase().includes(searchDocVal);
+    });
+  }
   
   var citySel = document.getElementById('r-city');
   var patchSel = document.getElementById('r-patch');
@@ -3386,6 +3393,13 @@ function filterReportingDoctorsDropdown() {
 
 function filterReportingChemistsDropdown() {
   var filtered = window._allReportingChems || [];
+  var searchChemInp = document.getElementById('r-chem-search-inp');
+  var searchChemVal = searchChemInp ? searchChemInp.value.toLowerCase().trim() : '';
+  if (searchChemVal) {
+    filtered = filtered.filter(function(c) {
+      return (c.name || '').toLowerCase().includes(searchChemVal) || (c.area || '').toLowerCase().includes(searchChemVal);
+    });
+  }
   
   var citySel = document.getElementById('r-city');
   var patchSel = document.getElementById('r-patch');
@@ -12518,6 +12532,31 @@ function createMultiSelect(container, options, selectedString, placeholder, onch
   
   var dropdown = document.createElement('div');
   dropdown.className = 'multiselect-dropdown';
+  
+  var searchWrap = document.createElement('div');
+  searchWrap.style.padding = '4px 8px';
+  var searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.placeholder = 'Search...';
+  searchInput.style.width = '100%';
+  searchInput.style.padding = '4px';
+  searchInput.style.border = '1px solid var(--border)';
+  searchInput.style.borderRadius = '4px';
+  searchInput.oninput = function(e) {
+    var val = searchInput.value.toLowerCase().trim();
+    var optionsList = dropdown.querySelectorAll('.multiselect-option');
+    optionsList.forEach(function(item) {
+       var text = item.textContent.toLowerCase();
+       if (text.indexOf(val) > -1) {
+         item.style.display = 'block';
+       } else {
+         item.style.display = 'none';
+       }
+    });
+  };
+  searchWrap.appendChild(searchInput);
+  dropdown.appendChild(searchWrap);
+
   
   function updateDropdownCheckboxes() {
     var checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');

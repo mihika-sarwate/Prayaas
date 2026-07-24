@@ -8347,7 +8347,8 @@ function renderMTPDaysUI(isReadOnly, existing){
       // Work Type Dropdown
       var adminOptions = (SESSION && SESSION.user && (SESSION.user.role === 'manager' || SESSION.user.role === 'admin')) ?
                          '<option value="ADMIN DAY"' + (workType === 'ADMIN DAY' ? ' selected' : '') + '>ADMIN DAY</option>' +
-                         '<option value="SALES CLOSING DAY"' + (workType === 'SALES CLOSING DAY' ? ' selected' : '') + '>SALES CLOSING DAY</option>' +\n                         '<option value="INDUCTION DAY"' + (workType === 'INDUCTION DAY' ? ' selected' : '') + '>INDUCTION DAY</option>' : '';
+                         '<option value="SALES CLOSING DAY"' + (workType === 'SALES CLOSING DAY' ? ' selected' : '') + '>SALES CLOSING DAY</option>' +
+                         '<option value="INDUCTION DAY"' + (workType === 'INDUCTION DAY' ? ' selected' : '') + '>INDUCTION DAY</option>' : '';
 
       workTypeSelect = '<select style="width:100%" onchange="updateMTPWorkType('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
         '<option value="FIELD WORK"' + (workType === 'FIELD WORK' ? ' selected' : '') + '>FIELD WORK</option>' +

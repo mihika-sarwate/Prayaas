@@ -626,7 +626,8 @@ table.tbl tr:last-child td{border-bottom:none}
       if (sel && SESSION && SESSION.user && (SESSION.user.role === 'manager' || SESSION.user.role === 'admin')) {
         if (!sel.querySelector('option[value="ADMIN DAY"]')) {
           sel.insertAdjacentHTML('beforeend', '<option value="ADMIN DAY">ADMIN DAY</option>');
-          sel.insertAdjacentHTML('beforeend', '<option value="SALES CLOSING DAY">SALES CLOSING DAY</option>');\n          sel.insertAdjacentHTML('beforeend', '<option value="INDUCTION DAY">INDUCTION DAY</option>');
+          sel.insertAdjacentHTML('beforeend', '<option value="SALES CLOSING DAY">SALES CLOSING DAY</option>');
+          sel.insertAdjacentHTML('beforeend', '<option value="INDUCTION DAY">INDUCTION DAY</option>');
         }
       }
     }

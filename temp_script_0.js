@@ -3477,7 +3477,7 @@ function toggleReportWorkTypeFields() {
   }
 
   var targetSel = document.getElementById('r-target-type');
-  if (targetSel) targetSel.disabled = !isFieldWork;
+  if (targetSel) targetSel.disabled = !(isFieldWork || isInductionDay);
   
   var w1 = document.getElementById('r-doctor-wrap');
   var w2 = document.getElementById('r-chemist-wrap');
@@ -4358,7 +4358,7 @@ function submitReport(){
     repObj.stockName = '';
   } else if(targetType==='Doctor'){
     var docId=document.getElementById('r-doctor').value;
-    if(!docId){showToast('Please select doctor');return;}
+    if(!docId && repObj.workType !== 'INDUCTION DAY'){showToast('Please select doctor');return;}
     if(docId === 'UNLISTED') {
       var unlistedName = document.getElementById('r-unlisted-doc-name').value.trim();
       if(!unlistedName) { showToast('Please enter unlisted doctor name'); return; }

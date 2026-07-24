@@ -626,7 +626,7 @@ table.tbl tr:last-child td{border-bottom:none}
       if (sel && SESSION && SESSION.user && (SESSION.user.role === 'manager' || SESSION.user.role === 'admin')) {
         if (!sel.querySelector('option[value="ADMIN DAY"]')) {
           sel.insertAdjacentHTML('beforeend', '<option value="ADMIN DAY">ADMIN DAY</option>');
-          sel.insertAdjacentHTML('beforeend', '<option value="SALES CLOSING DAY">SALES CLOSING DAY</option>');
+          sel.insertAdjacentHTML('beforeend', '<option value="SALES CLOSING DAY">SALES CLOSING DAY</option>');\n          sel.insertAdjacentHTML('beforeend', '<option value="INDUCTION DAY">INDUCTION DAY</option>');
         }
       }
     }
@@ -5463,7 +5463,7 @@ function toggleReportWorkTypeFields() {
   }
 
   var targetSel = document.getElementById('r-target-type');
-  if (targetSel) targetSel.disabled = !isFieldWork;
+  if (targetSel) targetSel.disabled = !(isFieldWork || isInductionDay);
   
   var w1 = document.getElementById('r-doctor-wrap');
   var w2 = document.getElementById('r-chemist-wrap');
@@ -6372,7 +6372,7 @@ function submitReport(){
     repObj.stockName = '';
   } else if(targetType==='Doctor'){
     var docId=document.getElementById('r-doctor').value;
-    if(!docId){showToast('Please select doctor');return;}
+    if(!docId && repObj.workType !== 'INDUCTION DAY'){showToast('Please select doctor');return;}
     if(docId === 'UNLISTED') {
       var unlistedName = document.getElementById('r-unlisted-doc-name').value.trim();
       if(!unlistedName) { showToast('Please enter unlisted doctor name'); return; }
@@ -8346,7 +8346,7 @@ function renderMTPDaysUI(isReadOnly, existing){
       // Work Type Dropdown
       var adminOptions = (SESSION && SESSION.user && (SESSION.user.role === 'manager' || SESSION.user.role === 'admin')) ?
                          '<option value="ADMIN DAY"' + (workType === 'ADMIN DAY' ? ' selected' : '') + '>ADMIN DAY</option>' +
-                         '<option value="SALES CLOSING DAY"' + (workType === 'SALES CLOSING DAY' ? ' selected' : '') + '>SALES CLOSING DAY</option>' : '';
+                         '<option value="SALES CLOSING DAY"' + (workType === 'SALES CLOSING DAY' ? ' selected' : '') + '>SALES CLOSING DAY</option>' +\n                         '<option value="INDUCTION DAY"' + (workType === 'INDUCTION DAY' ? ' selected' : '') + '>INDUCTION DAY</option>' : '';
 
       workTypeSelect = '<select style="width:100%" onchange="updateMTPWorkType('+originalIdx+', this.value);renderMTPDaysUI(false,null)">' +
         '<option value="FIELD WORK"' + (workType === 'FIELD WORK' ? ' selected' : '') + '>FIELD WORK</option>' +

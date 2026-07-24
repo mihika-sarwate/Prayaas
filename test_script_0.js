@@ -3568,7 +3568,8 @@ function toggleReportWorkTypeFields() {
   var wt = document.getElementById('r-work-type');
   var isFieldWork = wt && wt.value === 'FIELD WORK';
   var isTransit = wt && wt.value === 'TRANSIT';
-  var needsLocation = isFieldWork || isTransit;
+  var isInductionDay = wt && wt.value === 'INDUCTION DAY';
+  var needsLocation = isFieldWork || isTransit || isInductionDay;
   
   ['r-territory', 'r-classification', 'r-calltype'].forEach(function(id) {
     var el = document.getElementById(id);

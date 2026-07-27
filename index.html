@@ -7501,22 +7501,57 @@ function getAttendanceDashboardRows() {
   var today = getTodayDateString();
   var since = today.substring(0, 8) + '01'; // "YYYY-MM-01"
   
+  var attMap = {};
+  (DB.attendance || []).forEach(function(a) {
+    var eId = String(a.employeeId || '').toUpperCase();
+    var dStr = formatDateForPostgres(a.date) || a.date;
+    attMap[eId + '_' + dStr] = a;
+  });
+
+  var finalDcrMap = {};
+  (DB.reports || []).forEach(function(r) {
+    if (r.isFinal === true || String(formatDateForPostgres(r.date) || r.date) === '2026-07-13') {
+      var eId = String(r.empId || '').toUpperCase();
+      var dStr = formatDateForPostgres(r.date) || r.date;
+      finalDcrMap[eId + '_' + dStr] = true;
+    }
+  });
+
+  var leavesMap = {};
+  (DB.leaves || []).forEach(function(l) {
+    if (l.status === 'APPROVED' || l.status === 'APPROVED BY ADMIN') {
+      var eId = String(l.empId || '').toUpperCase();
+      var start = formatDateForPostgres(l.start) || l.start;
+      var end = formatDateForPostgres(l.end) || l.end;
+      if (!leavesMap[eId]) leavesMap[eId] = [];
+      leavesMap[eId].push({start: start, end: end, type: String(l.type || '').toLowerCase()});
+    }
+  });
+
+  var holidaysMap = {};
+  (DB.holidays || []).forEach(function(h) {
+    var dStr = formatDateForPostgres(h.date) || h.date;
+    if (!holidaysMap[dStr]) holidaysMap[dStr] = [];
+    holidaysMap[dStr].push(h);
+  });
+  
+  var empMap = {};
+  (DB.employees || []).forEach(function(e) {
+    if (e.id) empMap[String(e.id).toUpperCase()] = e;
+  });
+  
   var virtualRows = [];
   var employeesToCheck = employeeFilter ? [DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(employeeFilter).toUpperCase(); })].filter(Boolean) : (DB.employees || []).filter(isAttendanceTrackedEmployee);
   
   employeesToCheck.forEach(function(emp) {
+    var empIdUpper = String(emp.id || '').toUpperCase();
     var curDate = since;
     while (curDate <= today) {
-      var existing = (DB.attendance || []).find(function(a) { return String(a.employeeId || '').toUpperCase() === String(emp.id || '').toUpperCase() && (formatDateForPostgres(a.date) || a.date) === curDate; });
-      
-      var finalDcrExists = (DB.reports || []).some(function(r) {
-        return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
-               (formatDateForPostgres(r.date) || r.date) === curDate &&
-               (r.isFinal === true || curDate === '2026-07-13');
-      });
+      var key = empIdUpper + '_' + curDate;
+      var existing = attMap[key];
+      var finalDcrExists = !!finalDcrMap[key];
 
       if (existing && existing.attendanceStatus !== 'A' && existing.attendanceStatus !== 'NS') {
-        // Leave approved statuses like 'SL', 'CL', 'P', 'H', 'WO' intact
         virtualRows.push(existing);
       } else if (finalDcrExists) {
         virtualRows.push({
@@ -7532,35 +7567,24 @@ function getAttendanceDashboardRows() {
         var status = 'NS';
         var remarks = 'Not Submitted';
         
-        // 0. Dynamic Final DCR Check
-        var finalDcrExists = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
-                 (formatDateForPostgres(r.date) || r.date) === curDate &&
-                 (r.isFinal === true || curDate === '2026-07-13');
-        });
-        
         if (finalDcrExists) {
           status = 'P';
           remarks = 'Present via Final DCR Submission';
         } else {
-          var activeLeave = (DB.leaves || []).find(function(l) {
-            return String(l.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() &&
-                   (l.status === 'APPROVED' || l.status === 'APPROVED BY ADMIN') &&
-                   (formatDateForPostgres(l.start) || l.start) <= curDate &&
-                   (formatDateForPostgres(l.end) || l.end) >= curDate;
-          });
+          var eLeaves = leavesMap[empIdUpper] || [];
+          var activeLeave = eLeaves.find(function(l) { return l.start <= curDate && l.end >= curDate; });
           
           if (activeLeave) {
-            var type = String(activeLeave.type || '').toLowerCase();
-            status = type.indexOf('sick') !== -1 ? 'SL' : 'CL';
-            remarks = type.indexOf('sick') !== -1 ? 'Approved Sick Leave' : 'Approved Casual Leave';
+            status = activeLeave.type.indexOf('sick') !== -1 ? 'SL' : 'CL';
+            remarks = activeLeave.type.indexOf('sick') !== -1 ? 'Approved Sick Leave' : 'Approved Casual Leave';
           } else {
-            var holiday = (DB.holidays || []).find(function(h) {
-              if ((formatDateForPostgres(h.date) || h.date) !== curDate) return false;
+            var eState = String(emp.state || '').toLowerCase().trim();
+            var dHolidays = holidaysMap[curDate] || [];
+            var holiday = dHolidays.find(function(h) {
               var hState = String(h.state || '').toLowerCase().trim();
-              var eState = String(emp.state || '').toLowerCase().trim();
               return hState === 'all' || hState === 'national' || hState === eState;
             });
+            
             if (holiday) {
               status = 'H';
               remarks = holiday.name ? 'Holiday: ' + holiday.name : 'Holiday';
@@ -7568,13 +7592,8 @@ function getAttendanceDashboardRows() {
               var dateObj = typeof parseLocalMidnight === 'function' ? parseLocalMidnight(curDate) : new Date(curDate + 'T00:00:00');
               if (!isNaN(dateObj.getTime())) {
                 var weekday = dateObj.getDay();
-                var woConfig = (DB.weeklyOffConfig || []).find(function(w) { return String(w.employee_id || '').toUpperCase() === String(emp.id || '').toUpperCase(); });
-                var isOff = false;
-                if (woConfig) {
-                  isOff = String(woConfig.weekday) === String(weekday);
-                } else {
-                  isOff = weekday === 0;
-                }
+                var woConfig = (DB.weeklyOffConfig || []).find(function(w) { return String(w.employee_id || '').toUpperCase() === empIdUpper; });
+                var isOff = woConfig ? (String(woConfig.weekday) === String(weekday)) : (weekday === 0);
                 if (isOff) {
                   status = 'WO';
                   remarks = 'Weekly Off';
@@ -7601,7 +7620,7 @@ function getAttendanceDashboardRows() {
 
   return virtualRows.filter(function(row) {
     if (statusFilter && row.attendanceStatus !== statusFilter) return false;
-    var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === String(row.employeeId || '').toUpperCase(); });
+    var emp = empMap[String(row.employeeId || '').toUpperCase()];
     var haystack = [
       row.employeeId || '',
       emp ? emp.name || '' : '',
@@ -9494,10 +9513,8 @@ function initAdminApp(userObj){
   populateAttendanceEmployeeFilter();
   renderAttendanceDashboard();
   if (user.role === 'admin') {
-    renderAttendanceDashboard();
     renderEmpTable();
   }
-  renderEmpTable();
   renderAdminDocList();
   renderAdminChemistList();
   renderAdminStockistList();
@@ -9623,18 +9640,41 @@ function renderAdminDashTeamList(){
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
   var team=DB.employees.filter(function(e){return e.id !== u.id && e.role!=='admin' && (!teamIds || teamIds.includes(e.id));});
   
-  tbody.innerHTML=team.map(function(e){
-    var reportsCount=DB.reports.filter(function(r){return r.empId===e.id;}).length;
-    var totalDocsAssigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
-    var visitedDocIds=[];
-    DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
-      if(r.targetType==='Doctor' && !visitedDocIds.includes(r.docId)){
-        visitedDocIds.push(r.docId);
-      }
-    });
+  var reportCounts = {};
+  var doctorCounts = {};
+  var jfwCounts = {};
+  var visitedDocIdsMap = {};
+  
+  DB.reports.forEach(function(r) {
+    var eId = r.empId;
+    if (!reportCounts[eId]) reportCounts[eId] = 0;
+    reportCounts[eId]++;
     
-    var cov = totalDocsAssigned ? Math.round((visitedDocIds.length / totalDocsAssigned)*100) : 0;
-    var jfwCount=DB.reports.filter(function(r){return r.empId===e.id && r.jfwMgrId!=='';}).length;
+    if (r.jfwMgrId) {
+      if (!jfwCounts[eId]) jfwCounts[eId] = 0;
+      jfwCounts[eId]++;
+    }
+    
+    if (r.targetType === 'Doctor') {
+      if (!visitedDocIdsMap[eId]) visitedDocIdsMap[eId] = new Set();
+      visitedDocIdsMap[eId].add(r.docId);
+    }
+  });
+  
+  DB.doctors.forEach(function(d) {
+    if (d.status === 'Active') {
+      if (!doctorCounts[d.assignTo]) doctorCounts[d.assignTo] = 0;
+      doctorCounts[d.assignTo]++;
+    }
+  });
+  
+  tbody.innerHTML=team.map(function(e){
+    var reportsCount = reportCounts[e.id] || 0;
+    var totalDocsAssigned = doctorCounts[e.id] || 0;
+    var visitedDocIds = visitedDocIdsMap[e.id] ? visitedDocIdsMap[e.id].size : 0;
+    
+    var cov = totalDocsAssigned ? Math.round((visitedDocIds / totalDocsAssigned)*100) : 0;
+    var jfwCount = jfwCounts[e.id] || 0;
     
     return '<tr><td>'+e.id+'</td><td class="tbl-name">'+e.name+'</td><td>'+e.area+'</td><td>'+reportsCount+'</td><td>'+cov+'%</td><td>'+jfwCount+'</td></tr>';
   }).join('');

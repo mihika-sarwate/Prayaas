@@ -4213,7 +4213,7 @@ function clearLocalAssignTo(entityType) {
         // }, {
         //   select: 'id'
         // });
-        updateGlobalProgress(45);
+
       } catch (e) {
         console.error("Error syncing doctors:", e);
         showToast('⚠️ Doctor sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
@@ -4276,7 +4276,7 @@ function clearLocalAssignTo(entityType) {
         // }, {
         //   select: 'id'
         // });
-        updateGlobalProgress(50);
+
       } catch (e) {
         console.error("Error syncing chemists:", e);
         showToast('⚠️ Chemist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);
@@ -4339,7 +4339,7 @@ function clearLocalAssignTo(entityType) {
         // }, {
         //   select: 'id'
         // });
-        updateGlobalProgress(55);
+
       } catch (e) {
         console.error("Error syncing stockists:", e);
         showToast('⚠️ Stockist sync failed: ' + (e && (e.message || e.details || JSON.stringify(e))), 6000);

@@ -5231,6 +5231,9 @@ function filterReportingDoctorsDropdown() {
       return (d.name || '').toLowerCase().includes(searchDocVal) || (d.area || '').toLowerCase().includes(searchDocVal);
     });
   }
+  if (filtered.length > 200) {
+    filtered = filtered.slice(0, 200);
+  }
   
   var citySel = document.getElementById('r-city');
   var patchSel = document.getElementById('r-patch');
@@ -5475,7 +5478,7 @@ function toggleReportWorkTypeFields() {
   var cdetails = document.getElementById('r-chemist-details-wrap');
   var sdetails = document.getElementById('r-stockist-details-wrap');
   
-  if (!isFieldWork) {
+  if (!isFieldWork && !isInductionDay) {
     if(w1) w1.style.display = 'none';
     if(w2) w2.style.display = 'none';
     if(w3) w3.style.display = 'none';
@@ -8775,6 +8778,13 @@ function updateMTPAnalytics(month){
     return r.empId===SESSION.user.id && r.date.slice(0,7)===month;
   });
   
+  var visitedDocsSet = new Set();
+  var visitedChemsSet = new Set();
+  allMyReports.forEach(function(r) {
+    if (r.targetType === 'Doctor') visitedDocsSet.add(r.date + '_' + String(r.docId));
+    if (r.targetType === 'Chemist') visitedChemsSet.add(r.date + '_' + String(r.chemId));
+  });
+  
   tp.days.forEach(function(d){
     var area=d.areaTerritory||d.toLocation||'';
     if(!area)return;
@@ -8784,18 +8794,12 @@ function updateMTPAnalytics(month){
     plannedChemsCount += dayChems.length;
     
     dayDocs.forEach(function(docId){
-      var visited = allMyReports.find(function(r){
-        return r.date===d.date && String(r.docId)===String(docId) && r.targetType==='Doctor';
-      });
-      if(visited) actualDocVisited++;
+      if(visitedDocsSet.has(d.date + '_' + String(docId))) actualDocVisited++;
       else missedDocCalls++;
     });
     
     dayChems.forEach(function(chemId){
-      var visited = allMyReports.find(function(r){
-        return r.date===d.date && String(r.chemId)===String(chemId) && r.targetType==='Chemist';
-      });
-      if(visited) actualChemVisited++;
+      if(visitedChemsSet.has(d.date + '_' + String(chemId))) actualChemVisited++;
       else missedChemCalls++;
     });
   });

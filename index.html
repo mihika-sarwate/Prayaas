@@ -10608,7 +10608,11 @@ function addEmployee(){
     emp.managerId = mgr;
     emp.doj = doj;
     emp.state = state;
-    emp.status = normalizeEmployeeStatus(status);
+    var newStatus = normalizeEmployeeStatus(status);
+    if (emp.status !== newStatus) {
+      emp.statusDate = getTodayDateString();
+    }
+    emp.status = newStatus;
     emp.allowPastReports = allowPastReports;
     
     saveDB();
@@ -10979,7 +10983,8 @@ function renderEmpTable(){
       if (!e) return '';
       var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
       var roleName = (e.role || 'emp').toUpperCase();
-      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+(normalizeEmployeeStatus(e.status))+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px;background-color:#0284c7;color:white" onclick="editEmployee(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
+      var statusHtml = normalizeEmployeeStatus(e.status) + (e.statusDate && normalizeEmployeeStatus(e.status) !== 'Active' ? '<div style="font-size:11px;color:#64748b;margin-top:2px">' + e.statusDate + '</div>' : '');
+      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+statusHtml+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px;background-color:#0284c7;color:white" onclick="editEmployee(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
     }).join('');
   } catch (err) {
     console.error("Error rendering employee table:", err);
@@ -11002,7 +11007,7 @@ function openEmployeeStatusModal(empId) {
       '<strong>' + (emp.name || emp.id) + '</strong><br>',
       'ID: ' + (emp.id || '-') + '<br>',
       'Designation: ' + (typeof emp.designation !== "undefined" ? emp.designation : getDefaultEmployeeDesignation(emp.role)) + '<br>',
-      'Current Status: ' + normalizeEmployeeStatus(emp.status) + '<br>',
+      'Current Status: ' + normalizeEmployeeStatus(emp.status) + (emp.statusDate && normalizeEmployeeStatus(emp.status) !== 'Active' ? ' (since ' + emp.statusDate + ')' : '') + '<br>',
       'Account Status: ' + normalizeAccountStatus(emp.accountStatus) + '<br>',
       'Reporting Manager: ' + (mgr && mgr.name ? mgr.name : 'None') + '<br>' +
       (emp.blockedDate ? ('Blocked Date: ' + emp.blockedDate + '<br>') : '') +
@@ -11028,7 +11033,12 @@ function openEmployeeStatusModal(empId) {
 function setEmployeeStatus(empId, status) {
   var emp = DB.employees.find(function(e) { return e && e.id === empId; });
   if (!emp) return;
-  emp.status = normalizeEmployeeStatus(status);
+  var newStatus = normalizeEmployeeStatus(status);
+  if (emp.status !== newStatus) {
+    emp.statusDate = getTodayDateString();
+  }
+  emp.status = newStatus;
+  
   if (typeof useSupabase !== 'undefined' && useSupabase && window.supabase) {
     supabase.from('employees').update({ status: emp.status }).eq('id', empId).then(function(res) {
       if (res.error) console.error("Failed to update status in Supabase", res.error);

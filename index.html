@@ -5539,6 +5539,16 @@ function populateReportingDropdowns(){
     }
   }
 
+  var teamIdsUpper = null;
+  var teamNamesClean = null;
+  if (teamIds) {
+    teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+    teamNamesClean = teamIds.map(function(id) {
+      var emp = DB.employees.find(function(e) { return e.id === id; });
+      return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+    }).filter(Boolean);
+  }
+
   var docSel=document.getElementById('r-doctor');
   
   var finalDocs = DB.doctors.filter(function(d){
@@ -5546,12 +5556,6 @@ function populateReportingDropdowns(){
       var rawAssign = String(d.assignTo || '').toUpperCase();
       var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
       var assignedList = cleanAssign.split(',');
-      var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
-      
-      var teamNamesClean = teamIds.map(function(id) {
-        var emp = DB.employees.find(function(e) { return e.id === id; });
-        return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
-      }).filter(Boolean);
       
       var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       var docMgrClean = String(d.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -5584,12 +5588,6 @@ function populateReportingDropdowns(){
     var rawAssign = String(d.assignTo || '').toUpperCase();
     var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
     var docAssignedList = cleanAssign.split(',');
-    var teamIdsUpper = teamIds ? teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); }) : null;
-    
-    var teamNamesClean = teamIds ? teamIds.map(function(id) {
-      var emp = DB.employees.find(function(e) { return e.id === id; });
-      return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
-    }).filter(Boolean) : [];
     
     var docBeClean = String(d.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     var docMgrClean = String(d.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -5618,12 +5616,6 @@ function populateReportingDropdowns(){
       var rawAssign = String(c.assignTo || '').toUpperCase();
       var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
       var assignedList = cleanAssign.split(',');
-      var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
-      
-      var teamNamesClean = teamIds.map(function(id) {
-        var emp = DB.employees.find(function(e) { return e.id === id; });
-        return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
-      }).filter(Boolean);
       
       var cBeClean = String(c.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       var cMgrClean = String(c.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -5665,12 +5657,6 @@ function populateReportingDropdowns(){
         var rawAssign = String(s.assignTo || '').toUpperCase();
         var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
         var assignedList = cleanAssign.split(',');
-        var teamIdsUpper = teamIds.map(function(id) { return String(id).toUpperCase().replace(/[^A-Z0-9]/g, ''); });
-        
-        var teamNamesClean = teamIds.map(function(id) {
-          var emp = DB.employees.find(function(e) { return e.id === id; });
-          return emp ? String(emp.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
-        }).filter(Boolean);
         
         var sBeClean = String(s.beName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         var sMgrClean = String(s.managerName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');

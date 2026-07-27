@@ -8191,7 +8191,11 @@ function exportAttendanceReport() {
   
   var csvHeaders = ['Employee ID', 'Employee Name'].concat(dates.map(function(d) {
     var p = d.split('-');
-    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d;
+    if (p.length === 3) {
+      var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return p[2] + '-' + mNames[parseInt(p[1],10)-1];
+    }
+    return d;
   }));
   var csv = csvHeaders.map(function(h) { return '"' + String(h).replace(/"/g, '""') + '"'; }).join(',') + '\n';
   

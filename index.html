@@ -8211,19 +8211,20 @@ function exportAttendanceReport() {
     
     var rowValues = [empId, empName];
     
-    var isPastDate = function(dt) { return dt < getTodayDateString(); };
     dates.forEach(function(d) {
       var key = empId.toUpperCase() + '_' + d;
       var record = rowsMap[key];
       
-      if (!record && isPastDate(d)) {
+      if (!record) {
         var meta = getAttendanceStatusMeta(emp, d);
         if (meta && meta.status) {
           record = { attendanceStatus: meta.status === 'NS' ? 'A' : meta.status };
         }
       }
       
-      rowValues.push(record ? (record.attendanceStatus || '-') : '-');
+      var val = record ? record.attendanceStatus : 'A';
+      if (!val || val === '-' || val === 'NS') val = 'A';
+      rowValues.push(val);
     });
     
     csv += rowValues.map(function(val) {

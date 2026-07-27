@@ -8192,6 +8192,12 @@ function exportAttendanceReport() {
   var csvHeaders = ['Employee ID', 'Employee Name'].concat(dates);
   var csv = csvHeaders.map(function(h) { return '"' + String(h).replace(/"/g, '""') + '"'; }).join(',') + '\n';
   
+  var rowsMap = {};
+  rows.forEach(function(r) {
+    var key = String(r.employeeId || '').toUpperCase() + '_' + r.date;
+    rowsMap[key] = r;
+  });
+
   empIds.forEach(function(empId) {
     var emp = DB.employees.find(function(e) { return String(e.id || '').toUpperCase() === empId.toUpperCase(); });
     var empName = emp ? emp.name || '' : empId;
@@ -8199,9 +8205,8 @@ function exportAttendanceReport() {
     var rowValues = [empId, empName];
     
     dates.forEach(function(d) {
-      var record = DB.attendance.find(function(r) {
-        return String(r.employeeId || '').toUpperCase() === empId.toUpperCase() && (formatDateForPostgres(r.date) || r.date) === d;
-      });
+      var key = empId.toUpperCase() + '_' + d;
+      var record = rowsMap[key];
       rowValues.push(record ? (record.attendanceStatus || '-') : '-');
     });
     

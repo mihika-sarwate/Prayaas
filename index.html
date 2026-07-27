@@ -8189,7 +8189,10 @@ function exportAttendanceReport() {
     return nameA.localeCompare(nameB);
   });
   
-  var csvHeaders = ['Employee ID', 'Employee Name'].concat(dates);
+  var csvHeaders = ['Employee ID', 'Employee Name'].concat(dates.map(function(d) {
+    var p = d.split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d;
+  }));
   var csv = csvHeaders.map(function(h) { return '"' + String(h).replace(/"/g, '""') + '"'; }).join(',') + '\n';
   
   var rowsMap = {};
@@ -8204,9 +8207,18 @@ function exportAttendanceReport() {
     
     var rowValues = [empId, empName];
     
+    var isPastDate = function(dt) { return dt < getTodayDateString(); };
     dates.forEach(function(d) {
       var key = empId.toUpperCase() + '_' + d;
       var record = rowsMap[key];
+      
+      if (!record && isPastDate(d)) {
+        var meta = getAttendanceStatusMeta(emp, d);
+        if (meta && meta.status) {
+          record = { attendanceStatus: meta.status === 'NS' ? 'A' : meta.status };
+        }
+      }
+      
       rowValues.push(record ? (record.attendanceStatus || '-') : '-');
     });
     

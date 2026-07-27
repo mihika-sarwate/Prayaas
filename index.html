@@ -5720,16 +5720,8 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
-        '</div>'+
-        '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
           '<input type="number" min="0" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
-        '</div>'+
-        '<div style="text-align: center; min-width: 50px;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="smp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -5747,16 +5739,8 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
-        '</div>'+
-        '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
           '<input type="number" min="0" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
-        '</div>'+
-        '<div style="text-align: center; min-width: 50px;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="gft-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -5774,16 +5758,8 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
-        '</div>'+
-        '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
           '<input type="number" min="0" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
-        '</div>'+
-        '<div style="text-align: center; min-width: 50px;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="inp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';

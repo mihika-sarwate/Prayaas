@@ -5231,9 +5231,6 @@ function filterReportingDoctorsDropdown() {
       return (d.name || '').toLowerCase().includes(searchDocVal) || (d.area || '').toLowerCase().includes(searchDocVal);
     });
   }
-  if (filtered.length > 200) {
-    filtered = filtered.slice(0, 200);
-  }
   
   var citySel = document.getElementById('r-city');
   var patchSel = document.getElementById('r-patch');
@@ -5248,6 +5245,10 @@ function filterReportingDoctorsDropdown() {
     if (selectedPatches.length > 0 && !selectedPatches.includes((d.area || '').toLowerCase().trim())) return false;
     return true;
   });
+
+  if (filtered.length > 200) {
+    filtered = filtered.slice(0, 200);
+  }
 
   renderDoctorOptions(filtered);
 }

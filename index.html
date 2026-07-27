@@ -5498,13 +5498,25 @@ function populateTransitRouteDropdowns() {
   if (!fromSel || !toSel) return;
   
   var locations = new Set();
-  if (SESSION.user && SESSION.user.hq) locations.add(SESSION.user.hq.trim());
-  if (SESSION.user && SESSION.user.area) locations.add(SESSION.user.area.trim());
+  if (SESSION.user && SESSION.user.hq) {
+    SESSION.user.hq.split(',').forEach(function(a) { if (a.trim()) locations.add(a.trim()); });
+  }
+  if (SESSION.user && SESSION.user.area) {
+    SESSION.user.area.split(',').forEach(function(a) { if (a.trim()) locations.add(a.trim()); });
+  }
   
   (DB.sfc || []).forEach(function(s) {
     if (s.from) locations.add(s.from.trim());
     if (s.to) locations.add(s.to.trim());
   });
+  
+  if (window._allReportingDocs) {
+    window._allReportingDocs.forEach(function(d) {
+      if (d.area) {
+        d.area.split(',').forEach(function(a) { if (a.trim()) locations.add(a.trim()); });
+      }
+    });
+  }
   
   var sortedLocs = Array.from(locations).sort();
   
@@ -5516,10 +5528,13 @@ function populateTransitRouteDropdowns() {
   fromSel.innerHTML = html;
   toSel.innerHTML = html;
   
-  if (SESSION.user && SESSION.user.hq && locations.has(SESSION.user.hq.trim())) {
-    fromSel.value = SESSION.user.hq.trim();
-  } else if (SESSION.user && SESSION.user.area && locations.has(SESSION.user.area.trim())) {
-    fromSel.value = SESSION.user.area.trim();
+  var firstHq = SESSION.user && SESSION.user.hq ? SESSION.user.hq.split(',')[0].trim() : null;
+  var firstArea = SESSION.user && SESSION.user.area ? SESSION.user.area.split(',')[0].trim() : null;
+  
+  if (firstHq && locations.has(firstHq)) {
+    fromSel.value = firstHq;
+  } else if (firstArea && locations.has(firstArea)) {
+    fromSel.value = firstArea;
   }
 }
 

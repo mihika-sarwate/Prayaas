@@ -833,6 +833,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
             <option value="transit_rep">14. Transit Report</option>
             <option value="meeting_rep">15. Employee Reported Meetings</option>
+            <option value="tp_submissions">16. Tour Plan Submission Status</option>
           </select>
         </div>
         <div class="row2">
@@ -1370,6 +1371,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
             <option value="transit_rep">14. Transit Report</option>
             <option value="meeting_rep">15. Employee Reported Meetings</option>
+            <option value="tp_submissions">16. Tour Plan Submission Status</option>
           </select>
         </div>
         <div class="row3">
@@ -14843,6 +14845,36 @@ async function runMISReport(){
       var state = emp && emp.state ? emp.state : 'N/A';
       return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||'', '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
+  } else if(currentReportType==='tp_submissions'){
+    currentMISTableType=null;
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>TP Month</th><th>TP Status</th></tr>';
+    
+    var startMonth = from ? from.substring(0, 7) : new Date().toISOString().substring(0, 7);
+    var endMonth = to ? to.substring(0, 7) : startMonth;
+    
+    var monthsToCheck = [];
+    var currDate = new Date(startMonth + '-01');
+    var endDate = new Date(endMonth + '-01');
+    while (currDate <= endDate) {
+      monthsToCheck.push(currDate.toISOString().substring(0, 7));
+      currDate.setMonth(currDate.getMonth() + 1);
+    }
+    
+    var tpData = [];
+    scopeIds.forEach(function(sid) {
+      var emp = DB.employees.find(function(e){return e.id===sid;});
+      if (!emp) return;
+      var hq = emp.area || 'N/A';
+      var state = emp.state || 'N/A';
+      
+      monthsToCheck.forEach(function(m) {
+        var tp = (DB.tourPlans || []).find(function(t) { return t.empId === sid && t.month === m; });
+        var status = tp ? (tp.status || 'Draft') : 'Not Submitted';
+        tpData.push([sid, emp.name, hq, state, m, status]);
+      });
+    });
+    
+    currentMISData = tpData;
   }
   
   if(!currentMISData.length){
@@ -16042,6 +16074,34 @@ async function runEmpMISReport(){
       var state = emp && emp.state ? emp.state : 'N/A';
       return [r.date, r.empId, r.empName, state, r.workType, r.territory||'', r.city||'', r.patch||'', r.classification||'', r.callType||'', r.lat?(r.lat+','+r.lng):'N/A', r.remarks||''];
     });
+  } else if(currentEmpReportType==='tp_submissions'){
+    thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>HQ</th><th>State</th><th>TP Month</th><th>TP Status</th></tr>';
+    
+    var startMonth = from ? from.substring(0, 7) : new Date().toISOString().substring(0, 7);
+    var endMonth = to ? to.substring(0, 7) : startMonth;
+    
+    var monthsToCheck = [];
+    var currDate = new Date(startMonth + '-01');
+    var endDate = new Date(endMonth + '-01');
+    while (currDate <= endDate) {
+      monthsToCheck.push(currDate.toISOString().substring(0, 7));
+      currDate.setMonth(currDate.getMonth() + 1);
+    }
+    
+    var tpData = [];
+    var emp = DB.employees.find(function(e){return e.id===empId;});
+    if (emp) {
+      var hq = emp.area || 'N/A';
+      var state = emp.state || 'N/A';
+      
+      monthsToCheck.forEach(function(m) {
+        var tp = (DB.tourPlans || []).find(function(t) { return t.empId === empId && t.month === m; });
+        var status = tp ? (tp.status || 'Draft') : 'Not Submitted';
+        tpData.push([empId, emp.name, hq, state, m, status]);
+      });
+    }
+    
+    currentEmpMISData = tpData;
   }
   
   if(!currentEmpMISData.length){

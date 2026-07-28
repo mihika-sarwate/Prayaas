@@ -7648,18 +7648,7 @@ function approveLeave(){
   var lv=DB.leaves.find(function(l){return l.id===currentLeaveId;});
   if(lv){
     var u = SESSION.user;
-    var prevStatus = lv.status;
     lv.status = processApproval(lv.status, lv.managerId, u);
-    
-    // Deduct leave balance of the employee ONLY when final status becomes Approved
-    if (lv.status === 'Approved' && prevStatus !== 'Approved') {
-      var emp=DB.employees.find(function(e){return e.id===lv.empId;});
-      if(emp){
-        var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':lv.type==='Privilege Leave'?'PL':'LWP';
-        if (!emp.leaves) emp.leaves = {};
-        emp.leaves[key+'_used'] = (parseFloat(emp.leaves[key+'_used']) || 0) + parseFloat(lv.days || 0);
-      }
-    }
   }
   saveDB();
   closeModal('modal-leave-detail');
@@ -10569,7 +10558,7 @@ function renderLeaveBalanceTable(){
       '<td>'+cl+'</td><td>'+pl+'</td><td>'+sl+'</td><td>'+lop+'</td>'+
       '<td>'+cl_used+'</td><td>'+pl_used+'</td><td>'+sl_used+'</td><td>'+lop_used+'</td>'+
       '<td>'+cl_bal+'</td><td>'+pl_bal+'</td><td>'+sl_bal+'</td><td>'+lop_bal+'</td>'+
-      '<td><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="deleteLeaveRecord(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td>'+
+      '<td><button class="btn sm secondary admin-only" style="width:auto;padding:0 8px;margin-right:4px;" onclick="editLeaveRecord(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="deleteLeaveRecord(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td>'+
       '</tr>';
   }).join('');
 }
@@ -10577,6 +10566,56 @@ function renderLeaveBalanceTable(){
 
 function toggleSelectAllLeaves(chk) {
   document.querySelectorAll('.leave-row-check').forEach(function(c){ c.checked = chk.checked; });
+}
+
+function editLeaveRecord(empId) {
+  var emp = DB.employees.find(function(e) { return e.id === empId; });
+  if (!emp) return;
+  if (!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+  
+  var oldModal = document.getElementById('dynamic-leave-modal');
+  if (oldModal) oldModal.remove();
+
+  var html = '<div class="modal-bg on" id="dynamic-leave-modal">' +
+    '<div class="modal" style="max-width: 400px;">' +
+      '<div class="modal-title">Edit Leaves: ' + escapeHTML(emp.name) + ' <button class="modal-close" onclick="document.getElementById(\\\'dynamic-leave-modal\\\').remove()">&#215;</button></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+        '<div class="form-group"><label>CL Limit</label><input type="number" id="edit-cl" class="input" value="'+(emp.leaves.CL||0)+'"></div>' +
+        '<div class="form-group"><label>CL Used</label><input type="number" id="edit-cl-used" class="input" value="'+(emp.leaves.CL_used||0)+'"></div>' +
+        '<div class="form-group"><label>SL Limit</label><input type="number" id="edit-sl" class="input" value="'+(emp.leaves.SL||0)+'"></div>' +
+        '<div class="form-group"><label>SL Used</label><input type="number" id="edit-sl-used" class="input" value="'+(emp.leaves.SL_used||0)+'"></div>' +
+        '<div class="form-group"><label>EL/PL Limit</label><input type="number" id="edit-el" class="input" value="'+(emp.leaves.EL||0)+'"></div>' +
+        '<div class="form-group"><label>EL/PL Used</label><input type="number" id="edit-el-used" class="input" value="'+(emp.leaves.EL_used||0)+'"></div>' +
+        '<div class="form-group"><label>LWP Limit</label><input type="number" id="edit-lwp" class="input" value="'+(emp.leaves.LWP||0)+'"></div>' +
+        '<div class="form-group"><label>LWP Used</label><input type="number" id="edit-lwp-used" class="input" value="'+(emp.leaves.LWP_used||0)+'"></div>' +
+      '</div>' +
+      '<button class="btn primary" style="width:100%;margin-top:16px" onclick="saveEditedLeave(\\''+empId+'\\')">Save Changes</button>' +
+    '</div>' +
+  '</div>';
+  var div = document.createElement('div');
+  div.innerHTML = html;
+  document.body.appendChild(div.firstElementChild);
+}
+
+function saveEditedLeave(empId) {
+  var emp = DB.employees.find(function(e) { return e.id === empId; });
+  if (emp) {
+    emp.leaves.CL = parseInt(document.getElementById('edit-cl').value) || 0;
+    emp.leaves.CL_used = parseInt(document.getElementById('edit-cl-used').value) || 0;
+    emp.leaves.SL = parseInt(document.getElementById('edit-sl').value) || 0;
+    emp.leaves.SL_used = parseInt(document.getElementById('edit-sl-used').value) || 0;
+    emp.leaves.EL = parseInt(document.getElementById('edit-el').value) || 0;
+    emp.leaves.EL_used = parseInt(document.getElementById('edit-el-used').value) || 0;
+    emp.leaves.PL = emp.leaves.EL;
+    emp.leaves.PL_used = emp.leaves.EL_used;
+    emp.leaves.LWP = parseInt(document.getElementById('edit-lwp').value) || 0;
+    emp.leaves.LWP_used = parseInt(document.getElementById('edit-lwp-used').value) || 0;
+    saveDB();
+    showToast("Leave balance updated for " + emp.name);
+    renderLeaveBalanceTable();
+  }
+  var m = document.getElementById('dynamic-leave-modal');
+  if (m) m.remove();
 }
 
 async function deleteLeaveRecord(empId) {

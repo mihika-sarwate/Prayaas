@@ -12975,18 +12975,20 @@ function editLeaveRecord(empId) {
   var oldModal = document.getElementById('dynamic-leave-modal');
   if (oldModal) oldModal.remove();
 
+  var ledger = getLeaveLedger(emp);
+
   var html = '<div class="modal-bg on" id="dynamic-leave-modal">' +
     '<div class="modal" style="max-width: 400px;">' +
       '<div class="modal-title">Edit Leaves: ' + escapeHTML(emp.name) + ' <button class="modal-close" onclick="document.getElementById(\\\'dynamic-leave-modal\\\').remove()">&#215;</button></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
         '<div class="form-group"><label>CL Limit</label><input type="number" id="edit-cl" class="input" value="'+(emp.leaves.CL||0)+'"></div>' +
-        '<div class="form-group"><label>CL Used</label><input type="number" id="edit-cl-used" class="input" value="'+(emp.leaves.CL_used||0)+'"></div>' +
+        '<div class="form-group"><label>CL Used</label><input type="number" id="edit-cl-used" class="input" value="'+ledger.cl.used+'"></div>' +
         '<div class="form-group"><label>SL Limit</label><input type="number" id="edit-sl" class="input" value="'+(emp.leaves.SL||0)+'"></div>' +
-        '<div class="form-group"><label>SL Used</label><input type="number" id="edit-sl-used" class="input" value="'+(emp.leaves.SL_used||0)+'"></div>' +
+        '<div class="form-group"><label>SL Used</label><input type="number" id="edit-sl-used" class="input" value="'+ledger.sl.used+'"></div>' +
         '<div class="form-group"><label>EL/PL Limit</label><input type="number" id="edit-el" class="input" value="'+(emp.leaves.EL||0)+'"></div>' +
-        '<div class="form-group"><label>EL/PL Used</label><input type="number" id="edit-el-used" class="input" value="'+(emp.leaves.EL_used||0)+'"></div>' +
+        '<div class="form-group"><label>EL/PL Used</label><input type="number" id="edit-el-used" class="input" value="'+ledger.pl.used+'"></div>' +
         '<div class="form-group"><label>LWP Limit</label><input type="number" id="edit-lwp" class="input" value="'+(emp.leaves.LWP||0)+'"></div>' +
-        '<div class="form-group"><label>LWP Used</label><input type="number" id="edit-lwp-used" class="input" value="'+(emp.leaves.LWP_used||0)+'"></div>' +
+        '<div class="form-group"><label>LWP Used</label><input type="number" id="edit-lwp-used" class="input" value="'+ledger.lop.used+'"></div>' +
       '</div>' +
       '<button class="btn primary" style="width:100%;margin-top:16px" onclick="saveEditedLeave(\''+empId+'\')">Save Changes</button>' +
     '</div>' +
@@ -12999,16 +13001,22 @@ function editLeaveRecord(empId) {
 function saveEditedLeave(empId) {
   var emp = DB.employees.find(function(e) { return e.id === empId; });
   if (emp) {
+    var ledger = getLeaveLedger(emp);
+    var appliedCl = ledger.cl.used - (parseFloat(emp.leaves.CL_used) || 0);
+    var appliedSl = ledger.sl.used - (parseFloat(emp.leaves.SL_used) || 0);
+    var appliedEl = ledger.pl.used - (parseFloat(emp.leaves.EL_used) || 0);
+    var appliedLwp = ledger.lop.used - (parseFloat(emp.leaves.LWP_used) || 0);
+
     emp.leaves.CL = parseInt(document.getElementById('edit-cl').value) || 0;
-    emp.leaves.CL_used = parseInt(document.getElementById('edit-cl-used').value) || 0;
+    emp.leaves.CL_used = (parseInt(document.getElementById('edit-cl-used').value) || 0) - appliedCl;
     emp.leaves.SL = parseInt(document.getElementById('edit-sl').value) || 0;
-    emp.leaves.SL_used = parseInt(document.getElementById('edit-sl-used').value) || 0;
+    emp.leaves.SL_used = (parseInt(document.getElementById('edit-sl-used').value) || 0) - appliedSl;
     emp.leaves.EL = parseInt(document.getElementById('edit-el').value) || 0;
-    emp.leaves.EL_used = parseInt(document.getElementById('edit-el-used').value) || 0;
+    emp.leaves.EL_used = (parseInt(document.getElementById('edit-el-used').value) || 0) - appliedEl;
     emp.leaves.PL = emp.leaves.EL;
     emp.leaves.PL_used = emp.leaves.EL_used;
     emp.leaves.LWP = parseInt(document.getElementById('edit-lwp').value) || 0;
-    emp.leaves.LWP_used = parseInt(document.getElementById('edit-lwp-used').value) || 0;
+    emp.leaves.LWP_used = (parseInt(document.getElementById('edit-lwp-used').value) || 0) - appliedLwp;
     saveDB();
     showToast("Leave balance updated for " + emp.name);
     renderLeaveBalanceTable();

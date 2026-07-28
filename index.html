@@ -12988,7 +12988,7 @@ function editLeaveRecord(empId) {
         '<div class="form-group"><label>LWP Limit</label><input type="number" id="edit-lwp" class="input" value="'+(emp.leaves.LWP||0)+'"></div>' +
         '<div class="form-group"><label>LWP Used</label><input type="number" id="edit-lwp-used" class="input" value="'+(emp.leaves.LWP_used||0)+'"></div>' +
       '</div>' +
-      '<button class="btn primary" style="width:100%;margin-top:16px" onclick="saveEditedLeave(\\\''+empId+'\\\')">Save Changes</button>' +
+      '<button class="btn primary" style="width:100%;margin-top:16px" onclick="saveEditedLeave(\''+empId+'\')">Save Changes</button>' +
     '</div>' +
   '</div>';
   var div = document.createElement('div');

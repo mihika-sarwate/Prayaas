@@ -46,7 +46,7 @@ function cleanNameForComparison(name) {
 // Master Data Store
 var DEFAULT_DB={
   employees:[
-    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}}
+    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'admin123',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,PL:10,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}}
   ],
   doctors:[],
   chemists:[],
@@ -1614,7 +1614,7 @@ async function seedSupabaseDatabase() {
         blocked_date: formatDateForPostgres(e.blockedDate) || null,
         blocked_reason: e.blockedReason || null,
         designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-        leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
+        leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,PL:10,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
       };
     });
     await insertEmployeeRowsToSupabase(dbEmps);
@@ -3640,6 +3640,13 @@ function populateTransitRouteDropdowns() {
   if (SESSION.user && SESSION.user.hq) locations.add(SESSION.user.hq.trim());
   if (SESSION.user && SESSION.user.area) locations.add(SESSION.user.area.trim());
   
+  var mrTownsByTerritory = window._mrTownsByTerritory || {};
+  Object.keys(mrTownsByTerritory).forEach(function(k) {
+    if (mrTownsByTerritory[k]) {
+      mrTownsByTerritory[k].forEach(function(t) { locations.add(t.trim()); });
+    }
+  });
+  
   (DB.sfc || []).forEach(function(s) {
     if (s.from) locations.add(s.from.trim());
     if (s.to) locations.add(s.to.trim());
@@ -4863,7 +4870,7 @@ function renderHomeStats(){
   var activeMTP=DB.tourPlans.filter(function(t){return String(t.empId || '').toUpperCase() === String(u.id || '').toUpperCase() && t.month===today.slice(0,7);});
   document.getElementById('stat-tp').textContent=activeMTP.length ? activeMTP[activeMTP.length-1].status : 'No MTP';
   
-  document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+  document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used)+' | EL: '+(u.leaves.EL - u.leaves.EL_used)+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
   
   document.getElementById('today-reports').innerHTML=todayR.length ? todayR.map(repRow).join('') : '<div class="empty">No calls reported today</div>';
   document.getElementById('recent-reports').innerHTML=myR.length ? myR.slice(0,5).map(repRow).join('') : '<div class="empty">No reports submitted yet</div>';
@@ -5011,7 +5018,7 @@ function getHolidayForDateAndState(dateStr, state) {
 }
 
 var ATTENDANCE_EXECUTIVE_EXEMPT_NAMES = ['MILIND SARWATE', 'PANKAJ UNDWAR'];
-var ATTENDANCE_STATUS_LABELS = { P: 'Present', SL: 'Sick Leave', CL: 'Casual Leave', H: 'Holiday', WO: 'Weekly Off', NS: 'Not Submitted' };
+var ATTENDANCE_STATUS_LABELS = { P: 'Present', A: 'Absent', SL: 'Sick Leave', CL: 'Casual Leave', EL: 'Earned Leave', PL: 'Privilege Leave', LWP: 'LWP', H: 'Holiday', WO: 'Weekly Off', NS: 'Not Submitted' };
 var ATTENDANCE_WEEKDAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 var attendanceSchedulerTimer = null;
 
@@ -5410,8 +5417,11 @@ function getAttendanceDashboardRows() {
           
           if (activeLeave) {
             var type = String(activeLeave.type || '').toLowerCase();
-            status = type.indexOf('sick') !== -1 ? 'SL' : 'CL';
-            remarks = type.indexOf('sick') !== -1 ? 'Approved Sick Leave' : 'Approved Casual Leave';
+            if (type.indexOf('sick') !== -1) { status = 'SL'; remarks = 'Approved Sick Leave'; }
+            else if (type.indexOf('earned') !== -1) { status = 'EL'; remarks = 'Approved Earned Leave'; }
+            else if (type.indexOf('privilege') !== -1 || type.indexOf('pl') !== -1) { status = 'PL'; remarks = 'Approved Privilege Leave'; }
+            else if (type.indexOf('lwp') !== -1) { status = 'LWP'; remarks = 'Approved LWP'; }
+            else { status = 'CL'; remarks = 'Approved Casual Leave'; }
           } else {
             var holiday = (DB.holidays || []).find(function(h) {
               if ((formatDateForPostgres(h.date) || h.date) !== curDate) return false;
@@ -7256,7 +7266,7 @@ function renderAdminStats(){
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
   
   if(document.getElementById('adm-leave-bal')){
-    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used)+' | EL: '+(u.leaves.EL - u.leaves.EL_used)+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
   }
 }
 
@@ -7589,6 +7599,7 @@ function viewLeave(id){
               '<option value="Casual Leave" '+(lv.type === 'Casual Leave' ? 'selected' : '')+'>Casual Leave</option>' +
               '<option value="Sick Leave" '+(lv.type === 'Sick Leave' ? 'selected' : '')+'>Sick Leave</option>' +
               '<option value="Earned Leave" '+(lv.type === 'Earned Leave' ? 'selected' : '')+'>Earned Leave</option>' +
+              '<option value="Privilege Leave" '+(lv.type === 'Privilege Leave' ? 'selected' : '')+'>Privilege Leave</option>' +
               '<option value="LWP" '+(lv.type === 'LWP' ? 'selected' : '')+'>LWP</option>' +
             '</select></div>';
             
@@ -7644,7 +7655,7 @@ function approveLeave(){
     if (lv.status === 'Approved' && prevStatus !== 'Approved') {
       var emp=DB.employees.find(function(e){return e.id===lv.empId;});
       if(emp){
-        var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':'LWP';
+        var key = lv.type==='Casual Leave'?'CL':lv.type==='Sick Leave'?'SL':lv.type==='Earned Leave'?'EL':lv.type==='Privilege Leave'?'PL':'LWP';
         if (!emp.leaves) emp.leaves = {};
         emp.leaves[key+'_used'] = (parseFloat(emp.leaves[key+'_used']) || 0) + parseFloat(lv.days || 0);
       }
@@ -7694,7 +7705,7 @@ function updateLeaveDetails() {
   // Revert previous leave balance deduction if status was approved
   var emp=DB.employees.find(function(e){return e.id===lv.empId;});
   if (emp && prevStatus === 'Approved') {
-    var prevKey = prevType==='Casual Leave'?'CL':prevType==='Sick Leave'?'SL':prevType==='Earned Leave'?'EL':'LWP';
+    var prevKey = prevType==='Casual Leave'?'CL':prevType==='Sick Leave'?'SL':prevType==='Earned Leave'?'EL':prevType==='Privilege Leave'?'PL':'LWP';
     if (emp.leaves) {
       emp.leaves[prevKey+'_used'] = Math.max(0, (parseFloat(emp.leaves[prevKey+'_used']) || 0) - prevDays);
     }
@@ -7709,9 +7720,8 @@ function updateLeaveDetails() {
   lv.status = status;
   lv.remarks = remarks;
   
-  // Apply new leave balance deduction if status is approved
-  if (emp && status === 'Approved') {
-    var newKey = type==='Casual Leave'?'CL':type==='Sick Leave'?'SL':type==='Earned Leave'?'EL':'LWP';
+    if (emp && status === 'Approved') {
+    var newKey = type==='Casual Leave'?'CL':type==='Sick Leave'?'SL':type==='Earned Leave'?'EL':type==='Privilege Leave'?'PL':'LWP';
     if (!emp.leaves) emp.leaves = {};
     emp.leaves[newKey+'_used'] = (parseFloat(emp.leaves[newKey+'_used']) || 0) + days;
   }
@@ -8220,7 +8230,7 @@ function addEmployee(){
     state:state,
     status:normalizeEmployeeStatus(status),
     allowPastReports:allowPastReports,
-    leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+    leaves:{CL:12,SL:10,EL:15,PL:10,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}
   });
   saveDB();
   
@@ -8424,7 +8434,7 @@ function uploadEmployees(inp){
           doj:cols[dojCol]||'',
           state:cols[stateCol]||'',
           status:normalizeEmployeeStatus(cols[statusCol]||'Active'),
-          leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+          leaves:{CL:12,SL:10,EL:15,PL:10,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}
         };
       }
       
@@ -10738,7 +10748,7 @@ function uploadLeaveBalances(inp){
       var empId = String(p[idCol]).trim().toUpperCase();
       var emp = DB.employees.find(function(x){return x.id === empId;});
       if(emp){
-        if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+        if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,PL:10,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0};
         
         if (stateCol !== -1 && p[stateCol]) emp.state = String(p[stateCol]).trim();
         if (clCol !== -1 && p[clCol]) emp.leaves.CL = parseInt(p[clCol]) || 0;
@@ -11309,7 +11319,7 @@ function uploadInventoryCSV(inp) {
               status: 'Active',
               accountStatus: 'ACTIVE',
               designation: 'Medical Representative',
-              leaves: {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+              leaves: {CL:12,SL:10,EL:15,PL:10,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}
             };
             DB.employees.push(matchedEmp);
           }

@@ -730,7 +730,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div><label class="lbl">End Date</label><input type="date" id="lv-end"></div>
       </div>
       <div class="row2">
-        <div><label class="lbl">Leave Type</label><select id="lv-type"><option>Casual Leave</option><option>Sick Leave</option><option>Earned Leave</option><option>LWP</option></select></div>
+        <div><label class="lbl">Leave Type</label><select id="lv-type"><option>Casual Leave</option><option>Sick Leave</option><option>Earned Leave</option><option>Privilege Leave</option><option>LWP</option></select></div>
         <div><label class="lbl">Reporting Manager</label><select id="lv-manager" disabled></select></div>
       </div>
       <div class="fw"><label class="lbl">Reason for Leave</label><textarea id="lv-reason" placeholder="State reason..."></textarea></div>
@@ -963,7 +963,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="row3">
           <div><label class="lbl">Employee</label><select id="attendance-employee-filter" onchange="renderAttendanceDashboard()"><option value="">All Employees</option></select></div>
-          <div><label class="lbl">Status</label><select id="attendance-status-filter" onchange="renderAttendanceDashboard()"><option value="">All Statuses</option><option value="P">Present</option><option value="A">Absent</option><option value="SL">Sick Leave</option><option value="CL">Casual Leave</option><option value="H">Holiday</option><option value="WO">Weekly Off</option><option value="NS">Not Submitted</option></select></div>
+          <div><label class="lbl">Status</label><select id="attendance-status-filter" onchange="renderAttendanceDashboard()"><option value="">All Statuses</option><option value="P">Present</option><option value="A">Absent</option><option value="SL">Sick Leave</option><option value="CL">Casual Leave</option><option value="EL">Earned Leave</option><option value="PL">Privilege Leave</option><option value="LWP">LWP</option><option value="H">Holiday</option><option value="WO">Weekly Off</option><option value="NS">Not Submitted</option></select></div>
           <div><label class="lbl">Search</label><input type="text" id="attendance-search" placeholder="Search employee, date, status, remarks..." oninput="renderAttendanceDashboard()"></div>
         </div>
         <div class="btn-row" style="margin-top:0">

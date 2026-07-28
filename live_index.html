@@ -655,7 +655,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div><label class="lbl">End Date</label><input type="date" id="lv-end"></div>
       </div>
       <div class="row2">
-        <div><label class="lbl">Leave Type</label><select id="lv-type"><option>Casual Leave</option><option>Sick Leave</option><option>Earned Leave</option><option>LWP</option></select></div>
+        <div><label class="lbl">Leave Type</label><select id="lv-type"><option>Casual Leave</option><option>Sick Leave</option><option>Earned Leave</option><option>Privilege Leave</option><option>LWP</option></select></div>
         <div><label class="lbl">Reporting Manager</label><select id="lv-manager" disabled></select></div>
       </div>
       <div class="fw"><label class="lbl">Reason for Leave</label><textarea id="lv-reason" placeholder="State reason..."></textarea></div>
@@ -3707,6 +3707,13 @@ function populateTransitRouteDropdowns() {
   var locations = new Set();
   if (SESSION.user && SESSION.user.hq) locations.add(SESSION.user.hq.trim());
   if (SESSION.user && SESSION.user.area) locations.add(SESSION.user.area.trim());
+  
+  var mrTownsByTerritory = window._mrTownsByTerritory || {};
+  Object.keys(mrTownsByTerritory).forEach(function(k) {
+    if (mrTownsByTerritory[k]) {
+      mrTownsByTerritory[k].forEach(function(t) { locations.add(t.trim()); });
+    }
+  });
   
   (DB.sfc || []).forEach(function(s) {
     if (s.from) locations.add(s.from.trim());

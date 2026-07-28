@@ -6748,7 +6748,7 @@ function renderHomeStats(){
   }
   document.getElementById('stat-tp').textContent = tpStatus;
   
-  document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - (u.leaves.CL_used||0))+' | SL: '+(u.leaves.SL - (u.leaves.SL_used||0))+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
+  document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - (u.leaves.CL_used||0))+' | SL: '+(u.leaves.SL - (u.leaves.SL_used||0))+' | EL: '+(u.leaves.EL - (u.leaves.EL_used||0))+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
   
   var todayHtml = todayR.length ? todayR.map(repRow).join('') : '<div class="empty">No calls reported today</div>';
   var recentHtml = myR.length ? myR.slice(0,5).map(repRow).join('') : '<div class="empty">No reports submitted yet</div>';
@@ -9632,7 +9632,7 @@ function renderAdminStats(){
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
   
   if(document.getElementById('adm-leave-bal')){
-    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - (u.leaves.CL_used||0))+' | SL: '+(u.leaves.SL - (u.leaves.SL_used||0))+' | EL: '+(u.leaves.EL - (u.leaves.EL_used||0))+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
   }
 }
 

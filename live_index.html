@@ -4562,7 +4562,7 @@ function renderHomeStats(){
   var activeMTP=DB.tourPlans.filter(function(t){return String(t.empId || '').toUpperCase() === String(u.id || '').toUpperCase() && t.month===today.slice(0,7);});
   document.getElementById('stat-tp').textContent=activeMTP.length ? activeMTP[activeMTP.length-1].status : 'No MTP';
   
-  document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+  document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - (u.leaves.CL_used||0))+' | SL: '+(u.leaves.SL - (u.leaves.SL_used||0))+' | EL: '+(u.leaves.EL - (u.leaves.EL_used||0))+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
   
   document.getElementById('today-reports').innerHTML=todayR.length ? todayR.map(repRow).join('') : '<div class="empty">No calls reported today</div>';
   document.getElementById('recent-reports').innerHTML=myR.length ? myR.slice(0,5).map(repRow).join('') : '<div class="empty">No reports submitted yet</div>';
@@ -5854,7 +5854,7 @@ function renderAdminStats(){
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
   
   if(document.getElementById('adm-leave-bal')){
-    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - u.leaves.CL_used)+' | SL: '+(u.leaves.SL - u.leaves.SL_used);
+    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - (u.leaves.CL_used||0))+' | SL: '+(u.leaves.SL - (u.leaves.SL_used||0))+' | EL: '+(u.leaves.EL - (u.leaves.EL_used||0))+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
   }
 }
 

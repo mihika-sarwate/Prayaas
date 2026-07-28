@@ -13018,6 +13018,8 @@ function saveEditedLeave(empId) {
     emp.leaves.LWP = parseInt(document.getElementById('edit-lwp').value) || 0;
     emp.leaves.LWP_used = (parseInt(document.getElementById('edit-lwp-used').value) || 0) - appliedLwp;
     saveDB();
+    if (typeof _pendingLocalEmpIds !== 'undefined') _pendingLocalEmpIds.add(String(emp.id).toUpperCase());
+    if (typeof pushEmployeeToSupabase === 'function') pushEmployeeToSupabase(emp);
     showToast("Leave balance updated for " + emp.name);
     renderLeaveBalanceTable();
   }
@@ -13031,6 +13033,8 @@ async function deleteLeaveRecord(empId) {
   if (emp) {
     emp.leaves = {};
     saveDB();
+    if (typeof _pendingLocalEmpIds !== 'undefined') _pendingLocalEmpIds.add(String(emp.id).toUpperCase());
+    if (typeof pushEmployeeToSupabase === 'function') pushEmployeeToSupabase(emp);
     showToast("Leave data deleted for " + empId);
     renderLeaveBalanceTable();
   }

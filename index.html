@@ -4379,7 +4379,7 @@ function clearLocalAssignTo(entityType) {
           territory: r.territory || '',
           city: r.city || '',
           patch: r.patch || '',
-          isFinal: r.isFinal === true
+          isFinal: r.isFinal === true || String(r.isFinal) === 'true'
         };
         var row = {
           emp_id: empId,
@@ -7009,7 +7009,7 @@ function mapSupabaseReportRow(r) {
       territory = meta.territory || '';
       city = meta.city || '';
       patch = meta.patch || '';
-      isFinal = meta.isFinal === true;
+      isFinal = meta.isFinal === true || String(meta.isFinal) === 'true';
     } catch(e){}
   }
   return {
@@ -7334,7 +7334,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
         // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
         // Check DCR report submission or login attendance record.
         var hasFinalReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && (r.isFinal || dateStr === '2026-07-13');
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && (r.isFinal === true || String(r.isFinal) === 'true' || dateStr === '2026-07-13');
         });
         if (hasFinalReport) {
           return { status: 'P', remarks: 'Present via Final DCR Submission' };
@@ -7490,7 +7490,7 @@ function getAttendanceDashboardRows() {
 
   var finalDcrMap = {};
   (DB.reports || []).forEach(function(r) {
-    if (r.isFinal === true || String(formatDateForPostgres(r.date) || r.date) === '2026-07-13') {
+    if (r.isFinal === true || String(r.isFinal) === 'true' || String(formatDateForPostgres(r.date) || r.date) === '2026-07-13') {
       var eId = String(r.empId || '').toUpperCase();
       var dStr = formatDateForPostgres(r.date) || r.date;
       finalDcrMap[eId + '_' + dStr] = true;
@@ -8108,7 +8108,7 @@ async function runAttendanceValidationNow() {
     var finalDcrExists = (DB.reports || []).some(function(r) {
       return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
              (formatDateForPostgres(r.date) || r.date) === dateStr &&
-             (r.isFinal === true || dateStr === '2026-07-13');
+             (r.isFinal === true || String(r.isFinal) === 'true' || dateStr === '2026-07-13');
     });
 
     if (finalDcrExists) return;

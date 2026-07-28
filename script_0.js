@@ -941,7 +941,7 @@ async function initSupabaseData(isSilent) {
               territory = meta.territory || '';
               city = meta.city || '';
               patch = meta.patch || '';
-              isFinal = meta.isFinal === true;
+              isFinal = meta.isFinal === true || String(meta.isFinal) === 'true';
             } catch(e){}
           }
           return {
@@ -2544,7 +2544,7 @@ function clearLocalAssignTo(entityType) {
           territory: r.territory || '',
           city: r.city || '',
           patch: r.patch || '',
-          isFinal: r.isFinal === true
+          isFinal: r.isFinal === true || String(r.isFinal) === 'true'
         };
         var row = {
           emp_id: empId,
@@ -5401,7 +5401,7 @@ function getAttendanceDashboardRows() {
         var finalDcrExists = (DB.reports || []).some(function(r) {
           return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
                  (formatDateForPostgres(r.date) || r.date) === curDate &&
-                 r.isFinal === true;
+                 (r.isFinal === true || String(r.isFinal) === 'true' || curDate === '2026-07-13');
         });
         
         if (finalDcrExists) {

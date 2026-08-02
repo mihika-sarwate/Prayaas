@@ -243,7 +243,21 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
     return { status: 'P', remarks: 'Present via Final DCR Submission' };
   }
 
-  // Rule 2: Approved Leave
+  // Rule 2: Tour Plan (Overrides general rules)
+  const tpDay = context.tourPlanDayMap.get(`${empId}|${dateStr}`);
+  if (tpDay) {
+    const wt = String(tpDay.workType || '').toUpperCase();
+    if (wt === 'WEEKLY OFF') return { status: 'WO', remarks: 'Weekly Off (from Tour Plan)' };
+    if (wt === 'HOLIDAY') return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
+    if (wt === 'LEAVE') {
+      const tpLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
+      return tpLeave && String(tpLeave.type || '').toLowerCase().includes('sick')
+        ? { status: 'SL', remarks: 'Approved Sick Leave (from Tour Plan)' }
+        : { status: 'CL', remarks: 'Approved Casual Leave (from Tour Plan)' };
+    }
+  }
+
+  // Rule 3: Approved Leave
   const approvedLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
   if (approvedLeave) {
     const leaveType = String(approvedLeave.type || '').toLowerCase();
@@ -264,7 +278,7 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
     return { status: 'WO', remarks: 'Weekly Off' };
   }
 
-  // Rule 5: Absent & Blocked
+  // Rule 6: Absent & Blocked
   return { status: 'A', remarks: `Absent - ${BLOCK_REASON}` };
 }
 

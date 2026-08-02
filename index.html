@@ -961,7 +961,7 @@ table.tbl tr:last-child td{border-bottom:none}
         Attendance is auto-generated from final DCR submission, approved leave, holidays, and weekly offs. Daily attendance validation runs on the previous IST working day and blocks non-exempt employees when the final DCR is not submitted by 12:00 AM IST.
       </div>
       <div class="card">
-        <div class="row3">
+        <div class="row3" style="grid-template-columns: repeat(4, 1fr);">
           <div><label class="lbl">Employee</label><select id="attendance-employee-filter" onchange="renderAttendanceDashboard()"><option value="">All Employees</option></select></div>
           <div><label class="lbl">Status</label><select id="attendance-status-filter" onchange="renderAttendanceDashboard()"><option value="">All Statuses</option><option value="P">Present</option><option value="A">Absent</option><option value="SL">Sick Leave</option><option value="CL">Casual Leave</option><option value="EL">Earned Leave</option><option value="PL">Privilege Leave</option><option value="LWP">LWP</option><option value="H">Holiday</option><option value="WO">Weekly Off</option><option value="NS">Not Submitted</option></select></div>
           <div><label class="lbl">Month</label><input type="month" id="attendance-month-filter" onchange="renderAttendanceDashboard()"></div>
@@ -8134,17 +8134,23 @@ async function runAttendanceValidationNow() {
 
     var isBlocked = typeof normalizeAccountStatus === 'function' && normalizeAccountStatus(emp.accountStatus) === 'BLOCKED';
 
+    var isExecutive = isExecutiveAttendanceExempt(emp);
+
     if (existingAtt) {
-      if (existingAtt.attendanceStatus === 'A' && !isBlocked) {
+      if (existingAtt.attendanceStatus === 'A' && !isBlocked && !isExecutive) {
         setEmployeeAccountStatus(emp.id, 'BLOCKED', true, true);
       }
-      return;
+      // If they logged in (P) but didn't submit final DCR, we need to check further down,
+      // so we do NOT return here yet if existingAtt is 'P'.
+      if (existingAtt.attendanceStatus === 'A' || existingAtt.attendanceStatus === 'NS') {
+         return;
+      }
     }
 
     var finalDcrExists = (DB.reports || []).some(function(r) {
       return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
              (formatDateForPostgres(r.date) || r.date) === dateStr &&
-             (r.isFinal === true || String(r.isFinal) === 'true' || dateStr === '2026-07-13');
+             (r.isFinal === true || String(r.isFinal) === 'true');
     });
 
     if (finalDcrExists) return;
@@ -8165,18 +8171,27 @@ async function runAttendanceValidationNow() {
       if (isOff) return;
     }
 
-    var newId = 'ATT-' + emp.id + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-    DB.attendance.push({
-      id: newId,
-      employeeId: emp.id,
-      date: dateStr,
-      loginTime: '',
-      attendanceStatus: 'A',
-      remarks: 'Absent (Final DCR not submitted)'
-    });
-    updatedAttendance = true;
+    if (existingAtt) {
+      // Overwrite P with A because DCR wasn't submitted
+      existingAtt.attendanceStatus = 'A';
+      existingAtt.remarks = 'Absent (Final DCR not submitted)';
+      updatedAttendance = true;
+    } else {
+      var newId = 'ATT-' + emp.id + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      DB.attendance.push({
+        id: newId,
+        employeeId: emp.id,
+        date: dateStr,
+        loginTime: '',
+        attendanceStatus: 'A',
+        remarks: 'Absent (Final DCR not submitted)'
+      });
+      updatedAttendance = true;
+    }
     
-    setEmployeeAccountStatus(emp.id, 'BLOCKED', true, true);
+    if (!isBlocked && !isExecutive) {
+      setEmployeeAccountStatus(emp.id, 'BLOCKED', true, true);
+    }
   });
 
   if (updatedAttendance) {

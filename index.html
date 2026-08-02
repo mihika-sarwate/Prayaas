@@ -7176,7 +7176,10 @@ function getAttendanceLoginTimeValue(dateObj) {
 }
 
 function isAttendanceTrackedEmployee(emp) {
-  return !!(emp && emp.id && String(emp.role || '').toLowerCase() !== 'admin');
+  if (!emp) return false;
+  var stat = typeof normalizeAccountStatus === 'function' ? normalizeAccountStatus(emp.accountStatus) : String(emp.accountStatus || '').toUpperCase().trim();
+  if (stat === 'INACTIVE' || stat === 'TERMINATED' || stat === 'RESIGNED' || stat === 'LEFT') return false;
+  return !!(emp.id && String(emp.role || '').toLowerCase() !== 'admin');
 }
 
 function hasCompletedFinalDCRSubmission(employeeId, dateStr) {

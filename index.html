@@ -13479,15 +13479,60 @@ function addNewInventoryMasterItem() {
   
   if (type === 'Sample Product') {
     if (DB.products.indexOf(name) === -1) DB.products.push(name);
+    (DB.employees || []).forEach(function(e) {
+      var exists = (DB.samplesInventory || []).some(function(s) { return s.empId === e.id && s.prodName === name; });
+      if (!exists) {
+        DB.samplesInventory.push({
+          id: 'SMPINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+          prodName: name,
+          empId: e.id,
+          opening: 0,
+          received: 0,
+          distributed: 0,
+          balance: 0
+        });
+      }
+    });
   } else if (type === 'Gift Promotional') {
     if (DB.gifts.indexOf(name) === -1) DB.gifts.push(name);
+    (DB.employees || []).forEach(function(e) {
+      var exists = (DB.giftsInventory || []).some(function(g) { return g.empId === e.id && g.giftName === name; });
+      if (!exists) {
+        DB.giftsInventory.push({
+          id: 'GFTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+          giftName: name,
+          empId: e.id,
+          opening: 0,
+          received: 0,
+          distributed: 0,
+          balance: 0
+        });
+      }
+    });
   } else {
     if (DB.inputs.indexOf(name) === -1) DB.inputs.push(name);
+    (DB.employees || []).forEach(function(e) {
+      var exists = (DB.inputsInventory || []).some(function(i) { return i.empId === e.id && i.inputName === name; });
+      if (!exists) {
+        DB.inputsInventory.push({
+          id: 'INPINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+          inputName: name,
+          empId: e.id,
+          opening: 0,
+          received: 0,
+          distributed: 0,
+          balance: 0
+        });
+      }
+    });
   }
   
   if (typeof saveDB === 'function') saveDB();
   populateInventoryItemSelect();
   document.getElementById('inv-issue-item').value = name;
+  if (typeof renderAdminInventoryTables === 'function') renderAdminInventoryTables();
+  if (typeof renderEmpInventoryTables === 'function') renderEmpInventoryTables();
+  showToast('Added "' + name + '" to master list and initialized employee inventory records!');
 }
 
 function issueStockToMR(){

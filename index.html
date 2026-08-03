@@ -1262,9 +1262,12 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
         <div class="row2">
           <div><label class="lbl">Item Name</label><select id="inv-issue-item"></select></div>
-          <div><label class="lbl">Quantity to Issue</label><input type="number" id="inv-issue-qty" min="1" placeholder="Qty"></div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1"><label class="lbl">Action</label><select id="inv-issue-action"><option value="add">Add / Issue</option><option value="deduct">Delete / Deduct</option></select></div>
+            <div style="flex:1"><label class="lbl">Quantity</label><input type="number" id="inv-issue-qty" min="1" placeholder="Qty"></div>
+          </div>
         </div>
-        <button class="btn success sm admin-only" onclick="issueStockToMR()">Issue / Allocate Stock</button>
+        <button class="btn success sm admin-only" onclick="issueStockToMR()">Submit Stock Update</button>
       </div>
 
       <div class="card admin-only" style="margin-top: 15px;">
@@ -13452,42 +13455,55 @@ function issueStockToMR(){
   var type=document.getElementById('inv-issue-type').value;
   var itemName=document.getElementById('inv-issue-item').value;
   var qty=parseInt(document.getElementById('inv-issue-qty').value)||0;
+  var action=document.getElementById('inv-issue-action').value;
   
   if(!empId||!itemName||qty<=0){
     showToast('Please verify fields and quantity!');
     return;
   }
   
+  function updateStock(stockList, nameField) {
+    var stock=stockList.find(function(s){return s.empId===empId && s[nameField]===itemName;});
+    if(stock){
+      if(action === 'add') {
+        stock.received+=qty;
+        stock.balance+=qty;
+      } else {
+        if(stock.balance < qty) {
+          showToast('Insufficient stock to delete/deduct!');
+          return false;
+        }
+        stock.received-=qty; // Assuming deduct means reversing received, or maybe just adjusting balance? Usually deduct is from balance. Let's subtract from received too to keep it balanced if it was a mistake.
+        stock.balance-=qty;
+      }
+    } else {
+      if(action === 'add') {
+        var newItem = {empId:empId, opening:0, received:qty, distributed:0, balance:qty};
+        newItem[nameField] = itemName;
+        stockList.push(newItem);
+      } else {
+        showToast('Item not found in inventory to delete!');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  var success = false;
   if(type==='Sample Product'){
-    var stock=DB.samplesInventory.find(function(s){return s.empId===empId && s.prodName===itemName;});
-    if(stock){
-      stock.received+=qty;
-      stock.balance+=qty;
-    } else {
-      DB.samplesInventory.push({prodName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
-    }
+    success = updateStock(DB.samplesInventory, 'prodName');
   } else if(type==='Gift Promotional'){
-    var stock=DB.giftsInventory.find(function(g){return g.empId===empId && g.giftName===itemName;});
-    if(stock){
-      stock.received+=qty;
-      stock.balance+=qty;
-    } else {
-      DB.giftsInventory.push({giftName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
-    }
+    success = updateStock(DB.giftsInventory, 'giftName');
   } else {
-    var stock=DB.inputsInventory.find(function(i){return i.empId===empId && i.inputName===itemName;});
-    if(stock){
-      stock.received+=qty;
-      stock.balance+=qty;
-    } else {
-      DB.inputsInventory.push({inputName:itemName,empId:empId,opening:0,received:qty,distributed:0,balance:qty});
-    }
+    success = updateStock(DB.inputsInventory, 'inputName');
   }
   
-  saveDB();
-  showToast('Stock issued successfully to representative!');
-  document.getElementById('inv-issue-qty').value='';
-  renderAdminInventoryTables();
+  if (success) {
+    saveDB();
+    showToast('Stock ' + (action==='add' ? 'issued' : 'deducted') + ' successfully!');
+    document.getElementById('inv-issue-qty').value='';
+    renderAdminInventoryTables();
+  }
 }
 
 function downloadInventoryTemplate() {

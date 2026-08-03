@@ -3240,6 +3240,24 @@ async function loadLocalDB() {
     DB.inputs = Array.from(new Set(DB.inputs));
   }
 
+  // Ensure that any items present in inventory but missing from master lists are added dynamically
+  DB.samplesInventory.forEach(function(s) {
+    if (s.prodName && DB.products.indexOf(s.prodName) === -1) {
+      DB.products.push(s.prodName);
+    }
+  });
+  DB.giftsInventory.forEach(function(g) {
+    if (g.giftName && DB.gifts.indexOf(g.giftName) === -1) {
+      DB.gifts.push(g.giftName);
+    }
+  });
+  DB.inputsInventory.forEach(function(i) {
+    if (i.inputName && DB.inputs.indexOf(i.inputName) === -1) {
+      DB.inputs.push(i.inputName);
+    }
+  });
+
+
   // Auto-correct pre-existing inventory entries to use the Title Case standard names
   DB.samplesInventory.forEach(function(s) {
     var matched = DEFAULT_DB.products.find(function(dp) { return cleanNameForComparison(dp) === cleanNameForComparison(s.prodName); });
@@ -13999,11 +14017,11 @@ function updateFilterTriggerStyles(tableType) {
   });
 }
 
-function getFilteredInventoryList(list, type) {
+function getFilteredInventoryList(list, type, empMap) {
   var search = (document.getElementById('inv-search-global') ? document.getElementById('inv-search-global').value : '').toLowerCase().trim();
   
   return list.filter(function(item) {
-    var emp = DB.employees.find(function(e){return e.id === item.empId;});
+    var emp = empMap ? empMap[item.empId] : DB.employees.find(function(e){return e.id === item.empId;});
     var empName = emp ? emp.name : '';
     var empId = item.empId || '';
     var empState = emp ? emp.state || '' : '';
@@ -14309,7 +14327,7 @@ function renderAdminInventoryTables(){
       var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
       return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId)) && stateMatch;
     });
-    samplesList = getFilteredInventoryList(samplesList, 'sample');
+    samplesList = getFilteredInventoryList(samplesList, 'sample', empMap);
     document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
       var emp = empMap[s.empId];
       var idVal = s.id || (s.empId + '|' + s.prodName);
@@ -14322,7 +14340,7 @@ function renderAdminInventoryTables(){
       var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
       return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId)) && stateMatch;
     });
-    giftsList = getFilteredInventoryList(giftsList, 'gift');
+    giftsList = getFilteredInventoryList(giftsList, 'gift', empMap);
     document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
       var emp = empMap[g.empId];
       var idVal = g.id || (g.empId + '|' + g.giftName);
@@ -14335,7 +14353,7 @@ function renderAdminInventoryTables(){
       var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
       return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId)) && stateMatch;
     });
-    inputsList = getFilteredInventoryList(inputsList, 'input');
+    inputsList = getFilteredInventoryList(inputsList, 'input', empMap);
     document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
       var emp = empMap[i.empId];
       var idVal = i.id || (i.empId + '|' + i.inputName);

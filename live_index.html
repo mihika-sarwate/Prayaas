@@ -2392,6 +2392,23 @@ async function loadLocalDB() {
   if (!Array.isArray(DB.samplesInventory)) DB.samplesInventory = DEFAULT_DB.samplesInventory || [];
   if (!Array.isArray(DB.giftsInventory)) DB.giftsInventory = DEFAULT_DB.giftsInventory || [];
   if (!Array.isArray(DB.inputsInventory)) DB.inputsInventory = DEFAULT_DB.inputsInventory || [];
+
+  // Ensure that any items present in inventory but missing from master lists are added dynamically
+  DB.samplesInventory.forEach(function(s) {
+    if (s.prodName && DB.products.indexOf(s.prodName) === -1) {
+      DB.products.push(s.prodName);
+    }
+  });
+  DB.giftsInventory.forEach(function(g) {
+    if (g.giftName && DB.gifts.indexOf(g.giftName) === -1) {
+      DB.gifts.push(g.giftName);
+    }
+  });
+  DB.inputsInventory.forEach(function(i) {
+    if (i.inputName && DB.inputs.indexOf(i.inputName) === -1) {
+      DB.inputs.push(i.inputName);
+    }
+  });
   if (!Array.isArray(DB.sfc)) DB.sfc = DEFAULT_DB.sfc || [];
   var sfcUpdated = false;
   DB.sfc.forEach(function(s) {

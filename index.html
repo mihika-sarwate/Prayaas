@@ -1261,7 +1261,10 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">Item Type</label><select id="inv-issue-type" onchange="populateInventoryItemSelect()"><option>Sample Product</option><option>Gift Promotional</option><option>Promotional Input</option></select></div>
         </div>
         <div class="row2">
-          <div><label class="lbl">Item Name</label><select id="inv-issue-item"></select></div>
+          <div style="display:flex; align-items:flex-end; gap:10px;">
+            <div style="flex:1"><label class="lbl">Item Name</label><select id="inv-issue-item"></select></div>
+            <button class="btn sm secondary" style="height:36px; padding:0 15px;" onclick="addNewInventoryMasterItem()">+ New Item</button>
+          </div>
           <div style="display:flex; gap:10px;">
             <div style="flex:1"><label class="lbl">Action</label><select id="inv-issue-action"><option value="add">Add / Issue</option><option value="deduct">Delete / Deduct</option></select></div>
             <div style="flex:1"><label class="lbl">Quantity</label><input type="number" id="inv-issue-qty" min="1" placeholder="Qty"></div>
@@ -13450,6 +13453,25 @@ function populateInventoryItemSelect(){
   });
 }
 
+function addNewInventoryMasterItem() {
+  var type = document.getElementById('inv-issue-type').value;
+  var name = prompt("Enter new " + type + " name:");
+  if (!name || !name.trim()) return;
+  name = name.trim();
+  
+  if (type === 'Sample Product') {
+    if (DB.products.indexOf(name) === -1) DB.products.push(name);
+  } else if (type === 'Gift Promotional') {
+    if (DB.gifts.indexOf(name) === -1) DB.gifts.push(name);
+  } else {
+    if (DB.inputs.indexOf(name) === -1) DB.inputs.push(name);
+  }
+  
+  if (typeof saveDB === 'function') saveDB();
+  populateInventoryItemSelect();
+  document.getElementById('inv-issue-item').value = name;
+}
+
 function issueStockToMR(){
   var empId=document.getElementById('inv-issue-emp').value;
   var type=document.getElementById('inv-issue-type').value;
@@ -14275,41 +14297,47 @@ function renderAdminInventoryTables(){
     updateFilterTriggerStyles('gift');
     updateFilterTriggerStyles('input');
     
+    // Create an employee map for O(1) lookup
+    var empMap = {};
+    if (DB.employees && DB.employees.length) {
+      DB.employees.forEach(function(e){ empMap[e.id] = e; });
+    }
+
     // Render Samples
     var samplesList = DB.samplesInventory.filter(function(s){
-      var emp = DB.employees.find(function(e){return e.id===s.empId;});
+      var emp = empMap[s.empId];
       var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
       return (!mrFilter||s.empId===mrFilter) && (!teamIds || teamIds.includes(s.empId)) && stateMatch;
     });
     samplesList = getFilteredInventoryList(samplesList, 'sample');
     document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
-      var emp=DB.employees.find(function(e){return e.id===s.empId;});
+      var emp = empMap[s.empId];
       var idVal = s.id || (s.empId + '|' + s.prodName);
       return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+s.balance+'</td><td><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Render Gifts
     var giftsList = DB.giftsInventory.filter(function(g){
-      var emp = DB.employees.find(function(e){return e.id===g.empId;});
+      var emp = empMap[g.empId];
       var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
       return (!mrFilter||g.empId===mrFilter) && (!teamIds || teamIds.includes(g.empId)) && stateMatch;
     });
     giftsList = getFilteredInventoryList(giftsList, 'gift');
     document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
-      var emp=DB.employees.find(function(e){return e.id===g.empId;});
+      var emp = empMap[g.empId];
       var idVal = g.id || (g.empId + '|' + g.giftName);
       return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+g.balance+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
  
     // Render Inputs
     var inputsList = DB.inputsInventory.filter(function(i){
-      var emp = DB.employees.find(function(e){return e.id===i.empId;});
+      var emp = empMap[i.empId];
       var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
       return (!mrFilter||i.empId===mrFilter) && (!teamIds || teamIds.includes(i.empId)) && stateMatch;
     });
     inputsList = getFilteredInventoryList(inputsList, 'input');
     document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
-      var emp=DB.employees.find(function(e){return e.id===i.empId;});
+      var emp = empMap[i.empId];
       var idVal = i.id || (i.empId + '|' + i.inputName);
       return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+i.balance+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';

@@ -14871,7 +14871,7 @@ async function runMISReport(){
         return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
       });
       var workingDates=[];
-      DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
+      DB.reports.filter(function(r){return r.empId===e.id && (!from||r.date>=from) && (!to||r.date<=to);}).forEach(function(r){
         if(!workingDates.includes(r.date)) workingDates.push(r.date);
       });
       var days = workingDates.length || 1;
@@ -16241,7 +16241,7 @@ async function runEmpMISReport(){
         return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
       });
       var workingDates=[];
-      DB.reports.filter(function(r){return r.empId===e.id;}).forEach(function(r){
+      DB.reports.filter(function(r){return r.empId===e.id && (!from||r.date>=from) && (!to||r.date<=to);}).forEach(function(r){
         if(!workingDates.includes(r.date)) workingDates.push(r.date);
       });
       var days = workingDates.length || 1;

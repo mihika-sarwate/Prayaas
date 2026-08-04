@@ -4653,13 +4653,14 @@ function clearLocalAssignTo(entityType) {
           }
         });
       }
-      await reconcileSupabaseRows('samples_inventory', DB.samplesInventory || [], function(row) {
-        var empId = row.empId || row.emp_id || '';
-        var prodName = row.prodName || row.prod_name || '';
-        return String(empId).toUpperCase().trim() + '|' + String(prodName).toUpperCase().trim();
-      }, function(row) {
-        return supabase.from('samples_inventory').delete().eq('id', row.id);
-      }, { select: 'id,emp_id,prod_name' });
+      // reconcileSupabaseRows is disabled to prevent downloading the entire table, causing extreme slowdowns
+      // await reconcileSupabaseRows('samples_inventory', DB.samplesInventory || [], function(row) {
+      //   var empId = row.empId || row.emp_id || '';
+      //   var prodName = row.prodName || row.prod_name || '';
+      //   return String(empId).toUpperCase().trim() + '|' + String(prodName).toUpperCase().trim();
+      // }, function(row) {
+      //   return supabase.from('samples_inventory').delete().eq('id', row.id);
+      // }, { select: 'id,emp_id,prod_name' });
     } catch (e) {
       console.error("Error syncing samples inventory:", e);
       hasSyncError = true;
@@ -4696,13 +4697,14 @@ function clearLocalAssignTo(entityType) {
           }
         });
       }
-      await reconcileSupabaseRows('gifts_inventory', DB.giftsInventory || [], function(row) {
-        var empId = row.empId || row.emp_id || '';
-        var giftName = row.giftName || row.gift_name || '';
-        return String(empId).toUpperCase().trim() + '|' + String(giftName).toUpperCase().trim();
-      }, function(row) {
-        return supabase.from('gifts_inventory').delete().eq('id', row.id);
-      }, { select: 'id,emp_id,gift_name' });
+      // reconcileSupabaseRows is disabled to prevent downloading the entire table, causing extreme slowdowns
+      // await reconcileSupabaseRows('gifts_inventory', DB.giftsInventory || [], function(row) {
+      //   var empId = row.empId || row.emp_id || '';
+      //   var giftName = row.giftName || row.gift_name || '';
+      //   return String(empId).toUpperCase().trim() + '|' + String(giftName).toUpperCase().trim();
+      // }, function(row) {
+      //   return supabase.from('gifts_inventory').delete().eq('id', row.id);
+      // }, { select: 'id,emp_id,gift_name' });
     } catch (e) {
       console.error("Error syncing gifts inventory:", e);
       hasSyncError = true;
@@ -4739,13 +4741,14 @@ function clearLocalAssignTo(entityType) {
           }
         });
       }
-      await reconcileSupabaseRows('inputs_inventory', DB.inputsInventory || [], function(row) {
-        var empId = row.empId || row.emp_id || '';
-        var inputName = row.inputName || row.input_name || '';
-        return String(empId).toUpperCase().trim() + '|' + String(inputName).toUpperCase().trim();
-      }, function(row) {
-        return supabase.from('inputs_inventory').delete().eq('id', row.id);
-      }, { select: 'id,emp_id,input_name' });
+      // reconcileSupabaseRows is disabled to prevent downloading the entire table, causing extreme slowdowns
+      // await reconcileSupabaseRows('inputs_inventory', DB.inputsInventory || [], function(row) {
+      //   var empId = row.empId || row.emp_id || '';
+      //   var inputName = row.inputName || row.input_name || '';
+      //   return String(empId).toUpperCase().trim() + '|' + String(inputName).toUpperCase().trim();
+      // }, function(row) {
+      //   return supabase.from('inputs_inventory').delete().eq('id', row.id);
+      // }, { select: 'id,emp_id,input_name' });
     } catch (e) {
       console.error("Error syncing inputs inventory:", e);
       hasSyncError = true;
@@ -13621,14 +13624,24 @@ function issueStockToMR(){
     var ok = updateStockForEmp(empId);
     if (ok) {
       updatedCount++;
-      if (typeof pushUserInventoryToSupabase === 'function') {
-        pushUserInventoryToSupabase(empId);
-      }
     }
   });
 
   if (updatedCount > 0) {
     saveDB();
+    if (targetEmpIds.length === 1) {
+      if (typeof pushUserInventoryToSupabase === 'function') {
+        pushUserInventoryToSupabase(targetEmpIds[0]);
+      }
+    } else {
+      if (typeof syncSupabaseDatabase === 'function') {
+        if (typeof _saveDBSyncTimer !== 'undefined' && _saveDBSyncTimer) {
+          clearTimeout(_saveDBSyncTimer);
+          _saveDBSyncTimer = null;
+        }
+        syncSupabaseDatabase();
+      }
+    }
     var recipientDesc = (!selectedEmpId || selectedEmpId === 'ALL') ? ('all ' + updatedCount + ' employees') : ('employee (' + selectedEmpId + ')');
     showToast('✓ Stock ' + (action === 'add' ? 'issued' : 'deducted') + ' successfully for ' + recipientDesc + '!');
     document.getElementById('inv-issue-qty').value = '';
@@ -13724,7 +13737,7 @@ function uploadInventoryCSV(inp) {
   var file = inp.files[0];
   if (!file) return;
   var reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     var lines = e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
     if (!lines.length) return;
     var added = 0;
@@ -13929,6 +13942,7 @@ function uploadInventoryCSV(inp) {
       });
     } else {
       var dataLines = lines.slice(dataStartIdx);
+      var newEmployeesToInsert = [];
       dataLines.forEach(function(line) {
         var p = parseCSVLine(line);
         if (p.length < 3) return;
@@ -13980,6 +13994,7 @@ function uploadInventoryCSV(inp) {
               leaves: {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
             };
             DB.employees.push(matchedEmp);
+            newEmployeesToInsert.push(matchedEmp);
           }
         }
         
@@ -14070,6 +14085,32 @@ function uploadInventoryCSV(inp) {
           }
         });
       });
+
+      if (newEmployeesToInsert.length > 0 && typeof insertEmployeeRowsToSupabase === 'function') {
+        const dbEmps = newEmployeesToInsert.map(function(e) {
+          return {
+            id: e.id || undefined,
+            name: e.name || '',
+            pwd: e.pwd || '',
+            area: e.area || '',
+            role: e.role || '',
+            manager_id: null,
+            doj: null,
+            state: e.state || null,
+            status: 'Active',
+            account_status: 'ACTIVE',
+            blocked_date: null,
+            blocked_reason: null,
+            designation: 'Medical Representative',
+            leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: 'Medical Representative' })
+          };
+        });
+        try {
+          await insertEmployeeRowsToSupabase(dbEmps);
+        } catch (err) {
+          console.error("Error inserting temporary employees to Supabase:", err);
+        }
+      }
     }
     
     saveDB();
@@ -14077,7 +14118,12 @@ function uploadInventoryCSV(inp) {
       if (_saveDBSyncTimer) clearTimeout(_saveDBSyncTimer);
       _saveDBSyncTimer = null;
       showToast("Syncing uploaded records to Supabase Cloud...", 10000);
-      syncSupabaseDatabase();
+      try {
+        await syncSupabaseDatabase();
+        showToast("✓ Sync completed successfully!");
+      } catch (err) {
+        showToast("⚠️ Sync failed: " + (err.message || JSON.stringify(err)));
+      }
     } else {
       showToast(added + ' inventory records processed successfully!');
     }

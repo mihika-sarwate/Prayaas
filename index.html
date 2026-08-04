@@ -9636,6 +9636,11 @@ function goAdminTab(name){
   if(name==='announcements') {
     renderBroadcastPanel('sec-adm-announcements');
   }
+  if(name==='inventory') {
+    populateAdminEmpFilters();
+    populateInventoryItemSelect();
+    renderAdminInventoryTables();
+  }
   if (name === 'visit') {
     var tr = document.getElementById('tab-report');
     if(tr) {
@@ -13507,62 +13512,89 @@ function addNewInventoryMasterItem() {
 }
 
 function issueStockToMR(){
-  var empId=document.getElementById('inv-issue-emp').value;
-  var type=document.getElementById('inv-issue-type').value;
-  var itemName=document.getElementById('inv-issue-item').value;
-  var qty=parseInt(document.getElementById('inv-issue-qty').value)||0;
-  var action=document.getElementById('inv-issue-action').value;
+  var empSelect = document.getElementById('inv-issue-emp');
+  var selectedEmpId = empSelect ? empSelect.value : '';
+  var type = document.getElementById('inv-issue-type').value;
+  var itemName = document.getElementById('inv-issue-item').value;
+  var qty = parseInt(document.getElementById('inv-issue-qty').value) || 0;
+  var action = document.getElementById('inv-issue-action').value;
   
-  if(!empId||!itemName||qty<=0){
-    showToast('Please verify fields and quantity!');
+  if (!itemName) {
+    showToast('Please select an Item Name!');
     return;
   }
-  
-  function updateStock(stockList, nameField) {
-    var stock=stockList.find(function(s){return s.empId===empId && s[nameField]===itemName;});
-    if(stock){
-      if(action === 'add') {
-        stock.received+=qty;
-        stock.balance+=qty;
+  if (qty <= 0) {
+    showToast('Please enter a valid Quantity (greater than 0)!');
+    return;
+  }
+
+  // Determine target employees
+  var targetEmpIds = [];
+  if (!selectedEmpId || selectedEmpId === 'ALL') {
+    // "All Employees" selected - issue stock to all non-admin employees in scope
+    var u = SESSION.user;
+    var teamIds = typeof getReportScopeEmployeeIds === 'function' ? getReportScopeEmployeeIds(u, true) : null;
+    (DB.employees || []).forEach(function(e) {
+      if (e.role !== 'admin' && (!teamIds || teamIds.includes(e.id))) {
+        targetEmpIds.push(e.id);
+      }
+    });
+    if (targetEmpIds.length === 0) {
+      showToast('No eligible employees found to issue stock to!');
+      return;
+    }
+  } else {
+    targetEmpIds.push(selectedEmpId);
+  }
+
+  function updateStockForEmp(empId) {
+    var stockList = (type === 'Sample Product') ? DB.samplesInventory : ((type === 'Gift Promotional') ? DB.giftsInventory : DB.inputsInventory);
+    var nameField = (type === 'Sample Product') ? 'prodName' : ((type === 'Gift Promotional') ? 'giftName' : 'inputName');
+    
+    var stock = stockList.find(function(s){ return s.empId === empId && s[nameField] === itemName; });
+    if (stock) {
+      if (action === 'add') {
+        stock.received = (stock.received || 0) + qty;
+        stock.balance = (stock.balance || 0) + qty;
       } else {
-        if(stock.balance < qty) {
-          showToast('Insufficient stock to delete/deduct!');
+        if ((stock.balance || 0) < qty) {
           return false;
         }
-        stock.received-=qty;
-        stock.balance-=qty;
+        stock.received = Math.max(0, (stock.received || 0) - qty);
+        stock.balance = Math.max(0, (stock.balance || 0) - qty);
       }
     } else {
-      if(action === 'add') {
-        var newItem = {empId:empId, opening:0, received:qty, distributed:0, balance:qty};
+      if (action === 'add') {
+        var newItem = { empId: empId, opening: 0, received: qty, distributed: 0, balance: qty };
         newItem[nameField] = itemName;
         stockList.push(newItem);
       } else {
-        showToast('Item not found in inventory to delete!');
         return false;
       }
     }
     return true;
   }
 
-  var success = false;
-  if(type==='Sample Product'){
-    success = updateStock(DB.samplesInventory, 'prodName');
-  } else if(type==='Gift Promotional'){
-    success = updateStock(DB.giftsInventory, 'giftName');
-  } else {
-    success = updateStock(DB.inputsInventory, 'inputName');
-  }
-  
-  if (success) {
-    saveDB();
-    if (typeof pushUserInventoryToSupabase === 'function') {
-      pushUserInventoryToSupabase(empId);
+  var updatedCount = 0;
+  targetEmpIds.forEach(function(empId) {
+    var ok = updateStockForEmp(empId);
+    if (ok) {
+      updatedCount++;
+      if (typeof pushUserInventoryToSupabase === 'function') {
+        pushUserInventoryToSupabase(empId);
+      }
     }
-    showToast('Stock ' + (action==='add' ? 'issued' : 'deducted') + ' successfully!');
-    document.getElementById('inv-issue-qty').value='';
+  });
+
+  if (updatedCount > 0) {
+    saveDB();
+    var recipientDesc = (!selectedEmpId || selectedEmpId === 'ALL') ? ('all ' + updatedCount + ' employees') : ('employee (' + selectedEmpId + ')');
+    showToast('✓ Stock ' + (action === 'add' ? 'issued' : 'deducted') + ' successfully for ' + recipientDesc + '!');
+    document.getElementById('inv-issue-qty').value = '';
     if (typeof renderAdminInventoryTables === 'function') renderAdminInventoryTables();
     if (typeof renderEmpInventoryTables === 'function') renderEmpInventoryTables();
+  } else {
+    showToast('Unable to update stock (verify item existence or stock balance).');
   }
 }
 

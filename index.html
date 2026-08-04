@@ -2982,6 +2982,29 @@ async function initSupabaseData(isSilent) {
       DB.inputs = Array.from(new Set(DB.inputs));
     }
 
+    // Ensure that any items present in inventory but missing from master lists are added dynamically
+    if (Array.isArray(DB.samplesInventory)) {
+      DB.samplesInventory.forEach(function(s) {
+        if (s.prodName && DB.products.indexOf(s.prodName) === -1) {
+          DB.products.push(s.prodName);
+        }
+      });
+    }
+    if (Array.isArray(DB.giftsInventory)) {
+      DB.giftsInventory.forEach(function(g) {
+        if (g.giftName && DB.gifts.indexOf(g.giftName) === -1) {
+          DB.gifts.push(g.giftName);
+        }
+      });
+    }
+    if (Array.isArray(DB.inputsInventory)) {
+      DB.inputsInventory.forEach(function(i) {
+        if (i.inputName && DB.inputs.indexOf(i.inputName) === -1) {
+          DB.inputs.push(i.inputName);
+        }
+      });
+    }
+
     // Auto-correct pre-existing inventory entries to use the Title Case standard names
     DB.samplesInventory.forEach(function(s) {
       var matched = DEFAULT_DB.products.find(function(dp) { return cleanNameForComparison(dp) === cleanNameForComparison(s.prodName); });

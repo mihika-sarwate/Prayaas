@@ -2236,41 +2236,63 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
   // Treat all rows as upserts unless it's a specific table, because tables like employees use custom string IDs (e.g. "EMP001") instead of serial integers. 
   // If we try to split by 'id === undefined' as inserts and 'id !== undefined' as updates, new records with custom string IDs are sent to updates and fail or don't trigger creation.
   var inserts = [];
-  var updates = deduped;
+  var updates = [];
+
+  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists');
+
+  deduped.forEach(function(r) {
+    if (isTextKeyTable) {
+      updates.push(r);
+    } else {
+      var hasValidId = r.id !== undefined && r.id !== null && r.id !== '' && (typeof r.id === 'number' || /^\d+$/.test(String(r.id).trim()));
+      if (hasValidId) {
+        var copyUpdate = Object.assign({}, r);
+        copyUpdate.id = Number(r.id);
+        updates.push(copyUpdate);
+      } else {
+        var copyInsert = Object.assign({}, r);
+        delete copyInsert.id;
+        inserts.push(copyInsert);
+      }
+    }
+  });
 
   let allUpdatedRows = [];
   async function processArray(arr, useInsert) {
-    if (_missingSupabaseTables[table]) return; // Skip sync for known-missing tables
+    if (!arr.length || _missingSupabaseTables[table]) return;
     console.log("processArray(" + table + "): processing " + arr.length + " rows in chunks of " + chunkSize + ". useInsert=" + useInsert);
     for (let i = 0; i < arr.length; i += chunkSize) {
       const chunk = arr.slice(i, i + chunkSize);
       console.log("Sending chunk " + (i/chunkSize + 1) + " of " + Math.ceil(arr.length/chunkSize) + " to table " + table + ". Size: " + chunk.length);
       
-      // Perform upsert with custom option onConflict to guarantee compatibility with custom text primary keys (like employees.id, doctors.id)
       let opt = {};
       let query;
-      if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists') {
-        opt = { onConflict: 'id' };
-      } else if (table === 'attendance') {
-        opt = { onConflict: 'employee_id,date' };
-      } else if (table === 'weekly_off_config') {
-        opt = { onConflict: 'employee_id,weekday' };
-      } else if (table === 'holidays') {
-        opt = { onConflict: 'date,state' };
+      if (useInsert) {
+        query = supabase.from(table).insert(chunk);
+      } else {
+        if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists') {
+          opt = { onConflict: 'id' };
+        } else if (table === 'attendance') {
+          opt = { onConflict: 'employee_id,date' };
+        } else if (table === 'weekly_off_config') {
+          opt = { onConflict: 'employee_id,weekday' };
+        } else if (table === 'holidays') {
+          opt = { onConflict: 'date,state' };
+        }
+        
+        let rowsToUpsert = chunk;
+        if (table === 'employees') {
+          rowsToUpsert = chunk.map(function(r) {
+            var copy = Object.assign({}, r);
+            delete copy.account_status;
+            delete copy.blocked_date;
+            delete copy.blocked_reason;
+            return copy;
+          });
+        }
+        query = supabase.from(table).upsert(rowsToUpsert, opt);
       }
-      
-      let rowsToUpsert = chunk;
-      if (table === 'employees') {
-        rowsToUpsert = chunk.map(function(r) {
-          var copy = Object.assign({}, r);
-          delete copy.account_status;
-          delete copy.blocked_date;
-          delete copy.blocked_reason;
-          return copy;
-        });
-      }
-      
-      query = supabase.from(table).upsert(rowsToUpsert, opt);
+
       if (table === 'sfc') {
         query = query.select('id,emp_id,from_loc,to_loc,distance,mode,category,fare,da,working_days,emp_name,hq,state,doctors,business');
       } else if (table === 'samples_inventory') {
@@ -2288,9 +2310,9 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
         var isMissingTable = res.error.code === 'PGRST205' || /could not find the table/i.test(res.error.message || '');
         if (isMissingTable) {
           _missingSupabaseTables[table] = true;
-          return; // Skip silently
+          return;
         }
-        console.error("Batch upsert/insert failed on table " + table + ":", JSON.stringify(res.error));
+        console.error("Batch operation failed on table " + table + ":", JSON.stringify(res.error));
         console.error("Error message: " + res.error.message + ", details: " + res.error.details + ", hint: " + res.error.hint);
         throw res.error;
       }
@@ -2300,7 +2322,13 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
     }
   }
 
-  await processArray(updates, false);
+  if (inserts.length > 0) {
+    await processArray(inserts, true);
+  }
+  if (updates.length > 0) {
+    await processArray(updates, false);
+  }
+
   return allUpdatedRows;
 }
 
@@ -3610,6 +3638,19 @@ function clearLocalManagerName(entityType) {
 
 function saveDB(skipSync) {
   if (DB) {
+    ['samplesInventory', 'giftsInventory', 'inputsInventory'].forEach(function(arrName) {
+      if (Array.isArray(DB[arrName])) {
+        DB[arrName].forEach(function(item) {
+          if (item && item.id !== undefined && item.id !== null) {
+            if (!isIntegerId(item.id)) {
+              delete item.id;
+            } else {
+              item.id = Number(item.id);
+            }
+          }
+        });
+      }
+    });
     if (Array.isArray(DB.samplesInventory)) {
       var seen = new Set();
       DB.samplesInventory = DB.samplesInventory.filter(function(s) {

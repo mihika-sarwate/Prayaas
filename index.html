@@ -828,12 +828,13 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="mgr_accomp">8. Manager Accompaniment Report</option>
             <option value="samples_util">9. Sample Utilization Report</option>
             <option value="gifts_util">10. Gift Utilization Report</option>
-            <option value="expenses_rep">11. Expense Summary Report</option>
-            <option value="leaves_rep">12. Leave Utilisation Report</option>
-            <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
-            <option value="transit_rep">14. Transit Report</option>
-            <option value="meeting_rep">15. Employee Reported Meetings</option>
-            <option value="tp_submissions">16. Tour Plan Submission Status</option>
+            <option value="inputs_util">11. Promotional Input Utilization Report</option>
+            <option value="expenses_rep">12. Expense Summary Report</option>
+            <option value="leaves_rep">13. Leave Utilisation Report</option>
+            <option value="doc_coverage">14. Doctor Coverage &amp; Visited Analysis</option>
+            <option value="transit_rep">15. Transit Report</option>
+            <option value="meeting_rep">16. Employee Reported Meetings</option>
+            <option value="tp_submissions">17. Tour Plan Submission Status</option>
           </select>
         </div>
         <div class="row2">
@@ -1373,12 +1374,13 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="mgr_accomp">8. Manager Accompaniment Report</option>
             <option value="samples_util">9. Sample Utilization Report</option>
             <option value="gifts_util">10. Gift Utilization Report</option>
-            <option value="expenses_rep">11. Expense Summary Report</option>
-            <option value="leaves_rep">12. Leave Utilisation Report</option>
-            <option value="doc_coverage">13. Doctor Coverage &amp; Visited Analysis</option>
-            <option value="transit_rep">14. Transit Report</option>
-            <option value="meeting_rep">15. Employee Reported Meetings</option>
-            <option value="tp_submissions">16. Tour Plan Submission Status</option>
+            <option value="inputs_util">11. Promotional Input Utilization Report</option>
+            <option value="expenses_rep">12. Expense Summary Report</option>
+            <option value="leaves_rep">13. Leave Utilisation Report</option>
+            <option value="doc_coverage">14. Doctor Coverage &amp; Visited Analysis</option>
+            <option value="transit_rep">15. Transit Report</option>
+            <option value="meeting_rep">16. Employee Reported Meetings</option>
+            <option value="tp_submissions">17. Tour Plan Submission Status</option>
           </select>
         </div>
         <div class="row3">
@@ -3816,6 +3818,13 @@ async function pushReportToSupabase(rep) {
   }
 }
 
+function isIntegerId(val) {
+  if (val === undefined || val === null || val === '') return false;
+  if (typeof val === 'number' && Number.isInteger(val)) return true;
+  if (typeof val === 'string' && /^\d+$/.test(val.trim())) return true;
+  return false;
+}
+
 // Push a user's inventory tables (samples, gifts, inputs) directly to Supabase.
 // Used when reporting a call report so that inventory updates are visible in cloud instantly.
 async function pushUserInventoryToSupabase(empId) {
@@ -3833,8 +3842,8 @@ async function pushUserInventoryToSupabase(empId) {
         distributed: s.distributed || 0,
         balance: s.balance || 0
       };
-      if (s.id !== undefined && s.id !== null && !String(s.id).startsWith('SAMPLEINV')) {
-        row.id = s.id;
+      if (isIntegerId(s.id)) {
+        row.id = Number(s.id);
       }
       return row;
     });
@@ -3844,7 +3853,7 @@ async function pushUserInventoryToSupabase(empId) {
         var needsSave = false;
         resRows.forEach(function(row) {
           var localItem = userSamples.find(function(s) { return s.prodName === row.prod_name && s.empId === row.emp_id; });
-          if (localItem && String(localItem.id).startsWith('SAMPLEINV')) {
+          if (localItem && localItem.id !== row.id) {
             localItem.id = row.id;
             needsSave = true;
           }
@@ -3868,8 +3877,8 @@ async function pushUserInventoryToSupabase(empId) {
         distributed: g.distributed || 0,
         balance: g.balance || 0
       };
-      if (g.id !== undefined && g.id !== null && !String(g.id).startsWith('GIFTINV')) {
-        row.id = g.id;
+      if (isIntegerId(g.id)) {
+        row.id = Number(g.id);
       }
       return row;
     });
@@ -3879,7 +3888,7 @@ async function pushUserInventoryToSupabase(empId) {
         var needsSave = false;
         resRows.forEach(function(row) {
           var localItem = userGifts.find(function(g) { return g.giftName === row.gift_name && g.empId === row.emp_id; });
-          if (localItem && String(localItem.id).startsWith('GIFTINV')) {
+          if (localItem && localItem.id !== row.id) {
             localItem.id = row.id;
             needsSave = true;
           }
@@ -3903,8 +3912,8 @@ async function pushUserInventoryToSupabase(empId) {
         distributed: i.distributed || 0,
         balance: i.balance || 0
       };
-      if (i.id !== undefined && i.id !== null && !String(i.id).startsWith('INPUTINV')) {
-        row.id = i.id;
+      if (isIntegerId(i.id)) {
+        row.id = Number(i.id);
       }
       return row;
     });
@@ -3914,7 +3923,7 @@ async function pushUserInventoryToSupabase(empId) {
         var needsSave = false;
         resRows.forEach(function(row) {
           var localItem = userInputs.find(function(i) { return i.inputName === row.input_name && i.empId === row.emp_id; });
-          if (localItem && String(localItem.id).startsWith('INPUTINV')) {
+          if (localItem && localItem.id !== row.id) {
             localItem.id = row.id;
             needsSave = true;
           }
@@ -4589,8 +4598,8 @@ function clearLocalAssignTo(entityType) {
           distributed: s.distributed || 0,
           balance: s.balance || 0
         };
-        if (s.id !== undefined && s.id !== null && !String(s.id).startsWith('SAMPLEINV')) {
-          row.id = s.id;
+        if (isIntegerId(s.id)) {
+          row.id = Number(s.id);
         }
         return row;
       });
@@ -4632,8 +4641,8 @@ function clearLocalAssignTo(entityType) {
           distributed: g.distributed || 0,
           balance: g.balance || 0
         };
-        if (g.id !== undefined && g.id !== null && !String(g.id).startsWith('GIFTINV')) {
-          row.id = g.id;
+        if (isIntegerId(g.id)) {
+          row.id = Number(g.id);
         }
         return row;
       });
@@ -4675,8 +4684,8 @@ function clearLocalAssignTo(entityType) {
           distributed: i.distributed || 0,
           balance: i.balance || 0
         };
-        if (i.id !== undefined && i.id !== null && !String(i.id).startsWith('INPUTINV')) {
-          row.id = i.id;
+        if (isIntegerId(i.id)) {
+          row.id = Number(i.id);
         }
         return row;
       });
@@ -13472,67 +13481,29 @@ function populateInventoryItemSelect(){
 }
 
 function addNewInventoryMasterItem() {
-  var type = document.getElementById('inv-issue-type').value;
-  var name = prompt("Enter new " + type + " name:");
+  var typeSelect = document.getElementById('inv-issue-type');
+  var type = typeSelect ? typeSelect.value : 'Sample Product';
+  var sectionName = (type === 'Sample Product') ? 'Sample Products Section' : (type === 'Gift Promotional' ? 'Promotional Gifts Section' : 'Promotional Inputs Section');
+  
+  var name = prompt("Add New Item to [" + sectionName + "]:\nEnter item name:");
   if (!name || !name.trim()) return;
   name = name.trim();
   
   if (type === 'Sample Product') {
     if (DB.products.indexOf(name) === -1) DB.products.push(name);
-    (DB.employees || []).forEach(function(e) {
-      var exists = (DB.samplesInventory || []).some(function(s) { return s.empId === e.id && s.prodName === name; });
-      if (!exists) {
-        DB.samplesInventory.push({
-          id: 'SMPINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
-          prodName: name,
-          empId: e.id,
-          opening: 0,
-          received: 0,
-          distributed: 0,
-          balance: 0
-        });
-      }
-    });
   } else if (type === 'Gift Promotional') {
     if (DB.gifts.indexOf(name) === -1) DB.gifts.push(name);
-    (DB.employees || []).forEach(function(e) {
-      var exists = (DB.giftsInventory || []).some(function(g) { return g.empId === e.id && g.giftName === name; });
-      if (!exists) {
-        DB.giftsInventory.push({
-          id: 'GFTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
-          giftName: name,
-          empId: e.id,
-          opening: 0,
-          received: 0,
-          distributed: 0,
-          balance: 0
-        });
-      }
-    });
   } else {
     if (DB.inputs.indexOf(name) === -1) DB.inputs.push(name);
-    (DB.employees || []).forEach(function(e) {
-      var exists = (DB.inputsInventory || []).some(function(i) { return i.empId === e.id && i.inputName === name; });
-      if (!exists) {
-        DB.inputsInventory.push({
-          id: 'INPINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
-          inputName: name,
-          empId: e.id,
-          opening: 0,
-          received: 0,
-          distributed: 0,
-          balance: 0
-        });
-      }
-    });
   }
   
   if (typeof saveDB === 'function') saveDB();
   populateInventoryItemSelect();
-  document.getElementById('inv-issue-item').value = name;
+  var itemSel = document.getElementById('inv-issue-item');
+  if (itemSel) itemSel.value = name;
   if (typeof renderAdminInventoryTables === 'function') renderAdminInventoryTables();
   if (typeof renderEmpInventoryTables === 'function') renderEmpInventoryTables();
-  showToast('Added "' + name + '" to master list and initialized employee inventory records!');
+  showToast('✓ Added "' + name + '" to ' + sectionName + '!');
 }
 
 function issueStockToMR(){
@@ -13558,7 +13529,7 @@ function issueStockToMR(){
           showToast('Insufficient stock to delete/deduct!');
           return false;
         }
-        stock.received-=qty; // Assuming deduct means reversing received, or maybe just adjusting balance? Usually deduct is from balance. Let's subtract from received too to keep it balanced if it was a mistake.
+        stock.received-=qty;
         stock.balance-=qty;
       }
     } else {
@@ -13585,9 +13556,13 @@ function issueStockToMR(){
   
   if (success) {
     saveDB();
+    if (typeof pushUserInventoryToSupabase === 'function') {
+      pushUserInventoryToSupabase(empId);
+    }
     showToast('Stock ' + (action==='add' ? 'issued' : 'deducted') + ' successfully!');
     document.getElementById('inv-issue-qty').value='';
-    renderAdminInventoryTables();
+    if (typeof renderAdminInventoryTables === 'function') renderAdminInventoryTables();
+    if (typeof renderEmpInventoryTables === 'function') renderEmpInventoryTables();
   }
 }
 
@@ -14944,7 +14919,7 @@ async function runMISReport(){
       
       // Calculate distributed in date range from reports
       var myReports = DB.reports.filter(function(r){
-        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+        return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
         var parsedSamples = parseJSONField(r.samples);
@@ -14979,7 +14954,7 @@ async function runMISReport(){
       
       // Calculate distributed in date range from reports
       var myReports = DB.reports.filter(function(r){
-        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+        return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
         var parsedGifts = parseJSONField(r.gifts);
@@ -14994,6 +14969,41 @@ async function runMISReport(){
         // Only show if there was inventory or if it was distributed
         if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
           currentMISData.push([e.name, state, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
+          currentMISRowIds.push(null);
+        }
+      }
+    });
+
+  } else if(currentReportType==='inputs_util'){
+    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
+    
+    empsToProcess.forEach(function(e) {
+      var state = e.state || 'N/A';
+      // Get all inputs ever allocated
+      var myInv = DB.inputsInventory.filter(function(i){ return i.empId === e.id; });
+      var itemsMap = {};
+      myInv.forEach(function(i){
+        itemsMap[i.inputName] = { opening: i.opening, received: i.received, balance: i.balance, distributed: 0 };
+      });
+      
+      // Calculate distributed in date range from reports
+      var myReports = DB.reports.filter(function(r){
+        return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
+      });
+      myReports.forEach(function(r) {
+        var parsedInputs = parseJSONField(r.inputs);
+        for (var ip in parsedInputs) {
+          if (!itemsMap[ip]) itemsMap[ip] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+          itemsMap[ip].distributed += parsedInputs[ip];
+        }
+      });
+      
+      // Add to table
+      for (var ip in itemsMap) {
+        // Only show if there was inventory or if it was distributed
+        if (itemsMap[ip].opening > 0 || itemsMap[ip].received > 0 || itemsMap[ip].distributed > 0 || itemsMap[ip].balance > 0) {
+          currentMISData.push([e.name, state, ip, itemsMap[ip].opening, itemsMap[ip].received, itemsMap[ip].distributed, itemsMap[ip].balance]);
           currentMISRowIds.push(null);
         }
       }
@@ -16195,7 +16205,7 @@ async function runEmpMISReport(){
         itemsMap[s.prodName] = { opening: s.opening, received: s.received, balance: s.balance, distributed: 0 };
       });
       var myReports = DB.reports.filter(function(r){
-        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+        return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
         var parsedSamples = parseJSONField(r.samples);
@@ -16222,7 +16232,7 @@ async function runEmpMISReport(){
         itemsMap[g.giftName] = { opening: g.opening, received: g.received, balance: g.balance, distributed: 0 };
       });
       var myReports = DB.reports.filter(function(r){
-        return r.empId === e.id && r.targetType === 'Doctor' && (!from || r.date >= from) && (!to || r.date <= to);
+        return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
         var parsedGifts = parseJSONField(r.gifts);
@@ -16234,6 +16244,33 @@ async function runEmpMISReport(){
       for (var g in itemsMap) {
         if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
           currentEmpMISData.push([e.name, state, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
+        }
+      }
+    }
+
+  } else if(currentEmpReportType==='inputs_util'){
+    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    var e = DB.employees.find(function(x){ return x.id === empId; });
+    if (e) {
+      var state = e.state || 'N/A';
+      var myInv = DB.inputsInventory.filter(function(i){ return i.empId === e.id; });
+      var itemsMap = {};
+      myInv.forEach(function(i){
+        itemsMap[i.inputName] = { opening: i.opening, received: i.received, balance: i.balance, distributed: 0 };
+      });
+      var myReports = DB.reports.filter(function(r){
+        return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
+      });
+      myReports.forEach(function(r) {
+        var parsedInputs = parseJSONField(r.inputs);
+        for (var ip in parsedInputs) {
+          if (!itemsMap[ip]) itemsMap[ip] = { opening: 0, received: 0, balance: 0, distributed: 0 };
+          itemsMap[ip].distributed += parsedInputs[ip];
+        }
+      });
+      for (var ip in itemsMap) {
+        if (itemsMap[ip].opening > 0 || itemsMap[ip].received > 0 || itemsMap[ip].distributed > 0 || itemsMap[ip].balance > 0) {
+          currentEmpMISData.push([e.name, state, ip, itemsMap[ip].opening, itemsMap[ip].received, itemsMap[ip].distributed, itemsMap[ip].balance]);
         }
       }
     }

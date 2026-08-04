@@ -2238,7 +2238,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
   var inserts = [];
   var updates = [];
 
-  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists');
+  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves');
 
   deduped.forEach(function(r) {
     if (isTextKeyTable) {
@@ -2270,7 +2270,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
       if (useInsert) {
         query = supabase.from(table).insert(chunk);
       } else {
-        if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists') {
+        if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves') {
           opt = { onConflict: 'id' };
         } else if (table === 'attendance') {
           opt = { onConflict: 'employee_id,date' };

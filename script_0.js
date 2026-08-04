@@ -5280,6 +5280,8 @@ function validateAttendanceForDate(dateStr) {
   var changed = false;
   (DB.employees || []).forEach(function(emp) {
     if (!isAttendanceTrackedEmployee(emp)) return;
+    var resetFrom = typeof getEmployeeAttendanceResetFrom === 'function' ? getEmployeeAttendanceResetFrom(emp) : '';
+    if (resetFrom && dateStr <= resetFrom) return;
     normalizeEmployeeRecord(emp);
     if (normalizeEmployeeStatus(emp.status) !== 'Active') return;
     var doj = formatDateForPostgres(emp.doj) || '';
@@ -10578,7 +10580,7 @@ function editLeaveRecord(empId) {
 
   var html = '<div class="modal-bg on" id="dynamic-leave-modal">' +
     '<div class="modal" style="max-width: 400px;">' +
-      '<div class="modal-title">Edit Leaves: ' + escapeHTML(emp.name) + ' <button class="modal-close" onclick="document.getElementById(\\\'dynamic-leave-modal\\\').remove()">&#215;</button></div>' +
+      '<div class="modal-title">Edit Leaves: ' + escapeHTML(emp.name) + ' <button class="modal-close" onclick="document.getElementById(\'dynamic-leave-modal\').remove()">&#215;</button></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
         '<div class="form-group"><label>CL Limit</label><input type="number" id="edit-cl" class="input" value="'+(emp.leaves.CL||0)+'"></div>' +
         '<div class="form-group"><label>CL Used</label><input type="number" id="edit-cl-used" class="input" value="'+(emp.leaves.CL_used||0)+'"></div>' +

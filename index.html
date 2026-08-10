@@ -2849,7 +2849,7 @@ async function initSupabaseData(isSilent) {
         });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.samplesInventory)) {
           DB.samplesInventory.forEach(function(localSample) {
-            if (localSample && localSample.id && String(localSample.id).startsWith('SAMPLEINV')) {
+            if (localSample) {
               var key = String(localSample.empId).toUpperCase().trim() + '|' + String(localSample.prodName).toUpperCase().trim();
               if (!seen.has(key)) {
                 seen.add(key);
@@ -2881,7 +2881,7 @@ async function initSupabaseData(isSilent) {
         });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.giftsInventory)) {
           DB.giftsInventory.forEach(function(localGift) {
-            if (localGift && localGift.id && String(localGift.id).startsWith('GIFTINV')) {
+            if (localGift) {
               var key = String(localGift.empId).toUpperCase().trim() + '|' + String(localGift.giftName).toUpperCase().trim();
               if (!seen.has(key)) {
                 seen.add(key);
@@ -2913,7 +2913,7 @@ async function initSupabaseData(isSilent) {
         });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.inputsInventory)) {
           DB.inputsInventory.forEach(function(localInput) {
-            if (localInput && localInput.id && String(localInput.id).startsWith('INPUTINV')) {
+            if (localInput) {
               var key = String(localInput.empId).toUpperCase().trim() + '|' + String(localInput.inputName).toUpperCase().trim();
               if (!seen.has(key)) {
                 seen.add(key);
@@ -5823,8 +5823,16 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
+          '<input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="smp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -5842,8 +5850,16 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
+          '<input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="gft-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -5861,8 +5877,16 @@ function populateReportingDropdowns(){
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
+          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+        '</div>'+
+        '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
+          '<input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
+        '</div>'+
+        '<div style="text-align: center; min-width: 50px;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
+          '<span id="inp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -13874,6 +13898,19 @@ function uploadInventoryCSV(inp) {
           return String(x.id || '').toUpperCase() === empId.toUpperCase();
         });
         if (!matchedEmp) return;
+        if (matchedEmp.role === 'manager') {
+          var managerArea = String(matchedEmp.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+          if (managerArea) {
+            var repEmp = DB.employees.find(function(x) {
+              if (x.role !== 'emp') return false;
+              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+              return areaClean === managerArea || areaClean.indexOf(managerArea) !== -1 || areaClean.indexOf(managerArea) !== -1;
+            });
+            if (repEmp) {
+              matchedEmp = repEmp;
+            }
+          }
+        }
         empId = matchedEmp.id;
         
         var category = '';
@@ -13983,12 +14020,45 @@ function uploadInventoryCSV(inp) {
           });
         }
         
+        if (matchedEmp && matchedEmp.role === 'manager') {
+          var managerArea = String(matchedEmp.area || hq || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+          if (managerArea) {
+            var repEmp = DB.employees.find(function(x) {
+              if (x.role !== 'emp') return false;
+              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+              return areaClean === managerArea || areaClean.indexOf(managerArea) !== -1 || managerArea.indexOf(areaClean) !== -1;
+            });
+            if (repEmp) {
+              matchedEmp = repEmp;
+            }
+          }
+        }
+        
         if (!matchedEmp && hq) {
           var hqUpper = hq.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
           matchedEmp = DB.employees.find(function(x) {
+            if (x.role !== 'emp') return false;
             var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
             return areaClean === hqUpper;
           });
+          
+          if (!matchedEmp) {
+            matchedEmp = DB.employees.find(function(x) {
+              if (x.role !== 'emp') return false;
+              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+              return areaClean.replace(/PORE$/, 'PUR') === hqUpper.replace(/PORE$/, 'PUR') ||
+                     areaClean.replace(/PUR$/, 'PORE') === hqUpper.replace(/PUR$/, 'PORE') ||
+                     areaClean.indexOf(hqUpper) !== -1 ||
+                     hqUpper.indexOf(areaClean) !== -1;
+            });
+          }
+          
+          if (!matchedEmp) {
+            matchedEmp = DB.employees.find(function(x) {
+              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+              return areaClean === hqUpper;
+            });
+          }
           
           if (!matchedEmp) {
             matchedEmp = DB.employees.find(function(x) {

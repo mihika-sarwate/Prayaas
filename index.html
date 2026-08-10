@@ -1659,7 +1659,7 @@ function cleanNameForComparison(name) {
 // Master Data Store
 var DEFAULT_DB={
   employees:[
-    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'adonis@1234',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}}
+    {id:'ADMIN',name:'Administrator',designation:'System Administrator',pwd:'adonis@1234',area:'HQ',role:'admin',managerId:'',doj:'2025-01-01',state:'Maharashtra',status:'Active',leaves:{CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}}
   ],
   doctors:[],
   chemists:[],
@@ -3484,7 +3484,7 @@ async function seedSupabaseDatabase() {
         blocked_date: formatDateForPostgres(e.blockedDate) || null,
         blocked_reason: e.blockedReason || null,
         designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role),
-        leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
+        leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}, { _designation: typeof e.designation !== 'undefined' ? (e.designation || '').trim() : getDefaultEmployeeDesignation(e.role) })
       };
     });
     await insertEmployeeRowsToSupabase(dbEmps);
@@ -10831,7 +10831,7 @@ function addEmployee(){
     state:state,
     status:normalizeEmployeeStatus(status),
     allowPastReports:allowPastReports,
-    leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+    leaves:{CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}
   });
   saveDB();
   
@@ -11045,7 +11045,7 @@ function uploadEmployees(inp){
           doj:cols[dojCol]||'',
           state:cols[stateCol]||'',
           status:normalizeEmployeeStatus(cols[statusCol]||'Active'),
-          leaves:{CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+          leaves:{CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}
         };
       }
       
@@ -13236,7 +13236,7 @@ function toggleSelectAllLeaves(chk) {
 function editLeaveRecord(empId) {
   var emp = DB.employees.find(function(e) { return e.id === empId; });
   if (!emp) return;
-  if (!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+  if (!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0};
   
   var oldModal = document.getElementById('dynamic-leave-modal');
   if (oldModal) oldModal.remove();
@@ -13475,16 +13475,24 @@ function uploadLeaveBalances(inp){
       var empId = String(p[idCol]).trim().toUpperCase();
       var emp = empByIdMap[empId];
       if(emp){
-        if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
+        if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0};
         
         if (stateCol !== -1 && p[stateCol]) emp.state = String(p[stateCol]).trim();
         if (clCol !== -1 && p[clCol]) emp.leaves.CL = parseInt(p[clCol]) || 0;
-        if (plCol !== -1 && p[plCol]) emp.leaves.EL = parseInt(p[plCol]) || 0; // PL mapped to EL
+        if (plCol !== -1 && p[plCol]) {
+          var val = parseInt(p[plCol]) || 0;
+          emp.leaves.EL = val;
+          emp.leaves.PL = val;
+        }
         if (slCol !== -1 && p[slCol]) emp.leaves.SL = parseInt(p[slCol]) || 0;
         if (lopCol !== -1 && p[lopCol]) emp.leaves.LWP = parseInt(p[lopCol]) || 0;
         
         if (clUsedCol !== -1 && p[clUsedCol]) emp.leaves.CL_used = parseInt(p[clUsedCol]) || 0;
-        if (plUsedCol !== -1 && p[plUsedCol]) emp.leaves.EL_used = parseInt(p[plUsedCol]) || 0;
+        if (plUsedCol !== -1 && p[plUsedCol]) {
+          var valUsed = parseInt(p[plUsedCol]) || 0;
+          emp.leaves.EL_used = valUsed;
+          emp.leaves.PL_used = valUsed;
+        }
         if (slUsedCol !== -1 && p[slUsedCol]) emp.leaves.SL_used = parseInt(p[slUsedCol]) || 0;
         if (lopUsedCol !== -1 && p[lopUsedCol]) emp.leaves.LWP_used = parseInt(p[lopUsedCol]) || 0;
         
@@ -14276,7 +14284,7 @@ function uploadInventoryCSV(inp) {
               status: 'Active',
               accountStatus: 'ACTIVE',
               designation: 'Medical Representative',
-              leaves: {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
+              leaves: {CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}
             };
             DB.employees.push(matchedEmp);
             empByIdMap[tempId] = matchedEmp;
@@ -14398,7 +14406,7 @@ function uploadInventoryCSV(inp) {
             blocked_date: null,
             blocked_reason: null,
             designation: 'Medical Representative',
-            leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}, { _designation: 'Medical Representative' })
+            leaves: Object.assign({}, e.leaves || {CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}, { _designation: 'Medical Representative' })
           };
         });
         try {

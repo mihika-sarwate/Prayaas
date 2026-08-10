@@ -2985,39 +2985,48 @@ async function initSupabaseData(isSilent) {
     // Ensure that any items present in inventory but missing from master lists are added dynamically
     if (Array.isArray(DB.samplesInventory)) {
       DB.samplesInventory.forEach(function(s) {
-        if (s.prodName && DB.products.indexOf(s.prodName) === -1) {
+        if (s && s.prodName && DB.products.indexOf(s.prodName) === -1) {
           DB.products.push(s.prodName);
         }
       });
     }
     if (Array.isArray(DB.giftsInventory)) {
       DB.giftsInventory.forEach(function(g) {
-        if (g.giftName && DB.gifts.indexOf(g.giftName) === -1) {
+        if (g && g.giftName && DB.gifts.indexOf(g.giftName) === -1) {
           DB.gifts.push(g.giftName);
         }
       });
     }
     if (Array.isArray(DB.inputsInventory)) {
       DB.inputsInventory.forEach(function(i) {
-        if (i.inputName && DB.inputs.indexOf(i.inputName) === -1) {
+        if (i && i.inputName && DB.inputs.indexOf(i.inputName) === -1) {
           DB.inputs.push(i.inputName);
         }
       });
     }
 
     // Auto-correct pre-existing inventory entries to use the Title Case standard names
-    DB.samplesInventory.forEach(function(s) {
-      var matched = DEFAULT_DB.products.find(function(dp) { return cleanNameForComparison(dp) === cleanNameForComparison(s.prodName); });
-      if (matched) s.prodName = matched;
-    });
-    DB.giftsInventory.forEach(function(g) {
-      var matched = DEFAULT_DB.gifts.find(function(dg) { return cleanNameForComparison(dg) === cleanNameForComparison(g.giftName); });
-      if (matched) g.giftName = matched;
-    });
-    DB.inputsInventory.forEach(function(i) {
-      var matched = DEFAULT_DB.inputs.find(function(di) { return cleanNameForComparison(di) === cleanNameForComparison(i.inputName); });
-      if (matched) i.inputName = matched;
-    });
+    if (Array.isArray(DB.samplesInventory)) {
+      DB.samplesInventory.forEach(function(s) {
+        if (!s) return;
+        var matched = DEFAULT_DB.products.find(function(dp) { return cleanNameForComparison(dp) === cleanNameForComparison(s.prodName); });
+        if (matched) s.prodName = matched;
+      });
+    }
+    if (Array.isArray(DB.giftsInventory)) {
+      DB.giftsInventory.forEach(function(g) {
+        if (!g) return;
+        var matched = DEFAULT_DB.gifts.find(function(dg) { return cleanNameForComparison(dg) === cleanNameForComparison(g.giftName); });
+        if (matched) g.giftName = matched;
+      });
+    }
+    if (Array.isArray(DB.inputsInventory)) {
+      DB.inputsInventory.forEach(function(i) {
+        if (!i) return;
+        var matched = DEFAULT_DB.inputs.find(function(di) { return cleanNameForComparison(di) === cleanNameForComparison(i.inputName); });
+        if (matched) i.inputName = matched;
+      });
+    }
     
     hasInitializedData = true;
     // Wrap in try/catch so a crash here doesn't overwrite fresh Supabase data with stale local cache
@@ -13809,59 +13818,81 @@ function uploadInventoryCSV(inp) {
     
     var row0 = parseCSVLine(lines[0]);
     var row0Lower = lines[0].toLowerCase();
-    var hasCategoryRow = row0Lower.indexOf('sample') !== -1 || row0Lower.indexOf('gift') !== -1 || row0Lower.indexOf('input') !== -1;
-    
     var isExportedFormat = row0Lower.indexOf('item type') !== -1 && row0Lower.indexOf('item name') !== -1;
 
-    if (hasCategoryRow && lines[1] && !isExportedFormat) {
-      isMultiColumn = true;
-      dataStartIdx = 2;
-      var row1 = parseCSVLine(lines[1]);
-      var currentCategory = '';
-      for (var i = 3; i < row1.length; i++) {
-        // Find the most recent non-empty category cell in row0 up to index i
-        var categoryHeader = '';
-        for (var colIdx = i; colIdx >= 3; colIdx--) {
-          if (row0[colIdx] && row0[colIdx].trim()) {
-            categoryHeader = row0[colIdx].trim().toLowerCase();
+    // Detect the main header row containing employee fields
+    var mainHeaderIdx = -1;
+    for (var rIdx = 0; rIdx < Math.min(lines.length, 5); rIdx++) {
+      var cells = parseCSVLine(lines[rIdx]);
+      if (cells[0] && (cells[0].toLowerCase().indexOf('emp') !== -1 || cells[0].toLowerCase().indexOf('employee') !== -1)) {
+        mainHeaderIdx = rIdx;
+        break;
+      }
+    }
+
+    if (mainHeaderIdx !== -1 && !isExportedFormat) {
+      var headerRow = parseCSVLine(lines[mainHeaderIdx]);
+      if (headerRow.length > 4) {
+        isMultiColumn = true;
+        dataStartIdx = mainHeaderIdx + 1;
+
+        // Dynamically find where the item columns start (first column not matching employee metadata fields)
+        var itemStartIdx = 3;
+        for (var col = 0; col < headerRow.length; col++) {
+          var val = (headerRow[col] || '').toLowerCase();
+          if (val && 
+              val.indexOf('emp') === -1 && 
+              val.indexOf('employee') === -1 && 
+              val.indexOf('hq') === -1 && 
+              val.indexOf('h.q.') === -1 && 
+              val.indexOf('state') === -1 && 
+              val.indexOf('name') === -1) {
+            itemStartIdx = col;
             break;
           }
         }
-        if (categoryHeader) {
-          if (categoryHeader.indexOf('sample') !== -1 || categoryHeader.indexOf('product') !== -1) {
-            currentCategory = 'sample';
-          } else if (categoryHeader.indexOf('gift') !== -1) {
-            currentCategory = 'gift';
-          } else if (categoryHeader.indexOf('input') !== -1) {
-            currentCategory = 'input';
-          }
-        }
-        var itemName = row1[i] ? row1[i].trim() : '';
-        if (currentCategory && itemName) {
-          categories.push({
-            index: i,
-            type: currentCategory,
-            name: itemName
-          });
-        }
-      }
-    } else if (!isExportedFormat && row0.length > 4 && (row0[0].toLowerCase().indexOf('emp') !== -1 || row0[0].toLowerCase().indexOf('employee') !== -1)) {
-      isMultiColumn = true;
-      dataStartIdx = 1;
-      for (var i = 3; i < row0.length; i++) {
-        var itemName = row0[i] ? row0[i].trim() : '';
-        if (itemName) {
-          var info = classifyItem(itemName);
-          if (info) {
+
+        for (var i = itemStartIdx; i < headerRow.length; i++) {
+          var itemName = headerRow[i] ? headerRow[i].trim() : '';
+          if (itemName) {
+            var currentCategory = 'sample';
+            var foundCategory = '';
+            
+            // Scan all rows above the main header row to find the category
+            for (var r = mainHeaderIdx - 1; r >= 0; r--) {
+              var rowCells = parseCSVLine(lines[r]);
+              for (var c = i; c >= itemStartIdx; c--) {
+                if (rowCells[c] && rowCells[c].trim()) {
+                  var val = rowCells[c].trim().toLowerCase();
+                  if (val.indexOf('sample') !== -1 || val.indexOf('product') !== -1) {
+                    foundCategory = 'sample';
+                    break;
+                  } else if (val.indexOf('gift') !== -1) {
+                    foundCategory = 'gift';
+                    break;
+                  } else if (val.indexOf('input') !== -1) {
+                    foundCategory = 'input';
+                    break;
+                  }
+                }
+              }
+              if (foundCategory) {
+                currentCategory = foundCategory;
+                break;
+              }
+            }
+            
+            if (!foundCategory) {
+              var info = classifyItem(itemName);
+              if (info) {
+                currentCategory = info.type;
+                itemName = info.name;
+              }
+            }
+
             categories.push({
               index: i,
-              type: info.type,
-              name: info.name
-            });
-          } else {
-            categories.push({
-              index: i,
-              type: 'sample',
+              type: currentCategory,
               name: itemName
             });
           }

@@ -13904,7 +13904,7 @@ function uploadInventoryCSV(inp) {
             var repEmp = DB.employees.find(function(x) {
               if (x.role !== 'emp') return false;
               var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-              return areaClean === managerArea || areaClean.indexOf(managerArea) !== -1 || areaClean.indexOf(managerArea) !== -1;
+              return areaClean === managerArea || areaClean.indexOf(managerArea) !== -1 || managerArea.indexOf(areaClean) !== -1;
             });
             if (repEmp) {
               matchedEmp = repEmp;

@@ -6244,10 +6244,10 @@ function getLeaveLedger(emp) {
          (l.status === 'Approved' || l.status === 'Submitted' || l.status === 'Approved by Manager' || l.status === 'Approved by Admin')) {
         var days = parseFloat(l.days) || 0;
         var t = (l.type || '').trim().toLowerCase();
-        if (t === 'casual leave') clUsed += days;
-        else if (t === 'sick leave') slUsed += days;
-        else if (t === 'earned leave') plUsed += days;
-        else if (t === 'leave without pay' || t === 'lwp') lopUsed += days;
+        if (t === 'casual leave' || t === 'cl') clUsed += days;
+        else if (t === 'sick leave' || t === 'sl') slUsed += days;
+        else if (t === 'earned leave' || t === 'privilege leave' || t === 'paid leave' || t === 'pl' || t === 'el') plUsed += days;
+        else if (t === 'leave without pay' || t === 'lwp' || t === 'lop') lopUsed += days;
       }
     });
   }
@@ -7466,9 +7466,15 @@ function getAttendanceStatusMeta(emp, dateStr) {
             if (leaveType.indexOf('sick') !== -1) {
               statusVal = 'SL';
               leaveTypeLabel = 'Approved Sick Leave';
-            } else {
+            } else if (leaveType.indexOf('casual') !== -1) {
               statusVal = 'CL';
               leaveTypeLabel = 'Approved Casual Leave';
+            } else if (leaveType.indexOf('privilege') !== -1 || leaveType.indexOf('paid') !== -1 || leaveType === 'pl') {
+              statusVal = 'PL';
+              leaveTypeLabel = 'Approved Paid/Privilege Leave';
+            } else if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
+              statusVal = 'EL';
+              leaveTypeLabel = 'Approved Earned Leave';
             }
           }
           return { status: statusVal, remarks: leaveTypeLabel + ' (from Tour Plan)' };
@@ -7502,6 +7508,12 @@ function getAttendanceStatusMeta(emp, dateStr) {
     var leaveType = String(approvedLeave.type || '').toLowerCase();
     if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: 'Approved Sick Leave' };
     if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
+    if (leaveType.indexOf('privilege') !== -1 || leaveType.indexOf('paid') !== -1 || leaveType === 'pl') {
+      return { status: 'PL', remarks: 'Approved Paid/Privilege Leave' };
+    }
+    if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
+      return { status: 'EL', remarks: 'Approved Earned Leave' };
+    }
   }
   
   // Check if they have submitted ANY reports for this date
@@ -9356,11 +9368,11 @@ function submitLeave(){
   // Check leave balance availability
   var ledger = getLeaveLedger(SESSION.user);
   var bal = 0;
-  var key = type==='Casual Leave'?'CL':type==='Sick Leave'?'SL':type==='Earned Leave'?'EL':'LWP';
+  var key = (type==='Casual Leave'||type==='CL')?'CL':(type==='Sick Leave'||type==='SL')?'SL':(type==='Earned Leave'||type==='Privilege Leave'||type==='Paid Leave'||type==='PL'||type==='EL')?'EL':'LWP';
   
-  if (type === 'Casual Leave') bal = ledger.cl.balance;
-  else if (type === 'Sick Leave') bal = ledger.sl.balance;
-  else if (type === 'Earned Leave') bal = ledger.pl.balance;
+  if (type === 'Casual Leave' || type === 'CL') bal = ledger.cl.balance;
+  else if (type === 'Sick Leave' || type === 'SL') bal = ledger.sl.balance;
+  else if (type === 'Earned Leave' || type === 'Privilege Leave' || type === 'Paid Leave' || type === 'PL' || type === 'EL') bal = ledger.pl.balance;
   else if (type === 'LWP') bal = ledger.lop.balance;
   
   if(key!=='LWP' && diffDays > bal){
@@ -10285,9 +10297,12 @@ function updateLeaveDetails() {
   // Revert previous leave balance deduction if status was approved
   var emp=DB.employees.find(function(e){return e.id===lv.empId;});
   if (emp && prevStatus === 'Approved') {
-    var prevKey = prevType==='Casual Leave'?'CL':prevType==='Sick Leave'?'SL':prevType==='Earned Leave'?'EL':'LWP';
+    var prevKey = (prevType==='Casual Leave'||prevType==='CL')?'CL':(prevType==='Sick Leave'||prevType==='SL')?'SL':(prevType==='Earned Leave'||prevType==='Privilege Leave'||prevType==='Paid Leave'||prevType==='PL'||prevType==='EL')?'EL':'LWP';
     if (emp.leaves) {
       emp.leaves[prevKey+'_used'] = Math.max(0, (parseFloat(emp.leaves[prevKey+'_used']) || 0) - prevDays);
+      if (prevKey === 'EL') {
+        emp.leaves.PL_used = emp.leaves.EL_used;
+      }
     }
   }
   
@@ -10302,9 +10317,12 @@ function updateLeaveDetails() {
   
   // Apply new leave balance deduction if status is approved
   if (emp && status === 'Approved') {
-    var newKey = type==='Casual Leave'?'CL':type==='Sick Leave'?'SL':type==='Earned Leave'?'EL':'LWP';
+    var newKey = (type==='Casual Leave'||type==='CL')?'CL':(type==='Sick Leave'||type==='SL')?'SL':(type==='Earned Leave'||type==='Privilege Leave'||type==='Paid Leave'||type==='PL'||type==='EL')?'EL':'LWP';
     if (!emp.leaves) emp.leaves = {};
     emp.leaves[newKey+'_used'] = (parseFloat(emp.leaves[newKey+'_used']) || 0) + days;
+    if (newKey === 'EL') {
+      emp.leaves.PL_used = emp.leaves.EL_used;
+    }
   }
   
   saveDB();

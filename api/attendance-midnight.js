@@ -251,9 +251,19 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
     if (wt === 'HOLIDAY') return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
     if (wt === 'LEAVE') {
       const tpLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
-      return tpLeave && String(tpLeave.type || '').toLowerCase().includes('sick')
-        ? { status: 'SL', remarks: 'Approved Sick Leave (from Tour Plan)' }
-        : { status: 'CL', remarks: 'Approved Casual Leave (from Tour Plan)' };
+      if (tpLeave) {
+        const leaveType = String(tpLeave.type || '').toLowerCase();
+        if (leaveType.includes('sick')) {
+          return { status: 'SL', remarks: 'Approved Sick Leave (from Tour Plan)' };
+        } else if (leaveType.includes('casual')) {
+          return { status: 'CL', remarks: 'Approved Casual Leave (from Tour Plan)' };
+        } else if (leaveType.includes('privilege') || leaveType.includes('paid') || leaveType === 'pl') {
+          return { status: 'PL', remarks: 'Approved Paid/Privilege Leave (from Tour Plan)' };
+        } else if (leaveType.includes('earned') || leaveType === 'el') {
+          return { status: 'EL', remarks: 'Approved Earned Leave (from Tour Plan)' };
+        }
+      }
+      return { status: 'CL', remarks: 'Approved Leave (from Tour Plan)' };
     }
   }
 
@@ -261,9 +271,17 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
   const approvedLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
   if (approvedLeave) {
     const leaveType = String(approvedLeave.type || '').toLowerCase();
-    return leaveType.includes('sick')
-      ? { status: 'SL', remarks: 'Approved Sick Leave' }
-      : { status: 'CL', remarks: 'Approved Casual Leave' };
+    if (leaveType.includes('sick')) {
+      return { status: 'SL', remarks: 'Approved Sick Leave' };
+    } else if (leaveType.includes('casual')) {
+      return { status: 'CL', remarks: 'Approved Casual Leave' };
+    } else if (leaveType.includes('privilege') || leaveType.includes('paid') || leaveType === 'pl') {
+      return { status: 'PL', remarks: 'Approved Paid/Privilege Leave' };
+    } else if (leaveType.includes('earned') || leaveType === 'el') {
+      return { status: 'EL', remarks: 'Approved Earned Leave' };
+    } else {
+      return { status: 'CL', remarks: 'Approved Leave' };
+    }
   }
 
   // Rule 3: Holiday

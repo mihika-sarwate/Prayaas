@@ -237,10 +237,10 @@ function getApprovedLeaveForDate(leaveMap, employeeId, dateStr) {
 function getAttendanceStatusMeta(employee, dateStr, context) {
   const empId = String(employee.id || '').trim().toUpperCase();
 
-  // Rule 1: Final DCR
+  // Rule 1: DCR submission (any report counts as reporting)
   const reports = context.reportMap.get(`${empId}|${dateStr}`) || [];
-  if (reports.length > 0 && reports.some((row) => !!row.is_final)) {
-    return { status: 'P', remarks: 'Present via Final DCR Submission' };
+  if (reports.length > 0) {
+    return { status: 'P', remarks: 'Present via DCR Submission' };
   }
 
   // Rule 2: Tour Plan (Overrides general rules)

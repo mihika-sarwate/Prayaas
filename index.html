@@ -2238,7 +2238,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
   var inserts = [];
   var updates = [];
 
-  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves');
+  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves' || table === 'holidays' || table === 'samples_inventory' || table === 'gifts_inventory' || table === 'inputs_inventory');
 
   deduped.forEach(function(r) {
     if (isTextKeyTable) {
@@ -2278,6 +2278,12 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
           opt = { onConflict: 'employee_id,weekday' };
         } else if (table === 'holidays') {
           opt = { onConflict: 'date,state' };
+        } else if (table === 'samples_inventory') {
+          opt = { onConflict: 'prod_name,emp_id' };
+        } else if (table === 'gifts_inventory') {
+          opt = { onConflict: 'gift_name,emp_id' };
+        } else if (table === 'inputs_inventory') {
+          opt = { onConflict: 'input_name,emp_id' };
         }
         
         let rowsToUpsert = chunk;
@@ -7470,11 +7476,11 @@ function getAttendanceStatusMeta(emp, dateStr) {
         
         // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
         // Check DCR report submission or login attendance record.
-        var hasFinalReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && (r.isFinal === true || String(r.isFinal) === 'true' || dateStr === '2026-07-13');
+        var hasReport = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
         });
-        if (hasFinalReport) {
-          return { status: 'P', remarks: 'Present via Final DCR Submission' };
+        if (hasReport) {
+          return { status: 'P', remarks: 'Present via DCR Submission' };
         }
         
         var existing = getAttendanceRecord(emp.id, dateStr);
@@ -8286,13 +8292,12 @@ async function runAttendanceValidationNow() {
       }
     }
 
-    var finalDcrExists = (DB.reports || []).some(function(r) {
+    var dcrExists = (DB.reports || []).some(function(r) {
       return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
-             (formatDateForPostgres(r.date) || r.date) === dateStr &&
-             (r.isFinal === true || String(r.isFinal) === 'true');
+             (formatDateForPostgres(r.date) || r.date) === dateStr;
     });
 
-    if (finalDcrExists) return;
+    if (dcrExists) return;
 
     var isHoliday = (DB.holidays || []).some(function(h) {
       if ((formatDateForPostgres(h.date) || h.date) !== dateStr) return false;
@@ -10572,6 +10577,15 @@ function uploadSFC(inp){
     var added=0;
     var hasHeader = isNaN(parseInt(lines[0].charAt(0))) && lines[0].toLowerCase().indexOf('from') !== -1;
     var dataLines = hasHeader ? lines.slice(1) : lines;
+
+    var sfcMap = {};
+    DB.sfc.forEach(function(s) {
+      if (s) {
+        var key = normalizeSfcKey(s);
+        sfcMap[key] = s;
+      }
+    });
+
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
       if(p.length<7||!p[5])return;
@@ -10598,9 +10612,7 @@ function uploadSFC(inp){
       };
 
       var newKey = normalizeSfcKey(newRow);
-      var existing = DB.sfc.find(function(s){
-        return normalizeSfcKey(s) === newKey;
-      });
+      var existing = sfcMap[newKey];
 
       if(existing){
         existing.empId = p[0]||'';
@@ -10617,7 +10629,7 @@ function uploadSFC(inp){
         existing.doctors = p[13]||'';
         existing.business = p[14]||'';
       } else {
-        DB.sfc.push({
+        var addedObj = {
           empId: p[0]||'',
           workingDays: p[1]||'',
           empName: p[2]||'',
@@ -10633,7 +10645,9 @@ function uploadSFC(inp){
           total: total,
           doctors: p[13]||'',
           business: p[14]||''
-        });
+        };
+        DB.sfc.push(addedObj);
+        sfcMap[newKey] = addedObj;
       }
       added++;
     });
@@ -10972,14 +10986,24 @@ function uploadEmployees(inp){
       csvEmpMap[eId.toLowerCase()] = eId;
     });
 
+    var empByIdMap = {};
+    var empByNameMap = {};
+    DB.employees.forEach(function(em) {
+      if (em) {
+        var idKey = (em.id || '').trim().toLowerCase();
+        var nameKey = (em.name || '').trim().toLowerCase();
+        if (idKey) empByIdMap[idKey] = em;
+        if (nameKey) empByNameMap[nameKey] = em;
+      }
+    });
+
     function resolveManagerIdFromUpload(rawMgr) {
       if (!rawMgr) return '';
       var str = rawMgr.trim().toLowerCase();
       if (csvEmpMap[str]) return csvEmpMap[str];
-      var e = DB.employees.find(function(x) { 
-        return x && ((x.id||'').trim().toLowerCase() === str || (x.name||'').trim().toLowerCase() === str); 
-      });
-      return e ? e.id : rawMgr;
+      if (empByIdMap[str]) return empByIdMap[str].id;
+      if (empByNameMap[str]) return empByNameMap[str].id;
+      return rawMgr;
     }
 
     var newEmps = [];
@@ -10995,7 +11019,7 @@ function uploadEmployees(inp){
       
       var eId = cols[idCol].toUpperCase();
       var finalMgrId = resolveManagerIdFromUpload(cols[mgrCol] || "");
-      var existing=DB.employees.find(function(em){return em && em.id===eId;});
+      var existing = empByIdMap[eId.toLowerCase()];
       var newEmp;
       
       if(existing){
@@ -11554,6 +11578,22 @@ function uploadDoctors(inp){
       return;
     }
     
+    var docByCodeMap = {};
+    DB.doctors.forEach(function(d) {
+      if (d && d.code) docByCodeMap[d.code] = d;
+    });
+
+    var empByIdMap = {};
+    var empByNameMap = {};
+    DB.employees.forEach(function(e) {
+      if (e) {
+        var idKey = String(e.id).toUpperCase().trim();
+        var nameKey = String(e.name).toUpperCase().trim();
+        if (idKey) empByIdMap[idKey] = e;
+        if (nameKey) empByNameMap[nameKey] = e;
+      }
+    });
+
     var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newDocs = [];
     var touchedCodes = [];
@@ -11564,7 +11604,7 @@ function uploadDoctors(inp){
       var docCode = String(p[idCol]).trim();
       if(seenInBatch[docCode]) return; // skip duplicate codes in the CSV
       seenInBatch[docCode] = true;
-      var existing = DB.doctors.find(function(d){ return d.code === docCode; });
+      var existing = docByCodeMap[docCode];
       var newDoc;
       // Determine state from CSV, or fetch/deduce automatically from the assigned employee's state
       var assignToVal = (p[empIdCol]||'').toUpperCase().trim();
@@ -11572,24 +11612,21 @@ function uploadDoctors(inp){
       
       // Auto-resolve Employee ID from Name or BE Name
       if (assignToVal && assignToVal !== 'UNASSIGNED') {
-        var exactMatch = DB.employees.find(e => String(e.id).toUpperCase() === assignToVal);
+        var exactMatch = empByIdMap[assignToVal];
         if (!exactMatch) {
-          var nameMatch = DB.employees.find(e => String(e.name).toUpperCase().trim() === assignToVal);
+          var nameMatch = empByNameMap[assignToVal];
           if (nameMatch) assignToVal = String(nameMatch.id).toUpperCase();
         }
       }
       if ((!assignToVal || assignToVal === 'UNASSIGNED') && beName) {
-        var beMatch = DB.employees.find(e => String(e.name).toUpperCase().trim() === beName.toUpperCase());
+        var beMatch = empByNameMap[beName.toUpperCase()];
         if (beMatch) assignToVal = String(beMatch.id).toUpperCase();
       }
 
-      
       // Determine state from CSV, or fetch/deduce automatically from the assigned employee's state
       var finalState = (p[stateCol] || '').trim();
       if (!finalState && assignToVal) {
-        var emp = DB.employees.find(function(e) {
-          return String(e.id || '').trim().toUpperCase() === assignToVal.trim();
-        });
+        var emp = empByIdMap[assignToVal];
         if (emp && emp.state) {
           finalState = emp.state;
         }
@@ -11638,6 +11675,12 @@ function uploadDoctors(inp){
     });
     var untouched = DB.doctors.filter(function(d){ return !touchedCodes.includes(d.code); });
     DB.doctors = newDocs.concat(untouched);
+    saveDB();
+    showToast(added+' Doctor records processed successfully!');
+    renderAdminDocList();
+  };
+  reader.readAsText(file);inp.value='';
+});
     saveDB();
     showToast(added+' Doctor records processed successfully!');
     renderAdminDocList();
@@ -12322,6 +12365,22 @@ function uploadChemists(inp){
       });
     }
     
+    var chemistMap = {};
+    DB.chemists.forEach(function(c) {
+      if (c && c.id) chemistMap[c.id] = c;
+    });
+
+    var empByIdMap = {};
+    var empByNameMap = {};
+    DB.employees.forEach(function(e) {
+      if (e) {
+        var idKey = String(e.id).toUpperCase().trim();
+        var nameKey = String(e.name).toUpperCase().trim();
+        if (idKey) empByIdMap[idKey] = e;
+        if (nameKey) empByNameMap[nameKey] = e;
+      }
+    });
+
     var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newChems = [];
     var touchedIds = [];
@@ -12332,22 +12391,20 @@ function uploadChemists(inp){
       var chemId = String(p[idCol]).trim();
       if(seenInBatch[chemId]) return; // skip duplicate IDs in the CSV
       seenInBatch[chemId] = true;
-      var existing = DB.chemists.find(function(c){ return c.id === chemId; });
+      var existing = chemistMap[chemId];
       var newChem;
       var chemState = (stateCol !== -1 ? p[stateCol] : '') || '';
       var assignToVal = (p[assignCol]||'').toUpperCase().trim();
       // Auto-resolve Employee ID from Name
       if (assignToVal && assignToVal !== 'UNASSIGNED') {
-        var exactMatch = DB.employees.find(e => String(e.id).toUpperCase() === assignToVal);
+        var exactMatch = empByIdMap[assignToVal];
         if (!exactMatch) {
-          var nameMatch = DB.employees.find(e => String(e.name).toUpperCase().trim() === assignToVal);
+          var nameMatch = empByNameMap[assignToVal];
           if (nameMatch) assignToVal = String(nameMatch.id).toUpperCase();
         }
       }
       if (!chemState && assignToVal) {
-        var emp = DB.employees.find(function(e) {
-          return String(e.id || '').trim().toUpperCase() === assignToVal.trim();
-        });
+        var emp = empByIdMap[assignToVal];
         if (emp && emp.state) {
           chemState = emp.state;
         }
@@ -12737,6 +12794,22 @@ function uploadStockists(inp) {
       });
     }
     
+    var stockistMap = {};
+    DB.stockists.forEach(function(s) {
+      if (s && s.id) stockistMap[s.id] = s;
+    });
+
+    var empByIdMap = {};
+    var empByNameMap = {};
+    DB.employees.forEach(function(e) {
+      if (e) {
+        var idKey = String(e.id).toUpperCase().trim();
+        var nameKey = String(e.name).toUpperCase().trim();
+        if (idKey) empByIdMap[idKey] = e;
+        if (nameKey) empByNameMap[nameKey] = e;
+      }
+    });
+
     var dataLines = headerLineIndex !== -1 ? lines.slice(headerLineIndex + 1) : lines;
     var newStockists = [];
     var touchedIds = [];
@@ -12747,22 +12820,20 @@ function uploadStockists(inp) {
       var stockistId = String(p[idCol]).trim();
       if(seenInBatch[stockistId]) return; // skip duplicate IDs in the CSV
       seenInBatch[stockistId] = true;
-      var existing = DB.stockists.find(function(s){ return s.id === stockistId; });
+      var existing = stockistMap[stockistId];
       var newStk;
       var stkState = (stateCol !== -1 ? p[stateCol] : '') || '';
       var assignToVal = (p[assignCol]||'').toUpperCase().trim();
       // Auto-resolve Employee ID from Name
       if (assignToVal && assignToVal !== 'UNASSIGNED') {
-        var exactMatch = DB.employees.find(e => String(e.id).toUpperCase() === assignToVal);
+        var exactMatch = empByIdMap[assignToVal];
         if (!exactMatch) {
-          var nameMatch = DB.employees.find(e => String(e.name).toUpperCase().trim() === assignToVal);
+          var nameMatch = empByNameMap[assignToVal];
           if (nameMatch) assignToVal = String(nameMatch.id).toUpperCase();
         }
       }
       if (!stkState && assignToVal) {
-        var emp = DB.employees.find(function(e) {
-          return String(e.id || '').trim().toUpperCase() === assignToVal.trim();
-        });
+        var emp = empByIdMap[assignToVal];
         if (emp && emp.state) {
           stkState = emp.state;
         }
@@ -13388,6 +13459,12 @@ function uploadLeaveBalances(inp){
       lopUsedCol = idCol + 13;
     }
     
+    // Pre-build employee map
+    var empByIdMap = {};
+    DB.employees.forEach(function(e) {
+      if (e && e.id) empByIdMap[String(e.id).toUpperCase().trim()] = e;
+    });
+
     var updated=0;
     var notFoundIds = [];
     
@@ -13396,7 +13473,7 @@ function uploadLeaveBalances(inp){
       if (!p[idCol]) continue;
       
       var empId = String(p[idCol]).trim().toUpperCase();
-      var emp = DB.employees.find(function(x){return x.id === empId;});
+      var emp = empByIdMap[empId];
       if(emp){
         if(!emp.leaves) emp.leaves = {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0};
         
@@ -13549,20 +13626,30 @@ function uploadHolidays(inp){
     var hasHeader = isNaN(parseInt(lines[0].charAt(0)));
     var dataLines = hasHeader ? lines.slice(1) : lines;
     if(!DB.holidays) DB.holidays = [];
+    
+    var holidayMap = {};
+    DB.holidays.forEach(function(h) {
+      if (h) {
+        var hs = h.state || 'All';
+        var key = h.date + '_' + hs.toLowerCase();
+        holidayMap[key] = h;
+      }
+    });
+
     dataLines.forEach(function(line){
       var p=parseCSVLine(line);
       if(!p[0]||!p[1])return;
       var dateVal = formatDateForPostgres(p[0]) || p[0];
       var nameVal = p[1];
       var stateVal = p[2] || 'All';
-      var existing = DB.holidays.find(function(h){
-        var hs = h.state || 'All';
-        return h.date === dateVal && hs.toLowerCase() === stateVal.toLowerCase();
-      });
+      var key = dateVal + '_' + stateVal.toLowerCase();
+      var existing = holidayMap[key];
       if(existing){
         existing.name = nameVal;
       } else {
-        DB.holidays.push({date: dateVal, name: nameVal, state: stateVal});
+        var newHoliday = {date: dateVal, name: nameVal, state: stateVal};
+        DB.holidays.push(newHoliday);
+        holidayMap[key] = newHoliday;
       }
       added++;
     });
@@ -13801,14 +13888,70 @@ function uploadInventoryCSV(inp) {
     if (!lines.length) return;
     var added = 0;
     
+    // Pre-build clean name lookups for products/gifts/inputs
+    var productsCleanMap = {};
+    DB.products.forEach(function(p) {
+      productsCleanMap[cleanNameForComparison(p)] = p;
+    });
+    var giftsCleanMap = {};
+    DB.gifts.forEach(function(g) {
+      giftsCleanMap[cleanNameForComparison(g)] = g;
+    });
+    var inputsCleanMap = {};
+    DB.inputs.forEach(function(i) {
+      inputsCleanMap[cleanNameForComparison(i)] = i;
+    });
+
     function classifyItem(itemName) {
       var clean = cleanNameForComparison(itemName);
-      var matchedProd = DB.products.find(function(p) { return cleanNameForComparison(p) === clean; });
-      if (matchedProd) return { type: 'sample', name: matchedProd };
-      var matchedGift = DB.gifts.find(function(g) { return cleanNameForComparison(g) === clean; });
-      if (matchedGift) return { type: 'gift', name: matchedGift };
-      var matchedInput = DB.inputs.find(function(i) { return cleanNameForComparison(i) === clean; });
-      if (matchedInput) return { type: 'input', name: matchedInput };
+      if (productsCleanMap[clean]) return { type: 'sample', name: productsCleanMap[clean] };
+      if (giftsCleanMap[clean]) return { type: 'gift', name: giftsCleanMap[clean] };
+      if (inputsCleanMap[clean]) return { type: 'input', name: inputsCleanMap[clean] };
+      return null;
+    }
+
+    // Pre-build inventory lookups
+    var samplesInvMap = {};
+    DB.samplesInventory.forEach(function(s) {
+      if (s) samplesInvMap[s.empId + '_' + cleanNameForComparison(s.prodName)] = s;
+    });
+    var giftsInvMap = {};
+    DB.giftsInventory.forEach(function(g) {
+      if (g) giftsInvMap[g.empId + '_' + cleanNameForComparison(g.giftName)] = g;
+    });
+    var inputsInvMap = {};
+    DB.inputsInventory.forEach(function(i) {
+      if (i) inputsInvMap[i.empId + '_' + cleanNameForComparison(i.inputName)] = i;
+    });
+
+    // Pre-build employee lookups
+    var empByIdMap = {};
+    DB.employees.forEach(function(e) {
+      if (e && e.id) empByIdMap[String(e.id).toUpperCase().trim()] = e;
+    });
+
+    // Cache manager to representative mapping
+    var managerRepCache = {};
+    DB.employees.forEach(function(x) {
+      if (x && x.role === 'emp' && x.area) {
+        var areaClean = String(x.area).toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+        if (areaClean) {
+          if (!managerRepCache[areaClean]) managerRepCache[areaClean] = [];
+          managerRepCache[areaClean].push(x);
+        }
+      }
+    });
+    
+    function findRepForManager(managerArea) {
+      if (!managerArea) return null;
+      var cleanArea = String(managerArea).toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+      var reps = managerRepCache[cleanArea];
+      if (reps && reps.length > 0) return reps[0];
+      for (var areaClean in managerRepCache) {
+        if (areaClean.indexOf(cleanArea) !== -1 || cleanArea.indexOf(areaClean) !== -1) {
+          return managerRepCache[areaClean][0];
+        }
+      }
       return null;
     }
 
@@ -13925,18 +14068,12 @@ function uploadInventoryCSV(inp) {
         
         if (!empId || !itemType || !itemName) return;
         
-        var matchedEmp = DB.employees.find(function(x) {
-          return String(x.id || '').toUpperCase() === empId.toUpperCase();
-        });
+        var matchedEmp = empByIdMap[empId.toUpperCase()];
         if (!matchedEmp) return;
         if (matchedEmp.role === 'manager') {
           var managerArea = String(matchedEmp.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
           if (managerArea) {
-            var repEmp = DB.employees.find(function(x) {
-              if (x.role !== 'emp') return false;
-              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-              return areaClean === managerArea || areaClean.indexOf(managerArea) !== -1 || managerArea.indexOf(areaClean) !== -1;
-            });
+            var repEmp = findRepForManager(managerArea);
             if (repEmp) {
               matchedEmp = repEmp;
             }
@@ -13951,14 +14088,16 @@ function uploadInventoryCSV(inp) {
         
         if (!category) return;
         
+        var cleanName = cleanNameForComparison(itemName);
         if (category === 'sample') {
-          var matchedProd = DB.products.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
+          var matchedProd = productsCleanMap[cleanName];
           if (matchedProd) {
             itemName = matchedProd;
           } else {
             DB.products.push(itemName);
+            productsCleanMap[cleanName] = itemName;
           }
-          var stock = DB.samplesInventory.find(function(s){return s.empId === empId && cleanNameForComparison(s.prodName) === cleanNameForComparison(itemName);});
+          var stock = samplesInvMap[empId + '_' + cleanName];
           if (stock) {
             stock.opening = openingQty;
             if (isExportedFormat) {
@@ -13967,7 +14106,7 @@ function uploadInventoryCSV(inp) {
             }
             stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
           } else {
-            DB.samplesInventory.push({
+            var newStock = {
               id: 'SAMPLEINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
               prodName: itemName,
               empId: empId,
@@ -13975,17 +14114,20 @@ function uploadInventoryCSV(inp) {
               received: receivedQty,
               distributed: distributedQty,
               balance: openingQty + receivedQty - distributedQty
-            });
+            };
+            DB.samplesInventory.push(newStock);
+            samplesInvMap[empId + '_' + cleanName] = newStock;
           }
           added++;
         } else if (category === 'gift') {
-          var matchedGift = DB.gifts.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
+          var matchedGift = giftsCleanMap[cleanName];
           if (matchedGift) {
             itemName = matchedGift;
           } else {
             DB.gifts.push(itemName);
+            giftsCleanMap[cleanName] = itemName;
           }
-          var stock = DB.giftsInventory.find(function(g){return g.empId === empId && cleanNameForComparison(g.giftName) === cleanNameForComparison(itemName);});
+          var stock = giftsInvMap[empId + '_' + cleanName];
           if (stock) {
             stock.opening = openingQty;
             if (isExportedFormat) {
@@ -13994,7 +14136,7 @@ function uploadInventoryCSV(inp) {
             }
             stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
           } else {
-            DB.giftsInventory.push({
+            var newStock = {
               id: 'GIFTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
               giftName: itemName,
               empId: empId,
@@ -14002,17 +14144,20 @@ function uploadInventoryCSV(inp) {
               received: receivedQty,
               distributed: distributedQty,
               balance: openingQty + receivedQty - distributedQty
-            });
+            };
+            DB.giftsInventory.push(newStock);
+            giftsInvMap[empId + '_' + cleanName] = newStock;
           }
           added++;
         } else if (category === 'input') {
-          var matchedInput = DB.inputs.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
+          var matchedInput = inputsCleanMap[cleanName];
           if (matchedInput) {
             itemName = matchedInput;
           } else {
             DB.inputs.push(itemName);
+            inputsCleanMap[cleanName] = itemName;
           }
-          var stock = DB.inputsInventory.find(function(i){return i.empId === empId && cleanNameForComparison(i.inputName) === cleanNameForComparison(itemName);});
+          var stock = inputsInvMap[empId + '_' + cleanName];
           if (stock) {
             stock.opening = openingQty;
             if (isExportedFormat) {
@@ -14021,7 +14166,7 @@ function uploadInventoryCSV(inp) {
             }
             stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
           } else {
-            DB.inputsInventory.push({
+            var newStock = {
               id: 'INPUTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
               inputName: itemName,
               empId: empId,
@@ -14029,12 +14174,26 @@ function uploadInventoryCSV(inp) {
               received: receivedQty,
               distributed: distributedQty,
               balance: openingQty + receivedQty - distributedQty
-            });
+            };
+            DB.inputsInventory.push(newStock);
+            inputsInvMap[empId + '_' + cleanName] = newStock;
           }
           added++;
         }
       });
     } else {
+      // Pre-cache employees by area/HQ clean names for role === 'emp'
+      var empByAreaCache = {};
+      DB.employees.forEach(function(x) {
+        if (x && x.area) {
+          var areaClean = String(x.area).toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+          if (areaClean) {
+            if (!empByAreaCache[areaClean]) empByAreaCache[areaClean] = [];
+            empByAreaCache[areaClean].push(x);
+          }
+        }
+      });
+
       var dataLines = lines.slice(dataStartIdx);
       var newEmployeesToInsert = [];
       dataLines.forEach(function(line) {
@@ -14046,19 +14205,14 @@ function uploadInventoryCSV(inp) {
         
         var matchedEmp = null;
         if (empId) {
-          matchedEmp = DB.employees.find(function(x) {
-            return String(x.id || '').toUpperCase().trim() === empId.toUpperCase().trim();
-          });
+          matchedEmp = empByIdMap[empId.toUpperCase().trim()];
         }
         
         if (matchedEmp && matchedEmp.role === 'manager') {
           var managerArea = String(matchedEmp.area || hq || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
           if (managerArea) {
-            var repEmp = DB.employees.find(function(x) {
-              if (x.role !== 'emp') return false;
-              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-              return areaClean === managerArea || areaClean.indexOf(managerArea) !== -1 || managerArea.indexOf(areaClean) !== -1;
-            });
+            var reps = empByAreaCache[managerArea] || [];
+            var repEmp = reps.find(function(x) { return x.role === 'emp'; });
             if (repEmp) {
               matchedEmp = repEmp;
             }
@@ -14067,46 +14221,50 @@ function uploadInventoryCSV(inp) {
         
         if (!matchedEmp && hq) {
           var hqUpper = hq.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-          matchedEmp = DB.employees.find(function(x) {
-            if (x.role !== 'emp') return false;
-            var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-            return areaClean === hqUpper;
-          });
+          var reps = empByAreaCache[hqUpper] || [];
+          matchedEmp = reps.find(function(x) { return x.role === 'emp'; });
           
           if (!matchedEmp) {
-            matchedEmp = DB.employees.find(function(x) {
-              if (x.role !== 'emp') return false;
-              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-              return areaClean.replace(/PORE$/, 'PUR') === hqUpper.replace(/PORE$/, 'PUR') ||
-                     areaClean.replace(/PUR$/, 'PORE') === hqUpper.replace(/PUR$/, 'PORE') ||
-                     areaClean.indexOf(hqUpper) !== -1 ||
-                     hqUpper.indexOf(areaClean) !== -1;
-            });
+            // Fuzzy match ending in PORE / PUR
+            var hqUpperMod1 = hqUpper.replace(/PORE$/, 'PUR').replace(/PUR$/, 'PORE');
+            for (var areaClean in empByAreaCache) {
+              var list = empByAreaCache[areaClean];
+              var match = list.find(function(x) {
+                if (x.role !== 'emp') return false;
+                var cleanA = areaClean.replace(/PORE$/, 'PUR').replace(/PUR$/, 'PORE');
+                return cleanA === hqUpperMod1 || areaClean.indexOf(hqUpper) !== -1 || hqUpper.indexOf(areaClean) !== -1;
+              });
+              if (match) {
+                matchedEmp = match;
+                break;
+              }
+            }
           }
           
           if (!matchedEmp) {
-            matchedEmp = DB.employees.find(function(x) {
-              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-              return areaClean === hqUpper;
-            });
+            for (var areaClean in empByAreaCache) {
+              if (areaClean === hqUpper) {
+                matchedEmp = empByAreaCache[areaClean][0];
+                break;
+              }
+            }
           }
           
           if (!matchedEmp) {
-            matchedEmp = DB.employees.find(function(x) {
-              var areaClean = String(x.area || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-              return areaClean.replace(/PORE$/, 'PUR') === hqUpper.replace(/PORE$/, 'PUR') ||
-                     areaClean.replace(/PUR$/, 'PORE') === hqUpper.replace(/PUR$/, 'PORE') ||
-                     areaClean.indexOf(hqUpper) !== -1 ||
-                     hqUpper.indexOf(areaClean) !== -1;
-            });
+            for (var areaClean in empByAreaCache) {
+              var cleanA = areaClean.replace(/PORE$/, 'PUR').replace(/PUR$/, 'PORE');
+              var hqUpperMod = hqUpper.replace(/PORE$/, 'PUR').replace(/PUR$/, 'PORE');
+              if (cleanA === hqUpperMod || areaClean.indexOf(hqUpper) !== -1 || hqUpper.indexOf(areaClean) !== -1) {
+                matchedEmp = empByAreaCache[areaClean][0];
+                break;
+              }
+            }
           }
         }
         
         if (!matchedEmp && hq) {
           var tempId = 'TEMP_' + hq.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
-          matchedEmp = DB.employees.find(function(x) {
-            return String(x.id || '').toUpperCase() === tempId;
-          });
+          matchedEmp = empByIdMap[tempId];
           if (!matchedEmp) {
             matchedEmp = {
               id: tempId,
@@ -14121,6 +14279,7 @@ function uploadInventoryCSV(inp) {
               leaves: {CL:12,SL:10,EL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,LWP_used:0}
             };
             DB.employees.push(matchedEmp);
+            empByIdMap[tempId] = matchedEmp;
             newEmployeesToInsert.push(matchedEmp);
           }
         }
@@ -14139,20 +14298,22 @@ function uploadInventoryCSV(inp) {
           
           var itemName = catInfo.name;
           var itemType = catInfo.type;
+          var cleanItem = cleanNameForComparison(itemName);
           
           if (itemType === 'sample') {
-            var matchedProd = DB.products.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
+            var matchedProd = productsCleanMap[cleanItem];
             if (matchedProd) {
               itemName = matchedProd;
             } else {
               DB.products.push(itemName);
+              productsCleanMap[cleanItem] = itemName;
             }
-            var stock = DB.samplesInventory.find(function(s){return s.empId === empId && cleanNameForComparison(s.prodName) === cleanNameForComparison(itemName);});
+            var stock = samplesInvMap[empId + '_' + cleanItem];
             if (stock) {
               stock.opening = openingQty;
               stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
             } else {
-              DB.samplesInventory.push({
+              var newStock = {
                 id: 'SAMPLEINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
                 prodName: itemName,
                 empId: empId,
@@ -14160,22 +14321,25 @@ function uploadInventoryCSV(inp) {
                 received: 0,
                 distributed: 0,
                 balance: openingQty
-              });
+              };
+              DB.samplesInventory.push(newStock);
+              samplesInvMap[empId + '_' + cleanItem] = newStock;
             }
             added++;
           } else if (itemType === 'gift') {
-            var matchedGift = DB.gifts.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
+            var matchedGift = giftsCleanMap[cleanItem];
             if (matchedGift) {
               itemName = matchedGift;
             } else {
               DB.gifts.push(itemName);
+              giftsCleanMap[cleanItem] = itemName;
             }
-            var stock = DB.giftsInventory.find(function(g){return g.empId === empId && cleanNameForComparison(g.giftName) === cleanNameForComparison(itemName);});
+            var stock = giftsInvMap[empId + '_' + cleanItem];
             if (stock) {
               stock.opening = openingQty;
               stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
             } else {
-              DB.giftsInventory.push({
+              var newStock = {
                 id: 'GIFTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
                 giftName: itemName,
                 empId: empId,
@@ -14183,22 +14347,25 @@ function uploadInventoryCSV(inp) {
                 received: 0,
                 distributed: 0,
                 balance: openingQty
-              });
+              };
+              DB.giftsInventory.push(newStock);
+              giftsInvMap[empId + '_' + cleanItem] = newStock;
             }
             added++;
           } else if (itemType === 'input') {
-            var matchedInput = DB.inputs.find(function(x) { return cleanNameForComparison(x) === cleanNameForComparison(itemName); });
+            var matchedInput = inputsCleanMap[cleanItem];
             if (matchedInput) {
               itemName = matchedInput;
             } else {
               DB.inputs.push(itemName);
+              inputsCleanMap[cleanItem] = itemName;
             }
-            var stock = DB.inputsInventory.find(function(i){return i.empId === empId && cleanNameForComparison(i.inputName) === cleanNameForComparison(itemName);});
+            var stock = inputsInvMap[empId + '_' + cleanItem];
             if (stock) {
               stock.opening = openingQty;
               stock.balance = stock.opening + (stock.received || 0) - (stock.distributed || 0);
             } else {
-              DB.inputsInventory.push({
+              var newStock = {
                 id: 'INPUTINV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
                 inputName: itemName,
                 empId: empId,
@@ -14206,7 +14373,9 @@ function uploadInventoryCSV(inp) {
                 received: 0,
                 distributed: 0,
                 balance: openingQty
-              });
+              };
+              DB.inputsInventory.push(newStock);
+              inputsInvMap[empId + '_' + cleanItem] = newStock;
             }
             added++;
           }

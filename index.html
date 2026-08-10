@@ -3897,6 +3897,62 @@ async function pushReportToSupabase(rep) {
   }
 }
 
+// Push a single tour plan record directly to Supabase immediately after approval/rejection/submission.
+async function pushTourPlanToSupabase(tp) {
+  if (!useSupabase || !supabase || !tp || !tp.id) return;
+  try {
+    var empId = tp.empId || null;
+    if (empId) {
+      var matchedEmp = DB.employees.find(function(x) { return String(x.id || '').toUpperCase() === String(empId).toUpperCase(); });
+      empId = matchedEmp ? matchedEmp.id : empId;
+    }
+    var approvedBy = tp.approvedBy || null;
+    if (approvedBy) {
+      var matchedAppr = DB.employees.find(function(x) { return String(x.id || '').toUpperCase() === String(approvedBy).toUpperCase(); });
+      approvedBy = matchedAppr ? matchedAppr.id : approvedBy;
+    }
+    
+    var parsedDays = [];
+    if (Array.isArray(tp.days)) {
+      parsedDays = tp.days;
+    } else if (typeof tp.days === 'string' && tp.days.trim() !== '') {
+      try { parsedDays = JSON.parse(tp.days); } catch(e) {}
+    }
+    
+    var parsedHistory = [];
+    if (Array.isArray(tp.revisionHistory)) {
+      parsedHistory = tp.revisionHistory;
+    } else if (typeof tp.revisionHistory === 'string' && tp.revisionHistory.trim() !== '') {
+      try { parsedHistory = JSON.parse(tp.revisionHistory); } catch(e) {}
+    }
+
+    var row = {
+      id: tp.id,
+      emp_id: empId,
+      emp_name: tp.empName || '',
+      month: tp.month || '',
+      manager_id: resolveManagerId(tp.managerId),
+      manager_name: tp.managerName || null,
+      days: parsedDays,
+      status: tp.status || 'draft',
+      remarks: tp.remarks || null,
+      submitted_at: tp.submittedAt || null,
+      approved_date: formatDateForPostgres(tp.approvedDate) || null,
+      approved_by: approvedBy,
+      revision_history: parsedHistory
+    };
+
+    var res = await supabase.from('tour_plans').upsert([row], { onConflict: 'id' });
+    if (res && res.error) {
+      console.error('pushTourPlanToSupabase error:', res.error);
+    } else {
+      console.log('Tour plan ' + tp.id + ' pushed to Supabase successfully.');
+    }
+  } catch (e) {
+    console.error('pushTourPlanToSupabase exception:', e);
+  }
+}
+
 function isIntegerId(val) {
   if (val === undefined || val === null || val === '') return false;
   if (typeof val === 'number' && Number.isInteger(val)) return true;
@@ -8866,6 +8922,9 @@ function saveOrSubmitTourPlan(status){
   }
   
   saveDB();
+  if (typeof pushTourPlanToSupabase === 'function') {
+    pushTourPlanToSupabase(tpObj);
+  }
   showToast(status === 'Draft' ? 'Tour Plan saved as Draft!' : 'Tour Plan submitted successfully for approval!');
   
   renderMyTourPlans();
@@ -10076,6 +10135,9 @@ function approveTP(){
     tp.status = processApproval(tp.status, tp.managerId, u);
     tp.approvedBy=u.id;
     tp.approvedDate=getTodayDateString();
+    if (typeof pushTourPlanToSupabase === 'function') {
+      pushTourPlanToSupabase(tp);
+    }
   }
   saveDB();
   closeModal('modal-tp-detail');
@@ -10096,6 +10158,9 @@ function rejectTP(){
       date:getTodayDateString(),
       reason:reason
     });
+    if (typeof pushTourPlanToSupabase === 'function') {
+      pushTourPlanToSupabase(tp);
+    }
   }
   saveDB();
   closeModal('modal-tp-detail');

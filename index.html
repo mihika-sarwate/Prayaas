@@ -8308,13 +8308,41 @@ async function runServerAttendanceValidation(dateStr, isSilent) {
   }
 }
 
+function getDatesBetween(startDateStr, endDateStr) {
+  var dates = [];
+  var current = new Date(startDateStr + 'T00:00:00');
+  var end = new Date(endDateStr + 'T00:00:00');
+  if (isNaN(current.getTime()) || isNaN(end.getTime()) || current > end) return dates;
+  
+  current.setDate(current.getDate() + 1);
+  while (current <= end) {
+    var y = current.getFullYear();
+    var m = String(current.getMonth() + 1).padStart(2, '0');
+    var d = String(current.getDate()).padStart(2, '0');
+    dates.push(y + '-' + m + '-' + d);
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
+
 async function reconcileYesterdayAttendanceSilently() {
   if (!SESSION.user || SESSION.user.role !== 'admin') return;
-  var dateStr = getYesterdayDateString();
-  var key = 'adonis_attendance_server_reconcile_' + dateStr;
-  if (sessionStorage.getItem(key) === '1') return;
-  sessionStorage.setItem(key, '1');
-  await runServerAttendanceValidation(dateStr, true);
+  var yesterday = getYesterdayDateString();
+  var lastVal = localStorage.getItem('adonis_attendance_last_validated_date');
+  if (!lastVal) {
+    lastVal = offsetDate(yesterday, -1);
+  }
+  var dates = getDatesBetween(lastVal, yesterday);
+  if (dates.length > 7) {
+    dates = dates.slice(-7);
+  }
+  for (var i = 0; i < dates.length; i++) {
+    var dateStr = dates[i];
+    var key = 'adonis_attendance_server_reconcile_' + dateStr;
+    if (sessionStorage.getItem(key) === '1') continue;
+    sessionStorage.setItem(key, '1');
+    await runServerAttendanceValidation(dateStr, true);
+  }
 }
 
 async function runAttendanceValidationNow() {
@@ -9798,6 +9826,10 @@ function initAdminApp(userObj){
     currentAdminTab = 'dash';
   }
   goAdminTab(currentAdminTab || 'dash');
+  
+  if (typeof reconcileYesterdayAttendanceSilently === 'function') {
+    reconcileYesterdayAttendanceSilently();
+  }
 }
 
 function goAdminTab(name){

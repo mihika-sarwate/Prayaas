@@ -12310,13 +12310,33 @@ function bulkReassignSelectedDoctors() {
   if (newEmpId === null) return;
   newEmpId = newEmpId.trim().toUpperCase();
   var idsToUpdate = Array.from(selectedDocs);
+  
+  var emp = DB.employees.find(function(e) { return String(e.id||'').toUpperCase() === newEmpId; });
+  var mgr = null;
+  if (emp && emp.managerId) {
+    mgr = DB.employees.find(function(m) { return String(m.id||'').toUpperCase() === String(emp.managerId).toUpperCase(); });
+  }
+  
   DB.doctors.forEach(function(d) {
     if (idsToUpdate.includes(d.id)) {
       d.assignTo = newEmpId;
+      if (emp) {
+        d.beName = emp.name || '';
+        d.hq = emp.area || '';
+        d.state = emp.state || '';
+        if (mgr) d.managerName = mgr.name || '';
+        else d.managerName = '';
+      } else {
+        d.beName = '';
+        d.hq = '';
+        d.state = '';
+        d.managerName = '';
+      }
       persistLocalAssignTo('doctors', d.id, newEmpId);
     }
   });
   saveDB();
+  if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
   selectedDocs.clear();
   renderAdminDocList();
   showToast(idsToUpdate.length + ' doctors reassigned successfully.');

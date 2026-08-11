@@ -2238,7 +2238,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
   var inserts = [];
   var updates = [];
 
-  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves' || table === 'holidays' || table === 'samples_inventory' || table === 'gifts_inventory' || table === 'inputs_inventory');
+  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves' || table === 'holidays');
 
   deduped.forEach(function(r) {
     if (isTextKeyTable) {
@@ -2278,12 +2278,6 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
           opt = { onConflict: 'employee_id,weekday' };
         } else if (table === 'holidays') {
           opt = { onConflict: 'date,state' };
-        } else if (table === 'samples_inventory') {
-          opt = { onConflict: 'prod_name,emp_id' };
-        } else if (table === 'gifts_inventory') {
-          opt = { onConflict: 'gift_name,emp_id' };
-        } else if (table === 'inputs_inventory') {
-          opt = { onConflict: 'input_name,emp_id' };
         }
         
         let rowsToUpsert = chunk;
@@ -4947,6 +4941,23 @@ function restoreSessionWhenReady() {
     setTimeout(restoreSessionWhenReady, 300);
     return;
   }
+  // Auto-patch for ADLA89 incorrectly mapped BE Name
+  try {
+    let adlaEmp = DB.employees && DB.employees.find(e => e.id === 'ADLA89');
+    if (adlaEmp && DB.doctors) {
+      let patched = false;
+      DB.doctors.forEach(d => {
+        if (d.assignTo === 'ADLA89' && d.beName !== adlaEmp.name) {
+          d.beName = adlaEmp.name;
+          patched = true;
+        }
+      });
+      if (patched) {
+        saveDB(true);
+        if (typeof pushDataToSupabase === 'function') pushDataToSupabase();
+      }
+    }
+  } catch(err) { console.error('ADLA89 Patch failed', err); }
   if (SESSION.user) {
     // Re-validate the user against the freshly loaded DB to pick up any changes
     var freshEmp = DB.employees && DB.employees.find(function(e) {

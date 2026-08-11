@@ -11762,13 +11762,8 @@ function uploadDoctors(inp){
     showToast(added+' Doctor records processed successfully!');
     renderAdminDocList();
   };
-  reader.readAsText(file);inp.value='';
-});
-    saveDB();
-    showToast(added+' Doctor records processed successfully!');
-    renderAdminDocList();
-  };
-  reader.readAsText(file);inp.value='';
+  reader.readAsText(file);
+  inp.value='';
 }
 
 function downloadDocTemplate(){

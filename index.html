@@ -6297,7 +6297,7 @@ function getLeaveLedger(emp) {
   if (emp && emp.id && typeof DB !== 'undefined' && DB && Array.isArray(DB.leaves)) {
     DB.leaves.forEach(function(l) {
       if (String(l.empId).trim().toUpperCase() === String(emp.id).trim().toUpperCase() && 
-         (l.status === 'Approved' || l.status === 'Submitted' || l.status === 'Approved by Manager' || l.status === 'Approved by Admin')) {
+         (l.status === 'Approved' || l.status === 'Approved by Manager' || l.status === 'Approved by Admin')) {
         var days = parseFloat(l.days) || 0;
         var t = (l.type || '').trim().toLowerCase();
         if (t === 'casual leave' || t === 'cl') clUsed += days;

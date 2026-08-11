@@ -1444,7 +1444,7 @@ table.tbl tr:last-child td{border-bottom:none}
     </div>
     <div class="fw"><label class="lbl">Address</label><input type="text" id="md-address" placeholder="Hospital address"></div>
     <div class="row2">
-      <div><label class="lbl">Assign To MR</label><select id="md-assign" onchange="document.getElementById('md-bename').value = this.options[this.selectedIndex].text.split(' (')[0] || ''"><option value="">-- Assign MR --</option></select></div>
+      <div><label class="lbl">Assign To MR</label><select id="md-assign" onchange="handleDocAssignChange(this)"><option value="">-- Assign MR --</option></select></div>
       <div>
         <label class="lbl">Status</label>
         <select id="md-status"><option>Active</option><option>Inactive</option></select>
@@ -11555,6 +11555,36 @@ function addDoctorManual(){
   }).join('');
   
   document.getElementById('modal-add-doc').classList.add('on');
+}
+
+function handleDocAssignChange(sel) {
+  var empId = sel.value;
+  var emp = DB.employees.find(function(e) { return e.id === empId; });
+  if (emp) {
+    var benameEl = document.getElementById('md-bename');
+    if(benameEl) benameEl.value = emp.name || '';
+    
+    var stateEl = document.getElementById('md-state');
+    if(stateEl) stateEl.value = emp.state || '';
+    
+    var hqEl = document.getElementById('md-hq');
+    if(hqEl) hqEl.value = emp.area || '';
+    
+    var mgrEl = document.getElementById('md-managername');
+    if(mgrEl) {
+      if (emp.managerId) {
+        var mgr = DB.employees.find(function(m) { return m.id === emp.managerId; });
+        mgrEl.value = mgr ? mgr.name : '';
+      } else {
+        mgrEl.value = '';
+      }
+    }
+  } else {
+    var benameEl = document.getElementById('md-bename'); if(benameEl) benameEl.value = '';
+    var stateEl = document.getElementById('md-state'); if(stateEl) stateEl.value = '';
+    var hqEl = document.getElementById('md-hq'); if(hqEl) hqEl.value = '';
+    var mgrEl = document.getElementById('md-managername'); if(mgrEl) mgrEl.value = '';
+  }
 }
 
 function editDoctor(id){

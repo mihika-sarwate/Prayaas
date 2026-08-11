@@ -8,7 +8,6 @@ pg.types.setTypeParser(1082, function(stringValue) {
 });
 
 
-// Try loading environment variables from local .env file if DATABASE_URL is not set (useful for local development)
 if (!process.env.DATABASE_URL) {
   try {
     const fs = require('fs');
@@ -33,6 +32,9 @@ if (!process.env.DATABASE_URL) {
   } catch (e) {
     console.error('Failed to load local .env file:', e);
   }
+}
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "postgresql://postgres.mmxdvruucggeixjqwsqr:Adonisgroma%402026@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
 }
 
 const BLOCK_REASON = 'Final DCR not submitted by 12:00 AM IST';

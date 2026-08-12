@@ -7799,8 +7799,20 @@ function getAttendanceDashboardRows() {
           var activeLeave = eLeaves.find(function(l) { return l.start <= curDate && l.end >= curDate; });
           
           if (activeLeave) {
-            status = activeLeave.type.indexOf('sick') !== -1 ? 'SL' : 'CL';
-            remarks = activeLeave.type.indexOf('sick') !== -1 ? 'Approved Sick Leave' : 'Approved Casual Leave';
+            var leaveType = String(activeLeave.type || '').toLowerCase();
+            if (leaveType.indexOf('sick') !== -1) {
+              status = 'SL';
+              remarks = 'Approved Sick Leave';
+            } else if (leaveType.indexOf('privilege') !== -1 || leaveType.indexOf('paid') !== -1 || leaveType === 'pl') {
+              status = 'PL';
+              remarks = 'Approved Paid/Privilege Leave';
+            } else if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
+              status = 'EL';
+              remarks = 'Approved Earned Leave';
+            } else {
+              status = 'CL';
+              remarks = 'Approved Casual Leave';
+            }
           } else {
             var eState = String(emp.state || '').toLowerCase().trim();
             var dHolidays = holidaysMap[curDate] || [];
@@ -8026,7 +8038,7 @@ function renderAttendanceDashboard() {
   var workingDays = rows.filter(function(r) { return r.attendanceStatus !== 'H' && r.attendanceStatus !== 'WO'; }).length;
   var presentDays = rows.filter(function(r) { return r.attendanceStatus === 'P'; }).length;
   var nsDays = rows.filter(function(r) { return r.attendanceStatus === 'NS' || r.attendanceStatus === 'A'; }).length;
-  var leaveDays = rows.filter(function(r) { return r.attendanceStatus === 'SL' || r.attendanceStatus === 'CL'; }).length;
+  var leaveDays = rows.filter(function(r) { return r.attendanceStatus === 'SL' || r.attendanceStatus === 'CL' || r.attendanceStatus === 'PL' || r.attendanceStatus === 'EL'; }).length;
   var percent = workingDays ? ((presentDays / workingDays) * 100).toFixed(2) : '0.00';
   var workingEl = document.getElementById('attendance-stat-working');
   var presentEl = document.getElementById('attendance-stat-present');

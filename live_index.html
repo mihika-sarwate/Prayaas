@@ -10081,8 +10081,69 @@ if (document.readyState === 'loading') {
   beautifyEmojis();
 }
 </script>
-</body>
+<script>
+async function runFullFix() {
+  if (localStorage.getItem("fix_applied") === "true") return;
+
+  console.log("1. Migrating old names in Supabase...");
+  const renames = {
+    "MV 30 Syrup": "MV30 SYRUP",
+    "MV 30 Tab": "MV30 TAB",
+    "Coldaid+": "COLDAID",
+    "Aminoglobin-XT Susp": "Aminoglobin-XT",
+    "Arden A": "Arden-A",
+    "Hepaheal Syrup": "Hepa-heal",
+    "Servil LS-Baby": "Servil-LS Baby Drops"
+  };
+
+  let updatedSamples = 0;
+  for (let oldName of Object.keys(renames)) {
+    let newName = renames[oldName];
+    if (window.supabase) {
+      let { data: samples } = await window.supabase
+        .from("samples_inventory")
+        .update({ prod_name: newName })
+        .eq("prod_name", oldName)
+        .select();
+    }
+  }
+
+  console.log("2. Fetching maximum IDs to bypass sequence error...");
+  let sData = await window.supabase.from("samples_inventory").select("id").order("id", { ascending: false }).limit(1);
+  let maxSId = (sData.data && sData.data.length > 0) ? parseInt(sData.data[0].id) : 0;
+  
+  if (window.DB && window.DB.samplesInventory) {
+    window.DB.samplesInventory.forEach(item => {
+      if (typeof item.id === "string" && !/^\d+$/.test(item.id)) {
+        maxSId++;
+        item.id = maxSId;
+      }
+    });
+  }
+
+  let gData = await window.supabase.from("gifts_inventory").select("id").order("id", { ascending: false }).limit(1);
+  let maxGId = (gData.data && gData.data.length > 0) ? parseInt(gData.data[0].id) : 0;
+  
+  if (window.DB && window.DB.giftsInventory) {
+    window.DB.giftsInventory.forEach(item => {
+      if (typeof item.id === "string" && !/^\d+$/.test(item.id)) {
+        maxGId++;
+        item.id = maxGId;
+      }
+    });
+  }
+
+  localStorage.setItem("adonis_db", JSON.stringify(window.DB));
+  localStorage.setItem("fix_applied", "true");
+  
+  console.log("3. Initiating final Sync...");
+  await window.syncDatabase();
+  alert("All fixes applied successfully! The database is now fully synced.");
+}
+setTimeout(runFullFix, 2000);
+</script></body>
 </html>
+
 
 
 

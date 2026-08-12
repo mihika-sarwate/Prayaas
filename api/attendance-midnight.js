@@ -245,31 +245,7 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
     return { status: 'P', remarks: 'Present via Final DCR Submission' };
   }
 
-  // Rule 2: Tour Plan (Overrides general rules)
-  const tpDay = context.tourPlanDayMap.get(`${empId}|${dateStr}`);
-  if (tpDay) {
-    const wt = String(tpDay.workType || '').toUpperCase();
-    if (wt === 'WEEKLY OFF') return { status: 'WO', remarks: 'Weekly Off (from Tour Plan)' };
-    if (wt === 'HOLIDAY') return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
-    if (wt === 'LEAVE') {
-      const tpLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
-      if (tpLeave) {
-        const leaveType = String(tpLeave.type || '').toLowerCase();
-        if (leaveType.includes('sick')) {
-          return { status: 'SL', remarks: 'Approved Sick Leave (from Tour Plan)' };
-        } else if (leaveType.includes('casual')) {
-          return { status: 'CL', remarks: 'Approved Casual Leave (from Tour Plan)' };
-        } else if (leaveType.includes('privilege') || leaveType.includes('paid') || leaveType === 'pl') {
-          return { status: 'PL', remarks: 'Approved Paid/Privilege Leave (from Tour Plan)' };
-        } else if (leaveType.includes('earned') || leaveType === 'el') {
-          return { status: 'EL', remarks: 'Approved Earned Leave (from Tour Plan)' };
-        }
-      }
-      return { status: 'CL', remarks: 'Approved Leave (from Tour Plan)' };
-    }
-  }
-
-  // Rule 3: Approved Leave
+  // Rule 2: Approved Leave
   const approvedLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
   if (approvedLeave) {
     const leaveType = String(approvedLeave.type || '').toLowerCase();
@@ -290,7 +266,16 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
   const holiday = getHolidayForDateAndState(context.holidayMap, dateStr, employee.state);
   if (holiday) return { status: 'H', remarks: holiday.name ? `Holiday: ${holiday.name}` : 'Holiday' };
 
-  // Rule 4: Weekly Off
+  // Rule 4: Tour Plan (Fallback if no Leave/Holiday)
+  const tpDay = context.tourPlanDayMap.get(`${empId}|${dateStr}`);
+  if (tpDay) {
+    const wt = String(tpDay.workType || '').toUpperCase();
+    if (wt === 'WEEKLY OFF') return { status: 'WO', remarks: 'Weekly Off (from Tour Plan)' };
+    if (wt === 'HOLIDAY') return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
+    if (wt === 'LEAVE') return { status: 'CL', remarks: 'Approved Leave (from Tour Plan)' };
+  }
+
+  // Rule 5: Weekly Off
   const parts = String(dateStr || '').split('-');
   const weekday = parts.length === 3 ? new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))).getUTCDay() : 0;
   const weeklyOffs = context.weeklyOffMap.get(empId);

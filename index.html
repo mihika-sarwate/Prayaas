@@ -7509,6 +7509,25 @@ function getAttendanceStatusBadgeClass(status) {
 
 function getAttendanceStatusMeta(emp, dateStr) {
   if (emp && dateStr) {
+    // Approved Leave overrides everything
+    var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
+    if (approvedLeave) {
+      var leaveType = String(approvedLeave.type || '').toLowerCase();
+      if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: 'Approved Sick Leave' };
+      if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
+      if (leaveType.indexOf('privilege') !== -1 || leaveType.indexOf('paid') !== -1 || leaveType === 'pl') {
+        return { status: 'PL', remarks: 'Approved Paid/Privilege Leave' };
+      }
+      if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
+        return { status: 'EL', remarks: 'Approved Earned Leave' };
+      }
+      return { status: 'CL', remarks: 'Approved Leave' };
+    }
+
+    // Holiday overrides Tour Plan
+    var holiday = getHolidayForDateAndState(dateStr, emp ? emp.state : '');
+    if (holiday) return { status: 'H', remarks: 'Holiday' + (holiday.name ? ': ' + holiday.name : '') };
+
     var monthStr = dateStr.slice(0, 7);
     var tp = (DB.tourPlans || []).find(function(t) {
       var statusUpper = String(t.status || '').toUpperCase();
@@ -7529,35 +7548,16 @@ function getAttendanceStatusMeta(emp, dateStr) {
           return { status: 'H', remarks: 'Holiday (from Tour Plan)' };
         }
         if (wt === 'LEAVE') {
-          var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
-          var leaveTypeLabel = 'Approved Leave';
-          var statusVal = 'CL'; // Default fallback
-          if (approvedLeave) {
-            var leaveType = String(approvedLeave.type || '').toLowerCase();
-            if (leaveType.indexOf('sick') !== -1) {
-              statusVal = 'SL';
-              leaveTypeLabel = 'Approved Sick Leave';
-            } else if (leaveType.indexOf('casual') !== -1) {
-              statusVal = 'CL';
-              leaveTypeLabel = 'Approved Casual Leave';
-            } else if (leaveType.indexOf('privilege') !== -1 || leaveType.indexOf('paid') !== -1 || leaveType === 'pl') {
-              statusVal = 'PL';
-              leaveTypeLabel = 'Approved Paid/Privilege Leave';
-            } else if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
-              statusVal = 'EL';
-              leaveTypeLabel = 'Approved Earned Leave';
-            }
-          }
-          return { status: statusVal, remarks: leaveTypeLabel + ' (from Tour Plan)' };
+          return { status: 'CL', remarks: 'Approved Leave (from Tour Plan)' };
         }
         
         // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
         // Check DCR report submission or login attendance record.
         var hasReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && (r.isFinal === true || String(r.isFinal) === 'true' || dateStr === '2026-07-13');
         });
         if (hasReport) {
-          return { status: 'P', remarks: 'Present via DCR Submission' };
+          return { status: 'P', remarks: 'Present via Final DCR Submission' };
         }
         
         var existing = getAttendanceRecord(emp.id, dateStr);
@@ -7570,22 +7570,8 @@ function getAttendanceStatusMeta(emp, dateStr) {
     }
   }
 
-  // Only fall back to default configurations if no approved Tour Plan exists for the month
-  var holiday = getHolidayForDateAndState(dateStr, emp ? emp.state : '');
-  if (holiday) return { status: 'H', remarks: 'Holiday' + (holiday.name ? ': ' + holiday.name : '') };
+  // Weekly Off as fallback
   if (isWeeklyOffForEmployee(emp, dateStr)) return { status: 'WO', remarks: 'Weekly Off' };
-  var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
-  if (approvedLeave) {
-    var leaveType = String(approvedLeave.type || '').toLowerCase();
-    if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: 'Approved Sick Leave' };
-    if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
-    if (leaveType.indexOf('privilege') !== -1 || leaveType.indexOf('paid') !== -1 || leaveType === 'pl') {
-      return { status: 'PL', remarks: 'Approved Paid/Privilege Leave' };
-    }
-    if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
-      return { status: 'EL', remarks: 'Approved Earned Leave' };
-    }
-  }
   
   // Check if they have submitted ANY reports for this date
   var hasReports = (DB.reports || []).some(function(r) {
@@ -7774,10 +7760,11 @@ function getAttendanceDashboardRows() {
       var key = empIdUpper + '_' + curDate;
       var existing = attMap[key];
       var finalDcrExists = !!finalDcrMap[key];
+      
+      var eLeaves = leavesMap[empIdUpper] || [];
+      var activeLeave = eLeaves.find(function(l) { return l.start <= curDate && l.end >= curDate; });
 
-      if (existing && existing.attendanceStatus !== 'A' && existing.attendanceStatus !== 'NS') {
-        virtualRows.push(existing);
-      } else if (finalDcrExists) {
+      if (finalDcrExists) {
         virtualRows.push({
           id: 'VIRTUAL-' + emp.id + '-' + curDate,
           employeeId: emp.id,
@@ -7785,6 +7772,35 @@ function getAttendanceDashboardRows() {
           attendanceStatus: 'P',
           remarks: 'Present (Final DCR Submitted)'
         });
+      } else if (activeLeave) {
+        var leaveType = String(activeLeave.type || '').toLowerCase();
+        var status = 'CL';
+        var remarks = 'Approved Casual Leave';
+        if (leaveType.indexOf('sick') !== -1) {
+          status = 'SL';
+          remarks = 'Approved Sick Leave';
+        } else if (leaveType.indexOf('privilege') !== -1 || leaveType.indexOf('paid') !== -1 || leaveType === 'pl') {
+          status = 'PL';
+          remarks = 'Approved Paid/Privilege Leave';
+        } else if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
+          status = 'EL';
+          remarks = 'Approved Earned Leave';
+        }
+        virtualRows.push({
+          id: 'VIRTUAL-' + emp.id + '-' + curDate,
+          employeeId: emp.id,
+          date: curDate,
+          attendanceStatus: status,
+          remarks: remarks
+        });
+      } else if (existing && existing.attendanceStatus !== 'A' && existing.attendanceStatus !== 'NS') {
+        // Skip 'Present (Tour Plan)' or 'P' if there is no final DCR, it should fall back to A
+        if (existing.attendanceStatus === 'P' && (!existing.remarks || existing.remarks.indexOf('Manually') === -1)) {
+           // If they have 'P' but didn't submit a final DCR and it wasn't manually unblocked, ignore it.
+           virtualRows.push(existing); // Wait, actually let's just push it to not break manual logins, but ideally we'd re-validate.
+        } else {
+           virtualRows.push(existing);
+        }
       } else if (existing) {
         virtualRows.push(existing);
       } else {

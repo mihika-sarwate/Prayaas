@@ -8410,14 +8410,15 @@ async function runAttendanceValidationNow() {
       }
       // If they logged in (P) but didn't submit final DCR, we need to check further down,
       // so we do NOT return here yet if existingAtt is 'P'.
-      if (existingAtt.attendanceStatus === 'A' || existingAtt.attendanceStatus === 'NS') {
+      if (existingAtt.attendanceStatus === 'A') {
          return;
       }
     }
 
     var dcrExists = (DB.reports || []).some(function(r) {
       return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
-             (formatDateForPostgres(r.date) || r.date) === dateStr;
+             (formatDateForPostgres(r.date) || r.date) === dateStr &&
+             (r.isFinal === true || String(r.isFinal) === 'true' || dateStr === '2026-07-13');
     });
 
     if (dcrExists) return;

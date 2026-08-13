@@ -385,6 +385,7 @@ table.tbl tr:last-child td{border-bottom:none}
 <!-- LOGIN SCREEN -->
 <div id="scr-login" style="display:flex; width:100%;">
   <div class="login-wrap">
+
     <div class="login-card">
       <div class="login-logo" style="width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
         <img src="logo.jpg" alt="Adonis Logo" style="max-height: 90px; max-width: 100%; object-fit: contain;">
@@ -1387,12 +1388,73 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">Employee Filter</label><select id="rep-filter-emp"><option value="">All employees</option></select></div>
           <div><label class="lbl">From Date</label><input type="date" id="rep-from"></div>
           <div><label class="lbl">To Date</label><input type="date" id="rep-to"></div>
-        </div>
         <div class="btn-row">
           <button class="btn primary sm" onclick="runMISReport()">Run Query / Filter</button>
           <button class="btn success sm" onclick="exportReportToCSV()">&#8595; Export Excel / CSV</button>
         </div>
       </div>
+
+      <div class="dash-card" style="margin-top: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <h3 style="margin:0;">Attendance Snapshot</h3>
+          <div>
+            <input type="date" id="adm-att-date" class="form-input" style="width:140px; margin-right:5px; padding:6px; font-size:14px; border:1px solid #d1d5db; border-radius:4px;" onchange="renderAdminDashAttendance()">
+            <button class="btn btn-outline" style="padding:6px 12px; font-size:14px; border:1px solid #14b8a6; color:#14b8a6; border-radius:4px; cursor:pointer;" onclick="renderAdminDashAttendance()">Refresh</button>
+            <button class="btn btn-primary" style="padding:6px 12px; font-size:14px; border:1px solid #F59E0B; background-color: #F59E0B; color:white; border-radius:4px; cursor:pointer;" onclick="fixYesterdayAttendance()">Fix Yesterday's Attendance</button>
+          </div>
+        </div>
+        
+        <script>
+          async function fixYesterdayAttendance() {
+            if (!confirm('Are you sure you want to mark all employees who submitted reports yesterday as Present?')) return;
+            
+            var targetDate = formatDateForPostgres(new Date(Date.now() - 86400000).toLocaleDateString('en-GB').split('/').join('-')) || '2026-08-12';
+            
+            // Find employees with reports yesterday
+            var empIdsWithReports = [];
+            (DB.reports || []).forEach(function(r) {
+              if ((formatDateForPostgres(r.date) || r.date) === targetDate) {
+                var empId = String(r.empId || '').trim().toUpperCase();
+                if (empId && empIdsWithReports.indexOf(empId) === -1) {
+                  empIdsWithReports.push(empId);
+                }
+              }
+            });
+            
+            if (empIdsWithReports.length === 0) {
+              alert("No reports found for " + targetDate);
+              return;
+            }
+            
+            try {
+              var res = await supabase.from('attendance').select('*').eq('date', targetDate).in('employee_id', empIdsWithReports);
+              var currentAtt = res.data || [];
+              
+              var updates = empIdsWithReports.map(function(empId) {
+                var existing = currentAtt.find(function(a) { return String(a.employee_id).toUpperCase() === empId; });
+                return {
+                  id: existing ? existing.id : 'ATT-' + empId + '-' + targetDate,
+                  employee_id: empId,
+                  date: targetDate,
+                  attendance_status: 'P',
+                  remarks: 'Present via DCR Submission (Fixed)',
+                  login_time: existing ? existing.login_time : null,
+                  created_at: existing ? existing.created_at : new Date().toISOString()
+                };
+              });
+              
+              var upRes = await supabase.from('attendance').upsert(updates, { onConflict: 'employee_id, date' });
+              if (upRes.error) throw upRes.error;
+              
+              alert("Successfully updated attendance to Present for " + updates.length + " employees on " + targetDate + "!");
+            } catch (err) {
+              console.error(err);
+              alert("Error updating attendance: " + err.message);
+            }
+          }
+        </script>
+      </div>
+
       <div class="card">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
           <span id="rep-table-title">Query Results</span>
@@ -7399,7 +7461,7 @@ function hasCompletedFinalDCRSubmission(employeeId, dateStr) {
     return String(r.empId || '').trim().toUpperCase() === targetId &&
       (formatDateForPostgres(r.date) || r.date) === targetDate;
   });
-  return matchingReports.length > 0 && matchingReports.some(function(r) { return !!r.isFinal || targetDate === '2026-07-13'; });
+  return matchingReports.length > 0;
 }
 
 function getNextISTMidnightValidationTime() {
@@ -7554,7 +7616,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
         // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
         // Check DCR report submission or login attendance record.
         var hasReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr && (r.isFinal === true || String(r.isFinal) === 'true' || dateStr === '2026-07-13');
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
         });
         if (hasReport) {
           return { status: 'P', remarks: 'Present via Final DCR Submission' };
@@ -7720,7 +7782,7 @@ function getAttendanceDashboardRows() {
 
   var finalDcrMap = {};
   (DB.reports || []).forEach(function(r) {
-    if (r.isFinal === true || String(r.isFinal) === 'true' || String(formatDateForPostgres(r.date) || r.date) === '2026-07-13') {
+    if (true) {
       var eId = String(r.empId || '').toUpperCase();
       var dStr = formatDateForPostgres(r.date) || r.date;
       finalDcrMap[eId + '_' + dStr] = true;
@@ -8433,8 +8495,7 @@ async function runAttendanceValidationNow() {
 
     var dcrExists = (DB.reports || []).some(function(r) {
       return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && 
-             (formatDateForPostgres(r.date) || r.date) === dateStr &&
-             (r.isFinal === true || String(r.isFinal) === 'true' || dateStr === '2026-07-13');
+             (formatDateForPostgres(r.date) || r.date) === dateStr;
     });
 
     if (dcrExists) return;

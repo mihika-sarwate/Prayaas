@@ -7548,12 +7548,27 @@ function isWeeklyOffForEmployee(emp, dateStr) {
 
 function getApprovedLeaveStatusForDate(emp, dateStr) {
   var targetId = String((emp && emp.id) || '').trim().toUpperCase();
+  function toISTDateStr(val) {
+    if (!val) return null;
+    var s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var ms = Date.parse(s);
+    if (isNaN(ms)) return formatDateForPostgres(s) || s;
+    var istMs = ms + (5 * 60 + 30) * 60000;
+    var d = new Date(istMs);
+    return d.getUTCFullYear() + '-' +
+           String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getUTCDate()).padStart(2, '0');
+  }
   return (DB.leaves || []).find(function(l) {
     var status = String(l.status || '').trim().toUpperCase();
-    if (String(l.empId || '').trim().toUpperCase() !== targetId) return false;
-    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN') return false;
-    var start = formatDateForPostgres(l.start) || l.start;
-    var end = formatDateForPostgres(l.end) || l.end;
+    // Handle both empId (camelCase) and emp_id (snake_case from Supabase)
+    var lEmpId = String(l.empId || l.emp_id || '').trim().toUpperCase();
+    if (lEmpId !== targetId) return false;
+    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER') return false;
+    var start = toISTDateStr(l.start);
+    var end   = toISTDateStr(l.end);
+    if (!start || !end) return false;
     return start <= dateStr && end >= dateStr;
   }) || null;
 }
@@ -7791,12 +7806,34 @@ function getAttendanceDashboardRows() {
 
   var leavesMap = {};
   (DB.leaves || []).forEach(function(l) {
-    if (l.status === 'APPROVED' || l.status === 'APPROVED BY ADMIN') {
-      var eId = String(l.empId || '').toUpperCase();
-      var start = formatDateForPostgres(l.start) || l.start;
-      var end = formatDateForPostgres(l.end) || l.end;
+    var statusUpper = String(l.status || '').toUpperCase().trim();
+    var isApproved = statusUpper === 'APPROVED' || statusUpper === 'APPROVED BY ADMIN'
+                  || statusUpper === 'APPROVED BY MANAGER';
+    if (isApproved) {
+      // Handle both camelCase (empId) and snake_case (emp_id) from Supabase
+      var eId = String(l.empId || l.emp_id || '').toUpperCase();
+      // Convert UTC ISO timestamp to plain IST date string (YYYY-MM-DD)
+      // e.g. "2026-07-30T18:30:00.000Z" → "2026-07-31" in IST (UTC+5:30)
+      function toISTDateStr(val) {
+        if (!val) return null;
+        var s = String(val).trim();
+        // Already a plain date
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        // ISO timestamp — parse and shift to IST
+        var ms = Date.parse(s);
+        if (isNaN(ms)) return formatDateForPostgres(s) || s;
+        var istMs = ms + (5 * 60 + 30) * 60000;
+        var d = new Date(istMs);
+        var yr = d.getUTCFullYear();
+        var mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+        var dy = String(d.getUTCDate()).padStart(2, '0');
+        return yr + '-' + mo + '-' + dy;
+      }
+      var start = toISTDateStr(l.start);
+      var end   = toISTDateStr(l.end);
+      if (!start || !end) return;
       if (!leavesMap[eId]) leavesMap[eId] = [];
-      leavesMap[eId].push({start: start, end: end, type: String(l.type || '').toLowerCase()});
+      leavesMap[eId].push({ start: start, end: end, type: String(l.type || '').toLowerCase() });
     }
   });
 

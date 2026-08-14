@@ -6393,40 +6393,66 @@ function getLeaveLedger(emp, filterMonth) {
            String(d.getUTCDate()).padStart(2, '0');
   }
 
+  var clUsed = 0, plUsed = 0, slUsed = 0, lopUsed = 0;
+  var dates = { cl: [], sl: [], pl: [], lop: [] };
+  var MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
   if (emp && emp.id && typeof DB !== 'undefined' && DB && Array.isArray(DB.leaves)) {
     DB.leaves.forEach(function(l) {
       var lEmpId = String(l.empId || l.emp_id || '').trim().toUpperCase();
       var statusUpper = String(l.status || '').trim().toUpperCase();
       var isApproved = statusUpper === 'APPROVED' || statusUpper === 'APPROVED BY MANAGER' || statusUpper === 'APPROVED BY ADMIN';
-      if (lEmpId === String(emp.id).trim().toUpperCase() && isApproved) {
-        // Month filter: check overlap between leave range and filterMonth
-        if (filterMonth) {
-          var startStr = toISTDateStr(l.start);
-          var endStr   = toISTDateStr(l.end);
-          if (!startStr || !endStr) return;
-          // Leave must overlap with filterMonth (YYYY-MM)
-          var monthStart = filterMonth + '-01';
-          var nextMonth  = filterMonth.slice(0, 4) + '-' + String(parseInt(filterMonth.slice(5, 7), 10) + 1).padStart(2, '0');
-          var monthEnd   = nextMonth + '-01'; // exclusive upper bound
-          if (endStr < monthStart || startStr >= monthEnd) return; // no overlap
-          // Count only the days that fall within filterMonth
-          var overlapStart = startStr < monthStart ? monthStart : startStr;
-          var overlapEnd   = endStr   >= monthEnd  ? new Date(Date.parse(monthEnd) - 86400000).toISOString().slice(0,10) : endStr;
-          // Days in overlap
-          var days = Math.max(0, Math.round((Date.parse(overlapEnd) - Date.parse(overlapStart)) / 86400000) + 1);
-          if (days <= 0) return;
-          var t = (l.type || '').trim().toLowerCase();
-          if (t === 'casual leave' || t === 'cl') clUsed += days;
-          else if (t === 'sick leave' || t === 'sl') slUsed += days;
-          else if (t === 'earned leave' || t === 'privilege leave' || t === 'paid leave' || t === 'pl' || t === 'el') plUsed += days;
-          else if (t === 'leave without pay' || t === 'lwp' || t === 'lop') lopUsed += days;
-        } else {
-          var days = parseFloat(l.days) || 0;
-          var t = (l.type || '').trim().toLowerCase();
-          if (t === 'casual leave' || t === 'cl') clUsed += days;
-          else if (t === 'sick leave' || t === 'sl') slUsed += days;
-          else if (t === 'earned leave' || t === 'privilege leave' || t === 'paid leave' || t === 'pl' || t === 'el') plUsed += days;
-          else if (t === 'leave without pay' || t === 'lwp' || t === 'lop') lopUsed += days;
+      if (lEmpId !== String(emp.id).trim().toUpperCase() || !isApproved) return;
+
+      var t = (l.type || '').trim().toLowerCase();
+      var bucket = null;
+      if (t === 'casual leave' || t === 'cl') bucket = 'cl';
+      else if (t === 'sick leave' || t === 'sl') bucket = 'sl';
+      else if (t === 'earned leave' || t === 'privilege leave' || t === 'paid leave' || t === 'pl' || t === 'el') bucket = 'pl';
+      else if (t === 'leave without pay' || t === 'lwp' || t === 'lop') bucket = 'lop';
+      if (!bucket) return;
+
+      if (filterMonth) {
+        var startStr = toISTDateStr(l.start);
+        var endStr   = toISTDateStr(l.end);
+        if (!startStr || !endStr) return;
+        var monthStart = filterMonth + '-01';
+        var nextMonth  = filterMonth.slice(0, 4) + '-' + String(parseInt(filterMonth.slice(5, 7), 10) + 1).padStart(2, '0');
+        var monthEnd   = nextMonth + '-01';
+        if (endStr < monthStart || startStr >= monthEnd) return;
+        var overlapStart = startStr < monthStart ? monthStart : startStr;
+        var overlapEnd   = endStr >= monthEnd ? new Date(Date.parse(monthEnd) - 86400000).toISOString().slice(0,10) : endStr;
+        // Enumerate each day in overlap — record day-of-month numbers
+        var cur = Date.parse(overlapStart);
+        var endMs = Date.parse(overlapEnd);
+        while (cur <= endMs) {
+          var dayNum = new Date(cur + (5*60+30)*60000).getUTCDate();
+          dates[bucket].push(dayNum);
+          if (bucket === 'cl') clUsed++;
+          else if (bucket === 'sl') slUsed++;
+          else if (bucket === 'pl') plUsed++;
+          else lopUsed++;
+          cur += 86400000;
+        }
+      } else {
+        var days = parseFloat(l.days) || 0;
+        if (bucket === 'cl') clUsed += days;
+        else if (bucket === 'sl') slUsed += days;
+        else if (bucket === 'pl') plUsed += days;
+        else lopUsed += days;
+        // Record a short date-range label e.g. "3 Aug" or "3-7 Aug"
+        var sStr = toISTDateStr(l.start);
+        if (sStr) {
+          var sd = new Date(Date.parse(sStr) + (5*60+30)*60000);
+          var label = sd.getUTCDate() + ' ' + MON_NAMES[sd.getUTCMonth()];
+          if (days > 1) {
+            var eStr = toISTDateStr(l.end);
+            if (eStr) {
+              var ed = new Date(Date.parse(eStr) + (5*60+30)*60000);
+              label += '-' + ed.getUTCDate() + ' ' + MON_NAMES[ed.getUTCMonth()];
+            }
+          }
+          dates[bucket].push(label);
         }
       }
     });
@@ -6441,10 +6467,10 @@ function getLeaveLedger(emp, filterMonth) {
   }
 
   return {
-    cl:  { limit: clLimit,  used: clUsed,  balance: Math.max(0, clLimit  - clUsed)  },
-    pl:  { limit: plLimit,  used: plUsed,  balance: Math.max(0, plLimit  - plUsed)  },
-    sl:  { limit: slLimit,  used: slUsed,  balance: Math.max(0, slLimit  - slUsed)  },
-    lop: { limit: lopLimit, used: lopUsed, balance: Math.max(0, lopLimit - lopUsed) }
+    cl:  { limit: clLimit,  used: clUsed,  balance: Math.max(0, clLimit  - clUsed),  dates: dates.cl  },
+    pl:  { limit: plLimit,  used: plUsed,  balance: Math.max(0, plLimit  - plUsed),  dates: dates.pl  },
+    sl:  { limit: slLimit,  used: slUsed,  balance: Math.max(0, slLimit  - slUsed),  dates: dates.sl  },
+    lop: { limit: lopLimit, used: lopUsed, balance: Math.max(0, lopLimit - lopUsed), dates: dates.lop }
   };
 }
 
@@ -13584,6 +13610,17 @@ function renderLeaveBalanceTable(){
     var hq = e.area || 'HQ';
     var joinDate = e.doj || '01-Jan-2023';
 
+    function usedCell(used, dateArr) {
+      if (!used || used === 0) return '<td>0</td>';
+      var sorted = (dateArr || []).slice().sort(function(a, b) {
+        return typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b));
+      });
+      var dateStr = sorted.length
+        ? ' <span style="font-size:10px;color:var(--text-muted);font-weight:400">(' + sorted.join(',') + ')</span>'
+        : '';
+      return '<td><span style="font-weight:600">' + used + '</span>' + dateStr + '</td>';
+    }
+
     return '<tr>'+
       '<td><input type="checkbox" class="leave-row-check admin-only" value="'+(e.id || '')+'"></td>'+
       '<td>'+(idx+1)+'</td>'+
@@ -13594,7 +13631,10 @@ function renderLeaveBalanceTable(){
       '<td>'+(e.state || '')+'</td>'+
       '<td>'+joinDate+'</td>'+
       '<td>'+cl+'</td><td>'+pl+'</td><td>'+sl+'</td><td>'+lop+'</td>'+
-      '<td>'+cl_used+'</td><td>'+pl_used+'</td><td>'+sl_used+'</td><td>'+lop_used+'</td>'+
+      usedCell(cl_used, ledger.cl.dates)+
+      usedCell(pl_used, ledger.pl.dates)+
+      usedCell(sl_used, ledger.sl.dates)+
+      usedCell(lop_used, ledger.lop.dates)+
       '<td>'+cl_bal+'</td><td>'+pl_bal+'</td><td>'+sl_bal+'</td><td>'+lop_bal+'</td>'+
       '<td><button class="btn sm secondary admin-only" style="width:auto;padding:0 8px;margin-right:4px;" onclick="editLeaveRecord(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="deleteLeaveRecord(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td>'+
       '</tr>';

@@ -1208,13 +1208,18 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="sec-hdr">&#127973; Leave Balance Management (CL/SL/PL)</div>
       <div class="card">
         <div class="info-box">Upload Leave Balance CSV. Ensure format matches the downloaded template exactly.</div>
-        <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn sm success" onclick="downloadLeaveBalanceData()">&#8595; Download Leave Balance</button>
-          <button class="btn sm primary admin-only" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload Leave Balance CSV</button>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <label class="lbl" style="margin:0;white-space:nowrap">&#128197; Report Month</label>
+            <input type="month" id="leave-bal-month" style="width:160px;height:38px;border-radius:10px;border:1.5px solid var(--border);padding:0 10px;font-size:13px;font-family:inherit;background:#f8fafc" onchange="renderLeaveBalanceTable()">
+          </div>
+          <button class="btn sm success" style="height:38px" onclick="downloadLeaveBalanceData()">&#8595; Download CSV</button>
+          <button class="btn sm primary admin-only" style="height:38px" onclick="document.getElementById('leave-bal-upload').click()">&#8593; Upload CSV</button>
           <input type="file" id="leave-bal-upload" accept=".csv" onchange="uploadLeaveBalances(this)" style="display:none">
-          <button class="btn sm danger admin-only" onclick="deleteSelectedLeaves()">&#128465; Delete Selected</button>
-          <button class="btn sm danger admin-only" onclick="deleteAllLeaves()">&#128465; Delete All</button>
+          <button class="btn sm danger admin-only" style="height:38px" onclick="deleteSelectedLeaves()">&#128465; Delete Selected</button>
+          <button class="btn sm danger admin-only" style="height:38px" onclick="deleteAllLeaves()">&#128465; Delete All</button>
         </div>
+        <div id="leave-bal-month-note" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"></div>
       </div>
       <div class="card">
         <div class="card-title">Employee Leave Balances (<span id="leave-bal-count">0</span> records)</div>
@@ -6361,7 +6366,10 @@ function getDesignationLabel(role) {
   return '';
 }
 
-function getLeaveLedger(emp) {
+// getLeaveLedger(emp, filterMonth)
+// filterMonth: optional "YYYY-MM" string — if provided, only counts leaves taken in that month.
+// If omitted, counts all-time leave taken (original behaviour).
+function getLeaveLedger(emp, filterMonth) {
   var leaves = emp && emp.leaves ? emp.leaves : {};
   if (typeof leaves === 'string') leaves = parseJSONField(leaves);
   var clLimit = parseFloat(leaves.CL) || 0;
@@ -6370,30 +6378,72 @@ function getLeaveLedger(emp) {
   var lopLimit = parseFloat(leaves.LWP) || 0;
 
   var clUsed = 0, plUsed = 0, slUsed = 0, lopUsed = 0;
-  
+
+  // Helper: convert UTC ISO or plain date to IST YYYY-MM-DD
+  function toISTDateStr(val) {
+    if (!val) return null;
+    var s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var ms = Date.parse(s);
+    if (isNaN(ms)) return null;
+    var istMs = ms + (5 * 60 + 30) * 60000;
+    var d = new Date(istMs);
+    return d.getUTCFullYear() + '-' +
+           String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getUTCDate()).padStart(2, '0');
+  }
+
   if (emp && emp.id && typeof DB !== 'undefined' && DB && Array.isArray(DB.leaves)) {
     DB.leaves.forEach(function(l) {
-      if (String(l.empId).trim().toUpperCase() === String(emp.id).trim().toUpperCase() && 
-         (l.status === 'Approved' || l.status === 'Approved by Manager' || l.status === 'Approved by Admin')) {
-        var days = parseFloat(l.days) || 0;
-        var t = (l.type || '').trim().toLowerCase();
-        if (t === 'casual leave' || t === 'cl') clUsed += days;
-        else if (t === 'sick leave' || t === 'sl') slUsed += days;
-        else if (t === 'earned leave' || t === 'privilege leave' || t === 'paid leave' || t === 'pl' || t === 'el') plUsed += days;
-        else if (t === 'leave without pay' || t === 'lwp' || t === 'lop') lopUsed += days;
+      var lEmpId = String(l.empId || l.emp_id || '').trim().toUpperCase();
+      var statusUpper = String(l.status || '').trim().toUpperCase();
+      var isApproved = statusUpper === 'APPROVED' || statusUpper === 'APPROVED BY MANAGER' || statusUpper === 'APPROVED BY ADMIN';
+      if (lEmpId === String(emp.id).trim().toUpperCase() && isApproved) {
+        // Month filter: check overlap between leave range and filterMonth
+        if (filterMonth) {
+          var startStr = toISTDateStr(l.start);
+          var endStr   = toISTDateStr(l.end);
+          if (!startStr || !endStr) return;
+          // Leave must overlap with filterMonth (YYYY-MM)
+          var monthStart = filterMonth + '-01';
+          var nextMonth  = filterMonth.slice(0, 4) + '-' + String(parseInt(filterMonth.slice(5, 7), 10) + 1).padStart(2, '0');
+          var monthEnd   = nextMonth + '-01'; // exclusive upper bound
+          if (endStr < monthStart || startStr >= monthEnd) return; // no overlap
+          // Count only the days that fall within filterMonth
+          var overlapStart = startStr < monthStart ? monthStart : startStr;
+          var overlapEnd   = endStr   >= monthEnd  ? new Date(Date.parse(monthEnd) - 86400000).toISOString().slice(0,10) : endStr;
+          // Days in overlap
+          var days = Math.max(0, Math.round((Date.parse(overlapEnd) - Date.parse(overlapStart)) / 86400000) + 1);
+          if (days <= 0) return;
+          var t = (l.type || '').trim().toLowerCase();
+          if (t === 'casual leave' || t === 'cl') clUsed += days;
+          else if (t === 'sick leave' || t === 'sl') slUsed += days;
+          else if (t === 'earned leave' || t === 'privilege leave' || t === 'paid leave' || t === 'pl' || t === 'el') plUsed += days;
+          else if (t === 'leave without pay' || t === 'lwp' || t === 'lop') lopUsed += days;
+        } else {
+          var days = parseFloat(l.days) || 0;
+          var t = (l.type || '').trim().toLowerCase();
+          if (t === 'casual leave' || t === 'cl') clUsed += days;
+          else if (t === 'sick leave' || t === 'sl') slUsed += days;
+          else if (t === 'earned leave' || t === 'privilege leave' || t === 'paid leave' || t === 'pl' || t === 'el') plUsed += days;
+          else if (t === 'leave without pay' || t === 'lwp' || t === 'lop') lopUsed += days;
+        }
       }
     });
   }
 
-  clUsed += (parseFloat(leaves.CL_used) || 0);
-  plUsed += (parseFloat(leaves.EL_used) || 0);
-  slUsed += (parseFloat(leaves.SL_used) || 0);
-  lopUsed += (parseFloat(leaves.LWP_used) || 0);
+  // Add manually stored used counts only when NO month filter (all-time view)
+  if (!filterMonth) {
+    clUsed  += (parseFloat(leaves.CL_used)  || 0);
+    plUsed  += (parseFloat(leaves.EL_used)  || 0);
+    slUsed  += (parseFloat(leaves.SL_used)  || 0);
+    lopUsed += (parseFloat(leaves.LWP_used) || 0);
+  }
 
   return {
-    cl: { limit: clLimit, used: clUsed, balance: Math.max(0, clLimit - clUsed) },
-    pl: { limit: plLimit, used: plUsed, balance: Math.max(0, plLimit - plUsed) },
-    sl: { limit: slLimit, used: slUsed, balance: Math.max(0, slLimit - slUsed) },
+    cl:  { limit: clLimit,  used: clUsed,  balance: Math.max(0, clLimit  - clUsed)  },
+    pl:  { limit: plLimit,  used: plUsed,  balance: Math.max(0, plLimit  - plUsed)  },
+    sl:  { limit: slLimit,  used: slUsed,  balance: Math.max(0, slLimit  - slUsed)  },
     lop: { limit: lopLimit, used: lopUsed, balance: Math.max(0, lopLimit - lopUsed) }
   };
 }
@@ -13415,10 +13465,29 @@ function bulkDeleteAllStockists() {
 }
 
 // ===== LEAVE BALANCE MASTER FUNCTIONS =====
+function getSelectedLeaveBalanceMonth() {
+  var el = document.getElementById('leave-bal-month');
+  return el && el.value ? el.value : null; // "YYYY-MM" or null
+}
+
 function renderLeaveBalanceTable(){
+  var selectedMonth = getSelectedLeaveBalanceMonth();
+  // Update note label
+  var noteEl = document.getElementById('leave-bal-month-note');
+  if (noteEl) {
+    if (selectedMonth) {
+      var d = new Date(selectedMonth + '-01');
+      var label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+      noteEl.textContent = '\u2139\ufe0f Showing leave taken in ' + label + ' only. Clear the month to see all-time totals.';
+    } else {
+      noteEl.textContent = 'Showing all-time leave totals. Select a month above to filter.';
+    }
+  }
   var thead = document.getElementById('leave-bal-table-head');
   if(thead) {
-    var monthYear = getCurrentISTMonthYearLabel();
+    var monthYear = selectedMonth
+      ? (function(){ var d = new Date(selectedMonth+'-01'); return d.toLocaleString('default',{month:'long',year:'numeric'}); })()
+      : getCurrentISTMonthYearLabel();
     thead.innerHTML = '<tr><th colspan="8" style="border:none"></th><th colspan="12" style="text-align:center;border:none">'+monthYear+'</th><th style="border:none"></th></tr>' +
       '<tr><th rowspan="2"><input type="checkbox" id="check-all-leaves" class="admin-only" onclick="toggleSelectAllLeaves(this)"></th><th rowspan="2">S.No</th><th rowspan="2">Employee id</th><th rowspan="2">FieldForce Name</th><th rowspan="2" style="vertical-align:top">' + renderSortHead('leaves', 'designation', 'Designation') + '</th><th rowspan="2" style="vertical-align:top">' + renderSortHead('leaves', 'hq', 'HQ') + '</th><th rowspan="2" style="vertical-align:top">' + renderSortHead('leaves', 'state', 'State') + '</th><th rowspan="2">Joining Date</th><th colspan="4" style="text-align:center">Leave Eligibilty</th><th colspan="4" style="text-align:center">Leave Taken</th><th colspan="4" style="text-align:center">Leave Balance</th><th rowspan="2">Action</th></tr>' +
       '<tr><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th><th>CL</th><th>PL</th><th>SL</th><th>LOP</th></tr>';
@@ -13497,7 +13566,7 @@ function renderLeaveBalanceTable(){
     return;
   }
   tbody.innerHTML=emps.map(function(e, idx){
-    var ledger = getLeaveLedger(e);
+    var ledger = getLeaveLedger(e, selectedMonth);
     var cl = ledger.cl.limit;
     var cl_used = ledger.cl.used;
     var cl_bal = ledger.cl.balance;
@@ -13659,15 +13728,28 @@ function deleteLeaveBalance(id) {
 }
 
 function downloadLeaveBalanceData(){
-  var monthYear = getCurrentISTMonthYearLabel();
+  var selectedMonth = getSelectedLeaveBalanceMonth();
+  var monthYear;
+  var fileMonth;
+  if (selectedMonth) {
+    var d = new Date(selectedMonth + '-01');
+    monthYear = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    fileMonth = selectedMonth; // YYYY-MM for filename
+  } else {
+    monthYear = getCurrentISTMonthYearLabel();
+    fileMonth = (function(){
+      var now = new Date();
+      return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    })();
+  }
   var csv = ',,,,,,,' + monthYear + ',,,,,,,,,,,\n';
   csv += 'S.No,Employee id,FieldForce Name,Designation,HQ,State,Joining Date,Leave Eligibilty,,,Leave Taken,,,Leave Balance,,\n';
   csv += ',,,,,,CL,PL,SL,LOP,CL,PL,SL,LOP,CL,PL,SL,LOP\n';
-  
-  var emps=DB.employees.filter(function(e){return e && e.id!=='ADMIN';});
-  if(emps.length > 0) {
+
+  var emps = DB.employees.filter(function(e){ return e && e.id !== 'ADMIN'; });
+  if (emps.length > 0) {
     emps.forEach(function(e, idx){
-      var ledger = getLeaveLedger(e);
+      var ledger = getLeaveLedger(e, selectedMonth);
       var cl = ledger.cl.limit;
       var cl_used = ledger.cl.used;
       var cl_bal = ledger.cl.balance;
@@ -13699,7 +13781,7 @@ function downloadLeaveBalanceData(){
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
   }
-  downloadData(csv,'leave_balance_master.csv');
+  downloadData(csv, 'leave_balance_' + fileMonth + '.csv');
 }
 
 function uploadLeaveBalances(inp){

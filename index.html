@@ -7826,15 +7826,9 @@ function getAttendanceDashboardRows() {
       var eLeaves = leavesMap[empIdUpper] || [];
       var activeLeave = eLeaves.find(function(l) { return l.start <= curDate && l.end >= curDate; });
 
-      if (finalDcrExists) {
-        virtualRows.push({
-          id: 'VIRTUAL-' + emp.id + '-' + curDate,
-          employeeId: emp.id,
-          date: curDate,
-          attendanceStatus: 'P',
-          remarks: 'Present (Final DCR Submitted)'
-        });
-      } else if (activeLeave) {
+      if (activeLeave) {
+        // Approved leave ALWAYS takes priority over DCR submission.
+        // An employee on Sick Leave / CL / PL cannot be shown as Present.
         var leaveType = String(activeLeave.type || '').toLowerCase();
         var status = 'CL';
         var remarks = 'Approved Casual Leave';
@@ -7854,6 +7848,14 @@ function getAttendanceDashboardRows() {
           date: curDate,
           attendanceStatus: status,
           remarks: remarks
+        });
+      } else if (finalDcrExists) {
+        virtualRows.push({
+          id: 'VIRTUAL-' + emp.id + '-' + curDate,
+          employeeId: emp.id,
+          date: curDate,
+          attendanceStatus: 'P',
+          remarks: 'Present (Final DCR Submitted)'
         });
       } else if (existing && existing.attendanceStatus !== 'A' && existing.attendanceStatus !== 'NS') {
         // Skip 'Present (Tour Plan)' or 'P' if there is no final DCR, it should fall back to A

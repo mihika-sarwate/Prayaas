@@ -789,7 +789,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title">Sample Product Inventory</div>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>Product Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
+            <thead><tr><th>Product Name</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed</th><th>Current Balance</th></tr></thead>
             <tbody id="tbl-emp-inv-samples"></tbody>
           </table>
         </div>
@@ -797,7 +797,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title" style="margin-top:20px">Promotional Gift Inventory</div>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>Gift Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
+            <thead><tr><th>Gift Name</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed</th><th>Current Balance</th></tr></thead>
             <tbody id="tbl-emp-inv-gifts"></tbody>
           </table>
         </div>
@@ -805,7 +805,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title" style="margin-top:20px">Promotional Material/Literature (Inputs)</div>
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr><th>Input Name</th><th>Opening Stock</th><th>Allocated</th><th>Distributed</th><th>Current Balance</th></tr></thead>
+            <thead><tr><th>Input Name</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed</th><th>Current Balance</th></tr></thead>
             <tbody id="tbl-emp-inv-inputs"></tbody>
           </table>
         </div>
@@ -1262,9 +1262,23 @@ table.tbl tr:last-child td{border-bottom:none}
   <!-- ADMIN INVENTORY PANEL -->
     <div id="sec-adm-inventory" style="display:none">
       <div class="card admin-only">
-        <div class="card-title">&#128230; Issue Stock to Representative</div>
+        <div class="card-title">&#128101; Bulk Edit Opening Stock</div>
+        <div class="info-box">Select one, multiple, or all BEs, then open one bulk window to edit opening stock across every selected employee.</div>
+        <div class="row2" style="align-items:flex-end;">
+          <div><label class="lbl">Search BE</label><input type="text" id="inv-be-search" placeholder="Filter by employee name or ID" oninput="renderInventoryBeSelector()" style="background:#F1F5F9"></div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+            <button class="btn sm secondary" onclick="selectAllInventoryBEs(true)">Select All BEs</button>
+            <button class="btn sm secondary" onclick="selectAllInventoryBEs(false)">Clear All</button>
+            <button class="btn sm primary" onclick="openBulkOpeningStockEditor()">Edit Opening Stock</button>
+          </div>
+        </div>
+        <div id="inv-be-selector" class="card" style="margin-top:12px; max-height:240px; overflow:auto; padding:12px; background:#F8FAFC;"></div>
+      </div>
+
+      <div class="card admin-only">
+        <div class="card-title">&#128230; Issue Stock to BE</div>
         <div class="row2">
-          <div><label class="lbl">Select Employee (MR)</label><select id="inv-issue-emp"></select></div>
+          <div><label class="lbl">Select Employee (BE)</label><select id="inv-issue-emp"></select></div>
           <div><label class="lbl">Item Type</label><select id="inv-issue-type" onchange="populateInventoryItemSelect()"><option>Sample Product</option><option>Gift Promotional</option><option>Promotional Input</option></select></div>
         </div>
         <div class="row2">
@@ -1293,7 +1307,7 @@ table.tbl tr:last-child td{border-bottom:none}
       <div class="sec-hdr">&#128196; Employee Inventory Registers</div>
       <div class="card">
         <div class="row2" style="display:flex; gap:15px; align-items:flex-end;">
-          <div style="flex:1;"><label class="lbl">Filter MR</label><select id="inv-filter-emp" onchange="renderAdminInventoryTables()"><option value="">All Employees</option></select></div>
+          <div style="flex:1;"><label class="lbl">Filter BE</label><select id="inv-filter-emp" onchange="renderAdminInventoryTables()"><option value="">All Employees</option></select></div>
           <div style="flex:1;"><label class="lbl">Filter State</label><select id="inv-filter-state" onchange="renderAdminInventoryTables()"><option value="">All States</option></select></div>
           <div style="flex:2;"><label class="lbl">&#128269; Search Inventory</label><input type="text" id="inv-search-global" placeholder="Search by Employee, State, Product, Qty..." oninput="renderAdminInventoryTables()" class="txt" style="width:100%;"></div>
         </div>
@@ -1312,7 +1326,7 @@ table.tbl tr:last-child td{border-bottom:none}
                 <th>State <span class="inv-filter-trigger" id="inv-trig-sample-state" onclick="toggleInvFilterDropdown('sample', 'state', this)">▼</span></th>
                 <th>Product Name <span class="inv-filter-trigger" id="inv-trig-sample-name" onclick="toggleInvFilterDropdown('sample', 'name', this)">▼</span></th>
                 <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-sample-opening" onclick="toggleInvFilterDropdown('sample', 'opening', this)">▼</span></th>
-                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-sample-allocated" onclick="toggleInvFilterDropdown('sample', 'allocated', this)">▼</span></th>
+                <th>Received Qty <span class="inv-filter-trigger" id="inv-trig-sample-received" onclick="toggleInvFilterDropdown('sample', 'received', this)">▼</span></th>
                 <th>Distributed <span class="inv-filter-trigger" id="inv-trig-sample-distributed" onclick="toggleInvFilterDropdown('sample', 'distributed', this)">▼</span></th>
                 <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-sample-balance" onclick="toggleInvFilterDropdown('sample', 'balance', this)">▼</span></th>
                 <th>Actions</th>
@@ -1331,7 +1345,7 @@ table.tbl tr:last-child td{border-bottom:none}
                 <th>State <span class="inv-filter-trigger" id="inv-trig-gift-state" onclick="toggleInvFilterDropdown('gift', 'state', this)">▼</span></th>
                 <th>Gift Name <span class="inv-filter-trigger" id="inv-trig-gift-name" onclick="toggleInvFilterDropdown('gift', 'name', this)">▼</span></th>
                 <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-gift-opening" onclick="toggleInvFilterDropdown('gift', 'opening', this)">▼</span></th>
-                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-gift-allocated" onclick="toggleInvFilterDropdown('gift', 'allocated', this)">▼</span></th>
+                <th>Received Qty <span class="inv-filter-trigger" id="inv-trig-gift-received" onclick="toggleInvFilterDropdown('gift', 'received', this)">▼</span></th>
                 <th>Distributed <span class="inv-filter-trigger" id="inv-trig-gift-distributed" onclick="toggleInvFilterDropdown('gift', 'distributed', this)">▼</span></th>
                 <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-gift-balance" onclick="toggleInvFilterDropdown('gift', 'balance', this)">▼</span></th>
                 <th>Actions</th>
@@ -1350,7 +1364,7 @@ table.tbl tr:last-child td{border-bottom:none}
                 <th>State <span class="inv-filter-trigger" id="inv-trig-input-state" onclick="toggleInvFilterDropdown('input', 'state', this)">▼</span></th>
                 <th>Input Name <span class="inv-filter-trigger" id="inv-trig-input-name" onclick="toggleInvFilterDropdown('input', 'name', this)">▼</span></th>
                 <th>Opening Stock <span class="inv-filter-trigger" id="inv-trig-input-opening" onclick="toggleInvFilterDropdown('input', 'opening', this)">▼</span></th>
-                <th>Allocated <span class="inv-filter-trigger" id="inv-trig-input-allocated" onclick="toggleInvFilterDropdown('input', 'allocated', this)">▼</span></th>
+                <th>Received Qty <span class="inv-filter-trigger" id="inv-trig-input-received" onclick="toggleInvFilterDropdown('input', 'received', this)">▼</span></th>
                 <th>Distributed <span class="inv-filter-trigger" id="inv-trig-input-distributed" onclick="toggleInvFilterDropdown('input', 'distributed', this)">▼</span></th>
                 <th>Current Balance <span class="inv-filter-trigger" id="inv-trig-input-balance" onclick="toggleInvFilterDropdown('input', 'balance', this)">▼</span></th>
                 <th>Actions</th>
@@ -1666,6 +1680,14 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <button class="btn success" style="width: 100%;" onclick="submitChangePassword()">Change Password</button>
     </div>
+  </div>
+</div>
+
+<!-- BULK OPENING STOCK MODAL -->
+<div class="modal-bg" id="modal-inv-bulk">
+  <div class="modal" style="max-width: 1180px; width: min(1180px, 96vw); max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;">
+    <div class="modal-title">Bulk Edit Opening Stock <button class="modal-close" onclick="closeModal('modal-inv-bulk')">&#215;</button></div>
+    <div id="inv-bulk-modal-content" style="padding: 16px; overflow: hidden; display: flex; flex-direction: column; gap: 12px;"></div>
   </div>
 </div>
 
@@ -5370,7 +5392,7 @@ function initEmpApp(userObj){
 var _allReportingDocs = [];
 var _allReportingChems = [];
 
-function updateMRInitialStock(type, itemName, newVal) {
+function updateMRReceivedStock(type, itemName, newVal) {
   var val = parseInt(newVal) || 0;
   var empId = SESSION.user.id;
   var table = '';
@@ -5414,12 +5436,19 @@ function updateMRInitialStock(type, itemName, newVal) {
     else record.inputName = itemName;
     invArray.push(record);
   } else {
-    record.received = val - (record.opening || 0);
-    record.balance = val - (record.distributed || 0);
+    record.received = val;
+    record.balance = (record.opening || 0) + (record.received || 0) - (record.distributed || 0);
   }
   
   saveDB();
+  if (useSupabase && typeof pushUserInventoryToSupabase === 'function') {
+    pushUserInventoryToSupabase(empId);
+  }
   populateReportingDropdowns();
+}
+
+function updateMRInitialStock(type, itemName, newVal) {
+  updateMRReceivedStock(type, itemName, newVal);
 }
 
 function calculateReportingBalance(type, idx, availableBal) {
@@ -5970,14 +5999,14 @@ function populateReportingDropdowns(){
   // Samples
   document.getElementById('samples-list').innerHTML=activeProducts.map(function(p,i){
     var myStock=(DB.samplesInventory || []).find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
-    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
+    var received = myStock ? (myStock.received || 0) : 0;
     var bal=myStock ? myStock.balance : 0;
     return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Received Qty</span>'+
+          '<input type="number" min="0" value="'+received+'" onchange="updateMRReceivedStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
@@ -5997,14 +6026,14 @@ function populateReportingDropdowns(){
 
   document.getElementById('gifts-list').innerHTML=activeGifts.map(function(g,i){
     var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
-    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
+    var received = myStock ? (myStock.received || 0) : 0;
     var bal=myStock ? myStock.balance : 0;
     return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Received Qty</span>'+
+          '<input type="number" min="0" value="'+received+'" onchange="updateMRReceivedStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
@@ -6024,14 +6053,14 @@ function populateReportingDropdowns(){
 
   document.getElementById('inputs-list').innerHTML=activeInputs.map(function(ip,i){
     var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
-    var initial = myStock ? ((myStock.opening || 0) + (myStock.received || 0)) : 0;
+    var received = myStock ? (myStock.received || 0) : 0;
     var bal=myStock ? myStock.balance : 0;
     return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
-          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Opening Qty</span>'+
-          '<input type="number" min="0" value="'+initial+'" onchange="updateMRInitialStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+          '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Received Qty</span>'+
+          '<input type="number" min="0" value="'+received+'" onchange="updateMRReceivedStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
@@ -9873,22 +9902,38 @@ function renderEmpInventoryTables() {
   var u = SESSION.user;
   if (!u) return;
 
+  var sampleProducts = DB.products || [];
+  var giftProducts = DB.gifts || [];
+  var inputProducts = DB.inputs || [];
+
   // Render Samples
-  var samplesList = (DB.samplesInventory || []).filter(function(s) { return s.empId === u.id; });
-  document.getElementById('tbl-emp-inv-samples').innerHTML = samplesList.length ? samplesList.map(function(s) {
-    return '<tr><td>' + s.prodName + '</td><td>' + s.opening + '</td><td>' + s.received + '</td><td>' + s.distributed + '</td><td style="font-weight:700">' + s.balance + '</td></tr>';
+  document.getElementById('tbl-emp-inv-samples').innerHTML = sampleProducts.length ? sampleProducts.map(function(p) {
+    var stock = (DB.samplesInventory || []).find(function(s) { return s.empId === u.id && s.prodName === p; });
+    var opening = stock ? (stock.opening || 0) : 0;
+    var received = stock ? (stock.received || 0) : 0;
+    var distributed = stock ? (stock.distributed || 0) : 0;
+    var balance = opening + received - distributed;
+    return '<tr><td>' + p + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" onchange="updateMRReceivedStock(\'sample\', \'' + p.replace(/'/g, "\\'") + '\', this.value)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 
   // Render Gifts
-  var giftsList = (DB.giftsInventory || []).filter(function(g) { return g.empId === u.id; });
-  document.getElementById('tbl-emp-inv-gifts').innerHTML = giftsList.length ? giftsList.map(function(g) {
-    return '<tr><td>' + g.giftName + '</td><td>' + g.opening + '</td><td>' + g.received + '</td><td>' + g.distributed + '</td><td style="font-weight:700">' + g.balance + '</td></tr>';
+  document.getElementById('tbl-emp-inv-gifts').innerHTML = giftProducts.length ? giftProducts.map(function(g) {
+    var stock = (DB.giftsInventory || []).find(function(s) { return s.empId === u.id && s.giftName === g; });
+    var opening = stock ? (stock.opening || 0) : 0;
+    var received = stock ? (stock.received || 0) : 0;
+    var distributed = stock ? (stock.distributed || 0) : 0;
+    var balance = opening + received - distributed;
+    return '<tr><td>' + g + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" onchange="updateMRReceivedStock(\'gift\', \'' + g.replace(/'/g, "\\'") + '\', this.value)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 
   // Render Inputs
-  var inputsList = (DB.inputsInventory || []).filter(function(i) { return i.empId === u.id; });
-  document.getElementById('tbl-emp-inv-inputs').innerHTML = inputsList.length ? inputsList.map(function(i) {
-    return '<tr><td>' + i.inputName + '</td><td>' + i.opening + '</td><td>' + i.received + '</td><td>' + i.distributed + '</td><td style="font-weight:700">' + i.balance + '</td></tr>';
+  document.getElementById('tbl-emp-inv-inputs').innerHTML = inputProducts.length ? inputProducts.map(function(i) {
+    var stock = (DB.inputsInventory || []).find(function(s) { return s.empId === u.id && s.inputName === i; });
+    var opening = stock ? (stock.opening || 0) : 0;
+    var received = stock ? (stock.received || 0) : 0;
+    var distributed = stock ? (stock.distributed || 0) : 0;
+    var balance = opening + received - distributed;
+    return '<tr><td>' + i + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" onchange="updateMRReceivedStock(\'input\', \'' + i.replace(/'/g, "\\'") + '\', this.value)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 }
 
@@ -14179,14 +14224,14 @@ function issueStockToMR(){
     if (stock) {
       if (action === 'add') {
         stock.received = (stock.received || 0) + qty;
-        stock.balance = (stock.balance || 0) + qty;
       } else {
-        if ((stock.balance || 0) < qty) {
+        var currentBalance = (stock.opening || 0) + (stock.received || 0) - (stock.distributed || 0);
+        if (currentBalance < qty) {
           return false;
         }
         stock.received = Math.max(0, (stock.received || 0) - qty);
-        stock.balance = Math.max(0, (stock.balance || 0) - qty);
       }
+      stock.balance = (stock.opening || 0) + (stock.received || 0) - (stock.distributed || 0);
     } else {
       if (action === 'add') {
         var newItem = { empId: empId, opening: 0, received: qty, distributed: 0, balance: qty };
@@ -14868,9 +14913,483 @@ function uploadInventoryCSV(inp) {
 }
 
 var activeInvFilters = { sample: {}, gift: {}, input: {} };
+var inventoryBulkEditor = {
+  initialized: false,
+  selectedEmpIds: [],
+  activeEmpId: '',
+  itemType: 'sample',
+  edits: {}
+};
+
+function getInventoryBeEmployees() {
+  return (DB.employees || [])
+    .filter(function(e) {
+      return e && e.role === 'emp' && e.id !== 'ADMIN';
+    })
+    .slice()
+    .sort(function(a, b) {
+      return (a.name || '').localeCompare(b.name || '') || String(a.id || '').localeCompare(String(b.id || ''));
+    });
+}
+
+function ensureBulkInventorySelection() {
+  var validIds = getInventoryBeEmployees().map(function(e) { return e.id; });
+  if (!inventoryBulkEditor.initialized) {
+    inventoryBulkEditor.selectedEmpIds = validIds.slice();
+    inventoryBulkEditor.initialized = true;
+  } else {
+    inventoryBulkEditor.selectedEmpIds = inventoryBulkEditor.selectedEmpIds.filter(function(id) {
+      return validIds.indexOf(id) !== -1;
+    });
+  }
+
+  if (!inventoryBulkEditor.selectedEmpIds.length && validIds.length) {
+    inventoryBulkEditor.selectedEmpIds = validIds.slice();
+  }
+
+  if (!inventoryBulkEditor.activeEmpId || inventoryBulkEditor.selectedEmpIds.indexOf(inventoryBulkEditor.activeEmpId) === -1) {
+    inventoryBulkEditor.activeEmpId = inventoryBulkEditor.selectedEmpIds[0] || '';
+  }
+}
+
+function renderInventoryBeSelector() {
+  var host = document.getElementById('inv-be-selector');
+  if (!host) return;
+
+  ensureBulkInventorySelection();
+
+  var search = (document.getElementById('inv-be-search') ? document.getElementById('inv-be-search').value : '')
+    .toLowerCase()
+    .trim();
+  var employees = getInventoryBeEmployees().filter(function(e) {
+    if (!search) return true;
+    return (
+      String(e.id || '').toLowerCase().indexOf(search) !== -1 ||
+      String(e.name || '').toLowerCase().indexOf(search) !== -1 ||
+      String(e.state || '').toLowerCase().indexOf(search) !== -1
+    );
+  });
+
+  host.innerHTML = employees.length
+    ? '<div class="flex items-center justify-between gap-3 mb-3"><div class="text-xs text-muted-foreground">Selected <strong>' +
+      inventoryBulkEditor.selectedEmpIds.length +
+      '</strong> BE(s)</div><div class="text-xs text-muted-foreground">' +
+      employees.length +
+      ' visible</div></div>' +
+      employees
+        .map(function(e) {
+          var checked = inventoryBulkEditor.selectedEmpIds.indexOf(e.id) !== -1 ? 'checked' : '';
+          return (
+            '<label class="flex items-start gap-3 p-2 rounded-lg border bg-white hover:bg-slate-50 cursor-pointer mb-2">' +
+            '<input type="checkbox" class="mt-1" onchange="toggleInventoryBeSelection(\'' +
+            e.id.replace(/'/g, "\\'") +
+            '\', this.checked)" ' +
+            checked +
+            '>' +
+            '<span class="min-w-0">' +
+            '<span class="block text-sm font-medium text-slate-900">' +
+            escapeHtml(e.name || e.id) +
+            '</span>' +
+            '<span class="block text-xs text-muted-foreground">' +
+            escapeHtml(e.id) +
+            (e.state ? ' - ' + escapeHtml(e.state) : '') +
+            '</span>' +
+            '</span>' +
+            '</label>'
+          );
+        })
+        .join('')
+    : '<div class="empty">No BE records found.</div>';
+}
+
+function selectAllInventoryBEs(checked) {
+  ensureBulkInventorySelection();
+  inventoryBulkEditor.selectedEmpIds = checked ? getInventoryBeEmployees().map(function(e) { return e.id; }) : [];
+  inventoryBulkEditor.activeEmpId = inventoryBulkEditor.selectedEmpIds[0] || '';
+  renderInventoryBeSelector();
+  if (document.getElementById('modal-inv-bulk') && document.getElementById('modal-inv-bulk').classList.contains('on')) {
+    renderBulkOpeningStockEditor();
+  }
+}
+
+function toggleInventoryBeSelection(empId, checked) {
+  ensureBulkInventorySelection();
+  var next = new Set(inventoryBulkEditor.selectedEmpIds);
+  if (checked) next.add(empId);
+  else next.delete(empId);
+  inventoryBulkEditor.selectedEmpIds = Array.from(next);
+  if (!inventoryBulkEditor.selectedEmpIds.length) {
+    inventoryBulkEditor.activeEmpId = '';
+  } else if (inventoryBulkEditor.selectedEmpIds.indexOf(inventoryBulkEditor.activeEmpId) === -1) {
+    inventoryBulkEditor.activeEmpId = inventoryBulkEditor.selectedEmpIds[0];
+  }
+  renderInventoryBeSelector();
+  if (document.getElementById('modal-inv-bulk') && document.getElementById('modal-inv-bulk').classList.contains('on')) {
+    primeBulkInventoryEdits();
+    renderBulkOpeningStockEditor();
+  }
+}
+
+function getInventoryTypeConfig(itemType) {
+  if (itemType === 'sample') {
+    return { label: 'Product', master: DB.products || [], rowKey: 'prodName', collection: DB.samplesInventory || [] };
+  }
+  if (itemType === 'gift') {
+    return { label: 'Promotional Gift', master: DB.gifts || [], rowKey: 'giftName', collection: DB.giftsInventory || [] };
+  }
+  if (itemType === 'input') {
+    return { label: 'Promotional Input', master: DB.inputs || [], rowKey: 'inputName', collection: DB.inputsInventory || [] };
+  }
+  return { label: 'Item', master: [], rowKey: '', collection: [] };
+}
+
+function getBulkInventoryRows(empId, itemType) {
+  var types = itemType === 'all' ? ['sample', 'gift', 'input'] : [itemType];
+  var rows = [];
+
+  types.forEach(function(type) {
+    var config = getInventoryTypeConfig(type);
+    config.master.forEach(function(itemName) {
+      var record = config.collection.find(function(row) {
+        return row.empId === empId && row[config.rowKey] === itemName;
+      });
+      rows.push({
+        type: type,
+        typeLabel: config.label,
+        itemName: itemName,
+        record: record || null,
+        opening: record ? (record.opening || 0) : 0,
+        received: record ? (record.received || 0) : 0,
+        distributed: record ? (record.distributed || 0) : 0,
+        balance: record ? (record.balance || 0) : 0,
+      });
+    });
+  });
+
+  return rows;
+}
+
+function bulkRowKey(empId, type, itemName) {
+  return [empId, type, itemName].join('|');
+}
+
+function bulkRowId(empId, type, itemName) {
+  return 'bulk-row-' + bulkRowKey(empId, type, itemName).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+}
+
+function updateBulkOpeningRowBalance(rowId, openingValue, receivedValue, distributedValue) {
+  var bal = (parseInt(openingValue) || 0) + (parseInt(receivedValue) || 0) - (parseInt(distributedValue) || 0);
+  var balEl = document.getElementById(rowId + '-balance');
+  if (balEl) balEl.textContent = String(bal);
+}
+
+function toggleBulkOpeningRowSelection(rowId, empId, type, itemName, checked) {
+  var key = bulkRowKey(empId, type, itemName);
+  var next = inventoryBulkEditor.edits[key] || {};
+  next.selected = checked;
+  inventoryBulkEditor.edits[key] = next;
+
+  var input = document.getElementById(rowId + '-opening');
+  if (input) input.disabled = !checked;
+}
+
+function updateBulkOpeningRowDraft(rowId, empId, type, itemName, value) {
+  var key = bulkRowKey(empId, type, itemName);
+  var next = inventoryBulkEditor.edits[key] || {};
+  next.opening = parseInt(value) || 0;
+  inventoryBulkEditor.edits[key] = next;
+
+  var row = document.getElementById(rowId);
+  if (row) {
+    updateBulkOpeningRowBalance(rowId, next.opening, row.dataset.received || 0, row.dataset.distributed || 0);
+  }
+}
+
+function selectVisibleBulkOpeningRows(checked) {
+  var checks = document.querySelectorAll('#modal-inv-bulk .bulk-row-check');
+  checks.forEach(function(cb) {
+    cb.checked = checked;
+    var row = cb.closest('tr');
+    if (row) {
+      toggleBulkOpeningRowSelection(row.id, row.dataset.empId, row.dataset.type, row.dataset.itemName, checked);
+    }
+  });
+}
+
+function setBulkOpeningItemType(type) {
+  ensureBulkInventorySelection();
+  inventoryBulkEditor.itemType = type;
+  renderBulkOpeningStockEditor();
+}
+
+function setBulkOpeningActiveEmployee(empId) {
+  ensureBulkInventorySelection();
+  inventoryBulkEditor.activeEmpId = empId;
+  renderBulkOpeningStockEditor();
+}
+
+function primeBulkInventoryEdits() {
+  ensureBulkInventorySelection();
+  inventoryBulkEditor.selectedEmpIds.forEach(function(empId) {
+    ['sample', 'gift', 'input'].forEach(function(type) {
+      getBulkInventoryRows(empId, type).forEach(function(row) {
+        var key = bulkRowKey(empId, type, row.itemName);
+        if (!inventoryBulkEditor.edits[key]) {
+          inventoryBulkEditor.edits[key] = {
+            selected: true,
+            opening: row.opening,
+          };
+        } else {
+          if (typeof inventoryBulkEditor.edits[key].opening !== 'number') {
+            inventoryBulkEditor.edits[key].opening = row.opening;
+          }
+          if (typeof inventoryBulkEditor.edits[key].selected !== 'boolean') {
+            inventoryBulkEditor.edits[key].selected = true;
+          }
+        }
+      });
+    });
+  });
+}
+
+function openBulkOpeningStockEditor() {
+  ensureBulkInventorySelection();
+  if (!inventoryBulkEditor.selectedEmpIds.length) {
+    showToast('Please select at least one BE.');
+    return;
+  }
+  inventoryBulkEditor.activeEmpId = inventoryBulkEditor.selectedEmpIds[0];
+  inventoryBulkEditor.itemType = 'sample';
+  primeBulkInventoryEdits();
+  renderBulkOpeningStockEditor();
+  document.getElementById('modal-inv-bulk').classList.add('on');
+}
+
+function renderBulkOpeningStockEditor() {
+  var host = document.getElementById('inv-bulk-modal-content');
+  if (!host) return;
+
+  ensureBulkInventorySelection();
+
+  var employeesById = {};
+  getInventoryBeEmployees().forEach(function(e) {
+    employeesById[e.id] = e;
+  });
+
+  var selectedEmployees = inventoryBulkEditor.selectedEmpIds
+    .map(function(id) { return employeesById[id]; })
+    .filter(Boolean);
+  var activeEmpId = inventoryBulkEditor.activeEmpId || (selectedEmployees[0] && selectedEmployees[0].id) || '';
+  var activeEmployee = employeesById[activeEmpId] || selectedEmployees[0] || null;
+  if (!activeEmployee) {
+    host.innerHTML = '<div class="empty">No BE selected.</div>';
+    return;
+  }
+
+  var typeTabs = [
+    { value: 'sample', label: 'Products' },
+    { value: 'gift', label: 'Gifts' },
+    { value: 'input', label: 'Inputs' },
+    { value: 'all', label: 'All Items' },
+  ];
+
+  var employeeTabs = selectedEmployees
+    .map(function(emp) {
+      var active = emp.id === activeEmpId ? ' on' : '';
+      return '<button type="button" class="admin-tab' + active + '" onclick="setBulkOpeningActiveEmployee(\'' +
+        emp.id.replace(/'/g, "\\'") +
+        '\')">' +
+        escapeHtml(emp.name || emp.id) +
+        '</button>';
+    })
+    .join('');
+
+  var rows = getBulkInventoryRows(activeEmployee.id, inventoryBulkEditor.itemType);
+  var typeButtons = typeTabs
+    .map(function(tab) {
+      var active = inventoryBulkEditor.itemType === tab.value ? ' on' : '';
+      return '<button type="button" class="admin-tab' + active + '" onclick="setBulkOpeningItemType(\'' + tab.value + '\')">' + tab.label + '</button>';
+    })
+    .join('');
+
+  var rowHtml = rows.length
+    ? rows
+        .map(function(row) {
+          var rowKey = bulkRowKey(activeEmployee.id, row.type, row.itemName);
+          var rowId = bulkRowId(activeEmployee.id, row.type, row.itemName);
+          var existing = inventoryBulkEditor.edits[rowKey] || {
+            selected: true,
+            opening: row.opening,
+          };
+          inventoryBulkEditor.edits[rowKey] = {
+            selected: existing.selected !== false,
+            opening: typeof existing.opening === 'number' ? existing.opening : row.opening,
+          };
+          var selected = inventoryBulkEditor.edits[rowKey].selected !== false;
+          var openingVal = inventoryBulkEditor.edits[rowKey].opening;
+          var balance = openingVal + row.received - row.distributed;
+          return (
+            '<tr id="' +
+            rowId +
+            '" data-emp-id="' +
+            activeEmployee.id +
+            '" data-type="' +
+            row.type +
+            '" data-item-name="' +
+            escapeHtml(row.itemName) +
+            '" data-received="' +
+            row.received +
+            '" data-distributed="' +
+            row.distributed +
+            '">' +
+            '<td><input type="checkbox" class="bulk-row-check" ' +
+            (selected ? 'checked' : '') +
+            ' onchange="toggleBulkOpeningRowSelection(\'' +
+            rowId +
+            '\', \'' +
+            activeEmployee.id.replace(/'/g, "\\'") +
+            '\', \'' +
+            row.type +
+            '\', \'' +
+            row.itemName.replace(/'/g, "\\'") +
+            '\', this.checked)"></td>' +
+            '<td>' +
+            escapeHtml(row.typeLabel) +
+            '</td>' +
+            '<td>' +
+            escapeHtml(row.itemName) +
+            '</td>' +
+            '<td><input id="' +
+            rowId +
+            '-opening" type="number" min="0" value="' +
+            openingVal +
+            '" ' +
+            (selected ? '' : 'disabled') +
+            ' onchange="updateBulkOpeningRowDraft(\'' +
+            rowId +
+            '\', \'' +
+            activeEmployee.id.replace(/'/g, "\\'") +
+            '\', \'' +
+            row.type +
+            '\', \'' +
+            row.itemName.replace(/'/g, "\\'") +
+            '\', this.value); updateBulkOpeningRowBalance(\'' +
+            rowId +
+            '\', this.value, ' +
+            row.received +
+            ', ' +
+            row.distributed +
+            ')" style="width:90px; padding:4px; font-size:12px; border:1px solid #CBD5E1; border-radius:4px; text-align:center;"></td>' +
+            '<td>' +
+            row.received +
+            '</td>' +
+            '<td>' +
+            row.distributed +
+            '</td>' +
+            '<td id="' +
+            rowId +
+            '-balance" style="font-weight:700">' +
+            balance +
+            '</td>' +
+            '</tr>'
+          );
+        })
+        .join('')
+    : '<tr><td colspan="7" class="empty">No inventory items found for this BE.</td></tr>';
+
+  host.innerHTML =
+    '<div class="space-y-3">' +
+    '<div class="flex flex-wrap gap-2">' +
+    employeeTabs +
+    '</div>' +
+    '<div class="flex flex-wrap items-center justify-between gap-3">' +
+    '<div class="flex flex-wrap gap-2">' +
+    typeButtons +
+    '</div>' +
+    '<div class="flex gap-2">' +
+    '<button type="button" class="btn sm secondary" onclick="selectVisibleBulkOpeningRows(true)">Select All Visible</button>' +
+    '<button type="button" class="btn sm secondary" onclick="selectVisibleBulkOpeningRows(false)">Clear All Visible</button>' +
+    '</div>' +
+    '</div>' +
+    '<div class="tbl-wrap" style="max-height: 56vh; overflow:auto;">' +
+    '<table class="tbl">' +
+    '<thead><tr><th></th><th>Item Type</th><th>Item Name</th><th>Opening Stock</th><th>Received</th><th>Distributed</th><th>Current Balance</th></tr></thead>' +
+    '<tbody>' +
+    rowHtml +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '<div class="flex justify-end gap-2">' +
+    '<button type="button" class="btn success" onclick="saveBulkOpeningStockChanges()">Save Changes</button>' +
+    '<button type="button" class="btn secondary" onclick="closeModal(\'modal-inv-bulk\')">Cancel</button>' +
+    '</div>' +
+    '</div>';
+}
+
+function saveBulkOpeningStockChanges() {
+  ensureBulkInventorySelection();
+  primeBulkInventoryEdits();
+
+  var selectedChanges = Object.keys(inventoryBulkEditor.edits)
+    .map(function(key) {
+      var parts = key.split('|');
+      var empId = parts[0];
+      var type = parts[1];
+      var itemName = parts.slice(2).join('|');
+      var state = inventoryBulkEditor.edits[key] || {};
+      if (!state.selected) return null;
+      var typeConfig = getInventoryTypeConfig(type);
+      var record = (typeConfig.collection || []).find(function(row) {
+        return row.empId === empId && row[typeConfig.rowKey] === itemName;
+      });
+      return {
+        empId: empId,
+        type: type,
+        itemName: itemName,
+        opening: parseInt(state.opening) || 0,
+        received: record ? (record.received || 0) : 0,
+        distributed: record ? (record.distributed || 0) : 0,
+      };
+    })
+    .filter(Boolean);
+
+  if (!selectedChanges.length) {
+    showToast('Select at least one item to save.');
+    return;
+  }
+
+  selectedChanges.forEach(function(change) {
+    var type = change.type;
+    var collection = type === 'sample' ? DB.samplesInventory : (type === 'gift' ? DB.giftsInventory : DB.inputsInventory);
+    var nameField = type === 'sample' ? 'prodName' : (type === 'gift' ? 'giftName' : 'inputName');
+    var item = collection.find(function(row) {
+      return row.empId === change.empId && row[nameField] === change.itemName;
+    });
+    if (!item) {
+      item = { empId: change.empId, opening: 0, received: 0, distributed: 0, balance: 0 };
+      item[nameField] = change.itemName;
+      collection.push(item);
+    }
+    item.opening = change.opening;
+    item.received = change.received;
+    item.distributed = change.distributed;
+    item.balance = change.opening + change.received - change.distributed;
+  });
+
+  saveDB();
+  if (typeof syncSupabaseDatabase === 'function') {
+    if (_saveDBSyncTimer) clearTimeout(_saveDBSyncTimer);
+    _saveDBSyncTimer = null;
+    syncSupabaseDatabase();
+  }
+  closeModal('modal-inv-bulk');
+  showToast('Opening stock updated successfully.');
+  renderAdminInventoryTables();
+  renderEmpInventoryTables();
+}
 
 function updateFilterTriggerStyles(tableType) {
-  var columns = ['employee', 'state', 'name', 'opening', 'allocated', 'distributed', 'balance'];
+  var columns = ['employee', 'state', 'name', 'opening', 'received', 'distributed', 'balance'];
   columns.forEach(function(col) {
     var elem = document.getElementById('inv-trig-' + tableType + '-' + col);
     if (elem) {
@@ -14921,7 +15440,7 @@ function getFilteredInventoryList(list, type, empMap) {
         else if (col === 'state') val = empState;
         else if (col === 'name') val = itemName;
         else if (col === 'opening') val = opening;
-        else if (col === 'allocated') val = received;
+        else if (col === 'received') val = received;
         else if (col === 'distributed') val = distributed;
         else if (col === 'balance') val = balance;
         
@@ -14987,7 +15506,7 @@ function toggleInvFilterDropdown(tableType, colName, element) {
     else if (colName === 'state') uniqueValues.add(empState);
     else if (colName === 'name') uniqueValues.add(itemName);
     else if (colName === 'opening') uniqueValues.add(String(item.opening || 0));
-    else if (colName === 'allocated') uniqueValues.add(String(item.received || 0));
+    else if (colName === 'received') uniqueValues.add(String(item.received || 0));
     else if (colName === 'distributed') uniqueValues.add(String(item.distributed || 0));
     else if (colName === 'balance') uniqueValues.add(String(item.balance || 0));
   });
@@ -15174,6 +15693,7 @@ function toggleInvFilterDropdown(tableType, colName, element) {
 }
 
 function renderAdminInventoryTables(){
+    renderInventoryBeSelector();
     var mrFilter=document.getElementById('inv-filter-emp').value;
     var stateFilter=document.getElementById('inv-filter-state') ? document.getElementById('inv-filter-state').value : '';
     var u=SESSION.user;
@@ -15335,7 +15855,7 @@ function exportInventoryBalancesCSV() {
   var u = SESSION.user;
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
 
-  var csv = 'Employee ID,Employee Name,State,Item Type,Item Name,Opening Stock,Allocated (Received),Distributed,Current Balance\n';
+  var csv = 'Employee ID,Employee Name,State,Item Type,Item Name,Opening Stock,Received Qty,Distributed,Current Balance\n';
 
   // 1. Samples
   var samplesList = DB.samplesInventory.filter(function(s){
@@ -15754,7 +16274,7 @@ async function runMISReport(){
     });
     
   } else if(currentReportType==='samples_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Product Name</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
     
     empsToProcess.forEach(function(e) {
@@ -15789,7 +16309,7 @@ async function runMISReport(){
     });
     
   } else if(currentReportType==='gifts_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Gift</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
     
     empsToProcess.forEach(function(e) {
@@ -15824,7 +16344,7 @@ async function runMISReport(){
     });
 
   } else if(currentReportType==='inputs_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
     
     empsToProcess.forEach(function(e) {
@@ -17044,7 +17564,7 @@ async function runEmpMISReport(){
     }
     
   } else if(currentEmpReportType==='samples_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Product Name</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Product Name</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var e = DB.employees.find(function(x){ return x.id === empId; });
     if (e) {
       var state = e.state || 'N/A';
@@ -17071,7 +17591,7 @@ async function runEmpMISReport(){
     }
     
   } else if(currentEmpReportType==='gifts_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Gift</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Gift</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var e = DB.employees.find(function(x){ return x.id === empId; });
     if (e) {
       var state = e.state || 'N/A';
@@ -17098,7 +17618,7 @@ async function runEmpMISReport(){
     }
 
   } else if(currentEmpReportType==='inputs_util'){
-    thead.innerHTML='<tr><th>MR Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Allocated Received</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
+    thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var e = DB.employees.find(function(x){ return x.id === empId; });
     if (e) {
       var state = e.state || 'N/A';

@@ -580,6 +580,9 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="card-title">&#128196; Input/Literature Given</div>
         <div id="inputs-list"></div>
       </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn success" onclick="saveEmpInventoryReceivedChanges()">Save Received Changes</button>
+      </div>
     </div>
 
     <!-- Chemist Specific Form Fields -->
@@ -786,6 +789,9 @@ table.tbl tr:last-child td{border-bottom:none}
     <div class="body" id="tab-inventory" style="display:none">
       <div class="sec-hdr">📦 My Inventory Balances</div>
       <div class="card">
+        <div class="flex items-center justify-end gap-2" style="margin-bottom:10px">
+          <button class="btn success sm" onclick="saveEmpInventoryReceivedChanges()">Save Received Changes</button>
+        </div>
         <div class="card-title">Sample Product Inventory</div>
         <div class="tbl-wrap">
           <table class="tbl">
@@ -5391,6 +5397,7 @@ function initEmpApp(userObj){
 
 var _allReportingDocs = [];
 var _allReportingChems = [];
+var empInventoryDrafts = { sample: {}, gift: {}, input: {} };
 
 function updateMRReceivedStock(type, itemName, newVal) {
   var val = parseInt(newVal) || 0;
@@ -5451,13 +5458,114 @@ function updateMRInitialStock(type, itemName, newVal) {
   updateMRReceivedStock(type, itemName, newVal);
 }
 
+function getEmpInventoryDraftValue(type, itemName, fallback) {
+  if (!empInventoryDrafts[type]) empInventoryDrafts[type] = {};
+  return Object.prototype.hasOwnProperty.call(empInventoryDrafts[type], itemName) ? empInventoryDrafts[type][itemName] : fallback;
+}
+
+function setEmpInventoryDraft(type, itemName, newVal) {
+  if (!empInventoryDrafts[type]) empInventoryDrafts[type] = {};
+  empInventoryDrafts[type][itemName] = parseInt(newVal) || 0;
+}
+
+function previewEmpInventoryRowBalance(inputEl) {
+  if (!inputEl) return;
+  var row = inputEl.closest('tr');
+  if (!row) return;
+  var opening = parseInt(row.dataset.opening) || 0;
+  var distributed = parseInt(row.dataset.distributed) || 0;
+  var received = parseInt(inputEl.value) || 0;
+  var balEl = row.querySelector('.emp-inv-balance');
+  if (balEl) balEl.textContent = String(opening + received - distributed);
+}
+
+function saveEmpInventoryReceivedChanges() {
+  var u = SESSION.user;
+  if (!u) return;
+
+  var sections = [
+    { type: 'sample', collection: DB.samplesInventory || [], nameField: 'prodName', master: DB.products || [] },
+    { type: 'gift', collection: DB.giftsInventory || [], nameField: 'giftName', master: DB.gifts || [] },
+    { type: 'input', collection: DB.inputsInventory || [], nameField: 'inputName', master: DB.inputs || [] }
+  ];
+
+  var changed = 0;
+
+  sections.forEach(function(section) {
+    section.master.forEach(function(itemName) {
+      if (!empInventoryDrafts[section.type] || !Object.prototype.hasOwnProperty.call(empInventoryDrafts[section.type], itemName)) return;
+      var nextReceived = parseInt(empInventoryDrafts[section.type][itemName]) || 0;
+      var record = section.collection.find(function(row) {
+        return row.empId === u.id && row[section.nameField] === itemName;
+      });
+      if (!record) {
+        record = {
+          id: section.type.toUpperCase() + 'INV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+          empId: u.id,
+          opening: 0,
+          received: nextReceived,
+          distributed: 0,
+          balance: nextReceived
+        };
+        record[section.nameField] = itemName;
+        section.collection.push(record);
+      } else {
+        record.received = nextReceived;
+        record.balance = (record.opening || 0) + (record.received || 0) - (record.distributed || 0);
+      }
+      changed++;
+    });
+  });
+
+  if (!changed) {
+    showToast('No received qty changes to save.');
+    return;
+  }
+
+  saveDB();
+  if (useSupabase && typeof pushUserInventoryToSupabase === 'function') {
+    pushUserInventoryToSupabase(u.id);
+  }
+  empInventoryDrafts = { sample: {}, gift: {}, input: {} };
+  renderEmpInventoryTables();
+  populateReportingDropdowns();
+  showToast('Received quantities saved successfully.');
+}
+
 function calculateReportingBalance(type, idx, availableBal) {
   var distInp = document.getElementById(type === 'sample' ? 'smp-' + idx : (type === 'gift' ? 'gft-' + idx : 'inp-' + idx));
   var balSpan = document.getElementById(type === 'sample' ? 'smp-bal-' + idx : (type === 'gift' ? 'gft-bal-' + idx : 'inp-bal-' + idx));
   if (!distInp || !balSpan) return;
   var distVal = parseInt(distInp.value) || 0;
-  
-  balSpan.textContent = availableBal - distVal;
+
+  var currentAvailable = parseInt(distInp.getAttribute('max')) || parseInt(availableBal) || 0;
+  balSpan.textContent = currentAvailable - distVal;
+}
+
+function previewReportInventoryRowBalance(inputEl) {
+  if (!inputEl) return;
+  var row = inputEl.closest('div.sample-row');
+  if (!row) return;
+  var type = row.getAttribute('data-type');
+  var itemName = row.getAttribute('data-item-name');
+  var opening = parseInt(row.getAttribute('data-opening')) || 0;
+  var distributed = parseInt(row.getAttribute('data-distributed')) || 0;
+  var received = parseInt(inputEl.value) || 0;
+  var available = opening + received - distributed;
+  var balEl = row.querySelector('.report-inv-balance');
+  if (balEl) balEl.textContent = String(available);
+  var distInput = row.querySelector('.sample-inp, .gift-inp, .input-inp');
+  if (distInput) {
+    distInput.max = String(Math.max(0, available));
+    var currentDist = parseInt(distInput.value) || 0;
+    var currentBalance = Math.max(0, available) - currentDist;
+    var idx = distInput.id ? distInput.id.replace(/^[a-z]+-/, '') : '';
+    if (idx !== '') {
+      var balSpan = document.getElementById(type === 'sample' ? 'smp-bal-' + idx : (type === 'gift' ? 'gft-bal-' + idx : 'inp-bal-' + idx));
+      if (balSpan) balSpan.textContent = String(currentBalance);
+    }
+  }
+  setEmpInventoryDraft(type, itemName, inputEl.value);
 }
 
 function renderDoctorOptions(list) {
@@ -5999,22 +6107,24 @@ function populateReportingDropdowns(){
   // Samples
   document.getElementById('samples-list').innerHTML=activeProducts.map(function(p,i){
     var myStock=(DB.samplesInventory || []).find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
-    var received = myStock ? (myStock.received || 0) : 0;
-    var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+    var opening = myStock ? (myStock.opening || 0) : 0;
+    var received = getEmpInventoryDraftValue('sample', p, myStock ? (myStock.received || 0) : 0);
+    var distributed = myStock ? (myStock.distributed || 0) : 0;
+    var bal=opening + received - distributed;
+    return '<div class="sample-row" data-type="sample" data-item-name="'+escapeHtml(p)+'" data-opening="'+opening+'" data-distributed="'+distributed+'" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Received Qty</span>'+
-          '<input type="number" min="0" value="'+received+'" onchange="updateMRReceivedStock(\'sample\', \''+p.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+          '<input type="number" min="0" value="'+received+'" oninput="previewReportInventoryRowBalance(this)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
+          '<input type="number" min="0" max="'+bal+'" id="smp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'sample\', '+i+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="sample-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="smp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+          '<span id="smp-bal-'+i+'" class="report-inv-balance" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -6026,22 +6136,24 @@ function populateReportingDropdowns(){
 
   document.getElementById('gifts-list').innerHTML=activeGifts.map(function(g,i){
     var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
-    var received = myStock ? (myStock.received || 0) : 0;
-    var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+    var opening = myStock ? (myStock.opening || 0) : 0;
+    var received = getEmpInventoryDraftValue('gift', g, myStock ? (myStock.received || 0) : 0);
+    var distributed = myStock ? (myStock.distributed || 0) : 0;
+    var bal=opening + received - distributed;
+    return '<div class="sample-row" data-type="gift" data-item-name="'+escapeHtml(g)+'" data-opening="'+opening+'" data-distributed="'+distributed+'" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Received Qty</span>'+
-          '<input type="number" min="0" value="'+received+'" onchange="updateMRReceivedStock(\'gift\', \''+g.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+          '<input type="number" min="0" value="'+received+'" oninput="previewReportInventoryRowBalance(this)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
+          '<input type="number" min="0" max="'+bal+'" id="gft-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'gift\', '+i+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="gift-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="gft-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+          '<span id="gft-bal-'+i+'" class="report-inv-balance" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -6053,22 +6165,24 @@ function populateReportingDropdowns(){
 
   document.getElementById('inputs-list').innerHTML=activeInputs.map(function(ip,i){
     var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
-    var received = myStock ? (myStock.received || 0) : 0;
-    var bal=myStock ? myStock.balance : 0;
-    return '<div class="sample-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
+    var opening = myStock ? (myStock.opening || 0) : 0;
+    var received = getEmpInventoryDraftValue('input', ip, myStock ? (myStock.received || 0) : 0);
+    var distributed = myStock ? (myStock.distributed || 0) : 0;
+    var bal=opening + received - distributed;
+    return '<div class="sample-row" data-type="input" data-item-name="'+escapeHtml(ip)+'" data-opening="'+opening+'" data-distributed="'+distributed+'" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
       '<div style="display: flex; gap: 12px; align-items: center;">'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Received Qty</span>'+
-          '<input type="number" min="0" value="'+received+'" onchange="updateMRReceivedStock(\'input\', \''+ip.replace(/'/g, "\\'")+'\', this.value)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
+          '<input type="number" min="0" value="'+received+'" oninput="previewReportInventoryRowBalance(this)" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'+
         '</div>'+
         '<div style="text-align: center;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Distribute</span>'+
-          '<input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+', '+bal+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
+          '<input type="number" min="0" max="'+bal+'" id="inp-'+i+'" placeholder="0" oninput="calculateReportingBalance(\'input\', '+i+')" style="width: 65px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;" class="input-inp">'+
         '</div>'+
         '<div style="text-align: center; min-width: 50px;">'+
           '<span style="font-size:10px; color:#64748B; display:block; margin-bottom:2px">Balance</span>'+
-          '<span id="inp-bal-'+i+'" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
+          '<span id="inp-bal-'+i+'" class="report-inv-balance" style="font-weight: bold; font-size: 13px; color: #0F172A; display: block; padding-top: 4px;">'+bal+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -9910,30 +10024,30 @@ function renderEmpInventoryTables() {
   document.getElementById('tbl-emp-inv-samples').innerHTML = sampleProducts.length ? sampleProducts.map(function(p) {
     var stock = (DB.samplesInventory || []).find(function(s) { return s.empId === u.id && s.prodName === p; });
     var opening = stock ? (stock.opening || 0) : 0;
-    var received = stock ? (stock.received || 0) : 0;
+    var received = getEmpInventoryDraftValue('sample', p, stock ? (stock.received || 0) : 0);
     var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
-    return '<tr><td>' + p + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" onchange="updateMRReceivedStock(\'sample\', \'' + p.replace(/'/g, "\\'") + '\', this.value)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td style="font-weight:700">' + balance + '</td></tr>';
+    return '<tr data-type="sample" data-item-name="' + escapeHtml(p) + '" data-opening="' + opening + '" data-distributed="' + distributed + '"><td>' + p + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" oninput="setEmpInventoryDraft(\'sample\', \'' + p.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 
   // Render Gifts
   document.getElementById('tbl-emp-inv-gifts').innerHTML = giftProducts.length ? giftProducts.map(function(g) {
     var stock = (DB.giftsInventory || []).find(function(s) { return s.empId === u.id && s.giftName === g; });
     var opening = stock ? (stock.opening || 0) : 0;
-    var received = stock ? (stock.received || 0) : 0;
+    var received = getEmpInventoryDraftValue('gift', g, stock ? (stock.received || 0) : 0);
     var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
-    return '<tr><td>' + g + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" onchange="updateMRReceivedStock(\'gift\', \'' + g.replace(/'/g, "\\'") + '\', this.value)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td style="font-weight:700">' + balance + '</td></tr>';
+    return '<tr data-type="gift" data-item-name="' + escapeHtml(g) + '" data-opening="' + opening + '" data-distributed="' + distributed + '"><td>' + g + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" oninput="setEmpInventoryDraft(\'gift\', \'' + g.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 
   // Render Inputs
   document.getElementById('tbl-emp-inv-inputs').innerHTML = inputProducts.length ? inputProducts.map(function(i) {
     var stock = (DB.inputsInventory || []).find(function(s) { return s.empId === u.id && s.inputName === i; });
     var opening = stock ? (stock.opening || 0) : 0;
-    var received = stock ? (stock.received || 0) : 0;
+    var received = getEmpInventoryDraftValue('input', i, stock ? (stock.received || 0) : 0);
     var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
-    return '<tr><td>' + i + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" onchange="updateMRReceivedStock(\'input\', \'' + i.replace(/'/g, "\\'") + '\', this.value)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td style="font-weight:700">' + balance + '</td></tr>';
+    return '<tr data-type="input" data-item-name="' + escapeHtml(i) + '" data-opening="' + opening + '" data-distributed="' + distributed + '"><td>' + i + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" oninput="setEmpInventoryDraft(\'input\', \'' + i.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 }
 

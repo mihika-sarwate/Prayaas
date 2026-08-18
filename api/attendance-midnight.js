@@ -261,6 +261,8 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
       return { status: 'PL', remarks: prefix + 'Paid/Privilege Leave' };
     } else if (leaveType.includes('earned') || leaveType === 'el') {
       return { status: 'EL', remarks: prefix + 'Earned Leave' };
+    } else if (leaveType.includes('lwp') || leaveType.includes('without pay')) {
+      return { status: 'LWP', remarks: prefix + 'LWP' };
     } else {
       return { status: 'CL', remarks: prefix + 'Leave' };
     }

@@ -7798,7 +7798,8 @@ function getApprovedLeaveStatusForDate(emp, dateStr) {
 function getAttendanceStatusBadgeClass(status) {
   if (status === 'P') return 'green';
   if (status === 'SL') return 'blue';
-  if (status === 'CL') return 'purple';
+  if (status === 'CL' || status === 'PL' || status === 'EL') return 'purple';
+  if (status === 'LWP') return 'grey';
   if (status === 'H') return 'orange';
   if (status === 'WO') return 'grey';
   if (status === 'NS') return 'red';
@@ -7822,6 +7823,9 @@ function getAttendanceStatusMeta(emp, dateStr) {
       }
       if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
         return { status: 'EL', remarks: prefix + 'Earned Leave' };
+      }
+      if (leaveType.indexOf('lwp') !== -1 || leaveType.indexOf('without pay') !== -1) {
+        return { status: 'LWP', remarks: prefix + 'LWP' };
       }
       return { status: 'CL', remarks: prefix + 'Leave' };
     }

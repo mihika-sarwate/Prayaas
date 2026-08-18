@@ -9053,10 +9053,6 @@ function renderMTPDaysUI(isReadOnly, existing){
       var townContainer = document.getElementById('mtp-town-container-' + originalIdx);
       if (townContainer) {
         var availableTowns = Array.from(mrTowns).sort();
-        var savedTowns = d.stayCity ? d.stayCity.split(',').map(function(s){return s.trim();}) : [];
-        savedTowns.forEach(function(st) {
-          if (st && !availableTowns.includes(st)) availableTowns.push(st);
-        });
         
         createMultiSelect(townContainer, availableTowns, d.stayCity || '', '-- Town/City --', function(newVal) {
           currentMTPDays[originalIdx].stayCity = newVal;
@@ -9067,10 +9063,6 @@ function renderMTPDaysUI(isReadOnly, existing){
       var patchContainer = document.getElementById('mtp-patch-container-' + originalIdx);
       if (patchContainer) {
         var currentAreas = Array.from(mrAreas).sort();
-        var savedPatches = d.areaTerritory ? d.areaTerritory.split(',').map(function(p){return p.trim();}) : [];
-        savedPatches.forEach(function(sp) {
-          if (sp && !currentAreas.includes(sp)) currentAreas.push(sp);
-        });
         
         createMultiSelect(patchContainer, currentAreas, d.areaTerritory || '', '-- Select Patch --', function(newVal) {
           updateMTPPatchMulti(originalIdx, newVal);

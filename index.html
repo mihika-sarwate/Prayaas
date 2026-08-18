@@ -838,6 +838,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="inputs_util">11. Promotional Input Utilization Report</option>
               <option value="doc_wise_samples">11a. Doctor-wise Sample Report</option>
               <option value="doc_wise_gifts">11b. Doctor-wise Gift Report</option>
+              <option value="mdvr_rep">18. MDVR Report (Daily Summary)</option>
             <option value="expenses_rep">12. Expense Summary Report</option>
             <option value="leaves_rep">13. Leave Utilisation Report</option>
             <option value="doc_coverage">14. Doctor Coverage &amp; Visited Analysis</option>
@@ -1413,6 +1414,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="inputs_util">11. Promotional Input Utilization Report</option>
               <option value="doc_wise_samples">11a. Doctor-wise Sample Report</option>
               <option value="doc_wise_gifts">11b. Doctor-wise Gift Report</option>
+              <option value="mdvr_rep">18. MDVR Report (Daily Summary)</option>
             <option value="expenses_rep">12. Expense Summary Report</option>
             <option value="leaves_rep">13. Leave Utilisation Report</option>
             <option value="doc_coverage">14. Doctor Coverage &amp; Visited Analysis</option>
@@ -16737,6 +16739,68 @@ async function runMISReport(){
          }
       }
     });
+    } else if (currentReportType === 'mdvr_rep') {
+    thead.innerHTML = '<tr><th>Emp ID</th><th>Emp Name</th><th>HQ</th><th>Date</th><th>Submitted Date</th><th>Work Type</th><th>Worked With</th><th>Joint Calls</th><th>As Per TP</th><th>Worked</th><th>Dev</th><th>Listed Dr Met</th><th>Drs POB</th><th>Unlist Dr Met</th><th>Chemist Met</th><th>Chemist POB</th><th>Stockist Met</th></tr>';
+    
+    var dailyMap = {};
+    baseReports.forEach(function(r) {
+      var key = r.empId + '_' + r.date;
+      if (!dailyMap[key]) dailyMap[key] = [];
+      dailyMap[key].push(r);
+    });
+    
+    Object.keys(dailyMap).sort((a,b) => b.localeCompare(a)).forEach(function(key) {
+      var dayReports = dailyMap[key];
+      var first = dayReports[0];
+      var empId = first.empId;
+      var date = first.date;
+      var emp = DB.employees.find(function(e){return e.id===empId;});
+      var empName = emp ? emp.name : first.empName;
+      var hq = emp && emp.area ? emp.area : '';
+      
+      var workType = 'FIELD WORK';
+      var fwReports = dayReports.filter(r => r.workType === 'FIELD WORK' || !r.workType || r.targetType);
+      if (fwReports.length === 0) workType = dayReports[0].workType || 'FIELD WORK';
+      
+      var workedWithArr = [];
+      var indCount = 0;
+      var mgrCount = 0;
+      var towns = new Set();
+      
+      var drMet = 0; var drPOB = 0;
+      var chemMet = 0; var chemPOB = 0;
+      var stkMet = 0;
+      
+      dayReports.forEach(function(r) {
+        var t = r.city || r.patch;
+        if (t) towns.add(t);
+        if (r.targetType === 'Doctor') { drMet++; drPOB += (parseFloat(r.orderAmount) || 0); }
+        else if (r.targetType === 'Chemist') { chemMet++; chemPOB += (parseFloat(r.orderAmount) || 0); }
+        else if (r.targetType === 'Stockist') { stkMet++; }
+        
+        if (r.jfwMgrName) {
+           mgrCount++;
+           if (workedWithArr.indexOf(r.jfwMgrName) === -1) workedWithArr.push(r.jfwMgrName);
+        } else if (r.targetType) {
+           indCount++;
+        }
+      });
+      
+      var workedWithStr = '';
+      if (workedWithArr.length > 0) {
+         workedWithStr = workedWithArr.join(', ') + ' (' + mgrCount + ')';
+         if (indCount > 0) workedWithStr += ', Independent(' + indCount + ')';
+      } else if (indCount > 0) {
+         workedWithStr = 'Independent(' + indCount + ')';
+      }
+      
+      var worked = Array.from(towns).join(',');
+      if (workType !== 'FIELD WORK') worked = workType;
+      var dev = (workType === 'FIELD WORK' && worked) ? '*' : '';
+      
+      currentMISData.push([empId, empName, hq, date, date, workType, workedWithStr, drMet, '', worked, dev, drMet, drPOB, 0, chemMet, chemPOB, stkMet]);
+      currentMISRowIds.push(null);
+    });
   } else if(currentReportType==='inputs_util'){
     thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
@@ -18067,6 +18131,67 @@ async function runEmpMISReport(){
             currentEmpMISData.push([r.targetName, spec, city, region, hq, empName, desig, visitMonth, visitDate, itemName, qty, r.remarks || '']);
          }
       }
+    });
+    } else if (currentEmpReportType === 'mdvr_rep') {
+    thead.innerHTML = '<tr><th>Emp ID</th><th>Emp Name</th><th>HQ</th><th>Date</th><th>Submitted Date</th><th>Work Type</th><th>Worked With</th><th>Joint Calls</th><th>As Per TP</th><th>Worked</th><th>Dev</th><th>Listed Dr Met</th><th>Drs POB</th><th>Unlist Dr Met</th><th>Chemist Met</th><th>Chemist POB</th><th>Stockist Met</th></tr>';
+    
+    var dailyMap = {};
+    baseReports.forEach(function(r) {
+      var key = r.empId + '_' + r.date;
+      if (!dailyMap[key]) dailyMap[key] = [];
+      dailyMap[key].push(r);
+    });
+    
+    Object.keys(dailyMap).sort((a,b) => b.localeCompare(a)).forEach(function(key) {
+      var dayReports = dailyMap[key];
+      var first = dayReports[0];
+      var empId = first.empId;
+      var date = first.date;
+      var emp = DB.employees.find(function(e){return e.id===empId;});
+      var empName = emp ? emp.name : first.empName;
+      var hq = emp && emp.area ? emp.area : '';
+      
+      var workType = 'FIELD WORK';
+      var fwReports = dayReports.filter(r => r.workType === 'FIELD WORK' || !r.workType || r.targetType);
+      if (fwReports.length === 0) workType = dayReports[0].workType || 'FIELD WORK';
+      
+      var workedWithArr = [];
+      var indCount = 0;
+      var mgrCount = 0;
+      var towns = new Set();
+      
+      var drMet = 0; var drPOB = 0;
+      var chemMet = 0; var chemPOB = 0;
+      var stkMet = 0;
+      
+      dayReports.forEach(function(r) {
+        var t = r.city || r.patch;
+        if (t) towns.add(t);
+        if (r.targetType === 'Doctor') { drMet++; drPOB += (parseFloat(r.orderAmount) || 0); }
+        else if (r.targetType === 'Chemist') { chemMet++; chemPOB += (parseFloat(r.orderAmount) || 0); }
+        else if (r.targetType === 'Stockist') { stkMet++; }
+        
+        if (r.jfwMgrName) {
+           mgrCount++;
+           if (workedWithArr.indexOf(r.jfwMgrName) === -1) workedWithArr.push(r.jfwMgrName);
+        } else if (r.targetType) {
+           indCount++;
+        }
+      });
+      
+      var workedWithStr = '';
+      if (workedWithArr.length > 0) {
+         workedWithStr = workedWithArr.join(', ') + ' (' + mgrCount + ')';
+         if (indCount > 0) workedWithStr += ', Independent(' + indCount + ')';
+      } else if (indCount > 0) {
+         workedWithStr = 'Independent(' + indCount + ')';
+      }
+      
+      var worked = Array.from(towns).join(',');
+      if (workType !== 'FIELD WORK') worked = workType;
+      var dev = (workType === 'FIELD WORK' && worked) ? '*' : '';
+      
+      currentEmpMISData.push([empId, empName, hq, date, date, workType, workedWithStr, drMet, '', worked, dev, drMet, drPOB, 0, chemMet, chemPOB, stkMet]);
     });
   } else if(currentEmpReportType==='inputs_util'){
     thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';

@@ -7779,17 +7779,20 @@ function getApprovedLeaveStatusForDate(emp, dateStr) {
            String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
            String(d.getUTCDate()).padStart(2, '0');
   }
-  return (DB.leaves || []).find(function(l) {
+  var matchedLeave = (DB.leaves || []).find(function(l) {
     var status = String(l.status || '').trim().toUpperCase();
-    // Handle both empId (camelCase) and emp_id (snake_case from Supabase)
     var lEmpId = String(l.empId || l.emp_id || '').trim().toUpperCase();
     if (lEmpId !== targetId) return false;
-    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER') return false;
+    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER' && status !== 'PENDING') return false;
     var start = toISTDateStr(l.start);
     var end   = toISTDateStr(l.end);
     if (!start || !end) return false;
-    return start <= dateStr && end >= dateStr;
-  }) || null;
+    return (dateStr >= start && dateStr <= end);
+  });
+  if (matchedLeave) {
+    return { type: matchedLeave.type, status: String(matchedLeave.status || '').toUpperCase() };
+  }
+  return null;
 }
 
 function getAttendanceStatusBadgeClass(status) {
@@ -7805,19 +7808,22 @@ function getAttendanceStatusBadgeClass(status) {
 
 function getAttendanceStatusMeta(emp, dateStr) {
   if (emp && dateStr) {
-    // Approved Leave overrides everything
+    // Applied / Approved Leave overrides everything
     var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
     if (approvedLeave) {
       var leaveType = String(approvedLeave.type || '').toLowerCase();
-      if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: 'Approved Sick Leave' };
-      if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: 'Approved Casual Leave' };
+      var isPending = String(approvedLeave.status) === 'PENDING';
+      var prefix = isPending ? 'Applied ' : 'Approved ';
+      
+      if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: prefix + 'Sick Leave' };
+      if (leaveType.indexOf('casual') !== -1) return { status: 'CL', remarks: prefix + 'Casual Leave' };
       if (leaveType.indexOf('privilege') !== -1 || leaveType.indexOf('paid') !== -1 || leaveType === 'pl') {
-        return { status: 'PL', remarks: 'Approved Paid/Privilege Leave' };
+        return { status: 'PL', remarks: prefix + 'Paid/Privilege Leave' };
       }
       if (leaveType.indexOf('earned') !== -1 || leaveType === 'el') {
-        return { status: 'EL', remarks: 'Approved Earned Leave' };
+        return { status: 'EL', remarks: prefix + 'Earned Leave' };
       }
-      return { status: 'CL', remarks: 'Approved Leave' };
+      return { status: 'CL', remarks: prefix + 'Leave' };
     }
 
     // Holiday overrides Tour Plan

@@ -153,7 +153,7 @@ function getApprovedLeaveMap(rows) {
   const map = new Map();
   for (const row of rows || []) {
     const status = normalizeStatus(row.status);
-    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN') continue;
+    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER' && status !== 'PENDING') continue;
     const empId = String(row.emp_id || '').trim().toUpperCase();
     const start = normalizeDate(row.start);
     const end = normalizeDate(row.end);
@@ -162,7 +162,8 @@ function getApprovedLeaveMap(rows) {
     map.get(empId).push({
       start,
       end,
-      type: String(row.type || '')
+      type: String(row.type || ''),
+      status: status
     });
   }
   return map;
@@ -245,20 +246,23 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
     return { status: 'P', remarks: 'Present via DCR Submission' };
   }
 
-  // Rule 2: Approved Leave
+  // Rule 2: Applied / Approved Leave
   const approvedLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
   if (approvedLeave) {
     const leaveType = String(approvedLeave.type || '').toLowerCase();
+    const isPending = approvedLeave.status === 'PENDING';
+    const prefix = isPending ? 'Applied ' : 'Approved ';
+    
     if (leaveType.includes('sick')) {
-      return { status: 'SL', remarks: 'Approved Sick Leave' };
+      return { status: 'SL', remarks: prefix + 'Sick Leave' };
     } else if (leaveType.includes('casual')) {
-      return { status: 'CL', remarks: 'Approved Casual Leave' };
+      return { status: 'CL', remarks: prefix + 'Casual Leave' };
     } else if (leaveType.includes('privilege') || leaveType.includes('paid') || leaveType === 'pl') {
-      return { status: 'PL', remarks: 'Approved Paid/Privilege Leave' };
+      return { status: 'PL', remarks: prefix + 'Paid/Privilege Leave' };
     } else if (leaveType.includes('earned') || leaveType === 'el') {
-      return { status: 'EL', remarks: 'Approved Earned Leave' };
+      return { status: 'EL', remarks: prefix + 'Earned Leave' };
     } else {
-      return { status: 'CL', remarks: 'Approved Leave' };
+      return { status: 'CL', remarks: prefix + 'Leave' };
     }
   }
 

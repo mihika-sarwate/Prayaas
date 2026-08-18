@@ -15205,18 +15205,21 @@ function getBulkInventoryRows(empId, itemType) {
   types.forEach(function(type) {
     var config = getInventoryTypeConfig(type);
     config.master.forEach(function(itemName) {
-      var record = config.collection.find(function(row) {
-        return row.empId === empId && row[config.rowKey] === itemName;
-      });
+      var record = null;
+      if (empId !== 'ALL') {
+        record = config.collection.find(function(row) {
+          return row.empId === empId && row[config.rowKey] === itemName;
+        });
+      }
       rows.push({
         type: type,
         typeLabel: config.label,
         itemName: itemName,
         record: record || null,
         opening: record ? (record.opening || 0) : 0,
-        received: record ? (record.received || 0) : 0,
-        distributed: record ? (record.distributed || 0) : 0,
-        balance: record ? (record.balance || 0) : 0,
+        received: record ? (record.received || 0) : (empId === 'ALL' ? '-' : 0),
+        distributed: record ? (record.distributed || 0) : (empId === 'ALL' ? '-' : 0),
+        balance: record ? (record.balance || 0) : (empId === 'ALL' ? '-' : 0),
       });
     });
   });
@@ -15239,26 +15242,55 @@ function updateBulkOpeningRowBalance(rowId, openingValue, receivedValue, distrib
 }
 
 function toggleBulkOpeningRowSelection(rowId, empId, type, itemName, checked) {
-  var key = bulkRowKey(empId, type, itemName);
-  var next = inventoryBulkEditor.edits[key] || {};
-  next.selected = checked;
-  inventoryBulkEditor.edits[key] = next;
+  if (empId === 'ALL') {
+    inventoryBulkEditor.selectedEmpIds.forEach(function(id) {
+      var k = bulkRowKey(id, type, itemName);
+      var n = inventoryBulkEditor.edits[k] || {};
+      n.selected = checked;
+      inventoryBulkEditor.edits[k] = n;
+    });
+    var kAll = bulkRowKey('ALL', type, itemName);
+    var nAll = inventoryBulkEditor.edits[kAll] || {};
+    nAll.selected = checked;
+    inventoryBulkEditor.edits[kAll] = nAll;
+  } else {
+    var key = bulkRowKey(empId, type, itemName);
+    var next = inventoryBulkEditor.edits[key] || {};
+    next.selected = checked;
+    inventoryBulkEditor.edits[key] = next;
+  }
 
   var input = document.getElementById(rowId + '-opening');
   if (input) input.disabled = !checked;
 }
 
 function updateBulkOpeningRowDraft(rowId, empId, type, itemName, value) {
-  var key = bulkRowKey(empId, type, itemName);
-  var next = inventoryBulkEditor.edits[key] || {};
-  next.opening = parseInt(value) || 0;
-  inventoryBulkEditor.edits[key] = next;
+  var parsed = parseInt(value) || 0;
+  if (empId === 'ALL') {
+    inventoryBulkEditor.selectedEmpIds.forEach(function(id) {
+      var k = bulkRowKey(id, type, itemName);
+      var n = inventoryBulkEditor.edits[k] || {};
+      n.opening = parsed;
+      inventoryBulkEditor.edits[k] = n;
+    });
+    var kAll = bulkRowKey('ALL', type, itemName);
+    var nAll = inventoryBulkEditor.edits[kAll] || {};
+    nAll.opening = parsed;
+    inventoryBulkEditor.edits[kAll] = nAll;
+  } else {
+    var key = bulkRowKey(empId, type, itemName);
+    var next = inventoryBulkEditor.edits[key] || {};
+    next.opening = parsed;
+    inventoryBulkEditor.edits[key] = next;
+  }
 
   var row = document.getElementById(rowId);
-  if (row) {
-    updateBulkOpeningRowBalance(rowId, next.opening, row.dataset.received || 0, row.dataset.distributed || 0);
+  if (row && empId !== 'ALL') {
+    updateBulkOpeningRowBalance(rowId, parsed, row.dataset.received || 0, row.dataset.distributed || 0);
   }
 }
+
+
 
 function selectVisibleBulkOpeningRows(checked) {
   var checks = document.querySelectorAll('#modal-inv-bulk .bulk-row-check');
@@ -15335,8 +15367,14 @@ function renderBulkOpeningStockEditor() {
     .map(function(id) { return employeesById[id]; })
     .filter(Boolean);
   var activeEmpId = inventoryBulkEditor.activeEmpId || (selectedEmployees[0] && selectedEmployees[0].id) || '';
-  var activeEmployee = employeesById[activeEmpId] || selectedEmployees[0] || null;
-  if (!activeEmployee) {
+  var activeEmployee = null;
+  if (activeEmpId === 'ALL') {
+    activeEmployee = { id: 'ALL', name: '-- APPLY TO ALL SELECTED BEs --' };
+  } else {
+    activeEmployee = employeesById[activeEmpId] || selectedEmployees[0] || null;
+  }
+  
+  if (!activeEmployee && activeEmpId !== 'ALL') {
     host.innerHTML = '<div class="empty">No BE selected.</div>';
     return;
   }
@@ -15349,6 +15387,7 @@ function renderBulkOpeningStockEditor() {
   ];
 
   var employeeSelect = '<select class="input" style="width: 300px; padding: 6px; border: 1px solid #CBD5E1; border-radius: 4px;" onchange="setBulkOpeningActiveEmployee(this.value)">' +
+    (selectedEmployees.length > 1 ? '<option value="ALL"' + (activeEmpId === 'ALL' ? ' selected' : '') + '>-- APPLY TO ALL SELECTED BEs --</option>' : '') +
     selectedEmployees.map(function(emp) {
       var sel = emp.id === activeEmpId ? ' selected' : '';
       return '<option value="' + escapeHtml(emp.id) + '"' + sel + '>' + escapeHtml(emp.name || emp.id) + '</option>';
@@ -15486,6 +15525,7 @@ function saveBulkOpeningStockChanges() {
     .map(function(key) {
       var parts = key.split('|');
       var empId = parts[0];
+      if (empId === 'ALL') return null;
       var type = parts[1];
       var itemName = parts.slice(2).join('|');
       var state = inventoryBulkEditor.edits[key] || {};

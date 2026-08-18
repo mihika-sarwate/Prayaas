@@ -15440,7 +15440,7 @@ function openBulkOpeningStockEditor() {
     showToast('Please select at least one BE.');
     return;
   }
-  inventoryBulkEditor.activeEmpId = inventoryBulkEditor.selectedEmpIds[0];
+  inventoryBulkEditor.activeEmpId = inventoryBulkEditor.selectedEmpIds.length > 1 ? 'ALL' : inventoryBulkEditor.selectedEmpIds[0];
   inventoryBulkEditor.itemType = 'sample';
   primeBulkInventoryEdits();
   renderBulkOpeningStockEditor();

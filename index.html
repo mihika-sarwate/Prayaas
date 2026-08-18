@@ -10104,7 +10104,8 @@ function renderEmpInventoryTables() {
   var sampleProducts = DB.products || [];
   var giftProducts = DB.gifts || [];
   var inputProducts = DB.inputs || [];
-  var unlocked = DB.systemSettings && DB.systemSettings.inventoryEditUnlocked;
+  var adminRecord = (DB.employees || []).find(function(e) { return String(e.id).toUpperCase() === 'ADMIN'; });
+  var unlocked = adminRecord && adminRecord.leaves && adminRecord.leaves.inventoryEditUnlocked === true;
 
   // Render Samples
   document.getElementById('tbl-emp-inv-samples').innerHTML = sampleProducts.length ? sampleProducts.map(function(p) {
@@ -15412,18 +15413,28 @@ function primeBulkInventoryEdits() {
 }
 
 function toggleBEInventoryLock() {
-  DB.systemSettings = DB.systemSettings || {};
-  DB.systemSettings.inventoryEditUnlocked = !DB.systemSettings.inventoryEditUnlocked;
+  var admin = (DB.employees || []).find(function(e) { return String(e.id).toUpperCase() === 'ADMIN'; });
+  if (!admin) { showToast('Admin record not found.'); return; }
+  admin.leaves = admin.leaves || {};
+  admin.leaves.inventoryEditUnlocked = !admin.leaves.inventoryEditUnlocked;
+  
+  if (typeof _pendingLocalEmpIds !== 'undefined') _pendingLocalEmpIds.add(String(admin.id).toUpperCase());
+  
   updateBEInventoryLockUI();
   saveDB();
-  if (useSupabase && typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
-  showToast(DB.systemSettings.inventoryEditUnlocked ? 'BE Opening Stock unlocked.' : 'BE Opening Stock locked.');
+  
+  if (useSupabase && typeof pushEmployeeToSupabase === 'function') {
+    pushEmployeeToSupabase(admin);
+  }
+  
+  showToast(admin.leaves.inventoryEditUnlocked ? 'BE Opening Stock unlocked.' : 'BE Opening Stock locked.');
 }
 
 function updateBEInventoryLockUI() {
   var btn = document.getElementById('btn-toggle-inv-lock');
   if (btn) {
-    var unlocked = DB.systemSettings && DB.systemSettings.inventoryEditUnlocked;
+    var admin = (DB.employees || []).find(function(e) { return String(e.id).toUpperCase() === 'ADMIN'; });
+    var unlocked = admin && admin.leaves && admin.leaves.inventoryEditUnlocked === true;
     if (unlocked) {
       btn.className = 'btn sm danger outline';
       btn.textContent = 'Lock BE Editing';

@@ -15338,16 +15338,12 @@ function renderBulkOpeningStockEditor() {
     { value: 'all', label: 'All Items' },
   ];
 
-  var employeeTabs = selectedEmployees
-    .map(function(emp) {
-      var active = emp.id === activeEmpId ? ' on' : '';
-      return '<button type="button" class="admin-tab' + active + '" onclick="setBulkOpeningActiveEmployee(\'' +
-        emp.id.replace(/'/g, "\\'") +
-        '\')">' +
-        escapeHtml(emp.name || emp.id) +
-        '</button>';
-    })
-    .join('');
+  var employeeSelect = '<select class="input" style="width: 300px; padding: 6px; border: 1px solid #CBD5E1; border-radius: 4px;" onchange="setBulkOpeningActiveEmployee(this.value)">' +
+    selectedEmployees.map(function(emp) {
+      var sel = emp.id === activeEmpId ? ' selected' : '';
+      return '<option value="' + escapeHtml(emp.id) + '"' + sel + '>' + escapeHtml(emp.name || emp.id) + '</option>';
+    }).join('') +
+    '</select>';
 
   var rows = getBulkInventoryRows(activeEmployee.id, inventoryBulkEditor.itemType);
   var typeButtons = typeTabs
@@ -15444,17 +15440,18 @@ function renderBulkOpeningStockEditor() {
 
   host.innerHTML =
     '<div class="space-y-3">' +
-    '<div class="flex flex-wrap gap-2">' +
-    employeeTabs +
-    '</div>' +
-    '<div class="flex flex-wrap items-center justify-between gap-3">' +
-    '<div class="flex flex-wrap gap-2">' +
+    '<div class="flex flex-wrap items-center justify-between gap-3" style="margin-bottom: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px;">' +
+    '  <div style="display:flex; align-items:center; gap:10px;">' +
+    '    <span style="font-size:13px; font-weight:600; color:#475569;">Editing BE:</span>' + 
+    '    ' + employeeSelect +
+    '  </div>' +
+    '  <div class="flex gap-2">' +
     typeButtons +
+    '  </div>' +
     '</div>' +
-    '<div class="flex gap-2">' +
+    '<div class="flex justify-end gap-2 mb-2">' +
     '<button type="button" class="btn sm secondary" onclick="selectVisibleBulkOpeningRows(true)">Select All Visible</button>' +
     '<button type="button" class="btn sm secondary" onclick="selectVisibleBulkOpeningRows(false)">Clear All Visible</button>' +
-    '</div>' +
     '</div>' +
     '<div class="tbl-wrap" style="max-height: 56vh; overflow:auto;">' +
     '<table class="tbl">' +

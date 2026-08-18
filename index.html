@@ -836,6 +836,8 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="samples_util">9. Sample Utilization Report</option>
             <option value="gifts_util">10. Gift Utilization Report</option>
             <option value="inputs_util">11. Promotional Input Utilization Report</option>
+              <option value="doc_wise_samples">11a. Doctor-wise Sample Report</option>
+              <option value="doc_wise_gifts">11b. Doctor-wise Gift Report</option>
             <option value="expenses_rep">12. Expense Summary Report</option>
             <option value="leaves_rep">13. Leave Utilisation Report</option>
             <option value="doc_coverage">14. Doctor Coverage &amp; Visited Analysis</option>
@@ -1409,6 +1411,8 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="samples_util">9. Sample Utilization Report</option>
             <option value="gifts_util">10. Gift Utilization Report</option>
             <option value="inputs_util">11. Promotional Input Utilization Report</option>
+              <option value="doc_wise_samples">11a. Doctor-wise Sample Report</option>
+              <option value="doc_wise_gifts">11b. Doctor-wise Gift Report</option>
             <option value="expenses_rep">12. Expense Summary Report</option>
             <option value="leaves_rep">13. Leave Utilisation Report</option>
             <option value="doc_coverage">14. Doctor Coverage &amp; Visited Analysis</option>
@@ -16675,6 +16679,49 @@ async function runMISReport(){
       }
     });
 
+    } else if (currentReportType === 'doc_wise_samples' || currentReportType === 'doc_wise_gifts') {
+    var isGift = currentReportType === 'doc_wise_gifts';
+    var itemNameLabel = isGift ? 'Gift' : 'Sample';
+    thead.innerHTML = '<tr><th>Name</th><th>Speciality</th><th>City</th><th>Region</th><th>HQ</th><th>Emp Name</th><th>Desig</th><th>Visit Month</th><th>Visit Date</th><th>' + itemNameLabel + '</th><th>' + itemNameLabel + ' Qty</th><th>Visit Remarks</th></tr>';
+    
+    baseReports.forEach(function(r) {
+      if (r.targetType !== 'Doctor') return;
+      var emp = DB.employees.find(function(e){return e.id === r.empId;});
+      if (!emp) return;
+      var hq = emp.area || '';
+      var region = emp.state || '';
+      var empName = emp.name || '';
+      var desig = typeof emp.designation !== 'undefined' ? emp.designation : getDefaultEmployeeDesignation(emp.role);
+      
+      var doctor = (DB.doctors || []).find(function(d) { 
+         return String(d.name||'').trim().toLowerCase() === String(r.targetName||'').trim().toLowerCase() 
+             && String(d.assignTo||'').trim().toUpperCase() === String(emp.id).toUpperCase(); 
+      });
+      var spec = doctor ? (doctor.spec || '') : '';
+      var city = doctor ? (doctor.city || '') : '';
+      
+      var visitMonth = '';
+      var visitDate = r.date || '';
+      if (visitDate) {
+         var parts = visitDate.split('-');
+         if (parts.length === 3) {
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var m = parseInt(parts[1], 10) - 1;
+            var y = parts[0].substring(2);
+            visitMonth = months[m] + '-' + y;
+            visitDate = parts[2] + '-' + parts[1] + '-' + y;
+         }
+      }
+      
+      var items = parseJSONField(isGift ? r.gifts : r.samples);
+      for (var itemName in items) {
+         var qty = items[itemName];
+         if (qty > 0) {
+            currentMISData.push([r.targetName, spec, city, region, hq, empName, desig, visitMonth, visitDate, itemName, qty, r.remarks || '']);
+            currentMISRowIds.push(r.id);
+         }
+      }
+    });
   } else if(currentReportType==='inputs_util'){
     thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
@@ -17949,6 +17996,48 @@ async function runEmpMISReport(){
       }
     }
 
+    } else if (currentEmpReportType === 'doc_wise_samples' || currentEmpReportType === 'doc_wise_gifts') {
+    var isGift = currentEmpReportType === 'doc_wise_gifts';
+    var itemNameLabel = isGift ? 'Gift' : 'Sample';
+    thead.innerHTML = '<tr><th>Name</th><th>Speciality</th><th>City</th><th>Region</th><th>HQ</th><th>Emp Name</th><th>Desig</th><th>Visit Month</th><th>Visit Date</th><th>' + itemNameLabel + '</th><th>' + itemNameLabel + ' Qty</th><th>Visit Remarks</th></tr>';
+    
+    baseReports.forEach(function(r) {
+      if (r.targetType !== 'Doctor') return;
+      var emp = DB.employees.find(function(e){return e.id === r.empId;});
+      if (!emp) return;
+      var hq = emp.area || '';
+      var region = emp.state || '';
+      var empName = emp.name || '';
+      var desig = typeof emp.designation !== 'undefined' ? emp.designation : getDefaultEmployeeDesignation(emp.role);
+      
+      var doctor = (DB.doctors || []).find(function(d) { 
+         return String(d.name||'').trim().toLowerCase() === String(r.targetName||'').trim().toLowerCase() 
+             && String(d.assignTo||'').trim().toUpperCase() === String(emp.id).toUpperCase(); 
+      });
+      var spec = doctor ? (doctor.spec || '') : '';
+      var city = doctor ? (doctor.city || '') : '';
+      
+      var visitMonth = '';
+      var visitDate = r.date || '';
+      if (visitDate) {
+         var parts = visitDate.split('-');
+         if (parts.length === 3) {
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var m = parseInt(parts[1], 10) - 1;
+            var y = parts[0].substring(2);
+            visitMonth = months[m] + '-' + y;
+            visitDate = parts[2] + '-' + parts[1] + '-' + y;
+         }
+      }
+      
+      var items = parseJSONField(isGift ? r.gifts : r.samples);
+      for (var itemName in items) {
+         var qty = items[itemName];
+         if (qty > 0) {
+            currentEmpMISData.push([r.targetName, spec, city, region, hq, empName, desig, visitMonth, visitDate, itemName, qty, r.remarks || '']);
+         }
+      }
+    });
   } else if(currentEmpReportType==='inputs_util'){
     thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var e = DB.employees.find(function(x){ return x.id === empId; });

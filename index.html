@@ -13966,6 +13966,15 @@ function downloadLeaveBalanceData(){
       var hq = e.area || 'HQ';
       var joinDate = e.doj || '01-Jan-2023';
 
+      // Helper: format "N (d1,d2,...)" for CSV cells
+      function usedCsv(used, dateArr) {
+        if (!used || used === 0) return 0;
+        var sorted = (dateArr || []).slice().sort(function(a, b) {
+          return typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b));
+        });
+        return sorted.length ? used + ' (' + sorted.join(',') + ')' : used;
+      }
+
       csv += [
         idx + 1,
         e.id || '',
@@ -13975,7 +13984,10 @@ function downloadLeaveBalanceData(){
         e.state || '',
         joinDate,
         cl, pl, sl, lop,
-        cl_used, pl_used, sl_used, lop_used,
+        usedCsv(cl_used, ledger.cl.dates),
+        usedCsv(pl_used, ledger.pl.dates),
+        usedCsv(sl_used, ledger.sl.dates),
+        usedCsv(lop_used, ledger.lop.dates),
         cl_bal, pl_bal, sl_bal, lop_bal
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });

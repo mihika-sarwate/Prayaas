@@ -10106,6 +10106,10 @@ function renderEmpInventoryTables() {
   var inputProducts = DB.inputs || [];
   var adminRecord = (DB.employees || []).find(function(e) { return String(e.id).toUpperCase() === 'ADMIN'; });
   var unlocked = adminRecord && adminRecord.leaves && adminRecord.leaves.inventoryEditUnlocked === true;
+  if (!unlocked && DB.announcements) {
+      var ann = DB.announcements.find(function(a){ return a.id === 'SYS_SETTING_INV_UNLOCK'; });
+      if (ann && ann.message === 'UNLOCKED') unlocked = true;
+  }
 
   // Render Samples
   document.getElementById('tbl-emp-inv-samples').innerHTML = sampleProducts.length ? sampleProducts.map(function(p) {
@@ -15414,20 +15418,45 @@ function primeBulkInventoryEdits() {
 
 function toggleBEInventoryLock() {
   var admin = (DB.employees || []).find(function(e) { return String(e.id).toUpperCase() === 'ADMIN'; });
-  if (!admin) { showToast('Admin record not found.'); return; }
-  admin.leaves = admin.leaves || {};
-  admin.leaves.inventoryEditUnlocked = !admin.leaves.inventoryEditUnlocked;
-  
-  if (typeof _pendingLocalEmpIds !== 'undefined') _pendingLocalEmpIds.add(String(admin.id).toUpperCase());
-  
-  updateBEInventoryLockUI();
-  saveDB();
-  
-  if (useSupabase && typeof pushEmployeeToSupabase === 'function') {
-    pushEmployeeToSupabase(admin);
+  var isNowUnlocked = false;
+  if (admin) {
+    admin.leaves = admin.leaves || {};
+    admin.leaves.inventoryEditUnlocked = !admin.leaves.inventoryEditUnlocked;
+    isNowUnlocked = admin.leaves.inventoryEditUnlocked;
+    if (typeof _pendingLocalEmpIds !== 'undefined') _pendingLocalEmpIds.add(String(admin.id).toUpperCase());
+    if (useSupabase && typeof pushEmployeeToSupabase === 'function') {
+      pushEmployeeToSupabase(admin);
+    }
+  } else {
+    // If Admin record is somehow missing, try falling back to local systemSettings
+    DB.systemSettings = DB.systemSettings || {};
+    DB.systemSettings.inventoryEditUnlocked = !DB.systemSettings.inventoryEditUnlocked;
+    isNowUnlocked = DB.systemSettings.inventoryEditUnlocked;
   }
   
-  showToast(admin.leaves.inventoryEditUnlocked ? 'BE Opening Stock unlocked.' : 'BE Opening Stock locked.');
+  if (useSupabase && supabase) {
+     if (isNowUnlocked) {
+        var ann = { id: 'SYS_SETTING_INV_UNLOCK', message: 'UNLOCKED', date: getTodayDateString(), expires: '2099-12-31' };
+        supabase.from('announcements').upsert([ann], { onConflict: 'id' }).then(function(){
+           if (!DB.announcements) DB.announcements = [];
+           var existing = DB.announcements.find(function(a){ return a.id === 'SYS_SETTING_INV_UNLOCK'; });
+           if (existing) existing.message = ann.message;
+           else DB.announcements.push(ann);
+           saveDB();
+        });
+     } else {
+        supabase.from('announcements').delete().eq('id', 'SYS_SETTING_INV_UNLOCK').then(function(){
+           if (DB.announcements) {
+             DB.announcements = DB.announcements.filter(function(a){ return a.id !== 'SYS_SETTING_INV_UNLOCK'; });
+             saveDB();
+           }
+        });
+     }
+  }
+
+  updateBEInventoryLockUI();
+  saveDB();
+  showToast(isNowUnlocked ? 'BE Opening Stock unlocked.' : 'BE Opening Stock locked.');
 }
 
 function updateBEInventoryLockUI() {
@@ -15435,6 +15464,10 @@ function updateBEInventoryLockUI() {
   if (btn) {
     var admin = (DB.employees || []).find(function(e) { return String(e.id).toUpperCase() === 'ADMIN'; });
     var unlocked = admin && admin.leaves && admin.leaves.inventoryEditUnlocked === true;
+    if (!unlocked && DB.announcements) {
+       var ann = DB.announcements.find(function(a){ return a.id === 'SYS_SETTING_INV_UNLOCK'; });
+       if (ann && ann.message === 'UNLOCKED') unlocked = true;
+    }
     if (unlocked) {
       btn.className = 'btn sm danger outline';
       btn.textContent = 'Lock BE Editing';
@@ -17597,7 +17630,7 @@ function renderAnnouncementHistory() {
   var tbody = document.getElementById('announcement-history-body');
   if (!tbody) return;
   
-  var announcements = (DB.announcements || []).sort((a,b) => b.id.localeCompare(a.id));
+  var announcements = (DB.announcements || []).filter(function(a){ return !a.id.startsWith('SYS_SETTING'); }).sort((a,b) => b.id.localeCompare(a.id));
   if (announcements.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty">No broadcasts sent yet</td></tr>';
     return;
@@ -18084,7 +18117,7 @@ if (document.readyState === 'loading') {
 <script>
 function openBroadcastHistory() {
   var listEl = document.getElementById('broadcast-history-list');
-  var announcements = (DB.announcements || []).sort(function(a,b) { return b.id.localeCompare(a.id); });
+  var announcements = (DB.announcements || []).filter(function(a){ return !a.id.startsWith('SYS_SETTING'); }).sort(function(a,b) { return b.id.localeCompare(a.id); });
   
   if (announcements.length === 0) {
     listEl.innerHTML = '<div style="text-align:center; color:#64748B; padding:20px; font-style:italic;">No broadcast messages found.</div>';

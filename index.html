@@ -16364,7 +16364,7 @@ async function runMISReport(){
   
   if(currentReportType==='all_calls'){
     currentMISTableType='reports';
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>TOWN/CITY NAME</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>TOWN NAME</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     currentMISData=baseReports.map(function(r){
       currentMISRowIds.push(r.id);
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
@@ -16391,7 +16391,7 @@ async function runMISReport(){
          targetName = r.targetType === 'Doctor' ? r.docName : (r.targetType === 'Chemist' ? r.chemName : (r.targetType === 'Stockist' ? r.stockName : 'N/A'));
       }
       
-      var townCity = [r.city, r.patch].filter(Boolean).join(' / ') || 'N/A';
+      var townCity = r.city || 'N/A';
       
       return [r.date, r.empId, r.empName, callTypeGroup, targetName, townCity, hq, state, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
@@ -17799,7 +17799,7 @@ async function runEmpMISReport(){
   currentEmpMISData=[];
   
   if(currentEmpReportType==='all_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>TOWN/CITY NAME</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>TOWN NAME</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
     currentEmpMISData=baseReports.map(function(r){
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var hq = emp && emp.area ? emp.area : 'N/A';
@@ -17825,7 +17825,7 @@ async function runEmpMISReport(){
          targetName = r.targetType === 'Doctor' ? r.docName : (r.targetType === 'Chemist' ? r.chemName : (r.targetType === 'Stockist' ? r.stockName : 'N/A'));
       }
       
-      var townCity = [r.city, r.patch].filter(Boolean).join(' / ') || 'N/A';
+      var townCity = r.city || 'N/A';
       
       return [r.date, r.empId, r.empName, callTypeGroup, targetName, townCity, hq, state, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
     });

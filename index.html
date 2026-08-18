@@ -9168,26 +9168,58 @@ function updateMTPTerritory(idx, value){
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
 
+// Returns array of patch names (from a comma-separated value) that have NO doctors assigned to this user
+function getPatchesWithNoDoctors(patchValue) {
+  var patches = String(patchValue || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  return patches.filter(function(patch) {
+    return getAssignedDoctorsForArea(patch).length === 0;
+  });
+}
+
+// Show / hide inline no-doctor warning for a day row
+function showNoDoctorWarning(idx, missingPatches) {
+  var warnId = 'tp-no-doc-warn-' + idx;
+  var existing = document.getElementById(warnId);
+  if (!missingPatches || missingPatches.length === 0) {
+    if (existing) existing.remove();
+    return;
+  }
+  var msg = '⚠️ No doctors found in your list for: <strong>' + missingPatches.join(', ') + '</strong>. You can still save, but please verify your doctor master.';
+  if (existing) {
+    existing.innerHTML = msg;
+  } else {
+    var warn = document.createElement('div');
+    warn.id = warnId;
+    warn.style.cssText = 'margin:4px 0 2px 0;padding:6px 10px;background:#fffbe6;border:1.5px solid #f5a623;border-radius:8px;font-size:12px;color:#7a5c00;line-height:1.5';
+    warn.innerHTML = msg;
+    // Insert after the day row container
+    var dayRow = document.getElementById('mtp-day-row-' + idx);
+    if (dayRow && dayRow.parentNode) {
+      dayRow.parentNode.insertBefore(warn, dayRow.nextSibling);
+    }
+  }
+}
+
 function updateMTPPatch(idx, value){
   var patch = value.trim();
   currentMTPDays[idx].areaTerritory = patch;
   currentMTPDays[idx].toLocation = patch;
   currentMTPDays[idx].plannedDocs = getAssignedDoctorsForArea(patch).map(function(doc){return doc.id;});
   currentMTPDays[idx].plannedChems = getAssignedChemistsForArea(patch).map(function(chem){return chem.id;});
-  
+
   if (patch) {
     var matchedDoc = DB.doctors.find(function(d){
       var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
       return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
     });
     if (matchedDoc) {
-      if (matchedDoc.city) {
-        currentMTPDays[idx].stayCity = matchedDoc.city;
-      }
-      if (matchedDoc.territoryType) {
-        currentMTPDays[idx].territory = matchedDoc.territoryType;
-      }
+      if (matchedDoc.city) currentMTPDays[idx].stayCity = matchedDoc.city;
+      if (matchedDoc.territoryType) currentMTPDays[idx].territory = matchedDoc.territoryType;
     }
+    // Soft warning if no doctors in this patch
+    showNoDoctorWarning(idx, getPatchesWithNoDoctors(patch));
+  } else {
+    showNoDoctorWarning(idx, []);
   }
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
@@ -9196,12 +9228,12 @@ function updateMTPPatchMulti(idx, value) {
   var patches = value.split(',').map(function(s){return s.trim();}).filter(Boolean);
   currentMTPDays[idx].areaTerritory = value;
   currentMTPDays[idx].toLocation = value;
-  
+
   var allDocs = [];
   var allChems = [];
   var cities = [];
   var territories = [];
-  
+
   patches.forEach(function(patch) {
     getAssignedDoctorsForArea(patch).forEach(function(doc) {
       if (!allDocs.includes(doc.id)) allDocs.push(doc.id);
@@ -9209,7 +9241,6 @@ function updateMTPPatchMulti(idx, value) {
     getAssignedChemistsForArea(patch).forEach(function(chem) {
       if (!allChems.includes(chem.id)) allChems.push(chem.id);
     });
-    
     var matchedDoc = DB.doctors.find(function(d) {
       var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
       return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
@@ -9219,10 +9250,10 @@ function updateMTPPatchMulti(idx, value) {
       if (matchedDoc.territoryType && !territories.includes(matchedDoc.territoryType)) territories.push(matchedDoc.territoryType);
     }
   });
-  
+
   currentMTPDays[idx].plannedDocs = allDocs;
   currentMTPDays[idx].plannedChems = allChems;
-  
+
   if (cities.length > 0) {
     currentMTPDays[idx].stayCity = cities.join(', ');
     renderMTPDaysUI(false, null);
@@ -9230,7 +9261,10 @@ function updateMTPPatchMulti(idx, value) {
   if (territories.length > 0) {
     currentMTPDays[idx].territory = territories.join(', ');
   }
-  
+
+  // Soft warning for patches with no doctors
+  showNoDoctorWarning(idx, getPatchesWithNoDoctors(value));
+
   updateMTPAnalytics(document.getElementById('tp-month').value);
 }
 
@@ -9277,7 +9311,33 @@ function saveOrSubmitTourPlan(status){
   var plannedDays=sanitizeMTPDaysForAssignedMasters();
   var hasAnyConfig = plannedDays.some(function(d){ return d.workType !== 'FIELD WORK' || !!d.areaTerritory; });
   if(!hasAnyConfig){showToast('Please configure at least one working or non-working day');return;}
-  
+
+  // ── Soft warning: towns with no doctors in doctor master ──
+  if (status === 'Submitted') {
+    var noDoctorDays = [];
+    plannedDays.forEach(function(d) {
+      if (d.workType === 'FIELD WORK' && d.areaTerritory) {
+        var missing = getPatchesWithNoDoctors(d.areaTerritory);
+        if (missing.length > 0) {
+          noDoctorDays.push({ date: d.date, patches: missing });
+        }
+      }
+    });
+    if (noDoctorDays.length > 0) {
+      var lines = noDoctorDays.map(function(r) {
+        return '• ' + r.date + ': ' + r.patches.join(', ');
+      }).join('\n');
+      var proceed = confirm(
+        '⚠️ WARNING: The following dates have towns with NO doctors in your doctor list:\n\n' +
+        lines +
+        '\n\nThis may indicate a mismatch between your tour plan and your doctor master.\n\n' +
+        'Click OK to submit anyway, or Cancel to go back and correct it.'
+      );
+      if (!proceed) return;
+    }
+  }
+  // ─────────────────────────────────────────────────────────
+
   var mgrObj=DB.employees.find(function(e){return e.id===mgr;});
   
   var existingIndex = DB.tourPlans.findIndex(function(t){

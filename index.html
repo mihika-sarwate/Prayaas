@@ -16364,7 +16364,7 @@ async function runMISReport(){
   
   if(currentReportType==='all_calls'){
     currentMISTableType='reports';
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>TOWN/CITY NAME</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th><th>Actions</th></tr>';
     currentMISData=baseReports.map(function(r){
       currentMISRowIds.push(r.id);
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
@@ -16377,8 +16377,23 @@ async function runMISReport(){
       var samples = Object.keys(parsedSamples).map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', ') || 'None';
       var gifts = Object.keys(parsedGifts).map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', ') || 'None';
       var inputs = Object.keys(parsedInputs).map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', ') || 'None';
-      var targetName = r.targetType === 'Doctor' ? r.docName : (r.targetType === 'Chemist' ? r.chemName : (r.targetType === 'Stockist' ? r.stockName : 'N/A'));
-      return [r.date, r.empId, r.empName, r.targetType || 'N/A', targetName || 'N/A', hq, state, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
+      
+      var targetName = 'N/A';
+      var callTypeGroup = r.targetType || '';
+      
+      if (r.workType && r.workType !== 'FIELD WORK') {
+         if (r.workType === 'LEAVE') {
+           targetName = 'LEAVE CL/PL/SL/LOP';
+         } else {
+           targetName = r.workType;
+         }
+      } else {
+         targetName = r.targetType === 'Doctor' ? r.docName : (r.targetType === 'Chemist' ? r.chemName : (r.targetType === 'Stockist' ? r.stockName : 'N/A'));
+      }
+      
+      var townCity = [r.city, r.patch].filter(Boolean).join(' / ') || 'N/A';
+      
+      return [r.date, r.empId, r.empName, callTypeGroup, targetName, townCity, hq, state, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks, '<button onclick="deleteAdminReport(\''+r.id+'\')" class="btn sm danger" style="padding:4px 8px">Delete</button>'];
     });
     
   } else if(currentReportType==='doc_calls'){
@@ -17784,7 +17799,7 @@ async function runEmpMISReport(){
   currentEmpMISData=[];
   
   if(currentEmpReportType==='all_calls'){
-    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
+    thead.innerHTML='<tr><th>Date</th><th>Employee ID</th><th>Employee Name</th><th>Call Type Group</th><th>Target Name</th><th>TOWN/CITY NAME</th><th>HQ</th><th>State</th><th>Call Classification</th><th>Call Type</th><th>Promoted Products</th><th>Samples</th><th>Gifts</th><th>Inputs</th><th>GPS Location</th><th>Remarks</th></tr>';
     currentEmpMISData=baseReports.map(function(r){
       var emp = DB.employees.find(function(e){return e.id===r.empId;});
       var hq = emp && emp.area ? emp.area : 'N/A';
@@ -17796,8 +17811,23 @@ async function runEmpMISReport(){
       var samples = Object.keys(parsedSamples).map(function(k){return k+' ('+parsedSamples[k]+')';}).join(', ') || 'None';
       var gifts = Object.keys(parsedGifts).map(function(k){return k+' ('+parsedGifts[k]+')';}).join(', ') || 'None';
       var inputs = Object.keys(parsedInputs).map(function(k){return k+' ('+parsedInputs[k]+')';}).join(', ') || 'None';
-      var targetName = r.targetType === 'Doctor' ? r.docName : (r.targetType === 'Chemist' ? r.chemName : (r.targetType === 'Stockist' ? r.stockName : 'N/A'));
-      return [r.date, r.empId, r.empName, r.targetType || 'N/A', targetName || 'N/A', hq, state, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
+      
+      var targetName = 'N/A';
+      var callTypeGroup = r.targetType || '';
+      
+      if (r.workType && r.workType !== 'FIELD WORK') {
+         if (r.workType === 'LEAVE') {
+           targetName = 'LEAVE CL/PL/SL/LOP';
+         } else {
+           targetName = r.workType;
+         }
+      } else {
+         targetName = r.targetType === 'Doctor' ? r.docName : (r.targetType === 'Chemist' ? r.chemName : (r.targetType === 'Stockist' ? r.stockName : 'N/A'));
+      }
+      
+      var townCity = [r.city, r.patch].filter(Boolean).join(' / ') || 'N/A';
+      
+      return [r.date, r.empId, r.empName, callTypeGroup, targetName, townCity, hq, state, r.classification, r.callType, promoted, samples, gifts, inputs, r.lat?(r.lat+','+r.lng):'N/A', r.remarks];
     });
     
   } else if(currentEmpReportType==='doc_calls'){

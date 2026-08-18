@@ -8943,50 +8943,31 @@ function renderMTPDaysUI(isReadOnly, existing){
 
   if (targetEmpId) {
     var upperTargetId = String(targetEmpId).toUpperCase().trim();
-    
-    // Populate from doctor assignments
+
+    // Populate patch areas ONLY from doctors directly assigned to this specific employee
     DB.doctors.forEach(function(d) {
-      var rawAssign = String(d.assignTo || '').toUpperCase();
-      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
-      var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
-      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-      var isExactMatch = rawAssign === String(targetEmpId || '').toUpperCase();
+      var rawAssign = String(d.assignTo || '').toUpperCase().trim();
+      var isExactMatch = rawAssign === upperTargetId;
+      if (!isExactMatch) return; // Only this employee's own doctors
       var isActive = String(d.status || '').trim().toLowerCase() === 'active';
-
-      if (isAssignedToTeam || isExactMatch) {
-        var tTown = String(d.city || d.hq || d.area || 'Unknown Town').trim();
-        if (tTown) mrTowns.add(tTown);
-        var tArea = String(d.area || 'Unknown Patch').trim();
-        if (tArea) mrAreas.add(tArea);
-      }
+      if (!isActive) return;
+      var tTown = String(d.city || d.hq || d.area || '').trim();
+      if (tTown) mrTowns.add(tTown);
+      var tArea = String(d.area || '').trim();
+      if (tArea) mrAreas.add(tArea);
     });
-    
-    // Populate from chemist assignments
+
+    // Chemists: add towns for stay-city dropdown only (not patches)
     (DB.chemists || []).forEach(function(c) {
-      var rawAssign = String(c.assignTo || '').toUpperCase();
-      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
-      var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
-      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-      var isExactMatch = rawAssign === String(targetEmpId || '').toUpperCase();
-      if (isAssignedToTeam || isExactMatch) {
-        var tTown = String(c.city || '').trim();
-        if (tTown) mrTowns.add(tTown);
-        if (c.area) mrAreas.add(String(c.area).trim());
-      }
+      var rawAssign = String(c.assignTo || '').toUpperCase().trim();
+      var isExactMatch = rawAssign === upperTargetId;
+      if (!isExactMatch) return;
+      var tTown = String(c.city || '').trim();
+      if (tTown) mrTowns.add(tTown);
+      // Do NOT add chemist areas to mrAreas — patch list is doctors only
     });
 
-    // Populate from stockist assignments
-    (DB.stockists || []).forEach(function(s) {
-      var rawAssign = String(s.assignTo || '').toUpperCase();
-      var cleanAssign = rawAssign.replace(/[^A-Z0-9,]/g, '');
-      var assignedList = cleanAssign.split(',').map(function(s){return s.trim();}).filter(Boolean);
-      var isAssignedToTeam = teamIds ? assignedList.some(function(a){ return teamIds.includes(a); }) : true;
-      var isExactMatch = rawAssign === String(targetEmpId || '').toUpperCase();
-      if (isAssignedToTeam || isExactMatch) {
-        if (s.area) mrAreas.add(String(s.area).trim());
-      }
-    });
-    console.log("MTP generated Towns: ", mrTowns, " Areas: ", mrAreas, " for EMP: ", upperTargetId);
+    console.log('MTP Patch Areas for', upperTargetId, ':', Array.from(mrAreas).sort());
   }
   html += daysToRender.map(function(d){
     var originalIdx = currentMTPDays.indexOf(d);

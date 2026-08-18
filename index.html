@@ -1268,6 +1268,14 @@ table.tbl tr:last-child td{border-bottom:none}
   <!-- ADMIN INVENTORY PANEL -->
     <div id="sec-adm-inventory" style="display:none">
       <div class="card admin-only">
+        <div class="card-title">&#128275; BE Opening Stock Access</div>
+        <div class="info-box">When unlocked, Field Force can edit their own Opening Stock from their app. Lock it when they are done.</div>
+        <div>
+           <button class="btn sm" id="btn-toggle-inv-lock" onclick="toggleBEInventoryLock()">Loading...</button>
+        </div>
+      </div>
+      
+      <div class="card admin-only">
         <div class="card-title">&#128101; Bulk Edit Opening Stock</div>
         <div class="info-box">Select one, multiple, or all BEs, then open one bulk window to edit opening stock across every selected employee.</div>
         <div class="row2" style="align-items:flex-end;">
@@ -1275,7 +1283,7 @@ table.tbl tr:last-child td{border-bottom:none}
           <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
             <button class="btn sm secondary" onclick="selectAllInventoryBEs(true)">Select All BEs</button>
             <button class="btn sm secondary" onclick="selectAllInventoryBEs(false)">Clear All</button>
-            <button class="btn sm primary" onclick="openBulkOpeningStockEditor()">Edit Opening Stock</button>
+            <button class="btn sm primary" onclick="openBulkOpeningStockEditor()">Bulk Edit Opening Stock</button>
           </div>
         </div>
         <div id="inv-be-selector" class="card" style="margin-top:12px; max-height:240px; overflow:auto; padding:12px; background:#F8FAFC;"></div>
@@ -5458,27 +5466,6 @@ function updateMRInitialStock(type, itemName, newVal) {
   updateMRReceivedStock(type, itemName, newVal);
 }
 
-function getEmpInventoryDraftValue(type, itemName, fallback) {
-  if (!empInventoryDrafts[type]) empInventoryDrafts[type] = {};
-  return Object.prototype.hasOwnProperty.call(empInventoryDrafts[type], itemName) ? empInventoryDrafts[type][itemName] : fallback;
-}
-
-function setEmpInventoryDraft(type, itemName, newVal) {
-  if (!empInventoryDrafts[type]) empInventoryDrafts[type] = {};
-  empInventoryDrafts[type][itemName] = parseInt(newVal) || 0;
-}
-
-function previewEmpInventoryRowBalance(inputEl) {
-  if (!inputEl) return;
-  var row = inputEl.closest('tr');
-  if (!row) return;
-  var opening = parseInt(row.dataset.opening) || 0;
-  var distributed = parseInt(row.dataset.distributed) || 0;
-  var received = parseInt(inputEl.value) || 0;
-  var balEl = row.querySelector('.emp-inv-balance');
-  if (balEl) balEl.textContent = String(opening + received - distributed);
-}
-
 function saveEmpInventoryReceivedChanges() {
   var u = SESSION.user;
   if (!u) return;
@@ -5493,32 +5480,42 @@ function saveEmpInventoryReceivedChanges() {
 
   sections.forEach(function(section) {
     section.master.forEach(function(itemName) {
-      if (!empInventoryDrafts[section.type] || !Object.prototype.hasOwnProperty.call(empInventoryDrafts[section.type], itemName)) return;
-      var nextReceived = parseInt(empInventoryDrafts[section.type][itemName]) || 0;
+      var hasRecDraft = empInventoryDrafts[section.type] && Object.prototype.hasOwnProperty.call(empInventoryDrafts[section.type], itemName);
+      var hasOpenDraft = empInventoryOpeningDrafts[section.type] && Object.prototype.hasOwnProperty.call(empInventoryOpeningDrafts[section.type], itemName);
+      
+      if (!hasRecDraft && !hasOpenDraft) return;
+
       var record = section.collection.find(function(row) {
         return row.empId === u.id && row[section.nameField] === itemName;
       });
+
       if (!record) {
         record = {
           id: section.type.toUpperCase() + 'INV' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase(),
           empId: u.id,
           opening: 0,
-          received: nextReceived,
+          received: 0,
           distributed: 0,
-          balance: nextReceived
+          balance: 0
         };
         record[section.nameField] = itemName;
         section.collection.push(record);
-      } else {
-        record.received = nextReceived;
-        record.balance = (record.opening || 0) + (record.received || 0) - (record.distributed || 0);
       }
+
+      if (hasRecDraft) {
+        record.received = parseInt(empInventoryDrafts[section.type][itemName]) || 0;
+      }
+      if (hasOpenDraft) {
+        record.opening = parseInt(empInventoryOpeningDrafts[section.type][itemName]) || 0;
+      }
+      
+      record.balance = (record.opening || 0) + (record.received || 0) - (record.distributed || 0);
       changed++;
     });
   });
 
   if (!changed) {
-    showToast('No received qty changes to save.');
+    showToast('No inventory changes to save.');
     return;
   }
 
@@ -5527,9 +5524,10 @@ function saveEmpInventoryReceivedChanges() {
     pushUserInventoryToSupabase(u.id);
   }
   empInventoryDrafts = { sample: {}, gift: {}, input: {} };
+  empInventoryOpeningDrafts = { sample: {}, gift: {}, input: {} };
   renderEmpInventoryTables();
   populateReportingDropdowns();
-  showToast('Received quantities saved successfully.');
+  showToast('Inventory changes saved successfully.');
 }
 
 function calculateReportingBalance(type, idx, availableBal) {
@@ -10041,6 +10039,47 @@ function toggleDocChemistSubtab(type){
   }
 }
 
+var empInventoryDrafts = { sample: {}, gift: {}, input: {} };
+var empInventoryOpeningDrafts = { sample: {}, gift: {}, input: {} };
+
+function getEmpInventoryDraftValue(type, itemName, fallback) {
+  if (empInventoryDrafts[type] && Object.prototype.hasOwnProperty.call(empInventoryDrafts[type], itemName)) {
+    return empInventoryDrafts[type][itemName];
+  }
+  return fallback;
+}
+
+function setEmpInventoryDraft(type, itemName, newVal) {
+  if (!empInventoryDrafts[type]) empInventoryDrafts[type] = {};
+  empInventoryDrafts[type][itemName] = parseInt(newVal) || 0;
+}
+
+function getEmpInventoryOpeningDraftValue(type, itemName, fallback) {
+  if (empInventoryOpeningDrafts[type] && Object.prototype.hasOwnProperty.call(empInventoryOpeningDrafts[type], itemName)) {
+    return empInventoryOpeningDrafts[type][itemName];
+  }
+  return fallback;
+}
+
+function setEmpInventoryDraftOpening(type, itemName, newVal) {
+  if (!empInventoryOpeningDrafts[type]) empInventoryOpeningDrafts[type] = {};
+  empInventoryOpeningDrafts[type][itemName] = parseInt(newVal) || 0;
+}
+
+function previewEmpInventoryRowBalance(inputEl) {
+  if (!inputEl) return;
+  var row = inputEl.closest('tr');
+  if (!row) return;
+  var openingInput = row.querySelector('.emp-inv-opening');
+  var receivedInput = row.querySelector('.emp-inv-received');
+  
+  var opening = openingInput ? (parseInt(openingInput.value) || 0) : (parseInt(row.dataset.opening) || 0);
+  var received = receivedInput ? (parseInt(receivedInput.value) || 0) : (parseInt(row.dataset.received) || 0);
+  var distributed = parseInt(row.dataset.distributed) || 0;
+  var balEl = row.querySelector('.emp-inv-balance');
+  if (balEl) balEl.textContent = String(opening + received - distributed);
+}
+
 function renderEmpInventoryTables() {
   var u = SESSION.user;
   if (!u) return;
@@ -10048,35 +10087,51 @@ function renderEmpInventoryTables() {
   var sampleProducts = DB.products || [];
   var giftProducts = DB.gifts || [];
   var inputProducts = DB.inputs || [];
+  var unlocked = DB.systemSettings && DB.systemSettings.inventoryEditUnlocked;
 
   // Render Samples
   document.getElementById('tbl-emp-inv-samples').innerHTML = sampleProducts.length ? sampleProducts.map(function(p) {
     var stock = (DB.samplesInventory || []).find(function(s) { return s.empId === u.id && s.prodName === p; });
-    var opening = stock ? (stock.opening || 0) : 0;
+    var opening = getEmpInventoryOpeningDraftValue('sample', p, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('sample', p, stock ? (stock.received || 0) : 0);
     var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
-    return '<tr data-type="sample" data-item-name="' + escapeHtml(p) + '" data-opening="' + opening + '" data-distributed="' + distributed + '"><td>' + p + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" oninput="setEmpInventoryDraft(\'sample\', \'' + p.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
+    
+    var openingHtml = unlocked 
+      ? '<input type="number" min="0" value="' + opening + '" class="emp-inv-opening" oninput="setEmpInventoryDraftOpening(\'sample\', \'' + p.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'
+      : opening;
+
+    return '<tr data-type="sample" data-item-name="' + escapeHtml(p) + '" data-opening="' + opening + '" data-received="' + received + '" data-distributed="' + distributed + '"><td>' + p + '</td><td>' + openingHtml + '</td><td><input type="number" min="0" value="' + received + '" class="emp-inv-received" oninput="setEmpInventoryDraft(\'sample\', \'' + p.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 
   // Render Gifts
   document.getElementById('tbl-emp-inv-gifts').innerHTML = giftProducts.length ? giftProducts.map(function(g) {
     var stock = (DB.giftsInventory || []).find(function(s) { return s.empId === u.id && s.giftName === g; });
-    var opening = stock ? (stock.opening || 0) : 0;
+    var opening = getEmpInventoryOpeningDraftValue('gift', g, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('gift', g, stock ? (stock.received || 0) : 0);
     var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
-    return '<tr data-type="gift" data-item-name="' + escapeHtml(g) + '" data-opening="' + opening + '" data-distributed="' + distributed + '"><td>' + g + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" oninput="setEmpInventoryDraft(\'gift\', \'' + g.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
+
+    var openingHtml = unlocked 
+      ? '<input type="number" min="0" value="' + opening + '" class="emp-inv-opening" oninput="setEmpInventoryDraftOpening(\'gift\', \'' + g.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'
+      : opening;
+
+    return '<tr data-type="gift" data-item-name="' + escapeHtml(g) + '" data-opening="' + opening + '" data-received="' + received + '" data-distributed="' + distributed + '"><td>' + g + '</td><td>' + openingHtml + '</td><td><input type="number" min="0" value="' + received + '" class="emp-inv-received" oninput="setEmpInventoryDraft(\'gift\', \'' + g.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 
   // Render Inputs
   document.getElementById('tbl-emp-inv-inputs').innerHTML = inputProducts.length ? inputProducts.map(function(i) {
     var stock = (DB.inputsInventory || []).find(function(s) { return s.empId === u.id && s.inputName === i; });
-    var opening = stock ? (stock.opening || 0) : 0;
+    var opening = getEmpInventoryOpeningDraftValue('input', i, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('input', i, stock ? (stock.received || 0) : 0);
     var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
-    return '<tr data-type="input" data-item-name="' + escapeHtml(i) + '" data-opening="' + opening + '" data-distributed="' + distributed + '"><td>' + i + '</td><td>' + opening + '</td><td><input type="number" min="0" value="' + received + '" oninput="setEmpInventoryDraft(\'input\', \'' + i.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
+
+    var openingHtml = unlocked 
+      ? '<input type="number" min="0" value="' + opening + '" class="emp-inv-opening" oninput="setEmpInventoryDraftOpening(\'input\', \'' + i.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;">'
+      : opening;
+
+    return '<tr data-type="input" data-item-name="' + escapeHtml(i) + '" data-opening="' + opening + '" data-received="' + received + '" data-distributed="' + distributed + '"><td>' + i + '</td><td>' + openingHtml + '</td><td><input type="number" min="0" value="' + received + '" class="emp-inv-received" oninput="setEmpInventoryDraft(\'input\', \'' + i.replace(/'/g, "\\'") + '\', this.value); previewEmpInventoryRowBalance(this)" style="width: 78px; padding: 4px; font-size: 12px; border: 1px solid #CBD5E1; border-radius: 4px; text-align: center;"></td><td>' + distributed + '</td><td class="emp-inv-balance" style="font-weight:700">' + balance + '</td></tr>';
   }).join('') : '<tr><td colspan="5" class="empty">No entries found</td></tr>';
 }
 
@@ -15339,6 +15394,29 @@ function primeBulkInventoryEdits() {
   });
 }
 
+function toggleBEInventoryLock() {
+  DB.systemSettings = DB.systemSettings || {};
+  DB.systemSettings.inventoryEditUnlocked = !DB.systemSettings.inventoryEditUnlocked;
+  updateBEInventoryLockUI();
+  saveDB();
+  if (useSupabase && typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
+  showToast(DB.systemSettings.inventoryEditUnlocked ? 'BE Opening Stock unlocked.' : 'BE Opening Stock locked.');
+}
+
+function updateBEInventoryLockUI() {
+  var btn = document.getElementById('btn-toggle-inv-lock');
+  if (btn) {
+    var unlocked = DB.systemSettings && DB.systemSettings.inventoryEditUnlocked;
+    if (unlocked) {
+      btn.className = 'btn sm danger outline';
+      btn.textContent = 'Lock BE Editing';
+    } else {
+      btn.className = 'btn sm success';
+      btn.textContent = 'Unlock BE Editing';
+    }
+  }
+}
+
 function openBulkOpeningStockEditor() {
   ensureBulkInventorySelection();
   if (!inventoryBulkEditor.selectedEmpIds.length) {
@@ -15886,6 +15964,7 @@ function toggleInvFilterDropdown(tableType, colName, element) {
 
 function renderAdminInventoryTables(){
     renderInventoryBeSelector();
+    if (typeof updateBEInventoryLockUI === 'function') updateBEInventoryLockUI();
     var mrFilter=document.getElementById('inv-filter-emp').value;
     var stateFilter=document.getElementById('inv-filter-state') ? document.getElementById('inv-filter-state').value : '';
     var u=SESSION.user;

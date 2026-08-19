@@ -8975,11 +8975,18 @@ function renderMTPDaysUI(isReadOnly, existing){
   if (targetEmpId) {
     var upperTargetId = String(targetEmpId).toUpperCase().trim();
 
-    // Populate patch areas ONLY from doctors directly assigned to this specific employee
+    // Populate patch areas from doctors assigned to this employee (or their team if manager)
     DB.doctors.forEach(function(d) {
       var rawAssign = String(d.assignTo || '').toUpperCase().trim();
-      var isExactMatch = rawAssign === upperTargetId;
-      if (!isExactMatch) return; // Only this employee's own doctors
+      var isExactMatch = false;
+      if (targetEmpObj && targetEmpObj.role === 'admin') {
+         isExactMatch = true;
+      } else if (teamIds && teamIds.includes(rawAssign)) {
+         isExactMatch = true;
+      } else {
+         isExactMatch = rawAssign === upperTargetId;
+      }
+      if (!isExactMatch) return; // Only this employee's/team's doctors
       var isActive = String(d.status || '').trim().toLowerCase() === 'active';
       if (!isActive) return;
       var tTown = String(d.city || d.hq || d.area || '').trim();
@@ -8991,7 +8998,14 @@ function renderMTPDaysUI(isReadOnly, existing){
     // Chemists: add towns for stay-city dropdown only (not patches)
     (DB.chemists || []).forEach(function(c) {
       var rawAssign = String(c.assignTo || '').toUpperCase().trim();
-      var isExactMatch = rawAssign === upperTargetId;
+      var isExactMatch = false;
+      if (targetEmpObj && targetEmpObj.role === 'admin') {
+         isExactMatch = true;
+      } else if (teamIds && teamIds.includes(rawAssign)) {
+         isExactMatch = true;
+      } else {
+         isExactMatch = rawAssign === upperTargetId;
+      }
       if (!isExactMatch) return;
       var tTown = String(c.city || '').trim();
       if (tTown) mrTowns.add(tTown);

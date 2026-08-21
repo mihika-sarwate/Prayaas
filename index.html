@@ -2838,15 +2838,21 @@ async function initSupabaseData(isSilent) {
         if (_pendingLocalReportIds.size > 0 && typeof DB !== 'undefined' && DB && Array.isArray(DB.reports)) {
           var cloudIds = new Set(cloudReports.map(function(r) { return String(r.id); }));
           DB.reports.forEach(function(localRep) {
-            if (_pendingLocalReportIds.has(String(localRep.id)) && !cloudIds.has(String(localRep.id))) {
-              cloudReports.unshift(localRep);
+            if (_pendingLocalReportIds.has(String(localRep.id))) {
+              if (!cloudIds.has(String(localRep.id))) {
+                cloudReports.unshift(localRep);
+              } else {
+                var idx = cloudReports.findIndex(function(r) { return String(r.id) === String(localRep.id); });
+                if (idx > -1) cloudReports[idx] = localRep;
+              }
             }
           });
         }
         return cloudReports;
       })(),
 
-      tourPlans: (tourPlans || []).map(tp => ({
+      tourPlans: (function() {
+        var cloudTPs = (tourPlans || []).map(tp => ({
         id: tp.id,
         empId: tp.emp_id,
         empName: tp.emp_name,
@@ -2860,8 +2866,25 @@ async function initSupabaseData(isSilent) {
         approvedDate: tp.approved_date ? normalizeReportDateValue(tp.approved_date) : null,
         approvedBy: tp.approved_by,
         revisionHistory: typeof tp.revision_history === 'string' ? JSON.parse(tp.revision_history) : (tp.revision_history || [])
-      })),
-      expenses: (expenses || []).map(ex => ({
+      }));
+      if (typeof _pendingLocalTourPlanIds !== 'undefined' && _pendingLocalTourPlanIds.size > 0 && typeof DB !== 'undefined' && DB && Array.isArray(DB.tourPlans)) {
+          var cloudIds = new Set(cloudTPs.map(function(t) { return String(t.id); }));
+          DB.tourPlans.forEach(function(localTp) {
+            if (_pendingLocalTourPlanIds.has(String(localTp.id))) {
+              if (!cloudIds.has(String(localTp.id))) {
+                cloudTPs.unshift(localTp);
+              } else {
+                // overwrite cloud with local pending
+                var idx = cloudTPs.findIndex(function(t) { return String(t.id) === String(localTp.id); });
+                if (idx > -1) cloudTPs[idx] = localTp;
+              }
+            }
+          });
+        }
+        return cloudTPs;
+      })(),
+      expenses: (function() {
+        var cloudExps = (expenses || []).map(ex => ({
         id: ex.id,
         empId: ex.emp_id,
         empName: ex.emp_name,
@@ -2880,7 +2903,22 @@ async function initSupabaseData(isSilent) {
         status: ex.status,
         submittedAt: ex.submitted_at,
         remarks: ex.remarks
-      })),
+      }));
+      if (typeof _pendingLocalExpenseIds !== 'undefined' && _pendingLocalExpenseIds.size > 0 && typeof DB !== 'undefined' && DB && Array.isArray(DB.expenses)) {
+          var cloudIds = new Set(cloudExps.map(function(e) { return String(e.id); }));
+          DB.expenses.forEach(function(localEx) {
+            if (_pendingLocalExpenseIds.has(String(localEx.id))) {
+              if (!cloudIds.has(String(localEx.id))) {
+                cloudExps.unshift(localEx);
+              } else {
+                var idx = cloudExps.findIndex(function(e) { return String(e.id) === String(localEx.id); });
+                if (idx > -1) cloudExps[idx] = localEx;
+              }
+            }
+          });
+        }
+        return cloudExps;
+      })(),
       leaves: (leaves || []).map(lv => ({
         id: lv.id,
         empId: lv.emp_id,
@@ -3884,6 +3922,9 @@ var _pendingDeletedEmpIds = new Set(); // IDs that were deleted locally
 var _pendingDeletedDocIds = new Set(); // Doctor tombstones
 var _pendingLocalEmpIds = new Set();   // IDs whose data was changed locally (block/unblock/edit)
 var _pendingLocalReportIds = new Set(); // Report IDs submitted locally but not yet confirmed in cloud
+var _pendingLocalTourPlanIds = new Set();
+var _pendingLocalExpenseIds = new Set();
+var _pendingLocalLeaveIds = new Set();
 
 // Push a single employee record directly to Supabase without triggering a full sync.
 // Used by block/unblock to make changes visible in the cloud immediately.
@@ -4701,7 +4742,8 @@ function clearLocalAssignTo(entityType) {
 
     // Sync Tour Plans
     try {
-      const dbTourPlans = DB.tourPlans.map(tp => {
+      const pendingTPs = DB.tourPlans.filter(tp => typeof _pendingLocalTourPlanIds !== 'undefined' && _pendingLocalTourPlanIds.has(String(tp.id)));
+        const dbTourPlans = pendingTPs.map(tp => {
         var empId = tp.empId || null;
         if (empId) {
           var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
@@ -4743,7 +4785,10 @@ function clearLocalAssignTo(entityType) {
           revision_history: parsedHistory
         };
       });
-      await upsertInBatches('tour_plans', dbTourPlans);
+      if (dbTourPlans.length > 0) {
+          await upsertInBatches('tour_plans', dbTourPlans);
+          if (typeof _pendingLocalTourPlanIds !== 'undefined') _pendingLocalTourPlanIds.clear();
+        }
       // await reconcileSupabaseRows('tour_plans', DB.tourPlans, function(row) {
       //   return String(row.id || '').toUpperCase();
       // }, function(row) {
@@ -4755,7 +4800,8 @@ function clearLocalAssignTo(entityType) {
 
     // Sync Expenses
     try {
-      const dbExpenses = DB.expenses.map(ex => {
+      const pendingExps = DB.expenses.filter(ex => typeof _pendingLocalExpenseIds !== 'undefined' && _pendingLocalExpenseIds.has(String(ex.id)));
+        const dbExpenses = pendingExps.map(ex => {
         var empId = ex.empId || null;
         if (empId) {
           var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
@@ -4775,7 +4821,10 @@ function clearLocalAssignTo(entityType) {
           remarks: ex.remarks || null
         };
       });
-      await upsertInBatches('expenses', dbExpenses);
+      if (dbExpenses.length > 0) {
+          await upsertInBatches('expenses', dbExpenses);
+          if (typeof _pendingLocalExpenseIds !== 'undefined') _pendingLocalExpenseIds.clear();
+        }
       // await reconcileSupabaseRows('expenses', DB.expenses, function(row) {
       //   return String(row.id || '').toUpperCase();
       // }, function(row) {
@@ -4813,7 +4862,10 @@ function clearLocalAssignTo(entityType) {
           remarks: lv.remarks || null
         };
       });
-      await upsertInBatches('leaves', dbLeaves);
+      if (dbLeaves.length > 0) {
+          await upsertInBatches('leaves', dbLeaves);
+          if (typeof _pendingLocalLeaveIds !== 'undefined') _pendingLocalLeaveIds.clear();
+        }
       // await reconcileSupabaseRows('leaves', DB.leaves, function(row) {
       //   return String(row.id || '').toUpperCase();
       // }, function(row) {

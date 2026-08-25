@@ -14458,7 +14458,30 @@ function populateInventoryItemSelect(){
   });
 }
 
-function addNewInventoryMasterItem() {
+
+  function syncMasterListsToCloud() {
+    if (!useSupabase || typeof supabase === 'undefined' || !supabase) return;
+    var data = {
+      products: DB.products || [],
+      gifts: DB.gifts || [],
+      inputs: DB.inputs || []
+    };
+    var ann = {
+      id: 'SYS_SETTING_MASTER_LISTS',
+      title: 'SYS_MASTER_LISTS',
+      message: JSON.stringify(data),
+      target_type: 'All'
+    };
+    supabase.from('announcements').upsert([ann], { onConflict: 'id' }).then(function(res) {
+      if (!res || !res.error) {
+        var existing = DB.announcements.find(function(a){ return a.id === 'SYS_SETTING_MASTER_LISTS'; });
+        if (existing) existing.message = ann.message;
+        else DB.announcements.push({ id: ann.id, message: ann.message });
+      }
+    });
+  }
+
+  function addNewInventoryMasterItem() {
   var typeSelect = document.getElementById('inv-issue-type');
   var type = typeSelect ? typeSelect.value : 'Sample Product';
   var sectionName = (type === 'Sample Product') ? 'Sample Products Section' : (type === 'Gift Promotional' ? 'Promotional Gifts Section' : 'Promotional Inputs Section');
@@ -14476,7 +14499,8 @@ function addNewInventoryMasterItem() {
   }
   
   if (typeof saveDB === 'function') saveDB();
-  populateInventoryItemSelect();
+    if (typeof syncMasterListsToCloud === 'function') syncMasterListsToCloud();
+    populateInventoryItemSelect();
   var itemSel = document.getElementById('inv-issue-item');
   if (itemSel) itemSel.value = name;
   if (typeof renderAdminInventoryTables === 'function') renderAdminInventoryTables();

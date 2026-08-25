@@ -17467,6 +17467,7 @@ function checkAnnouncements() {
   
   // Find any announcement targeted to this user that they haven't acknowledged
   var unread = DB.announcements.find(function(a) {
+    if (a.id && a.id.startsWith('SYS_SETTING_')) return false;
     var isTarget = false;
     var targetType = (a.targetType || '').toLowerCase();
     var targetVal = (a.targetValue || '').trim().toLowerCase();

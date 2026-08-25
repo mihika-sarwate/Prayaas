@@ -3116,6 +3116,24 @@ async function initSupabaseData(isSilent) {
       });
       DB.products = Array.from(new Set(DB.products));
     }
+
+    // Load custom master lists from cloud KV store
+    var masterAnnGlobal = (DB.announcements || []).find(function(a) { return a.id === 'SYS_SETTING_MASTER_LISTS'; });
+    if (masterAnnGlobal && masterAnnGlobal.message) {
+      try {
+        var parsedG = JSON.parse(masterAnnGlobal.message);
+        if (parsedG.products && Array.isArray(parsedG.products)) {
+           parsedG.products.forEach(function(p) { if (DB.products.indexOf(p) === -1) DB.products.push(p); });
+        }
+        if (parsedG.gifts && Array.isArray(parsedG.gifts)) {
+           parsedG.gifts.forEach(function(g) { if (DB.gifts.indexOf(g) === -1) DB.gifts.push(g); });
+        }
+        if (parsedG.inputs && Array.isArray(parsedG.inputs)) {
+           parsedG.inputs.forEach(function(i) { if (DB.inputs.indexOf(i) === -1) DB.inputs.push(i); });
+        }
+      } catch(e) {}
+    }
+
     // Align gifts list
     if (Array.isArray(DB.gifts)) {
       DB.gifts = DB.gifts.map(function(g) {

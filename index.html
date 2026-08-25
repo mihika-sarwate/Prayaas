@@ -14460,25 +14460,33 @@ function populateInventoryItemSelect(){
 
 
   function syncMasterListsToCloud() {
-    if (!useSupabase || typeof supabase === 'undefined' || !supabase) return;
+    if (!useSupabase) return;
     var data = {
       products: DB.products || [],
       gifts: DB.gifts || [],
       inputs: DB.inputs || []
     };
-    var ann = {
+    var newAnn = {
       id: 'SYS_SETTING_MASTER_LISTS',
       title: 'SYS_MASTER_LISTS',
       message: JSON.stringify(data),
-      target_type: 'All'
+      targetType: 'All',
+      senderId: 'ADMIN',
+      senderName: 'System',
+      date: typeof getTodayDateString === 'function' ? getTodayDateString() : '',
+      expires: '2099-12-31'
     };
-    supabase.from('announcements').upsert([ann], { onConflict: 'id' }).then(function(res) {
-      if (!res || !res.error) {
-        var existing = DB.announcements.find(function(a){ return a.id === 'SYS_SETTING_MASTER_LISTS'; });
-        if (existing) existing.message = ann.message;
-        else DB.announcements.push({ id: ann.id, message: ann.message });
-      }
-    });
+    
+    if (!Array.isArray(DB.announcements)) DB.announcements = [];
+    var existingIdx = DB.announcements.findIndex(function(a){ return a.id === 'SYS_SETTING_MASTER_LISTS'; });
+    if (existingIdx > -1) {
+      DB.announcements[existingIdx].message = newAnn.message;
+    } else {
+      DB.announcements.push(newAnn);
+    }
+    
+    if (typeof saveDB === 'function') saveDB();
+    if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
   }
 
   function addNewInventoryMasterItem() {

@@ -16180,6 +16180,23 @@ function renderAdminInventoryTables(){
       DB.employees.forEach(function(e){ empMap[e.id] = e; });
     }
 
+  // --- Start dynamic distributed calculation ---
+  var currentMonthStr = new Date().toISOString().split('T')[0].slice(0, 7);
+  var adminDistMap = { sample: {}, gift: {}, input: {} };
+  (DB.reports || []).forEach(function(r) {
+    if (!r.date || !r.date.startsWith(currentMonthStr)) return;
+    var empUpper = String(r.empId || '').toUpperCase().trim();
+    var s = (typeof parseJSONField === 'function') ? parseJSONField(r.samples) : {};
+    for(var k in s) { var key = empUpper + '_' + k; adminDistMap.sample[key] = (adminDistMap.sample[key] || 0) + s[k]; }
+    var g = (typeof parseJSONField === 'function') ? parseJSONField(r.gifts) : {};
+    for(var k in g) { var key = empUpper + '_' + k; adminDistMap.gift[key] = (adminDistMap.gift[key] || 0) + g[k]; }
+    var i = (typeof parseJSONField === 'function') ? parseJSONField(r.inputs) : {};
+    for(var k in i) { var key = empUpper + '_' + k; adminDistMap.input[key] = (adminDistMap.input[key] || 0) + i[k]; }
+  });
+  // --- End dynamic distributed calculation ---
+
+
+
     // Render Samples
     var samplesList = DB.samplesInventory.filter(function(s){
       var emp = empMap[s.empId];
@@ -16320,7 +16337,23 @@ function deleteAllFilteredInventory() {
 }
 
 function exportInventoryBalancesCSV() {
-  var mrFilter = document.getElementById('inv-filter-emp').value;
+
+  // --- Start dynamic distributed calculation ---
+  var currentMonthStr = new Date().toISOString().split('T')[0].slice(0, 7);
+  var adminDistMap = { sample: {}, gift: {}, input: {} };
+  (DB.reports || []).forEach(function(r) {
+    if (!r.date || !r.date.startsWith(currentMonthStr)) return;
+    var empUpper = String(r.empId || '').toUpperCase().trim();
+    var s = (typeof parseJSONField === 'function') ? parseJSONField(r.samples) : {};
+    for(var k in s) { var key = empUpper + '_' + k; adminDistMap.sample[key] = (adminDistMap.sample[key] || 0) + s[k]; }
+    var g = (typeof parseJSONField === 'function') ? parseJSONField(r.gifts) : {};
+    for(var k in g) { var key = empUpper + '_' + k; adminDistMap.gift[key] = (adminDistMap.gift[key] || 0) + g[k]; }
+    var i = (typeof parseJSONField === 'function') ? parseJSONField(r.inputs) : {};
+    for(var k in i) { var key = empUpper + '_' + k; adminDistMap.input[key] = (adminDistMap.input[key] || 0) + i[k]; }
+  });
+  // --- End dynamic distributed calculation ---
+
+    var mrFilter = document.getElementById('inv-filter-emp').value;
   var stateFilter = document.getElementById('inv-filter-state') ? document.getElementById('inv-filter-state').value : '';
   var u = SESSION.user;
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;

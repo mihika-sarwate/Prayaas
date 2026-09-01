@@ -842,6 +842,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="expenses_rep">12. Expense Summary Report</option>
             <option value="leaves_rep">13. Leave Utilisation Report</option>
             <option value="doc_coverage">14. Doctor Coverage &amp; Visited Analysis</option>
+              <option value="deviation_rep">19. Deviation Report</option>
             <option value="transit_rep">15. Transit Report</option>
             <option value="meeting_rep">16. Employee Reported Meetings</option>
             <option value="tp_submissions">17. Tour Plan Submission Status</option>
@@ -1418,6 +1419,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="expenses_rep">12. Expense Summary Report</option>
             <option value="leaves_rep">13. Leave Utilisation Report</option>
             <option value="doc_coverage">14. Doctor Coverage &amp; Visited Analysis</option>
+              <option value="deviation_rep">19. Deviation Report</option>
             <option value="transit_rep">15. Transit Report</option>
             <option value="meeting_rep">16. Employee Reported Meetings</option>
             <option value="tp_submissions">17. Tour Plan Submission Status</option>
@@ -17039,6 +17041,140 @@ async function runMISReport(){
       return [e.id, e.name, state, e.leaves.CL - e.leaves.CL_used, e.leaves.SL - e.leaves.SL_used, e.leaves.EL - e.leaves.EL_used, e.leaves.LWP_used];
     });
     
+  } else if (currentReportType === 'deviation_rep') {
+      currentMISTableType = null;
+      thead.innerHTML = '<tr><th>Region</th><th>Rep HQ</th><th>Emp Code</th><th>Emp Name</th><th>Designation</th><th>Month Year</th><th>No. of Working Days</th><th>Total Days Planned</th><th>Holiday Planned Days</th><th># Days Deviated</th><th>% Days Deviated</th><th>Deviated Dates</th><th># Locations Planned</th><th># Locations Deviated</th><th>Unplanned Locations</th><th>Leave Planned</th><th>Leave Actual</th><th># Extra Leaves</th><th># NW Planned</th><th># NW Actual</th><th>NW Days As per Plan</th><th>NW Days Deviated</th><th>Unplanned NW Days</th></tr>';
+      
+      var targetMonth = from ? from.substring(0, 7) : new Date().toISOString().substring(0, 7);
+      
+      var parts = targetMonth.split('-');
+      var y = parseInt(parts[0], 10);
+      var m = parseInt(parts[1], 10) - 1;
+      var dateObj = new Date(y, m, 1);
+      var monthName = dateObj.toLocaleString('en-us', { month: 'short' });
+      var monthYearStr = monthName + '-' + y;
+      
+      var mrs = DB.employees.filter(function(e){return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId||e.id===empId);});
+      
+      mrs.forEach(function(e) {
+        var tp = (DB.tourPlans || []).find(function(t) { return t.empId === e.id && t.month === targetMonth && (String(t.status||'').toUpperCase().includes('APPROVED') || String(t.status||'').toUpperCase()==='SUBMITTED'); });
+        
+        var tpDays = tp && tp.days ? tp.days : [];
+        
+        var workingDays = 0;
+        var totalDaysPlanned = 0;
+        var holidayPlanned = 0;
+        var leavePlanned = 0;
+        var nwPlanned = 0;
+        
+        var locationsPlannedSet = new Set();
+        
+        tpDays.forEach(function(d) {
+           var wt = (d.workType || '').toUpperCase();
+           if (wt !== 'WEEKLY OFF' && wt !== 'HOLIDAY') workingDays++;
+           if (['FIELD WORK', 'MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(wt)) totalDaysPlanned++;
+           if (wt === 'HOLIDAY') holidayPlanned++;
+           if (wt === 'LEAVE') leavePlanned++;
+           if (['MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(wt)) nwPlanned++;
+           if (wt === 'FIELD WORK' && d.areaTerritory) locationsPlannedSet.add((d.areaTerritory || '').toLowerCase());
+        });
+        
+        var reportsForMonth = DB.reports.filter(function(r) { return r.empId === e.id && r.date && r.date.startsWith(targetMonth); });
+        var reportsByDate = {};
+        reportsForMonth.forEach(function(r) {
+           if (!reportsByDate[r.date]) reportsByDate[r.date] = [];
+           reportsByDate[r.date].push(r);
+        });
+        
+        var deviatedDays = 0;
+        var deviatedDates = [];
+        var leaveActual = 0;
+        var nwActual = 0;
+        var nwAsPerPlan = 0;
+        var locationsDeviatedCount = 0;
+        var unplannedLocationsSet = new Set();
+        
+        tpDays.forEach(function(d) {
+           var wt = (d.workType || '').toUpperCase();
+           var reps = reportsByDate[d.date] || [];
+           
+           if (wt === 'WEEKLY OFF' || wt === 'HOLIDAY') return;
+           
+           var isDeviated = false;
+           var repWt = reps.length > 0 ? (reps[0].workType || 'FIELD WORK').toUpperCase() : null;
+           
+           if (wt === 'FIELD WORK') {
+              if (reps.length === 0) {
+                 isDeviated = true;
+              } else if (repWt !== 'FIELD WORK') {
+                 isDeviated = true;
+              } else {
+                 var visitedPatches = reps.map(function(r) { return (r.patch || '').toLowerCase(); });
+                 if (d.areaTerritory && !visitedPatches.includes((d.areaTerritory || '').toLowerCase())) {
+                    isDeviated = true;
+                    locationsDeviatedCount++;
+                 }
+              }
+           } else if (['MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(wt)) {
+              if (reps.length === 0 || !['MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(repWt)) {
+                 isDeviated = true;
+              } else {
+                 nwAsPerPlan++;
+              }
+           } else if (wt === 'LEAVE') {
+              if (repWt && repWt !== 'LEAVE') {
+                 isDeviated = true;
+              }
+           }
+           
+           if (isDeviated) {
+              deviatedDays++;
+              var dayNum = parseInt(d.date.split('-')[2], 10);
+              var mNum = parseInt(d.date.split('-')[1], 10);
+              deviatedDates.push(dayNum + '/' + mNum);
+           }
+        });
+        
+        for (var dt in reportsByDate) {
+           var reps = reportsByDate[dt];
+           var repWt = (reps[0].workType || 'FIELD WORK').toUpperCase();
+           if (repWt === 'LEAVE') leaveActual++;
+           if (['MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(repWt)) nwActual++;
+           
+           if (repWt === 'FIELD WORK') {
+              var tpDay = tpDays.find(function(td) { return td.date === dt; });
+              reps.forEach(function(r) {
+                 var p = (r.patch || '').toLowerCase();
+                 if (p && (!tpDay || (tpDay.areaTerritory || '').toLowerCase() !== p)) {
+                    unplannedLocationsSet.add(p);
+                 }
+              });
+           }
+        }
+        
+        var pctDeviated = totalDaysPlanned ? (deviatedDays / totalDaysPlanned * 100).toFixed(2) : 0;
+        var extraLeaves = Math.max(0, leaveActual - leavePlanned);
+        var nwDeviated = nwPlanned - nwAsPerPlan;
+        var unplannedNw = Math.max(0, nwActual - nwAsPerPlan);
+        
+        var desig = typeof e.designation !== 'undefined' ? e.designation : (e.role ? e.role.toUpperCase() : '');
+        if (desig === 'MR') desig = 'BE';
+        
+        if (!tp) {
+            currentMISData.push([e.state || '', e.area || '', e.id, e.name, desig, monthYearStr, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+            currentMISRowIds.push(null);
+            return;
+        }
+
+        currentMISData.push([
+           e.state || '', e.area || '', e.id, e.name, desig, monthYearStr,
+           workingDays, totalDaysPlanned, holidayPlanned, deviatedDays, Number.isInteger(parseFloat(pctDeviated)) ? Math.round(pctDeviated) : pctDeviated,
+           deviatedDates.join(', '), locationsPlannedSet.size, locationsDeviatedCount,
+           unplannedLocationsSet.size, leavePlanned || '', leaveActual || '', extraLeaves || '',
+           nwPlanned || '', nwActual || '', nwAsPerPlan || '', nwDeviated || '', unplannedNw || ''
+        ]);
+        currentMISRowIds.push(null);
+      });
   } else if(currentReportType==='doc_coverage'){
     thead.innerHTML='<tr><th>MR ID</th><th>MR Name</th><th>State</th><th>Total Active Doctors</th><th>Visited Doctors</th><th>Doctors Not Visited</th><th>Coverage Rate %</th></tr>';
     var mrs=DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id)) && (!empId||e.id===empId);});
@@ -18420,6 +18556,135 @@ async function runEmpMISReport(){
       currentEmpMISData.push([e.id, e.name, state, e.leaves.CL - e.leaves.CL_used, e.leaves.SL - e.leaves.SL_used, e.leaves.EL - e.leaves.EL_used, e.leaves.LWP_used]);
     }
     
+  } else if (currentEmpReportType === 'deviation_rep') {
+      thead.innerHTML = '<tr><th>Region</th><th>Rep HQ</th><th>Emp Code</th><th>Emp Name</th><th>Designation</th><th>Month Year</th><th>No. of Working Days</th><th>Total Days Planned</th><th>Holiday Planned Days</th><th># Days Deviated</th><th>% Days Deviated</th><th>Deviated Dates</th><th># Locations Planned</th><th># Locations Deviated</th><th>Unplanned Locations</th><th>Leave Planned</th><th>Leave Actual</th><th># Extra Leaves</th><th># NW Planned</th><th># NW Actual</th><th>NW Days As per Plan</th><th>NW Days Deviated</th><th>Unplanned NW Days</th></tr>';
+      
+      var targetMonth = from ? from.substring(0, 7) : new Date().toISOString().substring(0, 7);
+      
+      var parts = targetMonth.split('-');
+      var y = parseInt(parts[0], 10);
+      var m = parseInt(parts[1], 10) - 1;
+      var dateObj = new Date(y, m, 1);
+      var monthName = dateObj.toLocaleString('en-us', { month: 'short' });
+      var monthYearStr = monthName + '-' + y;
+      
+      var e = DB.employees.find(function(x){return x.id===empId;});
+      if (e) {
+        var tp = (DB.tourPlans || []).find(function(t) { return t.empId === e.id && t.month === targetMonth && (String(t.status||'').toUpperCase().includes('APPROVED') || String(t.status||'').toUpperCase()==='SUBMITTED'); });
+        
+        var tpDays = tp && tp.days ? tp.days : [];
+        
+        var workingDays = 0;
+        var totalDaysPlanned = 0;
+        var holidayPlanned = 0;
+        var leavePlanned = 0;
+        var nwPlanned = 0;
+        
+        var locationsPlannedSet = new Set();
+        
+        tpDays.forEach(function(d) {
+           var wt = (d.workType || '').toUpperCase();
+           if (wt !== 'WEEKLY OFF' && wt !== 'HOLIDAY') workingDays++;
+           if (['FIELD WORK', 'MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(wt)) totalDaysPlanned++;
+           if (wt === 'HOLIDAY') holidayPlanned++;
+           if (wt === 'LEAVE') leavePlanned++;
+           if (['MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(wt)) nwPlanned++;
+           if (wt === 'FIELD WORK' && d.areaTerritory) locationsPlannedSet.add((d.areaTerritory || '').toLowerCase());
+        });
+        
+        var reportsForMonth = DB.reports.filter(function(r) { return r.empId === e.id && r.date && r.date.startsWith(targetMonth); });
+        var reportsByDate = {};
+        reportsForMonth.forEach(function(r) {
+           if (!reportsByDate[r.date]) reportsByDate[r.date] = [];
+           reportsByDate[r.date].push(r);
+        });
+        
+        var deviatedDays = 0;
+        var deviatedDates = [];
+        var leaveActual = 0;
+        var nwActual = 0;
+        var nwAsPerPlan = 0;
+        var locationsDeviatedCount = 0;
+        var unplannedLocationsSet = new Set();
+        
+        tpDays.forEach(function(d) {
+           var wt = (d.workType || '').toUpperCase();
+           var reps = reportsByDate[d.date] || [];
+           
+           if (wt === 'WEEKLY OFF' || wt === 'HOLIDAY') return;
+           
+           var isDeviated = false;
+           var repWt = reps.length > 0 ? (reps[0].workType || 'FIELD WORK').toUpperCase() : null;
+           
+           if (wt === 'FIELD WORK') {
+              if (reps.length === 0) {
+                 isDeviated = true;
+              } else if (repWt !== 'FIELD WORK') {
+                 isDeviated = true;
+              } else {
+                 var visitedPatches = reps.map(function(r) { return (r.patch || '').toLowerCase(); });
+                 if (d.areaTerritory && !visitedPatches.includes((d.areaTerritory || '').toLowerCase())) {
+                    isDeviated = true;
+                    locationsDeviatedCount++;
+                 }
+              }
+           } else if (['MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(wt)) {
+              if (reps.length === 0 || !['MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(repWt)) {
+                 isDeviated = true;
+              } else {
+                 nwAsPerPlan++;
+              }
+           } else if (wt === 'LEAVE') {
+              if (repWt && repWt !== 'LEAVE') {
+                 isDeviated = true;
+              }
+           }
+           
+           if (isDeviated) {
+              deviatedDays++;
+              var dayNum = parseInt(d.date.split('-')[2], 10);
+              var mNum = parseInt(d.date.split('-')[1], 10);
+              deviatedDates.push(dayNum + '/' + mNum);
+           }
+        });
+        
+        for (var dt in reportsByDate) {
+           var reps = reportsByDate[dt];
+           var repWt = (reps[0].workType || 'FIELD WORK').toUpperCase();
+           if (repWt === 'LEAVE') leaveActual++;
+           if (['MEETING', 'TRANSIT', 'INDUCTION DAY'].includes(repWt)) nwActual++;
+           
+           if (repWt === 'FIELD WORK') {
+              var tpDay = tpDays.find(function(td) { return td.date === dt; });
+              reps.forEach(function(r) {
+                 var p = (r.patch || '').toLowerCase();
+                 if (p && (!tpDay || (tpDay.areaTerritory || '').toLowerCase() !== p)) {
+                    unplannedLocationsSet.add(p);
+                 }
+              });
+           }
+        }
+        
+        var pctDeviated = totalDaysPlanned ? (deviatedDays / totalDaysPlanned * 100).toFixed(2) : 0;
+        var extraLeaves = Math.max(0, leaveActual - leavePlanned);
+        var nwDeviated = nwPlanned - nwAsPerPlan;
+        var unplannedNw = Math.max(0, nwActual - nwAsPerPlan);
+        
+        var desig = typeof e.designation !== 'undefined' ? e.designation : (e.role ? e.role.toUpperCase() : '');
+        if (desig === 'MR') desig = 'BE';
+        
+        if (!tp) {
+            currentEmpMISData.push([e.state || '', e.area || '', e.id, e.name, desig, monthYearStr, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+        } else {
+            currentEmpMISData.push([
+               e.state || '', e.area || '', e.id, e.name, desig, monthYearStr,
+               workingDays, totalDaysPlanned, holidayPlanned, deviatedDays, Number.isInteger(parseFloat(pctDeviated)) ? Math.round(pctDeviated) : pctDeviated,
+               deviatedDates.join(', '), locationsPlannedSet.size, locationsDeviatedCount,
+               unplannedLocationsSet.size, leavePlanned || '', leaveActual || '', extraLeaves || '',
+               nwPlanned || '', nwActual || '', nwAsPerPlan || '', nwDeviated || '', unplannedNw || ''
+            ]);
+        }
+      }
   } else if(currentEmpReportType==='doc_coverage'){
     thead.innerHTML='<tr><th>MR ID</th><th>MR Name</th><th>State</th><th>Total Active Doctors</th><th>Visited Doctors</th><th>Doctors Not Visited</th><th>Coverage Rate %</th></tr>';
     var e = DB.employees.find(function(x){return x.id===empId;});

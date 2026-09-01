@@ -14612,9 +14612,8 @@ function issueStockToMR(){
   });
 
   if (updatedCount > 0) {
-    saveDB();
-    syncAllAdminInventoryToSupabase();
-    }
+      saveDB();
+      syncAllAdminInventoryToSupabase();
     var recipientDesc = (!selectedEmpId || selectedEmpId === 'ALL') ? ('all ' + updatedCount + ' employees') : ('employee (' + selectedEmpId + ')');
     showToast('✓ Stock ' + (action === 'add' ? 'issued' : 'deducted') + ' successfully for ' + recipientDesc + '!');
     document.getElementById('inv-issue-qty').value = '';

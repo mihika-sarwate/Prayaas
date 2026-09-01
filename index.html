@@ -4271,6 +4271,80 @@ window.addEventListener('beforeunload', function (e) {
   }
 });
 
+  async function syncAllAdminInventoryToSupabase() {
+    if (!useSupabase || typeof supabase === 'undefined') return;
+    
+    showToast("Syncing inventory to cloud...", 3000);
+    
+    // Sync Samples
+    try {
+      const dbSamples = DB.samplesInventory.map(s => {
+        var empId = s.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
+        var row = {
+          prod_name: s.prodName || '',
+          emp_id: empId,
+          opening: s.opening || 0,
+          received: s.received || 0,
+          distributed: s.distributed || 0,
+          balance: s.balance || 0
+        };
+        if (isIntegerId(s.id)) row.id = Number(s.id);
+        return row;
+      });
+      await upsertInBatches('samples_inventory', dbSamples);
+    } catch(e) { console.error(e); }
+    
+    // Sync Gifts
+    try {
+      const dbGifts = DB.giftsInventory.map(g => {
+        var empId = g.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
+        var row = {
+          gift_name: g.giftName || '',
+          emp_id: empId,
+          opening: g.opening || 0,
+          received: g.received || 0,
+          distributed: g.distributed || 0,
+          balance: g.balance || 0
+        };
+        if (isIntegerId(g.id)) row.id = Number(g.id);
+        return row;
+      });
+      await upsertInBatches('gifts_inventory', dbGifts);
+    } catch(e) { console.error(e); }
+    
+    // Sync Inputs
+    try {
+      const dbInputs = DB.inputsInventory.map(i => {
+        var empId = i.empId || null;
+        if (empId) {
+          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
+          empId = matchedEmp ? matchedEmp.id : null;
+        }
+        var row = {
+          input_name: i.inputName || '',
+          emp_id: empId,
+          opening: i.opening || 0,
+          received: i.received || 0,
+          distributed: i.distributed || 0,
+          balance: i.balance || 0
+        };
+        if (isIntegerId(i.id)) row.id = Number(i.id);
+        return row;
+      });
+      await upsertInBatches('inputs_inventory', dbInputs);
+    } catch(e) { console.error(e); }
+    
+    showToast("Inventory synced successfully!");
+}
+
   async function syncSupabaseDatabase() {
     if (!useSupabase || !hasInitializedData) return;
     if (isSyncing) {
@@ -4894,94 +4968,6 @@ function clearLocalAssignTo(entityType) {
     } catch (e) {
       console.error("Error syncing leaves:", e);
       hasSyncError = true;
-    }
-
-    // Sync Samples Inventory
-    try {
-      const dbSamples = DB.samplesInventory.map(s => {
-        var empId = s.empId || null;
-        if (empId) {
-          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
-          empId = matchedEmp ? matchedEmp.id : null;
-        }
-        var row = {
-          prod_name: s.prodName || '',
-          emp_id: empId,
-          opening: s.opening || 0,
-          received: s.received || 0,
-          distributed: s.distributed || 0,
-          balance: s.balance || 0
-        };
-        if (isIntegerId(s.id)) {
-          row.id = Number(s.id);
-        }
-        return row;
-      });
-      const syncedSamples = await upsertInBatches('samples_inventory', dbSamples);
-      if (syncedSamples && syncedSamples.length > 0) {
-        syncedSamples.forEach(row => {
-          var local = DB.samplesInventory.find(x => x.prodName === row.prod_name && x.empId === row.emp_id);
-          if (local) {
-            local.id = row.id;
-          }
-        });
-      }
-      // reconcileSupabaseRows is disabled to prevent downloading the entire table, causing extreme slowdowns
-      // await reconcileSupabaseRows('samples_inventory', DB.samplesInventory || [], function(row) {
-      //   var empId = row.empId || row.emp_id || '';
-      //   var prodName = row.prodName || row.prod_name || '';
-      //   return String(empId).toUpperCase().trim() + '|' + String(prodName).toUpperCase().trim();
-      // }, function(row) {
-      //   return supabase.from('samples_inventory').delete().eq('id', row.id);
-      // }, { select: 'id,emp_id,prod_name' });
-    } catch (e) {
-      console.error("Error syncing samples inventory:", e);
-      hasSyncError = true;
-      showToast("⚠️ Samples inventory sync failed: " + (e.message || JSON.stringify(e)), 6000);
-    }
-
-    // Sync Gifts Inventory
-    try {
-      const dbGifts = DB.giftsInventory.map(g => {
-        var empId = g.empId || null;
-        if (empId) {
-          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
-          empId = matchedEmp ? matchedEmp.id : null;
-        }
-        var row = {
-          gift_name: g.giftName || '',
-          emp_id: empId,
-          opening: g.opening || 0,
-          received: g.received || 0,
-          distributed: g.distributed || 0,
-          balance: g.balance || 0
-        };
-        if (isIntegerId(g.id)) {
-          row.id = Number(g.id);
-        }
-        return row;
-      });
-      const syncedGifts = await upsertInBatches('gifts_inventory', dbGifts);
-      if (syncedGifts && syncedGifts.length > 0) {
-        syncedGifts.forEach(row => {
-          var local = DB.giftsInventory.find(x => x.giftName === row.gift_name && x.empId === row.emp_id);
-          if (local) {
-            local.id = row.id;
-          }
-        });
-      }
-      // reconcileSupabaseRows is disabled to prevent downloading the entire table, causing extreme slowdowns
-      // await reconcileSupabaseRows('gifts_inventory', DB.giftsInventory || [], function(row) {
-      //   var empId = row.empId || row.emp_id || '';
-      //   var giftName = row.giftName || row.gift_name || '';
-      //   return String(empId).toUpperCase().trim() + '|' + String(giftName).toUpperCase().trim();
-      // }, function(row) {
-      //   return supabase.from('gifts_inventory').delete().eq('id', row.id);
-      // }, { select: 'id,emp_id,gift_name' });
-    } catch (e) {
-      console.error("Error syncing gifts inventory:", e);
-      hasSyncError = true;
-      showToast("⚠️ Gifts inventory sync failed: " + (e.message || JSON.stringify(e)), 6000);
     }
 
     // Sync Inputs Inventory
@@ -10204,26 +10190,12 @@ function renderEmpInventoryTables() {
   }
 
   
-  // --- Start dynamic distributed calculation ---
-  var currentMonthStr = new Date().toISOString().split('T')[0].slice(0, 7);
-  var empReports = (DB.reports || []).filter(function(r) { return r.empId === u.id && r.date && r.date.startsWith(currentMonthStr); });
-  var distMap = { sample: {}, gift: {}, input: {} };
-  empReports.forEach(function(r) {
-    var s = (typeof parseJSONField === 'function') ? parseJSONField(r.samples) : {};
-    for(var k in s) distMap.sample[k] = (distMap.sample[k] || 0) + s[k];
-    var g = (typeof parseJSONField === 'function') ? parseJSONField(r.gifts) : {};
-    for(var k in g) distMap.gift[k] = (distMap.gift[k] || 0) + g[k];
-    var i = (typeof parseJSONField === 'function') ? parseJSONField(r.inputs) : {};
-    for(var k in i) distMap.input[k] = (distMap.input[k] || 0) + i[k];
-  });
-  // --- End dynamic distributed calculation ---
-
   // Render Samples
   document.getElementById('tbl-emp-inv-samples').innerHTML = sampleProducts.length ? sampleProducts.map(function(p) {
     var stock = (DB.samplesInventory || []).find(function(s) { return s.empId === u.id && s.prodName === p; });
     var opening = getEmpInventoryOpeningDraftValue('sample', p, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('sample', p, stock ? (stock.received || 0) : 0);
-    var distributed = distMap.sample[p] || 0;
+    var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
     
     var openingHtml = unlocked 
@@ -10238,7 +10210,7 @@ function renderEmpInventoryTables() {
     var stock = (DB.giftsInventory || []).find(function(s) { return s.empId === u.id && s.giftName === g; });
     var opening = getEmpInventoryOpeningDraftValue('gift', g, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('gift', g, stock ? (stock.received || 0) : 0);
-    var distributed = distMap.gift[g] || 0;
+    var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
 
     var openingHtml = unlocked 
@@ -10253,7 +10225,7 @@ function renderEmpInventoryTables() {
     var stock = (DB.inputsInventory || []).find(function(s) { return s.empId === u.id && s.inputName === i; });
     var opening = getEmpInventoryOpeningDraftValue('input', i, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('input', i, stock ? (stock.received || 0) : 0);
-    var distributed = distMap.input[i] || 0;
+    var distributed = stock ? (stock.distributed || 0) : 0;
     var balance = opening + received - distributed;
 
     var openingHtml = unlocked 
@@ -14641,18 +14613,7 @@ function issueStockToMR(){
 
   if (updatedCount > 0) {
     saveDB();
-    if (targetEmpIds.length === 1) {
-      if (typeof pushUserInventoryToSupabase === 'function') {
-        pushUserInventoryToSupabase(targetEmpIds[0]);
-      }
-    } else {
-      if (typeof syncSupabaseDatabase === 'function') {
-        if (typeof _saveDBSyncTimer !== 'undefined' && _saveDBSyncTimer) {
-          clearTimeout(_saveDBSyncTimer);
-          _saveDBSyncTimer = null;
-        }
-        syncSupabaseDatabase();
-      }
+    syncAllAdminInventoryToSupabase();
     }
     var recipientDesc = (!selectedEmpId || selectedEmpId === 'ALL') ? ('all ' + updatedCount + ' employees') : ('employee (' + selectedEmpId + ')');
     showToast('✓ Stock ' + (action === 'add' ? 'issued' : 'deducted') + ' successfully for ' + recipientDesc + '!');
@@ -15288,9 +15249,10 @@ function uploadInventoryCSV(inp) {
       }
     } else {
       showToast(added + ' inventory records processed successfully!');
-    }
-    populateInventoryItemSelect();
-    renderAdminInventoryTables();
+      }
+      syncAllAdminInventoryToSupabase();
+      populateInventoryItemSelect();
+      renderAdminInventoryTables();
     if (typeof populateReportingDropdowns === 'function') {
       populateReportingDropdowns();
     }
@@ -16197,24 +16159,7 @@ function renderAdminInventoryTables(){
       DB.employees.forEach(function(e){ empMap[e.id] = e; });
     }
 
-  // --- Start dynamic distributed calculation ---
-  var currentMonthStr = new Date().toISOString().split('T')[0].slice(0, 7);
-  var adminDistMap = { sample: {}, gift: {}, input: {} };
-  (DB.reports || []).forEach(function(r) {
-    if (!r.date || !r.date.startsWith(currentMonthStr)) return;
-    var empUpper = String(r.empId || '').toUpperCase().trim();
-    var s = (typeof parseJSONField === 'function') ? parseJSONField(r.samples) : {};
-    for(var k in s) { var key = empUpper + '_' + k; adminDistMap.sample[key] = (adminDistMap.sample[key] || 0) + s[k]; }
-    var g = (typeof parseJSONField === 'function') ? parseJSONField(r.gifts) : {};
-    for(var k in g) { var key = empUpper + '_' + k; adminDistMap.gift[key] = (adminDistMap.gift[key] || 0) + g[k]; }
-    var i = (typeof parseJSONField === 'function') ? parseJSONField(r.inputs) : {};
-    for(var k in i) { var key = empUpper + '_' + k; adminDistMap.input[key] = (adminDistMap.input[key] || 0) + i[k]; }
-  });
-  // --- End dynamic distributed calculation ---
-
-
-
-    // Render Samples
+  // Render Samples
     var samplesList = DB.samplesInventory.filter(function(s){
       var emp = empMap[s.empId];
       var stateMatch = !stateFilter || (emp && emp.state === stateFilter);
@@ -16224,7 +16169,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
       var emp = empMap[s.empId];
       var idVal = s.id || (s.empId + '|' + s.prodName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+(adminDistMap.sample[String(s.empId).toUpperCase().trim() + '_' + s.prodName] || 0)+'</td><td style="font-weight:700">'+(s.opening + s.received - (adminDistMap.sample[String(s.empId).toUpperCase().trim() + '_' + s.prodName] || 0))+'</td><td><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+(s.opening + s.received - s.distributed)+'</td><td><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Render Gifts
@@ -16237,7 +16182,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
       var emp = empMap[g.empId];
       var idVal = g.id || (g.empId + '|' + g.giftName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+(adminDistMap.gift[String(g.empId).toUpperCase().trim() + '_' + g.giftName] || 0)+'</td><td style="font-weight:700">'+(g.opening + g.received - (adminDistMap.gift[String(g.empId).toUpperCase().trim() + '_' + g.giftName] || 0))+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+(g.opening + g.received - g.distributed)+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
  
     // Render Inputs
@@ -16250,7 +16195,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
       var emp = empMap[i.empId];
       var idVal = i.id || (i.empId + '|' + i.inputName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+(adminDistMap.input[String(i.empId).toUpperCase().trim() + '_' + i.inputName] || 0)+'</td><td style="font-weight:700">'+(i.opening + i.received - (adminDistMap.input[String(i.empId).toUpperCase().trim() + '_' + i.inputName] || 0))+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+(i.opening + i.received - i.distributed)+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Update counts
@@ -16355,22 +16300,7 @@ function deleteAllFilteredInventory() {
 
 function exportInventoryBalancesCSV() {
 
-  // --- Start dynamic distributed calculation ---
-  var currentMonthStr = new Date().toISOString().split('T')[0].slice(0, 7);
-  var adminDistMap = { sample: {}, gift: {}, input: {} };
-  (DB.reports || []).forEach(function(r) {
-    if (!r.date || !r.date.startsWith(currentMonthStr)) return;
-    var empUpper = String(r.empId || '').toUpperCase().trim();
-    var s = (typeof parseJSONField === 'function') ? parseJSONField(r.samples) : {};
-    for(var k in s) { var key = empUpper + '_' + k; adminDistMap.sample[key] = (adminDistMap.sample[key] || 0) + s[k]; }
-    var g = (typeof parseJSONField === 'function') ? parseJSONField(r.gifts) : {};
-    for(var k in g) { var key = empUpper + '_' + k; adminDistMap.gift[key] = (adminDistMap.gift[key] || 0) + g[k]; }
-    var i = (typeof parseJSONField === 'function') ? parseJSONField(r.inputs) : {};
-    for(var k in i) { var key = empUpper + '_' + k; adminDistMap.input[key] = (adminDistMap.input[key] || 0) + i[k]; }
-  });
-  // --- End dynamic distributed calculation ---
-
-    var mrFilter = document.getElementById('inv-filter-emp').value;
+  var mrFilter = document.getElementById('inv-filter-emp').value;
   var stateFilter = document.getElementById('inv-filter-state') ? document.getElementById('inv-filter-state').value : '';
   var u = SESSION.user;
   var teamIds = u.role !== 'admin' ? getAllSubordinateIds(u.id) : null;
@@ -16393,8 +16323,8 @@ function exportInventoryBalancesCSV() {
       s.prodName || '',
       s.opening || '0',
       s.received || '0',
-      (adminDistMap.sample[String(s.empId).toUpperCase().trim() + '_' + s.prodName] || 0) || '0',
-      (s.opening + s.received - (adminDistMap.sample[String(s.empId).toUpperCase().trim() + '_' + s.prodName] || 0)) || '0'
+      s.distributed || '0',
+      (s.opening + s.received - s.distributed) || '0'
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';
@@ -16416,8 +16346,8 @@ function exportInventoryBalancesCSV() {
       g.giftName || '',
       g.opening || '0',
       g.received || '0',
-      (adminDistMap.gift[String(g.empId).toUpperCase().trim() + '_' + g.giftName] || 0) || '0',
-      (g.opening + g.received - (adminDistMap.gift[String(g.empId).toUpperCase().trim() + '_' + g.giftName] || 0)) || '0'
+      g.distributed || '0',
+      (g.opening + g.received - g.distributed) || '0'
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';
@@ -16439,8 +16369,8 @@ function exportInventoryBalancesCSV() {
       i.inputName || '',
       i.opening || '0',
       i.received || '0',
-      (adminDistMap.input[String(i.empId).toUpperCase().trim() + '_' + i.inputName] || 0) || '0',
-      (i.opening + i.received - (adminDistMap.input[String(i.empId).toUpperCase().trim() + '_' + i.inputName] || 0)) || '0'
+      i.distributed || '0',
+      (i.opening + i.received - i.distributed) || '0'
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';

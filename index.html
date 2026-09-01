@@ -10201,6 +10201,21 @@ function renderEmpInventoryTables() {
       if (ann && ann.message === 'UNLOCKED') unlocked = true;
   }
 
+  
+  // --- Start dynamic distributed calculation ---
+  var currentMonthStr = new Date().toISOString().split('T')[0].slice(0, 7);
+  var empReports = (DB.reports || []).filter(function(r) { return r.empId === u.id && r.date && r.date.startsWith(currentMonthStr); });
+  var distMap = { sample: {}, gift: {}, input: {} };
+  empReports.forEach(function(r) {
+    var s = (typeof parseJSONField === 'function') ? parseJSONField(r.samples) : {};
+    for(var k in s) distMap.sample[k] = (distMap.sample[k] || 0) + s[k];
+    var g = (typeof parseJSONField === 'function') ? parseJSONField(r.gifts) : {};
+    for(var k in g) distMap.gift[k] = (distMap.gift[k] || 0) + g[k];
+    var i = (typeof parseJSONField === 'function') ? parseJSONField(r.inputs) : {};
+    for(var k in i) distMap.input[k] = (distMap.input[k] || 0) + i[k];
+  });
+  // --- End dynamic distributed calculation ---
+
   // Render Samples
   document.getElementById('tbl-emp-inv-samples').innerHTML = sampleProducts.length ? sampleProducts.map(function(p) {
     var stock = (DB.samplesInventory || []).find(function(s) { return s.empId === u.id && s.prodName === p; });

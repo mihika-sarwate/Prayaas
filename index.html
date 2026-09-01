@@ -12507,9 +12507,25 @@ function getCellValue(table, col, item) {
   }
   if (table === 'doctors' || table === 'chemists' || table === 'stockists') {
     if (col === 'assignTo') {
-      var emp = DB.employees.find(function(e){return e.id===item.assignTo;});
-      return emp ? emp.name + ' (' + item.assignTo + ')' : 'Unassigned';
-    }
+        var emp = DB.employees.find(function(e){return e.id===item.assignTo;});
+        return emp ? emp.name + ' (' + item.assignTo + ')' : 'Unassigned';
+      }
+      if (col === 'beName') {
+        var emp = DB.employees.find(function(e){return e.id===item.assignTo;});
+        return emp && emp.name ? emp.name : (item.beName || '');
+      }
+      if (col === 'managerName') {
+        var emp = DB.employees.find(function(e){return e.id===item.assignTo;});
+        if (emp && emp.managerId) {
+            var mgr = DB.employees.find(function(m){return m.id===emp.managerId;});
+            return mgr && mgr.name ? mgr.name : (item.managerName || '');
+        }
+        return item.managerName || '';
+      }
+      if (col === 'hq') {
+        var emp = DB.employees.find(function(e){return e.id===item.assignTo;});
+        return emp && emp.city ? emp.city : (item.hq || '');
+      }
   }
   return item[col];
 }
@@ -16981,7 +16997,7 @@ async function runMISReport(){
     mrs.forEach(function(e){
       var assigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
       var visitedIds=[];
-      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor';}).forEach(function(r){
+      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor' && (!from || r.date >= from) && (!to || r.date <= to);}).forEach(function(r){
         if(!visitedIds.includes(r.docId)) visitedIds.push(r.docId);
       });
       var missed = Math.max(0, assigned - visitedIds.length);
@@ -18362,7 +18378,7 @@ async function runEmpMISReport(){
     if (e) {
       var assigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
       var visitedIds=[];
-      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor';}).forEach(function(r){
+      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor' && (!from || r.date >= from) && (!to || r.date <= to);}).forEach(function(r){
         if(!visitedIds.includes(r.docId)) visitedIds.push(r.docId);
       });
       var missed = Math.max(0, assigned - visitedIds.length);

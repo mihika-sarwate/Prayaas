@@ -10206,7 +10206,7 @@ function renderEmpInventoryTables() {
     var stock = (DB.samplesInventory || []).find(function(s) { return s.empId === u.id && s.prodName === p; });
     var opening = getEmpInventoryOpeningDraftValue('sample', p, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('sample', p, stock ? (stock.received || 0) : 0);
-    var distributed = stock ? (stock.distributed || 0) : 0;
+    var distributed = distMap.sample[p] || 0;
     var balance = opening + received - distributed;
     
     var openingHtml = unlocked 
@@ -10221,7 +10221,7 @@ function renderEmpInventoryTables() {
     var stock = (DB.giftsInventory || []).find(function(s) { return s.empId === u.id && s.giftName === g; });
     var opening = getEmpInventoryOpeningDraftValue('gift', g, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('gift', g, stock ? (stock.received || 0) : 0);
-    var distributed = stock ? (stock.distributed || 0) : 0;
+    var distributed = distMap.gift[g] || 0;
     var balance = opening + received - distributed;
 
     var openingHtml = unlocked 
@@ -10236,7 +10236,7 @@ function renderEmpInventoryTables() {
     var stock = (DB.inputsInventory || []).find(function(s) { return s.empId === u.id && s.inputName === i; });
     var opening = getEmpInventoryOpeningDraftValue('input', i, stock ? (stock.opening || 0) : 0);
     var received = getEmpInventoryDraftValue('input', i, stock ? (stock.received || 0) : 0);
-    var distributed = stock ? (stock.distributed || 0) : 0;
+    var distributed = distMap.input[i] || 0;
     var balance = opening + received - distributed;
 
     var openingHtml = unlocked 
@@ -16174,7 +16174,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
       var emp = empMap[s.empId];
       var idVal = s.id || (s.empId + '|' + s.prodName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+s.balance+'</td><td><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+(adminDistMap.sample[String(s.empId).toUpperCase().trim() + '_' + s.prodName] || 0)+'</td><td style="font-weight:700">'+(s.opening + s.received - (adminDistMap.sample[String(s.empId).toUpperCase().trim() + '_' + s.prodName] || 0))+'</td><td><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Render Gifts
@@ -16187,7 +16187,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
       var emp = empMap[g.empId];
       var idVal = g.id || (g.empId + '|' + g.giftName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+g.balance+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+(adminDistMap.gift[String(g.empId).toUpperCase().trim() + '_' + g.giftName] || 0)+'</td><td style="font-weight:700">'+(g.opening + g.received - (adminDistMap.gift[String(g.empId).toUpperCase().trim() + '_' + g.giftName] || 0))+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
  
     // Render Inputs
@@ -16200,7 +16200,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
       var emp = empMap[i.empId];
       var idVal = i.id || (i.empId + '|' + i.inputName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+i.balance+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+(adminDistMap.input[String(i.empId).toUpperCase().trim() + '_' + i.inputName] || 0)+'</td><td style="font-weight:700">'+(i.opening + i.received - (adminDistMap.input[String(i.empId).toUpperCase().trim() + '_' + i.inputName] || 0))+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Update counts
@@ -16327,8 +16327,8 @@ function exportInventoryBalancesCSV() {
       s.prodName || '',
       s.opening || '0',
       s.received || '0',
-      s.distributed || '0',
-      s.balance || '0'
+      (adminDistMap.sample[String(s.empId).toUpperCase().trim() + '_' + s.prodName] || 0) || '0',
+      (s.opening + s.received - (adminDistMap.sample[String(s.empId).toUpperCase().trim() + '_' + s.prodName] || 0)) || '0'
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';
@@ -16350,8 +16350,8 @@ function exportInventoryBalancesCSV() {
       g.giftName || '',
       g.opening || '0',
       g.received || '0',
-      g.distributed || '0',
-      g.balance || '0'
+      (adminDistMap.gift[String(g.empId).toUpperCase().trim() + '_' + g.giftName] || 0) || '0',
+      (g.opening + g.received - (adminDistMap.gift[String(g.empId).toUpperCase().trim() + '_' + g.giftName] || 0)) || '0'
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';
@@ -16373,8 +16373,8 @@ function exportInventoryBalancesCSV() {
       i.inputName || '',
       i.opening || '0',
       i.received || '0',
-      i.distributed || '0',
-      i.balance || '0'
+      (adminDistMap.input[String(i.empId).toUpperCase().trim() + '_' + i.inputName] || 0) || '0',
+      (i.opening + i.received - (adminDistMap.input[String(i.empId).toUpperCase().trim() + '_' + i.inputName] || 0)) || '0'
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';

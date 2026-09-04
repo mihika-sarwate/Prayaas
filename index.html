@@ -16169,7 +16169,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-samples').innerHTML=samplesList.length?samplesList.map(function(s){
       var emp = empMap[s.empId];
       var idVal = s.id || (s.empId + '|' + s.prodName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+(s.opening + s.received - s.distributed)+'</td><td><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="sample" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+s.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+s.prodName+'</td><td>'+s.opening+'</td><td>'+s.received+'</td><td>'+s.distributed+'</td><td style="font-weight:700">'+(s.opening + s.received - s.distributed)+'</td><td><button onclick="editInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm" style="padding:4px 8px; margin-right:4px;">Edit</button><button onclick="deleteInventoryItem(\'sample\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Render Gifts
@@ -16182,7 +16182,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-gifts').innerHTML=giftsList.length?giftsList.map(function(g){
       var emp = empMap[g.empId];
       var idVal = g.id || (g.empId + '|' + g.giftName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+(g.opening + g.received - g.distributed)+'</td><td><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="gift" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+g.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+g.giftName+'</td><td>'+g.opening+'</td><td>'+g.received+'</td><td>'+g.distributed+'</td><td style="font-weight:700">'+(g.opening + g.received - g.distributed)+'</td><td><button onclick="editInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm" style="padding:4px 8px; margin-right:4px;">Edit</button><button onclick="deleteInventoryItem(\'gift\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
  
     // Render Inputs
@@ -16195,7 +16195,7 @@ function renderAdminInventoryTables(){
     document.getElementById('tbl-inv-inputs').innerHTML=inputsList.length?inputsList.map(function(i){
       var emp = empMap[i.empId];
       var idVal = i.id || (i.empId + '|' + i.inputName);
-      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+(i.opening + i.received - i.distributed)+'</td><td><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="inv-row-check" data-type="input" value="' + idVal + '"></td><td>'+(emp?emp.name:'')+' ('+i.empId+')</td><td>'+(emp?emp.state||'':'')+'</td><td>'+i.inputName+'</td><td>'+i.opening+'</td><td>'+i.received+'</td><td>'+i.distributed+'</td><td style="font-weight:700">'+(i.opening + i.received - i.distributed)+'</td><td><button onclick="editInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm" style="padding:4px 8px; margin-right:4px;">Edit</button><button onclick="deleteInventoryItem(\'input\', \'' + idVal + '\')" class="btn sm danger" style="padding:4px 8px">Delete</button></td></tr>';
     }).join(''):'<tr><td colspan="9" class="empty">No entries found</td></tr>';
   
     // Update counts
@@ -16216,6 +16216,44 @@ function renderAdminInventoryTables(){
     if (checkAllSamples) checkAllSamples.checked = false;
     if (checkAllGifts) checkAllGifts.checked = false;
     if (checkAllInputs) checkAllInputs.checked = false;
+}
+
+function editInventoryItem(type, id) {
+  var arrayName = '';
+  if (type === 'sample') arrayName = 'samplesInventory';
+  else if (type === 'gift') arrayName = 'giftsInventory';
+  else if (type === 'input') arrayName = 'inputsInventory';
+  
+  if (arrayName && DB[arrayName]) {
+    var idx = DB[arrayName].findIndex(function(item) {
+      return String(item.id) === String(id) || (item.empId + '|' + (item.prodName || item.giftName || item.inputName)) === id;
+    });
+    if (idx > -1) {
+      var item = DB[arrayName][idx];
+      var itemName = item.prodName || item.giftName || item.inputName;
+      
+      var newOpening = prompt("Enter new Opening Stock for " + itemName + " (Emp: " + item.empId + "):", item.opening);
+      if (newOpening === null) return;
+      var newReceived = prompt("Enter new Received Qty:", item.received);
+      if (newReceived === null) return;
+      var newDistributed = prompt("Enter new Distributed Qty:", item.distributed);
+      if (newDistributed === null) return;
+      
+      item.opening = parseInt(newOpening) || 0;
+      item.received = parseInt(newReceived) || 0;
+      item.distributed = parseInt(newDistributed) || 0;
+      item.balance = item.opening + item.received - item.distributed;
+      
+      saveDB();
+      if (typeof syncAllAdminInventoryToSupabase === 'function') {
+         syncAllAdminInventoryToSupabase();
+      }
+      showToast("Inventory item updated successfully!");
+      renderAdminInventoryTables();
+    } else {
+      showToast("Item not found!");
+    }
+  }
 }
 
 function deleteInventoryItem(type, id) {

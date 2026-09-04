@@ -1331,6 +1331,7 @@ table.tbl tr:last-child td{border-bottom:none}
         </div>
         <div class="btn-row" style="margin-top:10px; margin-bottom:10px;">
           <button class="btn sm success" onclick="exportInventoryBalancesCSV()">Export Inventory Registers</button>
+            <button class="btn sm warning" onclick="resetDistributedQty()">Reset Distributed Qty (Zero)</button>
           <button class="btn sm danger" onclick="deleteSelectedInventory()">Delete Selected</button>
           <button class="btn sm danger outline" onclick="deleteAllFilteredInventory()">Delete All Filtered</button>
         </div>
@@ -16295,6 +16296,54 @@ function deleteAllFilteredInventory() {
   saveDB();
   showToast('All filtered inventory items deleted successfully.');
   renderAdminInventoryTables();
+}
+
+
+function resetDistributedQty() {
+  if (!confirm("Are you sure you want to reset the distributed quantities to ZERO for all current inventory items? This will set Opening Stock and Balance to be equal and reset Distributed to 0.")) return;
+  
+  var updated = 0;
+  
+  if (DB.samplesInventory) {
+    DB.samplesInventory.forEach(function(s) {
+      if (s) {
+        s.distributed = 0;
+        s.balance = (s.opening || 0) + (s.received || 0);
+        updated++;
+      }
+    });
+  }
+  
+  if (DB.giftsInventory) {
+    DB.giftsInventory.forEach(function(g) {
+      if (g) {
+        g.distributed = 0;
+        g.balance = (g.opening || 0) + (g.received || 0);
+        updated++;
+      }
+    });
+  }
+  
+  if (DB.inputsInventory) {
+    DB.inputsInventory.forEach(function(i) {
+      if (i) {
+        i.distributed = 0;
+        i.balance = (i.opening || 0) + (i.received || 0);
+        updated++;
+      }
+    });
+  }
+  
+  if (updated > 0) {
+    saveDB();
+    if (typeof syncAllAdminInventoryToSupabase === 'function') {
+      syncAllAdminInventoryToSupabase();
+    }
+    showToast(updated + " inventory records reset successfully!");
+    renderAdminInventoryTables();
+  } else {
+    showToast("No inventory records found to reset.");
+  }
 }
 
 function exportInventoryBalancesCSV() {

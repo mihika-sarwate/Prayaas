@@ -17306,9 +17306,12 @@ function deleteAdminReport(id) {
   var idx = DB.reports.findIndex(function(r) { return r.id === id; });
   if(idx > -1) {
     DB.reports.splice(idx, 1);
-    saveDB();
-    showToast("Report deleted successfully!");
-    runMISReport(); // Refresh the table
+      saveDB();
+      if (typeof runSupabaseDelete === 'function') {
+        runSupabaseDelete('reports', function(q) { return q.eq('id', id); });
+      }
+      showToast("Report deleted successfully!");
+      runMISReport(); // Refresh the table
   }
 }
 
@@ -17317,9 +17320,12 @@ function deleteExpenseClaim(id) {
   var idx = DB.expenses.findIndex(function(ex) { return ex.id === id; });
   if(idx > -1) {
     DB.expenses.splice(idx, 1);
-    saveDB();
-    showToast("Expense claim deleted successfully!");
-    runMISReport(); // Refresh the table
+      saveDB();
+      if (typeof runSupabaseDelete === 'function') {
+        runSupabaseDelete('expenses', function(q) { return q.eq('id', id); });
+      }
+      showToast("Expense claim deleted successfully!");
+      runMISReport(); // Refresh the table
   }
 }
 
@@ -17352,8 +17358,11 @@ function deleteSelectedMISRecords() {
     }
     
     saveDB();
-    showToast(idsToDelete.length + ' record(s) deleted successfully.');
-    runMISReport(); // Refresh view
+      if (typeof runSupabaseDelete === 'function' && idsToDelete.length > 0) {
+        runSupabaseDelete(currentMISTableType, function(q) { return q.in('id', idsToDelete); });
+      }
+      showToast(idsToDelete.length + ' record(s) deleted successfully.');
+      runMISReport(); // Refresh view
   } catch (e) {
     console.error(e);
     showToast('Error deleting records.');
@@ -17380,8 +17389,11 @@ function deleteAllFilteredMISRecords() {
     }
     
     saveDB();
-    showToast(validIds.length + ' record(s) deleted successfully.');
-    runMISReport(); // Refresh view
+      if (typeof runSupabaseDelete === 'function' && validIds.length > 0) {
+        runSupabaseDelete(currentMISTableType, function(q) { return q.in('id', validIds); });
+      }
+      showToast(validIds.length + ' record(s) deleted successfully.');
+      runMISReport(); // Refresh view
   } catch (e) {
     console.error(e);
     showToast('Error deleting records.');

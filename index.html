@@ -12027,7 +12027,7 @@ function updateSelectedEmpsCount() {
   }
 }
 
-function bulkDeleteSelectedEmployees() {
+async function bulkDeleteSelectedEmployees() {
   var checked = document.querySelectorAll('.emp-row-check:checked');
   if (!checked.length) return;
   if (!confirm('Are you sure you want to delete the ' + checked.length + ' selected employee records?')) return;
@@ -12040,18 +12040,29 @@ function bulkDeleteSelectedEmployees() {
   try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
   if (_saveDBSyncTimer) { clearTimeout(_saveDBSyncTimer); _saveDBSyncTimer = null; }
   renderEmpTable();
-  runSupabaseDelete('employees', function(q) {
-    return q.in('id', idsToDelete);
-  }).then(function(res) {
-    if (!res || !res.error) {
-      idsToDelete.forEach(function(id) { _pendingDeletedEmpIds.delete(String(id).toUpperCase()); });
-      _saveTombstonesToStorage();
-      showToast('Cloud Sync Complete!', 3000);
+
+  // Chunk deletions into batches of 10 to avoid statement timeouts
+  var batchSize = 10;
+  var hasError = false;
+  for (var i = 0; i < idsToDelete.length; i += batchSize) {
+    var chunk = idsToDelete.slice(i, i + batchSize);
+    var res = await runSupabaseDelete('employees', function(q) {
+      return q.in('id', chunk);
+    });
+    if (res && res.error) {
+      hasError = true;
+      console.error('Failed to delete employee chunk from Supabase:', chunk, res.error);
     } else {
-      console.error('Failed to bulk delete employees from Supabase:', res.error);
-      showToast('⚠️ Bulk delete from cloud failed — will retry on next sync.', 5000);
+      chunk.forEach(function(id) { _pendingDeletedEmpIds.delete(String(id).toUpperCase()); });
+      _saveTombstonesToStorage();
     }
-  });
+  }
+  if (!hasError) {
+    showToast('Cloud Sync Complete!', 3000);
+  } else {
+    showToast('?? Some records failed to delete from cloud � will retry on next sync.', 5000);
+  }
+
   var masterCheck = document.getElementById('check-all-emps');
   if (masterCheck) masterCheck.checked = false;
   updateSelectedEmpsCount();

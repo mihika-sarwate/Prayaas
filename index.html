@@ -7846,7 +7846,7 @@ function getApprovedLeaveStatusForDate(emp, dateStr) {
     var status = String(l.status || '').trim().toUpperCase();
     var lEmpId = String(l.empId || l.emp_id || '').trim().toUpperCase();
     if (lEmpId !== targetId) return false;
-    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER' && status !== 'PENDING') return false;
+    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER' && status !== 'PENDING' && status !== 'SUBMITTED') return false;
     var start = toISTDateStr(l.start);
     var end   = toISTDateStr(l.end);
     if (!start || !end) return false;
@@ -7876,7 +7876,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
     var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
     if (approvedLeave) {
       var leaveType = String(approvedLeave.type || '').toLowerCase();
-      var isPending = String(approvedLeave.status) === 'PENDING';
+      var isPending = String(approvedLeave.status) === 'PENDING' || String(approvedLeave.status) === 'SUBMITTED';
       var prefix = isPending ? 'Applied ' : 'Approved ';
       
       if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: prefix + 'Sick Leave' };
@@ -8839,6 +8839,9 @@ async function runAttendanceValidationNow() {
     });
 
     if (dcrExists) return;
+
+    var leaveStatus = typeof getApprovedLeaveStatusForDate === 'function' ? getApprovedLeaveStatusForDate(emp, dateStr) : null;
+    if (leaveStatus) return;
 
     var isHoliday = (DB.holidays || []).some(function(h) {
       if ((formatDateForPostgres(h.date) || h.date) !== dateStr) return false;

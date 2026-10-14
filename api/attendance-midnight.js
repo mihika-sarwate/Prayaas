@@ -153,7 +153,7 @@ function getApprovedLeaveMap(rows) {
   const map = new Map();
   for (const row of rows || []) {
     const status = normalizeStatus(row.status);
-    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER' && status !== 'PENDING') continue;
+    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER' && status !== 'PENDING' && status !== 'SUBMITTED') continue;
     const empId = String(row.emp_id || '').trim().toUpperCase();
     const start = normalizeDate(row.start);
     const end = normalizeDate(row.end);
@@ -250,7 +250,7 @@ function getAttendanceStatusMeta(employee, dateStr, context) {
   const approvedLeave = getApprovedLeaveForDate(context.leaveMap, empId, dateStr);
   if (approvedLeave) {
     const leaveType = String(approvedLeave.type || '').toLowerCase();
-    const isPending = approvedLeave.status === 'PENDING';
+    const isPending = approvedLeave.status === 'PENDING' || approvedLeave.status === 'SUBMITTED';
     const prefix = isPending ? 'Applied ' : 'Approved ';
     
     if (leaveType.includes('sick')) {

@@ -2540,11 +2540,16 @@ async function initSupabaseData(isSilent) {
     var scopedEmpIds = getScopedEmployeeIdsForSession(emps);
     var scopedByEmployee = function(fieldName, extraOptions) {
       var opts = extraOptions ? Object.assign({}, extraOptions) : {};
-      if (scopedEmpIds && scopedEmpIds.length > 0) {
-        opts.applyQuery = function(query) {
-          return query.in(fieldName, scopedEmpIds);
-        };
-      }
+      var extraApply = opts.applyQuery;
+      opts.applyQuery = function(query) {
+        if (scopedEmpIds && scopedEmpIds.length > 0) {
+          query = query.in(fieldName, scopedEmpIds);
+        }
+        if (typeof extraApply === 'function') {
+          query = extraApply(query) || query;
+        }
+        return query;
+      };
       return opts;
     };
     
@@ -2555,7 +2560,23 @@ async function initSupabaseData(isSilent) {
     ] = await Promise.all([
       fetchAllFromSupabase('doctors', scopedByEmployee('assign_to')),
       fetchAllFromSupabase('chemists', scopedByEmployee('assign_to')),
-      fetchAllFromSupabase('reports', scopedByEmployee('emp_id', { select: REPORTS_SELECT_CLAUSE })),
+      fetchAllFromSupabase('reports', scopedByEmployee('emp_id', {
+        select: REPORTS_SELECT_CLAUSE,
+        applyQuery: function(q) {
+          var d = new Date();
+          var dayOfMonth = d.getDate();
+          var startYear = d.getFullYear();
+          var startMonth = d.getMonth() + 1;
+          if (dayOfMonth < 8) {
+            d.setDate(1);
+            d.setMonth(d.getMonth() - 1);
+            startYear = d.getFullYear();
+            startMonth = d.getMonth() + 1;
+          }
+          var reportStartDate = startYear + '-' + String(startMonth).padStart(2, '0') + '-01';
+          return q.gte('date', reportStartDate);
+        }
+      })),
       fetchAllFromSupabase('tour_plans', scopedByEmployee('emp_id')),
       fetchAllFromSupabase('expenses', scopedByEmployee('emp_id')),
       fetchAllFromSupabase('leaves', scopedByEmployee('emp_id')),
@@ -2837,9 +2858,16 @@ async function initSupabaseData(isSilent) {
       // are still in-flight to Supabase.
       reports: (function() {
         var cloudReports = (reports || []).map(mapSupabaseReportRow);
+        var cloudIds = new Set(cloudReports.map(function(r) { return String(r.id); }));
+        if (typeof DB !== 'undefined' && DB && Array.isArray(DB.reports)) {
+          DB.reports.forEach(function(localRep) {
+            if (localRep && localRep.id && !cloudIds.has(String(localRep.id))) {
+              cloudReports.push(localRep);
+            }
+          });
+        }
         // Keep any locally pending reports not yet confirmed in cloud
         if (_pendingLocalReportIds.size > 0 && typeof DB !== 'undefined' && DB && Array.isArray(DB.reports)) {
-          var cloudIds = new Set(cloudReports.map(function(r) { return String(r.id); }));
           DB.reports.forEach(function(localRep) {
             if (_pendingLocalReportIds.has(String(localRep.id))) {
               if (!cloudIds.has(String(localRep.id))) {
@@ -5296,17 +5324,17 @@ function doLogin(){
       initSupabaseClient();
       
       // Fetch the rest of the database authorized for this user
-      showToast('Loading database...');
+
       hasInitializedData = false;
       isLoadingData = false; // reset flag
-      await initSupabaseData(false);
+      recordAttendanceOnSuccessfulLogin(emp);
       try {  } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
       var validatedEmp = DB.employees && DB.employees.find(function(e) {
         return String(e.id || '').trim().toUpperCase() === String(emp.id || '').trim().toUpperCase();
       });
       if (validatedEmp) {
         var currentPwd = emp.pwd;
-        emp = validatedEmp;
+        emp = Object.assign({}, validatedEmp, emp);
         emp.pwd = currentPwd;
         SESSION.user = emp;
         localStorage.setItem('adonis_session', JSON.stringify(SESSION));
@@ -5322,7 +5350,7 @@ function doLogin(){
         return;
       }
       
-      recordAttendanceOnSuccessfulLogin(emp);
+
       
       // Proceed with UI navigation
       document.getElementById('scr-login').style.display = 'none';
@@ -5340,6 +5368,7 @@ function doLogin(){
         }
         initAdminApp(emp);
       }
+      initSupabaseData(true);
     }).catch(function(err) {
       console.error("Login exception:", err);
       showToast('Error connecting to server. Please try again.');

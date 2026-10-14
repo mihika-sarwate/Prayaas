@@ -828,7 +828,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="doc_calls">2. Total Doctor Calls Report</option>
             <option value="chem_calls">3. Total Chemist Calls Report</option>
             <option value="call_avg">3. Doctor Call Average Report</option>
-            <option value="missed_calls">4. Missed Doctor Calls Report</option>
+            <option value="missed_calls">4. Missed Doctor Report</option>
             <option value="visit_freq">5. Doctor Visit Frequency Report</option>
             <option value="plan_vs_act">6. Planned vs Actual Calls Report</option>
             <option value="jfw_days">7. Joint Field Work (JFW) Summary</option>
@@ -1406,7 +1406,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="doc_calls">2. Total Doctor Calls Report</option>
             <option value="chem_calls">3. Total Chemist Calls Report</option>
             <option value="call_avg">3. Doctor Call Average Report</option>
-            <option value="missed_calls">4. Missed Doctor Calls Report</option>
+            <option value="missed_calls">4. Missed Doctor Report</option>
             <option value="visit_freq">5. Doctor Visit Frequency Report</option>
             <option value="plan_vs_act">6. Planned vs Actual Calls Report</option>
             <option value="jfw_days">7. Joint Field Work (JFW) Summary</option>
@@ -16668,59 +16668,46 @@ async function runMISReport(){
     });
     
   } else if(currentReportType==='missed_calls'){
-    thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>State</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
-    var myTPs=DB.tourPlans.filter(function(tp){
-      var statusUpper = String(tp.status || '').toUpperCase();
-      if(teamIds && !teamIds.some(function(tid){ return String(tid).toUpperCase() === String(tp.empId).toUpperCase(); })) return false;
-      return (statusUpper.includes('APPROVED') || statusUpper==='SUBMITTED') && (!empId||String(tp.empId || '').toUpperCase()===String(empId).toUpperCase());
-    });
-    
-    var docMap = {};
-    var docsByEmpAndArea = {};
-    DB.doctors.forEach(function(doc){
-      docMap[doc.id] = doc;
-      var empAssign = String(doc.assignTo || '').toUpperCase();
-      var dArea = String(doc.area || '').trim().toLowerCase();
-      var key = empAssign + '|' + dArea;
-      if (!docsByEmpAndArea[key]) docsByEmpAndArea[key] = [];
-      docsByEmpAndArea[key].push(doc);
-    });
+      thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>HQ</th><th>Doctor Code</th><th>Doctor Name</th><th>Speciality</th><th>Area / Patch</th><th>Status</th></tr>';
+      var mrs = DB.employees.filter(function(e){
+        if (e.role === 'admin') return false;
+        if (teamIds && !teamIds.includes(e.id)) return false;
+        if (empId && e.id !== empId) return false;
+        return true;
+      });
 
-    var reportMap = new Set();
-    DB.reports.forEach(function(r){
-      if(r.targetType==='Doctor' && r.empId && r.date && r.docId) {
-        reportMap.add(String(r.empId).toUpperCase() + '|' + r.date + '|' + String(r.docId));
-      }
-    });
-
-    myTPs.forEach(function(tp){
-      var tpEmpUpper = String(tp.empId || '').toUpperCase();
-      var emp = DB.employees.find(function(e){return String(e.id || '').toUpperCase() === tpEmpUpper;});
-      var state = emp && emp.state ? emp.state : 'N/A';
-      tp.days.forEach(function(d){
-        if(from && d.date < from) return;
-        if(to && d.date > to) return;
-        var area=d.areaTerritory||d.toLocation||'';
-        var areaKey = String(area).trim().toLowerCase();
-        
-        var plannedDocIds = (d.plannedDocs && d.plannedDocs.length) ? d.plannedDocs : null;
-        if (!plannedDocIds) {
-          var matchingDocs = docsByEmpAndArea[tpEmpUpper + '|' + areaKey];
-          plannedDocIds = matchingDocs ? matchingDocs.filter(function(dc){return String(dc.status||'Active').toLowerCase()==='active';}).map(function(dc){return dc.id;}) : [];
+      var visitedDocKeys = new Set();
+      (DB.reports || []).forEach(function(r){
+        if ((r.targetType === 'Doctor' || !r.targetType) && r.empId && (!from || r.date >= from) && (!to || r.date <= to)) {
+          var empUpper = String(r.empId).toUpperCase().trim();
+          if (r.docId) visitedDocKeys.add(empUpper + '|' + String(r.docId));
+          if (r.docName) visitedDocKeys.add(empUpper + '|' + String(r.docName).trim().toLowerCase());
+          if (r.targetName) visitedDocKeys.add(empUpper + '|' + String(r.targetName).trim().toLowerCase());
         }
-        
-        plannedDocIds.forEach(function(docId){
-          var visited = reportMap.has(tpEmpUpper + '|' + d.date + '|' + String(docId));
-          if(!visited){
-            var doc=docMap[docId];
-            currentMISData.push([tp.month, tp.empName, state, d.date, doc?doc.code:'', doc?doc.name:docId, 'Missed Call']);
+      });
+
+      mrs.forEach(function(e){
+        var empUpper = String(e.id || '').toUpperCase().trim();
+        var state = e.state || 'N/A';
+        var hq = e.area || '';
+        var assignedDocs = (DB.doctors || []).filter(function(d){
+          var isAct = String(d.status || 'Active').toLowerCase() === 'active';
+          if (!isAct) return false;
+          var assignUpper = String(d.assignTo || '').toUpperCase().trim();
+          return assignUpper === empUpper || assignUpper.split(',').map(function(s){ return s.trim(); }).includes(empUpper);
+        });
+
+        assignedDocs.forEach(function(d){
+          var byId = d.id && visitedDocKeys.has(empUpper + '|' + String(d.id));
+          var byName = d.name && visitedDocKeys.has(empUpper + '|' + String(d.name).trim().toLowerCase());
+          if (!byId && !byName) {
+            currentMISData.push([e.id, e.name, state, hq, d.code || '', d.name || '', d.spec || '', d.area || d.patch || '', 'Not Visited']);
             currentMISRowIds.push(null);
           }
         });
       });
-    });
-    
-  } else if(currentReportType==='visit_freq'){
+      
+    } else if(currentReportType==='visit_freq'){
     thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>MR State</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
     
     var visitCounts = {};
@@ -18304,32 +18291,39 @@ async function runEmpMISReport(){
     }
     
   } else if(currentEmpReportType==='missed_calls'){
-    thead.innerHTML='<tr><th>Month</th><th>MR Name</th><th>State</th><th>Planned Date</th><th>Doctor Code</th><th>Doctor Name</th><th>Status</th></tr>';
-    var myTPs=DB.tourPlans.filter(function(tp){
-      var statusUpper = String(tp.status || '').toUpperCase();
-      return (statusUpper.includes('APPROVED') || statusUpper==='SUBMITTED') && String(tp.empId || '').toUpperCase()===String(empId).toUpperCase();
-    });
-    myTPs.forEach(function(tp){
-      var emp = DB.employees.find(function(e){return String(e.id || '').toUpperCase() === String(tp.empId || '').toUpperCase();});
-      var state = emp && emp.state ? emp.state : 'N/A';
-      tp.days.forEach(function(d){
-        if(from && d.date < from) return;
-        if(to && d.date > to) return;
-        var area=d.areaTerritory||d.toLocation||'';
-        var plannedDocIds=(d.plannedDocs&&d.plannedDocs.length) ? d.plannedDocs : DB.doctors.filter(function(doc){return String(doc.assignTo || '').toUpperCase()===String(tp.empId || '').toUpperCase() && String(doc.status || 'Active').toLowerCase()==='active' && String(doc.area || '').trim().toLowerCase()===String(area || '').trim().toLowerCase();}).map(function(doc){return doc.id;});
-        plannedDocIds.forEach(function(docId){
-          var visited = DB.reports.find(function(r){
-            return String(r.empId || '').toUpperCase()===String(tp.empId || '').toUpperCase() && r.date===d.date && String(r.docId)===String(docId);
-          });
-          if(!visited){
-            var doc=DB.doctors.find(function(dc){return dc.id===docId;});
-            currentEmpMISData.push([tp.month, tp.empName, state, d.date, doc?doc.code:'', doc?doc.name:docId, 'Missed Call']);
+      thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>HQ</th><th>Doctor Code</th><th>Doctor Name</th><th>Speciality</th><th>Area / Patch</th><th>Status</th></tr>';
+      var e = (DB.employees || []).find(function(x){ return x.id === empId; }) || SESSION.user;
+      var empUpper = String(empId || (e ? e.id : '')).toUpperCase().trim();
+      var state = (e && e.state) ? e.state : 'N/A';
+      var hq = (e && e.area) ? e.area : '';
+
+      var visitedDocKeys = new Set();
+      (DB.reports || []).forEach(function(r){
+        if ((r.targetType === 'Doctor' || !r.targetType) && r.empId && (!from || r.date >= from) && (!to || r.date <= to)) {
+          if (String(r.empId).toUpperCase().trim() === empUpper) {
+            if (r.docId) visitedDocKeys.add(String(r.docId));
+            if (r.docName) visitedDocKeys.add(String(r.docName).trim().toLowerCase());
+            if (r.targetName) visitedDocKeys.add(String(r.targetName).trim().toLowerCase());
           }
-        });
+        }
       });
-    });
-    
-  } else if(currentEmpReportType==='visit_freq'){
+
+      var assignedDocs = (DB.doctors || []).filter(function(d){
+        var isAct = String(d.status || 'Active').toLowerCase() === 'active';
+        if (!isAct) return false;
+        var assignUpper = String(d.assignTo || '').toUpperCase().trim();
+        return assignUpper === empUpper || assignUpper.split(',').map(function(s){ return s.trim(); }).includes(empUpper);
+      });
+
+      assignedDocs.forEach(function(d){
+        var byId = d.id && visitedDocKeys.has(String(d.id));
+        var byName = d.name && visitedDocKeys.has(String(d.name).trim().toLowerCase());
+        if (!byId && !byName) {
+          currentEmpMISData.push([e ? e.id : empUpper, e ? e.name : '', state, hq, d.code || '', d.name || '', d.spec || '', d.area || d.patch || '', 'Not Visited']);
+        }
+      });
+      
+    } else if(currentEmpReportType==='visit_freq'){
     thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>MR State</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
     DB.doctors.filter(function(d){return d.assignTo===empId;}).forEach(function(d){
       var visits = DB.reports.filter(function(r){

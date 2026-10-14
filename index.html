@@ -2215,7 +2215,7 @@ async function fetchAllFromSupabase(table, options) {
   let allData = [];
   let page = 0;
   let lastId = null;
-  const pageSize = 500;
+  const pageSize = 1000;
   const selectClause = (options && options.select) ? options.select : '*';
   
   // Decide initially if we want to try keyset pagination
@@ -2553,17 +2553,17 @@ async function initSupabaseData(isSilent) {
       samplesInv, giftsInv, inputsInv, stockists, announcements,
       attendanceData, weeklyOffData, holData
     ] = await Promise.all([
-      fetchAllFromSupabase('doctors'),
-      fetchAllFromSupabase('chemists'),
+      fetchAllFromSupabase('doctors', scopedByEmployee('assign_to')),
+      fetchAllFromSupabase('chemists', scopedByEmployee('assign_to')),
       fetchAllFromSupabase('reports', scopedByEmployee('emp_id', { select: REPORTS_SELECT_CLAUSE })),
       fetchAllFromSupabase('tour_plans', scopedByEmployee('emp_id')),
       fetchAllFromSupabase('expenses', scopedByEmployee('emp_id')),
       fetchAllFromSupabase('leaves', scopedByEmployee('emp_id')),
-      fetchAllFromSupabase('sfc'),
+      fetchAllFromSupabase('sfc', scopedByEmployee('emp_id')),
       fetchAllFromSupabase('samples_inventory', scopedByEmployee('emp_id')),
       fetchAllFromSupabase('gifts_inventory', scopedByEmployee('emp_id')),
       fetchAllFromSupabase('inputs_inventory', scopedByEmployee('emp_id')),
-      fetchAllFromSupabase('stockists'),
+      fetchAllFromSupabase('stockists', scopedByEmployee('assign_to')),
       fetchAllFromSupabase('announcements', { allowMissing: true }),
       fetchAllFromSupabase('attendance', scopedByEmployee('employee_id', { allowMissing: true })),
       fetchAllFromSupabase('weekly_off_config', scopedByEmployee('employee_id', { allowMissing: true })),
@@ -3235,6 +3235,16 @@ async function initSupabaseData(isSilent) {
         SESSION.user = freshUser;
         SESSION.user.pwd = currentPwd;
         localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+        if ((SESSION.user || {}).role !== 'admin' && String((SESSION.user || {}).status || '').toLowerCase() !== 'active') {
+          showToast('Your account status is not active. Please contact the administrator.');
+          logout();
+          return;
+        }
+        if ((SESSION.user || {}).role !== 'admin' && normalizeAccountStatus((SESSION.user || {}).accountStatus) === 'BLOCKED') {
+          showToast('Your account has been temporarily blocked because the previous working day final DCR was not submitted by 12:00 AM IST. Please contact the administrator.');
+          logout();
+          return;
+        }
       }
 
       if (SESSION.user.role === 'admin' || SESSION.user.role === 'manager' || SESSION.user.role === 'am' || SESSION.user.role === 'rm' || SESSION.user.role === 'zm' || SESSION.user.role === 'nsm') {
@@ -3243,7 +3253,9 @@ async function initSupabaseData(isSilent) {
           populateAttendanceEmployeeFilter();
           renderAttendanceDashboard();
         }
-        if (isSilent !== true) {
+        var shouldRefreshViews = (isSilent !== true) || !_initialCloudSyncDone;
+        _initialCloudSyncDone = true;
+        if (shouldRefreshViews) {
           populateReportTerritoryDropdowns();
           renderAdminDashTeamList();
           renderAdminTPApprovals();
@@ -3260,7 +3272,9 @@ async function initSupabaseData(isSilent) {
           renderAdminInventoryTables();
         }
       } else {
-        if (isSilent !== true) {
+        var shouldRefreshViews = (isSilent !== true) || !_initialCloudSyncDone;
+        _initialCloudSyncDone = true;
+        if (shouldRefreshViews) {
           populateReportingDropdowns();
           populateReportTerritoryDropdowns();
           renderDocList();
@@ -5107,12 +5121,18 @@ function clearLocalAssignTo(entityType) {
   }
 
 var SESSION = JSON.parse(localStorage.getItem('adonis_session')) || {user:null};
+var _sessionRestored = false;
+var _initialCloudSyncDone = false;
 
 function restoreSessionWhenReady() {
-  if (isLoadingData) {
-    setTimeout(restoreSessionWhenReady, 300);
+  if (_sessionRestored) return;
+  if (!DB || !Array.isArray(DB.employees) || DB.employees.length === 0) {
+    if (isLoadingData) {
+    setTimeout(restoreSessionWhenReady, 100);
     return;
+    }
   }
+  _sessionRestored = true;
   // Auto-patch for ADLA89 incorrectly mapped BE Name
   try {
     let adlaEmp = DB.employees && DB.employees.find(e => e.id === 'ADLA89');
@@ -5270,6 +5290,7 @@ function doLogin(){
       // Valid login! Set session
       SESSION.user = emp;
       localStorage.setItem('adonis_session', JSON.stringify(SESSION));
+      _sessionRestored = true;
       
       // Initialize the global supabase client with these valid credentials
       initSupabaseClient();
@@ -18816,16 +18837,27 @@ function exportEmpReportToCSV(){
   downloadData(csv.join('\n'), 'my_mis_report_'+currentEmpReportType+'.csv');
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    beautifyEmojis();
-    initSupabaseData();
-    restoreSessionWhenReady();
-  });
-} else {
+async function startApp() {
   beautifyEmojis();
-  initSupabaseData();
+  try {
+    await loadLocalDB();
+  } catch(e) {
+    console.error("Initial loadLocalDB error:", e);
+  }
   restoreSessionWhenReady();
+  initSupabaseData(true);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+
+
+
+
+} else {
+  startApp();
+
+
 }
 </script>
 <!-- Broadcast History Modal -->

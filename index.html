@@ -2950,20 +2950,32 @@ async function initSupabaseData(isSilent) {
         }
         return cloudExps;
       })(),
-      leaves: (leaves || []).map(lv => ({
-        id: lv.id,
-        empId: lv.emp_id,
-        empName: lv.emp_name,
-        type: lv.type,
-        start: lv.start ? normalizeReportDateValue(lv.start) : null,
-        end: lv.end ? normalizeReportDateValue(lv.end) : null,
-        days: lv.days,
-        reason: lv.reason,
-        managerId: lv.manager_id,
-        status: lv.status,
-        submittedAt: lv.submitted_at,
-        remarks: lv.remarks
-      })),
+      leaves: (function() {
+        var cloudLeaves = (leaves || []).map(lv => ({
+          id: lv.id,
+          empId: lv.emp_id,
+          empName: lv.emp_name,
+          type: lv.type,
+          start: lv.start ? normalizeReportDateValue(lv.start) : null,
+          end: lv.end ? normalizeReportDateValue(lv.end) : null,
+          days: lv.days,
+          reason: lv.reason,
+          managerId: lv.manager_id,
+          status: lv.status,
+          submittedAt: lv.submitted_at,
+          remarks: lv.remarks
+        }));
+        // Merge pending or unconfirmed local leaves so newly submitted leaves are never wiped out
+        if (typeof DB !== 'undefined' && DB && Array.isArray(DB.leaves)) {
+          var cloudIds = new Set(cloudLeaves.map(function(l) { return String(l.id); }));
+          DB.leaves.forEach(function(localLv) {
+            if (localLv && localLv.id && !cloudIds.has(String(localLv.id))) {
+              cloudLeaves.unshift(localLv);
+            }
+          });
+        }
+        return cloudLeaves;
+      })(),
       cityRates: DEFAULT_DB.cityRates,
       sfc: (function() {
         var cloudSfc = [];
@@ -4289,6 +4301,7 @@ function _saveTombstonesToStorage() {
   try {
     localStorage.setItem('adonis_deleted_emp_tombstones', JSON.stringify([..._pendingDeletedEmpIds]));
     localStorage.setItem('adonis_deleted_doc_tombstones', JSON.stringify([..._pendingDeletedDocIds]));
+    localStorage.setItem('adonis_pending_local_leaves', JSON.stringify([..._pendingLocalLeaveIds]));
   } catch(e) {}
 }
 
@@ -4302,6 +4315,10 @@ function _saveTombstonesToStorage() {
     var savedDocs = JSON.parse(localStorage.getItem('adonis_deleted_doc_tombstones') || '[]');
     savedDocs.forEach(function(id) { _pendingDeletedDocIds.add(String(id)); });
     if (savedDocs.length > 0) console.log('Loaded ' + savedDocs.length + ' deleted-doctor tombstone(s).');
+
+    var savedLeaves = JSON.parse(localStorage.getItem('adonis_pending_local_leaves') || '[]');
+    savedLeaves.forEach(function(id) { _pendingLocalLeaveIds.add(String(id)); });
+    if (savedLeaves.length > 0) console.log('Loaded ' + savedLeaves.length + ' pending-leave item(s).');
   } catch(e) {}
 })();
 
@@ -5500,9 +5517,8 @@ function initEmpApp(userObj){
   
   // Populate read-only manager displays
   var tpm=document.getElementById('tp-manager');
-  tpm.innerHTML='<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
-  var lvm=document.getElementById('lv-manager');
-  lvm.innerHTML='<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
+  if (tpm) tpm.innerHTML='<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
+  populateLeaveManagerDropdown();
   
   populateReportingDropdowns();
   renderDocList();
@@ -9961,6 +9977,22 @@ function renderMyExpenses(){
 }
 
 // ===== LEAVE MANAGEMENT FUNCTIONS =====
+function populateLeaveManagerDropdown() {
+  var lvm = document.getElementById('lv-manager');
+  if (!lvm || !SESSION.user) return;
+  var u = SESSION.user;
+  var rawMgr = u.managerId || u.manager_id || '';
+  var mgrId = resolveManagerId(rawMgr) || rawMgr;
+  if (!mgrId || String(mgrId).trim().toLowerCase() === 'none') {
+    mgrId = u.role === 'admin' ? '' : 'ADMIN';
+  }
+  var mgr = DB.employees && DB.employees.find(function(e){
+    return String(e.id || '').trim().toUpperCase() === String(mgrId || '').trim().toUpperCase();
+  });
+  var mgrName = mgr ? (mgr.name + ' (' + (mgr.role || '').toUpperCase() + ')') : (mgrId === 'ADMIN' ? 'Administrator (ADMIN)' : (mgrId ? mgrId : 'Administrator (ADMIN)'));
+  lvm.innerHTML = '<option value="' + (mgrId || 'ADMIN') + '">' + mgrName + '</option>';
+}
+
 function renderLeaveBalances(){
   var u=SESSION.user;
   var ledger = getLeaveLedger(u);
@@ -10007,8 +10039,8 @@ function submitLeave(){
   }
   
   // Check for overlapping leaves
-  var overlap = DB.leaves.find(function(l) {
-    if (l.empId !== SESSION.user.id) return false;
+  var overlap = (DB.leaves || []).find(function(l) {
+    if (String(l.empId || '').trim().toUpperCase() !== String(SESSION.user.id || '').trim().toUpperCase()) return false;
     var st = String(l.status || '').toUpperCase();
     if (st === 'REJECTED' || st === 'CANCELLED') return false;
     
@@ -10021,8 +10053,14 @@ function submitLeave(){
     showToast('A leave request already exists for these dates.');
     return;
   }
+
+  var chosenMgrId = (document.getElementById('lv-manager') && document.getElementById('lv-manager').value) || SESSION.user.managerId;
+  var resolvedMgrId = resolveManagerId(chosenMgrId) || chosenMgrId || 'ADMIN';
+  if (String(resolvedMgrId).trim().toLowerCase() === 'none') {
+    resolvedMgrId = 'ADMIN';
+  }
   
-  DB.leaves.push({
+  var newLeave = {
     id:'LV'+Date.now(),
     empId:SESSION.user.id,
     empName:SESSION.user.name,
@@ -10031,11 +10069,19 @@ function submitLeave(){
     end:end,
     days:diffDays,
     reason:reason,
-    managerId:SESSION.user.managerId,
+    managerId:resolvedMgrId,
     status:'Submitted',
     submittedAt:getCurrentISTTimestamp(),
     remarks:''
-  });
+  };
+
+  if (!Array.isArray(DB.leaves)) DB.leaves = [];
+  DB.leaves.push(newLeave);
+
+  if (typeof _pendingLocalLeaveIds !== 'undefined') {
+    _pendingLocalLeaveIds.add(String(newLeave.id));
+    if (typeof _saveTombstonesToStorage === 'function') _saveTombstonesToStorage();
+  }
   
   saveDB();
   showToast('Leave request submitted successfully!');
@@ -10044,15 +10090,51 @@ function submitLeave(){
   document.getElementById('lv-reason').value='';
   renderLeaveBalances();
   renderMyLeaves();
+
+  // Push directly to Supabase immediately so cloud is updated without waiting
+  if (useSupabase && supabase) {
+    var cloudRow = {
+      id: newLeave.id,
+      emp_id: newLeave.empId,
+      emp_name: newLeave.empName,
+      type: newLeave.type,
+      start: formatDateForPostgres(newLeave.start) || newLeave.start,
+      "end": formatDateForPostgres(newLeave.end) || newLeave.end,
+      days: newLeave.days,
+      reason: newLeave.reason || null,
+      manager_id: newLeave.managerId || null,
+      status: 'Submitted',
+      submitted_at: newLeave.submittedAt,
+      remarks: null
+    };
+    supabase.from('leaves').upsert(cloudRow).then(function(res) {
+      if (res && res.error) {
+        console.error('Direct leave upsert to Supabase failed:', res.error);
+      } else {
+        console.log('Leave saved to Supabase cloud successfully:', newLeave.id);
+        if (typeof _pendingLocalLeaveIds !== 'undefined') {
+          _pendingLocalLeaveIds.delete(String(newLeave.id));
+          if (typeof _saveTombstonesToStorage === 'function') _saveTombstonesToStorage();
+        }
+      }
+    }).catch(function(err) {
+      console.error('Direct leave network error:', err);
+    });
+  }
 }
 
 function renderMyLeaves(){
   var el=document.getElementById('my-leaves-list');
-  var myLeaves=DB.leaves.filter(function(l){return l.empId===SESSION.user.id;}).slice().reverse();
+  if (!el || !SESSION.user) return;
+  var currentUserId = String(SESSION.user.id || '').trim().toUpperCase();
+  var myLeaves = (DB.leaves || []).filter(function(l){
+    return String(l.empId || '').trim().toUpperCase() === currentUserId;
+  }).slice().reverse();
   if(!myLeaves.length){el.innerHTML='<div class="empty">No leave requests submitted yet.</div>';return;}
   el.innerHTML=myLeaves.map(function(lv){
-    var sc=lv.status==='Approved'?'approved':lv.status==='Rejected'?'rejected':'pending';
-    var bc=lv.status==='Approved'?'green':lv.status==='Rejected'?'red':'orange';
+    var stUpper = String(lv.status || '').toUpperCase();
+    var sc = (stUpper === 'APPROVED' || stUpper === 'APPROVED BY MANAGER' || stUpper === 'APPROVED BY ADMIN') ? 'approved' : (stUpper === 'REJECTED') ? 'rejected' : 'pending';
+    var bc = (stUpper === 'APPROVED' || stUpper === 'APPROVED BY MANAGER' || stUpper === 'APPROVED BY ADMIN') ? 'green' : (stUpper === 'REJECTED') ? 'red' : 'orange';
     return '<div class="appr-card '+sc+'"><div class="appr-hdr"><div class="appr-name">'+lv.type+' ('+lv.days+' Day/s)</div><span class="badge '+bc+'">'+lv.status+'</span></div><div class="appr-meta">Dates: '+lv.start+' &rarr; '+lv.end+'</div>'+(lv.remarks?'<div class="appr-meta" style="color:var(--danger);margin-top:4px">Remarks: '+lv.remarks+'</div>':'')+'</div>';
   }).join('');
 }
@@ -10326,6 +10408,7 @@ function goTab(name){
   }
   if(name==='home') renderHomeStats();
   if(name==='leave') {
+    populateLeaveManagerDropdown();
     renderLeaveBalances();
     renderMyLeaves();
   }
@@ -10440,6 +10523,7 @@ function initAdminApp(userObj){
   populateAdminEmpFilters();
   populateInventoryItemSelect();
   renderAdminInventoryTables();
+  populateLeaveManagerDropdown();
   if (currentAdminTab === 'attendance' && SESSION.user.role !== 'admin') {
     currentAdminTab = 'dash';
   }
@@ -10486,6 +10570,7 @@ function goAdminTab(name){
     if(tl) {
       document.getElementById('sec-adm-leave-req').appendChild(tl);
       tl.style.display = 'block';
+      populateLeaveManagerDropdown();
       renderLeaveBalances();
       renderMyLeaves();
     }
@@ -10967,6 +11052,7 @@ function approveLeave(){
     var u = SESSION.user;
     var prevStatus = lv.status;
     lv.status = processApproval(lv.status, lv.managerId, u);
+    pushLeaveStatusToSupabase(lv);
   }
   saveDB();
   closeModal('modal-leave-detail');
@@ -10981,11 +11067,32 @@ function rejectLeave(){
   if(lv){
     lv.status='Rejected';
     lv.remarks=reason;
+    pushLeaveStatusToSupabase(lv);
   }
   saveDB();
   closeModal('modal-leave-detail');
   showToast('Leave request rejected.');
   initAdminApp();
+}
+
+function pushLeaveStatusToSupabase(lv) {
+  if (!useSupabase || !supabase || !lv || !lv.id) return;
+  supabase.from('leaves').upsert({
+    id: lv.id,
+    emp_id: lv.empId,
+    emp_name: lv.empName,
+    type: lv.type,
+    start: formatDateForPostgres(lv.start) || lv.start,
+    "end": formatDateForPostgres(lv.end) || lv.end,
+    days: lv.days,
+    reason: lv.reason || null,
+    manager_id: lv.managerId || null,
+    status: lv.status,
+    submitted_at: lv.submittedAt,
+    remarks: lv.remarks || null
+  }).then(function(res) {
+    if (res && res.error) console.error('Error syncing leave status to Supabase:', res.error);
+  });
 }
 
 function updateLeaveDetails() {
@@ -11041,6 +11148,7 @@ function updateLeaveDetails() {
   }
   
   saveDB();
+  pushLeaveStatusToSupabase(lv);
   closeModal('modal-leave-detail');
   showToast('Leave details updated successfully!');
   initAdminApp();

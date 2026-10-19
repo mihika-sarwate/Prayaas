@@ -3310,6 +3310,7 @@ async function initSupabaseData(isSilent) {
           populateAdminEmpFilters();
           populateInventoryItemSelect();
           renderAdminInventoryTables();
+          updateReportingManagerDisplays();
         }
       } else {
         var shouldRefreshViews = (isSilent !== true) || !_initialCloudSyncDone;
@@ -3323,6 +3324,7 @@ async function initSupabaseData(isSilent) {
           checkMTPForSelectedDate(true);
           renderLeaveBalances();
           renderMyLeaves();
+          updateReportingManagerDisplays();
         }
         renderHomeStats();
       }
@@ -5512,13 +5514,8 @@ function initEmpApp(userObj){
   document.getElementById('tp-month').value=defMonth;
   document.getElementById('exp-month').value=defMonth;
   
-  var mgr=DB.employees.find(function(e){return e.id===u.managerId;});
-  var mgrName=mgr ? mgr.name+' ('+mgr.role.toUpperCase()+')' : 'No Direct Manager';
-  
   // Populate read-only manager displays
-  var tpm=document.getElementById('tp-manager');
-  if (tpm) tpm.innerHTML='<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
-  populateLeaveManagerDropdown();
+  updateReportingManagerDisplays();
   
   populateReportingDropdowns();
   renderDocList();
@@ -6447,10 +6444,13 @@ function getAllSubordinateIds(managerId) {
 
 function resolveManagerId(rawMgr) {
   if (!rawMgr) return null;
-  var str = rawMgr.trim().toLowerCase();
-      if (str === "none") return "";
-  var e = DB.employees.find(function(x) { return (x.id||'').trim().toLowerCase() === str || (x.name||'').trim().toLowerCase() === str; });
-  return e ? e.id : null;
+  var str = String(rawMgr).trim().toLowerCase();
+  if (str === "none" || str === "null" || str === "undefined") return "";
+  if (!DB.employees || !Array.isArray(DB.employees) || DB.employees.length === 0) return rawMgr;
+  var e = DB.employees.find(function(x) { 
+    return (String(x.id||'')).trim().toLowerCase() === str || (String(x.name||'')).trim().toLowerCase() === str; 
+  });
+  return e ? e.id : rawMgr;
 }
 
 function isPendingForUser(status, managerId, u) {
@@ -7498,22 +7498,50 @@ function renderTPDaysForMonth(){
   }
 }
 
-function getAssignedDoctorsForArea(area){
-  var clean=(area||'').trim().toLowerCase();
-  if(!clean)return [];
-  return DB.doctors.filter(function(d){
-    var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-    return assigned && d.status==='Active' && (d.area || '').toLowerCase()===clean;
+function isAssigneeAllowedForUser(assignTo, targetEmpId) {
+  var u = null;
+  if (targetEmpId) {
+    u = (DB.employees || []).find(function(e){
+      return String(e.id || '').trim().toUpperCase() === String(targetEmpId).trim().toUpperCase();
+    });
+  }
+  if (!u) {
+    u = (typeof SESSION !== 'undefined' && SESSION && SESSION.user) ? SESSION.user : null;
+  }
+  if (!u) return false;
+  if (u.role === 'admin') return true;
+  
+  var upperAssign = String(assignTo || '').trim().toUpperCase();
+  var upperUserId = String(u.id || '').trim().toUpperCase();
+  if (upperAssign === upperUserId) return true;
+  
+  if (u.role !== 'emp') {
+    var teamIds = getAllSubordinateIds(upperUserId).map(function(id) { return String(id).toUpperCase().trim(); });
+    return teamIds.includes(upperAssign);
+  }
+  return false;
+}
+
+function getAssignedDoctorsForArea(area, targetEmpId){
+  var clean = (area || '').trim().toLowerCase();
+  if (!clean) return [];
+  return (DB.doctors || []).filter(function(d){
+    var assigned = isAssigneeAllowedForUser(d.assignTo, targetEmpId);
+    var dArea = (d.area || '').trim().toLowerCase();
+    var dCity = (d.city || '').trim().toLowerCase();
+    return assigned && d.status === 'Active' && (dArea === clean || dCity === clean);
   });
 }
 
-function getAssignedChemistsForArea(area){
-  var clean=(area||'').trim().toLowerCase();
-  if(!clean)return [];
-  return DB.chemists.filter(function(c){
-    var assigned = String(c.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
+function getAssignedChemistsForArea(area, targetEmpId){
+  var clean = (area || '').trim().toLowerCase();
+  if (!clean) return [];
+  return (DB.chemists || []).filter(function(c){
+    var assigned = isAssigneeAllowedForUser(c.assignTo, targetEmpId);
     var unassigned = !c.assignTo || c.assignTo.trim() === '';
-    return (assigned || unassigned) && (c.area || '').toLowerCase()===clean;
+    var cArea = (c.area || '').trim().toLowerCase();
+    var cCity = (c.city || '').trim().toLowerCase();
+    return (assigned || unassigned) && (cArea === clean || cCity === clean);
   });
 }
 
@@ -9352,8 +9380,10 @@ function updateMTPPatch(idx, value){
 
   if (patch) {
     var matchedDoc = DB.doctors.find(function(d){
-      var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-      return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
+      var assigned = isAssigneeAllowedForUser(d.assignTo);
+      var dArea = (d.area || '').trim().toLowerCase();
+      var dCity = (d.city || '').trim().toLowerCase();
+      return (dArea === patch.toLowerCase() || dCity === patch.toLowerCase()) && assigned;
     });
     if (matchedDoc) {
       if (matchedDoc.city) currentMTPDays[idx].stayCity = matchedDoc.city;
@@ -9389,8 +9419,10 @@ function updateMTPPatchMulti(idx, value) {
       if (!allChems.includes(chem.id)) allChems.push(chem.id);
     });
     var matchedDoc = DB.doctors.find(function(d) {
-      var assigned = String(d.assignTo || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase();
-      return (d.area || '').toLowerCase() === patch.toLowerCase() && assigned;
+      var assigned = isAssigneeAllowedForUser(d.assignTo);
+      var dArea = (d.area || '').trim().toLowerCase();
+      var dCity = (d.city || '').trim().toLowerCase();
+      return (dArea === patch.toLowerCase() || dCity === patch.toLowerCase()) && assigned;
     });
     if (matchedDoc) {
       if (matchedDoc.city && !cities.includes(matchedDoc.city)) cities.push(matchedDoc.city);
@@ -9462,18 +9494,25 @@ function sanitizeMTPDaysForAssignedMasters(){
 
 function saveOrSubmitTourPlan(status){
   var month=document.getElementById('tp-month').value;
-  var mgr=SESSION.user.managerId;
   if(!month){showToast('Please select Month');return;}
   if(!currentMTPDays.length){showToast('No days generated for this month');return;}
   var plannedDays=sanitizeMTPDaysForAssignedMasters();
   var hasAnyConfig = plannedDays.some(function(d){ return d.workType !== 'FIELD WORK' || !!d.areaTerritory; });
   if(!hasAnyConfig){showToast('Please configure at least one working or non-working day');return;}
 
+  var u = (SESSION && SESSION.user) ? SESSION.user : {};
+  var chosenMgr = (document.getElementById('tp-manager') && document.getElementById('tp-manager').value) || u.managerId || u.manager_id;
+  var resolvedMgr = resolveManagerId(chosenMgr) || chosenMgr;
+  if (!resolvedMgr || String(resolvedMgr).trim().toLowerCase() === 'none') {
+    resolvedMgr = u.role === 'admin' ? '' : 'ADMIN';
+  }
 
-  var mgrObj=DB.employees.find(function(e){return e.id===mgr;});
+  var mgrObj = DB.employees && DB.employees.find(function(e){
+    return String(e.id || '').trim().toUpperCase() === String(resolvedMgr || '').trim().toUpperCase();
+  });
   
   var existingIndex = DB.tourPlans.findIndex(function(t){
-    return String(t.empId || '').toUpperCase() === String(SESSION.user.id || '').toUpperCase() && t.month===month;
+    return String(t.empId || '').toUpperCase() === String(u.id || '').toUpperCase() && t.month===month;
   });
   
   var tpObj;
@@ -9481,8 +9520,8 @@ function saveOrSubmitTourPlan(status){
     tpObj = DB.tourPlans[existingIndex];
     tpObj.days = JSON.parse(JSON.stringify(plannedDays));
     tpObj.status = status;
-    tpObj.managerId = mgr;
-    tpObj.managerName = mgrObj ? mgrObj.name : '';
+    tpObj.managerId = resolvedMgr;
+    tpObj.managerName = mgrObj ? mgrObj.name : (resolvedMgr === 'ADMIN' ? 'Administrator' : resolvedMgr);
     if(status === 'Submitted') {
       tpObj.remarks = '';
       tpObj.submittedAt = getCurrentISTTimestamp();
@@ -9490,11 +9529,11 @@ function saveOrSubmitTourPlan(status){
   } else {
     tpObj = {
       id:'TP'+Date.now(),
-      empId:SESSION.user.id,
-      empName:SESSION.user.name,
+      empId:u.id,
+      empName:u.name,
       month:month,
-      managerId:mgr,
-      managerName:mgrObj?mgrObj.name:'',
+      managerId:resolvedMgr,
+      managerName:mgrObj ? mgrObj.name : (resolvedMgr === 'ADMIN' ? 'Administrator' : resolvedMgr),
       days:JSON.parse(JSON.stringify(plannedDays)),
       status:status,
       submittedAt:status === 'Submitted' ? getCurrentISTTimestamp() : '',
@@ -9981,7 +10020,10 @@ function populateLeaveManagerDropdown() {
   var lvm = document.getElementById('lv-manager');
   if (!lvm || !SESSION.user) return;
   var u = SESSION.user;
-  var rawMgr = u.managerId || u.manager_id || '';
+  var fullUser = (DB.employees && DB.employees.find(function(e){
+    return String(e.id || '').trim().toUpperCase() === String(u.id || '').trim().toUpperCase();
+  })) || u;
+  var rawMgr = fullUser.managerId || fullUser.manager_id || u.managerId || u.manager_id || '';
   var mgrId = resolveManagerId(rawMgr) || rawMgr;
   if (!mgrId || String(mgrId).trim().toLowerCase() === 'none') {
     mgrId = u.role === 'admin' ? '' : 'ADMIN';
@@ -9991,6 +10033,30 @@ function populateLeaveManagerDropdown() {
   });
   var mgrName = mgr ? (mgr.name + ' (' + (mgr.role || '').toUpperCase() + ')') : (mgrId === 'ADMIN' ? 'Administrator (ADMIN)' : (mgrId ? mgrId : 'Administrator (ADMIN)'));
   lvm.innerHTML = '<option value="' + (mgrId || 'ADMIN') + '">' + mgrName + '</option>';
+}
+
+function populateTourManagerDropdown() {
+  var tpm = document.getElementById('tp-manager');
+  if (!tpm || !SESSION.user) return;
+  var u = SESSION.user;
+  var fullUser = (DB.employees && DB.employees.find(function(e){
+    return String(e.id || '').trim().toUpperCase() === String(u.id || '').trim().toUpperCase();
+  })) || u;
+  var rawMgr = fullUser.managerId || fullUser.manager_id || u.managerId || u.manager_id || '';
+  var mgrId = resolveManagerId(rawMgr) || rawMgr;
+  if (!mgrId || String(mgrId).trim().toLowerCase() === 'none') {
+    mgrId = u.role === 'admin' ? '' : 'ADMIN';
+  }
+  var mgr = DB.employees && DB.employees.find(function(e){
+    return String(e.id || '').trim().toUpperCase() === String(mgrId || '').trim().toUpperCase();
+  });
+  var mgrName = mgr ? (mgr.name + ' (' + (mgr.role || '').toUpperCase() + ')') : (mgrId === 'ADMIN' ? 'Administrator (ADMIN)' : (mgrId ? mgrId : 'Administrator (ADMIN)'));
+  tpm.innerHTML = '<option value="' + (mgrId || 'ADMIN') + '">' + mgrName + '</option>';
+}
+
+function updateReportingManagerDisplays() {
+  populateLeaveManagerDropdown();
+  populateTourManagerDropdown();
 }
 
 function renderLeaveBalances(){
@@ -10418,6 +10484,7 @@ function goTab(name){
       document.getElementById('scr-emp').appendChild(tp);
       tp.style.display = 'block';
     }
+    populateTourManagerDropdown();
     populateTPMonthDropdown();
     var tpmVal = document.getElementById('tp-month');
     if (tpmVal && !tpmVal.value) {
@@ -10523,7 +10590,7 @@ function initAdminApp(userObj){
   populateAdminEmpFilters();
   populateInventoryItemSelect();
   renderAdminInventoryTables();
-  populateLeaveManagerDropdown();
+  updateReportingManagerDisplays();
   if (currentAdminTab === 'attendance' && SESSION.user.role !== 'admin') {
     currentAdminTab = 'dash';
   }
@@ -10581,11 +10648,7 @@ function goAdminTab(name){
       document.getElementById('sec-adm-tour').appendChild(tp);
       tp.style.display = 'block';
       
-      var u = SESSION.user;
-      var mgr = DB.employees.find(function(e){return e.id===u.managerId;});
-      var mgrName = mgr ? mgr.name+' ('+mgr.role.toUpperCase()+')' : 'No Direct Manager';
-      var tpm = document.getElementById('tp-manager');
-      if (tpm) tpm.innerHTML = '<option value="'+(u.managerId||'')+'">'+mgrName+'</option>';
+      populateTourManagerDropdown();
       
       populateTPMonthDropdown();
       var tpmVal = document.getElementById('tp-month');

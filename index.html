@@ -2232,6 +2232,8 @@ async function fetchAllFromSupabase(table, options) {
       
     if (table === 'holidays') {
       query = query.order('date');
+    } else if (table === 'reports') {
+      query = query.order('date', { ascending: false }).order('id', { ascending: false });
     } else {
       query = query.order('id');
     }
@@ -2563,10 +2565,10 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('chemists', scopedByEmployee('assign_to')),
       fetchAllFromSupabase('reports', scopedByEmployee('emp_id', {
         select: REPORTS_SELECT_CLAUSE,
-        maxPages: 8,
+        maxPages: 6,
         applyQuery: function(q) {
           var d = new Date();
-          d.setDate(d.getDate() - 10);
+          d.setDate(d.getDate() - 7);
           var reportStartDate = d.toISOString().slice(0, 10);
           return q.gte('date', reportStartDate);
         }

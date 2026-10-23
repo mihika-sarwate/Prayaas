@@ -934,7 +934,7 @@ table.tbl tr:last-child td{border-bottom:none}
         <div class="stat"><div class="stat-l">Total Daily Call Reports</div><div class="stat-v green" id="adm-rep-count">0</div></div>
         <div class="stat"><div class="stat-l">Pending Approvals</div><div class="stat-v orange" id="adm-pending-count">0</div></div>
       </div>
-      <div class="stats">
+      <div class="stats manager-only">
         <div class="stat"><div class="stat-l">Leave Balance</div><div class="stat-v" id="adm-leave-bal">CL:0 SL:0 EL:0 PL:0</div></div>
         <div class="stat" style="visibility:hidden"></div>
       </div>
@@ -2221,7 +2221,8 @@ async function fetchAllFromSupabase(table, options) {
   // Decide initially if we want to try keyset pagination
   let useKeyset = table === 'reports' || table === 'tour_plans';
   
-  while (true) {
+  const maxPages = (options && options.maxPages) ? options.maxPages : 25;
+  while (page < maxPages) {
     let query = supabase
       .from(table)
       .select(selectClause);
@@ -2475,7 +2476,7 @@ async function initSupabaseData(isSilent) {
   }
 
   if (window._supabaseLoadTimeout) clearTimeout(window._supabaseLoadTimeout);
-  var timeoutMs = (navigator.onLine === false) ? 500 : 20000;
+  var timeoutMs = (navigator.onLine === false) ? 500 : 60000;
   window._supabaseLoadTimeout = setTimeout(async function() {
     if (isLoadingData && !hasInitializedData) {
       console.warn("Supabase load timed out (" + (timeoutMs/1000) + "s). Falling back to LocalStorage.");
@@ -2562,18 +2563,11 @@ async function initSupabaseData(isSilent) {
       fetchAllFromSupabase('chemists', scopedByEmployee('assign_to')),
       fetchAllFromSupabase('reports', scopedByEmployee('emp_id', {
         select: REPORTS_SELECT_CLAUSE,
+        maxPages: 8,
         applyQuery: function(q) {
           var d = new Date();
-          var dayOfMonth = d.getDate();
-          var startYear = d.getFullYear();
-          var startMonth = d.getMonth() + 1;
-          if (dayOfMonth < 8) {
-            d.setDate(1);
-            d.setMonth(d.getMonth() - 1);
-            startYear = d.getFullYear();
-            startMonth = d.getMonth() + 1;
-          }
-          var reportStartDate = startYear + '-' + String(startMonth).padStart(2, '0') + '-01';
+          d.setDate(d.getDate() - 10);
+          var reportStartDate = d.toISOString().slice(0, 10);
           return q.gte('date', reportStartDate);
         }
       })),
@@ -10735,7 +10729,13 @@ function renderAdminStats(){
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
   
   if(document.getElementById('adm-leave-bal')){
-    document.getElementById('adm-leave-bal').textContent='CL: '+(u.leaves.CL - (u.leaves.CL_used||0))+' | SL: '+(u.leaves.SL - (u.leaves.SL_used||0))+' | EL: '+(u.leaves.EL - (u.leaves.EL_used||0))+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
+    var leaves = (u && u.leaves) ? u.leaves : {};
+    if (typeof leaves === 'string') leaves = parseJSONField(leaves) || {};
+    var clBal = (parseFloat(leaves.CL) || 0) - (parseFloat(leaves.CL_used) || 0);
+    var slBal = (parseFloat(leaves.SL) || 0) - (parseFloat(leaves.SL_used) || 0);
+    var elBal = (parseFloat(leaves.EL) || 0) - (parseFloat(leaves.EL_used) || 0);
+    var plBal = (parseFloat(leaves.PL) || 0) - (parseFloat(leaves.PL_used) || 0);
+    document.getElementById('adm-leave-bal').textContent='CL: '+Math.max(0, clBal)+' | SL: '+Math.max(0, slBal)+' | EL: '+Math.max(0, elBal)+' | PL: '+Math.max(0, plBal);
   }
 }
 

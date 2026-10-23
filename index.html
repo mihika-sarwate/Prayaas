@@ -8033,6 +8033,15 @@ function getAttendanceStatusMeta(emp, dateStr) {
     if (tp && Array.isArray(tp.days)) {
       var dayInfo = tp.days.find(function(d) { return d.date === dateStr; });
       if (dayInfo) {
+        // If employee actually submitted DCR reports on this day, they were working in the field (Present),
+        // even if their advance tour plan originally had this day as LEAVE.
+        var hasReport = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+        });
+        if (hasReport) {
+          return { status: 'P', remarks: 'Present via Final DCR Submission' };
+        }
+
         var wt = String(dayInfo.workType || '').toUpperCase();
         if (wt === 'WEEKLY OFF') {
           return { status: 'WO', remarks: 'Weekly Off (from Tour Plan)' };
@@ -8042,15 +8051,6 @@ function getAttendanceStatusMeta(emp, dateStr) {
         }
         if (wt === 'LEAVE') {
           return { status: 'CL', remarks: 'Approved Leave (from Tour Plan)' };
-        }
-        
-        // If it is FIELD WORK, TRANSIT, MEETING, etc., it is a working day.
-        // Check DCR report submission or login attendance record.
-        var hasReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
-        });
-        if (hasReport) {
-          return { status: 'P', remarks: 'Present via Final DCR Submission' };
         }
         
         var existing = getAttendanceRecord(emp.id, dateStr);
@@ -8527,7 +8527,10 @@ function renderAttendanceDashboard() {
           var isLeaveOrHoliday = meta && meta.status && ['SL','CL','PL','EL','LWP','H','WO'].includes(meta.status);
           
           if (isLeaveOrHoliday) {
-            if (record) {
+            // Do NOT overwrite an already verified Present record (e.g. from DCR submission)
+            if (record && record.attendanceStatus === 'P') {
+              // keep record as Present
+            } else if (record) {
               record.attendanceStatus = meta.status;
               record.remarks = meta.remarks;
             } else {
@@ -9076,7 +9079,9 @@ function exportAttendanceReport() {
       var isLeaveOrHoliday = meta && meta.status && ['SL','CL','PL','EL','LWP','H','WO'].includes(meta.status);
       
       if (isLeaveOrHoliday) {
-        if (record) {
+        if (record && record.attendanceStatus === 'P') {
+          // preserve Present
+        } else if (record) {
           record.attendanceStatus = meta.status;
         } else {
           record = { attendanceStatus: meta.status };

@@ -7923,6 +7923,7 @@ function isWeeklyOffForEmployee(emp, dateStr) {
 }
 
 function getApprovedLeaveStatusForDate(emp, dateStr) {
+  // Strict: only truly APPROVED leaves. Used for logic (attendance reconciliation, tour plan work type).
   var targetId = String((emp && emp.id) || '').trim().toUpperCase();
   function toISTDateStr(val) {
     if (!val) return null;
@@ -7940,7 +7941,39 @@ function getApprovedLeaveStatusForDate(emp, dateStr) {
     var status = String(l.status || '').trim().toUpperCase();
     var lEmpId = String(l.empId || l.emp_id || '').trim().toUpperCase();
     if (lEmpId !== targetId) return false;
-    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER' && status !== 'PENDING' && status !== 'SUBMITTED') return false;
+    // Only count leaves that have been explicitly approved — NOT submitted/pending
+    if (status !== 'APPROVED' && status !== 'APPROVED BY ADMIN' && status !== 'APPROVED BY MANAGER') return false;
+    var start = toISTDateStr(l.start);
+    var end   = toISTDateStr(l.end);
+    if (!start || !end) return false;
+    return (dateStr >= start && dateStr <= end);
+  });
+  if (matchedLeave) {
+    return { type: matchedLeave.type, status: String(matchedLeave.status || '').toUpperCase() };
+  }
+  return null;
+}
+
+function getAnyActiveLeaveForDate(emp, dateStr) {
+  // Includes SUBMITTED and PENDING leaves — for display purposes only (attendance view badge).
+  var targetId = String((emp && emp.id) || '').trim().toUpperCase();
+  function toISTDateStr(val) {
+    if (!val) return null;
+    var s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var ms = Date.parse(s);
+    if (isNaN(ms)) return formatDateForPostgres(s) || s;
+    var istMs = ms + (5 * 60 + 30) * 60000;
+    var d = new Date(istMs);
+    return d.getUTCFullYear() + '-' +
+           String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getUTCDate()).padStart(2, '0');
+  }
+  var matchedLeave = (DB.leaves || []).find(function(l) {
+    var status = String(l.status || '').trim().toUpperCase();
+    var lEmpId = String(l.empId || l.emp_id || '').trim().toUpperCase();
+    if (lEmpId !== targetId) return false;
+    if (status === 'REJECTED' || status === 'CANCELLED') return false;
     var start = toISTDateStr(l.start);
     var end   = toISTDateStr(l.end);
     if (!start || !end) return false;
@@ -7966,11 +7999,12 @@ function getAttendanceStatusBadgeClass(status) {
 
 function getAttendanceStatusMeta(emp, dateStr) {
   if (emp && dateStr) {
-    // Applied / Approved Leave overrides everything
-    var approvedLeave = getApprovedLeaveStatusForDate(emp, dateStr);
+    // Approved / Applied Leave display (use getAnyActiveLeaveForDate so submitted leaves show as "Applied")
+    var approvedLeave = (typeof getAnyActiveLeaveForDate === 'function') ? getAnyActiveLeaveForDate(emp, dateStr) : getApprovedLeaveStatusForDate(emp, dateStr);
     if (approvedLeave) {
       var leaveType = String(approvedLeave.type || '').toLowerCase();
-      var isPending = String(approvedLeave.status) === 'PENDING' || String(approvedLeave.status) === 'SUBMITTED';
+      var statusUp = String(approvedLeave.status || '').toUpperCase();
+      var isPending = statusUp === 'PENDING' || statusUp === 'SUBMITTED';
       var prefix = isPending ? 'Applied ' : 'Approved ';
       
       if (leaveType.indexOf('sick') !== -1) return { status: 'SL', remarks: prefix + 'Sick Leave' };

@@ -7115,7 +7115,37 @@ function submitReport(){
   // Push directly to Supabase now — do NOT wait for the debounced full sync
   pushReportToSupabase(repObj);
   pushUserInventoryToSupabase(SESSION.user.id);
-  
+
+  // If report submitted for past date (or today if final), automatically mark attendance as Present
+  if (date < getTodayDateString() || repObj.isFinal) {
+    try {
+      if (typeof upsertAttendanceRecord === 'function') {
+        var existingAtt = upsertAttendanceRecord({
+          employeeId: repObj.empId,
+          date: date,
+          loginTime: repObj.time || (typeof getAttendanceLoginTimeValue === 'function' ? getAttendanceLoginTimeValue(new Date()) : ''),
+          attendanceStatus: 'P',
+          remarks: date < getTodayDateString() ? 'Present via DCR Submission (Retroactive)' : 'Present via Final DCR Submission'
+        });
+        if (typeof useSupabase !== 'undefined' && useSupabase && typeof supabase !== 'undefined' && supabase) {
+          var dbAtt = {
+            id: existingAtt.id,
+            employee_id: existingAtt.employeeId,
+            date: existingAtt.date,
+            login_time: existingAtt.loginTime,
+            attendance_status: existingAtt.attendanceStatus,
+            remarks: existingAtt.remarks
+          };
+          supabase.from('attendance').upsert(dbAtt, { onConflict: 'employee_id, date' }).then(function(res) {
+            if (res && res.error) console.error('Error upserting backdated attendance in submitReport:', res.error);
+          }).catch(function(e){ console.error(e); });
+        }
+      }
+    } catch(attErr) {
+      console.warn('Attendance auto-update in submitReport error:', attErr);
+    }
+  }
+
   if (typeof syncSupabaseDatabase === 'function') syncSupabaseDatabase();
 
   showToast(isEditing ? 'Report updated! Syncing to cloud...' : 'Report submitted! Syncing to cloud...');
@@ -7705,7 +7735,8 @@ async function fetchReportsForMIS(empIds, from, to) {
   var allRows = [];
   var page = 0;
   var pageSize = 1000;
-  while (true) {
+  var maxPages = 60;
+  while (page < maxPages) {
     var query = supabase.from('reports').select(REPORTS_SELECT_CLAUSE);
     if (normalizedIds.length === 1) {
       query = query.eq('emp_id', normalizedIds[0]);
@@ -7714,7 +7745,7 @@ async function fetchReportsForMIS(empIds, from, to) {
     }
     if (fromDate) query = query.gte('date', fromDate);
     if (toDate) query = query.lte('date', toDate);
-    query = query.order('date', { ascending: false }).order('time', { ascending: false }).range(page * pageSize, (page + 1) * pageSize - 1);
+    query = query.order('date', { ascending: false }).order('id', { ascending: false }).range(page * pageSize, (page + 1) * pageSize - 1);
     var res = await query;
     if (res.error) throw res.error;
     var rows = res.data || [];
@@ -7849,14 +7880,14 @@ function getNextISTMidnightValidationTime() {
 
 function shouldUseLiveMISFetch(empIds, from, to) {
   if (!useSupabase || !supabase) return false;
-  var normalizedIds = Array.isArray(empIds) ? empIds.filter(Boolean) : [];
-  if (!normalizedIds.length || normalizedIds.length > 25) return false;
-  if (!from || !to) return false;
-  var start = parseDateAtLocalMidnight(from);
-  var end = parseDateAtLocalMidnight(to);
+  if (!from && !to) return false;
+  var fromStr = from || to;
+  var toStr = to || from;
+  var start = parseDateAtLocalMidnight(fromStr);
+  var end = parseDateAtLocalMidnight(toStr);
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return false;
   var days = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
-  return days <= 31;
+  return days <= 93;
 }
 
 function isExecutiveAttendanceExempt(emp) {
@@ -8536,6 +8567,9 @@ function renderAttendanceDashboard() {
             } else {
               record = { attendanceStatus: meta.status, remarks: meta.remarks };
             }
+          } else if (record && record.attendanceStatus === 'A' && meta && meta.status === 'P') {
+            record.attendanceStatus = 'P';
+            record.remarks = meta.remarks;
           } else if (!record && isPastDate(d)) {
             if (meta && meta.status) {
               if (meta.status === 'NS') {
@@ -9086,6 +9120,9 @@ function exportAttendanceReport() {
         } else {
           record = { attendanceStatus: meta.status };
         }
+      } else if (record && record.attendanceStatus === 'A' && meta && meta.status === 'P') {
+        record.attendanceStatus = 'P';
+        record.remarks = meta.remarks;
       } else if (!record) {
         if (meta && meta.status) {
           record = { attendanceStatus: meta.status === 'NS' ? 'A' : meta.status };
@@ -12671,11 +12708,11 @@ function uploadDoctors(inp){
 
 function downloadDocTemplate(){
   var csv='DoctorCode,Emp Id,Name of BE,HQ,Reporting Manager,Name of Doctor,Speciality,Qualification,Address,City,Patch,State,Territory Type (HQ/Ex/OS),Mobile\n';
-  var checked = document.querySelectorAll('.doc-row-check:checked');
   var docsToExport = [];
-  if (checked.length > 0) {
-    var ids = Array.from(checked).map(c => c.value);
-    docsToExport = DB.doctors.filter(d => ids.includes(d.id));
+  if (typeof selectedDocs !== 'undefined' && selectedDocs && selectedDocs.size > 0) {
+    docsToExport = (DB.doctors || []).filter(function(d) { return selectedDocs.has(d.id); });
+  } else if (typeof currentFilteredDocs !== 'undefined' && Array.isArray(currentFilteredDocs) && currentFilteredDocs.length > 0) {
+    docsToExport = currentFilteredDocs;
   } else {
     docsToExport = DB.doctors || [];
   }
@@ -16857,11 +16894,13 @@ async function runMISReport(){
       return true;
     });
     if (shouldUseLiveMISFetch(scopeIds, from, to)) {
+      showToast('Fetching reports from cloud...', 2000);
       try {
         var freshReports = await fetchReportsForMIS(scopeIds, from, to);
         if (Array.isArray(freshReports)) baseReports = freshReports;
       } catch (misFetchErr) {
         console.warn('MIS live report fetch failed, falling back to local cache:', misFetchErr);
+        showToast('Cloud fetch error: ' + (misFetchErr.message || misFetchErr), 4000);
       }
     }
     
@@ -16871,6 +16910,8 @@ async function runMISReport(){
       var dtB = b.date + (b.time || '00:00');
       return dtA < dtB ? 1 : (dtA > dtB ? -1 : 0);
     });
+
+  var reportPool = (Array.isArray(baseReports) && baseReports.length > 0) ? baseReports : (DB.reports || []);
   
   currentMISData=[];
   currentMISRowIds=[];
@@ -16957,11 +16998,11 @@ async function runMISReport(){
     thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Total Doctor Calls</th><th>Working Days Checked</th><th>Call Average / Day</th></tr>';
     var team=DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id)) && (!empId||e.id===empId);});
     team.forEach(function(e){
-      var empsReps = DB.reports.filter(function(r){
+      var empsReps = reportPool.filter(function(r){
         return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
       });
       var workingDates=[];
-        DB.reports.filter(function(r){return r.empId===e.id && (!from||r.date>=from) && (!to||r.date<=to) && (!r.workType || r.workType==='FIELD WORK');}).forEach(function(r){
+        reportPool.filter(function(r){return r.empId===e.id && (!from||r.date>=from) && (!to||r.date<=to) && (!r.workType || r.workType==='FIELD WORK');}).forEach(function(r){
           if(!workingDates.includes(r.date)) workingDates.push(r.date);
         });
       var days = workingDates.length || 1;
@@ -16981,7 +17022,7 @@ async function runMISReport(){
       });
 
       var visitedDocKeys = new Set();
-      (DB.reports || []).forEach(function(r){
+      (reportPool || []).forEach(function(r){
         if ((r.targetType === 'Doctor' || !r.targetType) && r.empId && (!from || r.date >= from) && (!to || r.date <= to)) {
           var empUpper = String(r.empId).toUpperCase().trim();
           if (r.docId) visitedDocKeys.add(empUpper + '|' + String(r.docId));
@@ -17015,7 +17056,7 @@ async function runMISReport(){
     thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>MR State</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
     
     var visitCounts = {};
-    DB.reports.forEach(function(r){
+    reportPool.forEach(function(r){
       if(r.targetType==='Doctor' && r.docId && (!from||r.date>=from) && (!to||r.date<=to)){
         visitCounts[r.docId] = (visitCounts[r.docId] || 0) + 1;
       }
@@ -17058,7 +17099,7 @@ async function runMISReport(){
 
     var actualDocs = {};
     var actualChems = {};
-    DB.reports.forEach(function(r){
+    reportPool.forEach(function(r){
       if((!from||r.date>=from) && (!to||r.date<=to)) {
         var empUpper = String(r.empId||'').toUpperCase();
         if(r.targetType==='Doctor') {
@@ -17117,7 +17158,7 @@ async function runMISReport(){
     var managers=DB.employees.filter(function(e){return e.role !== 'emp' && e.id!=='ADMIN' && (!teamIds || teamIds.includes(e.id));});
     managers.forEach(function(m){
       DB.employees.filter(function(e){return e.role!=='admin' && (!teamIds || teamIds.includes(e.id)) && resolveManagerId(e.managerId)===m.id && (!empId||e.id===empId);}).forEach(function(mr){
-        var accompDays=DB.reports.filter(function(r){
+        var accompDays=reportPool.filter(function(r){
           return r.empId===mr.id && r.jfwMgrId===m.id && (!from||r.date>=from) && (!to||r.date<=to);
         }).length;
         var state = mr.state || 'N/A';
@@ -17140,7 +17181,7 @@ async function runMISReport(){
       });
       
       // Calculate distributed in date range from reports
-      var myReports = DB.reports.filter(function(r){
+      var myReports = reportPool.filter(function(r){
         return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
@@ -17175,7 +17216,7 @@ async function runMISReport(){
       });
       
       // Calculate distributed in date range from reports
-      var myReports = DB.reports.filter(function(r){
+      var myReports = reportPool.filter(function(r){
         return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
@@ -17315,7 +17356,7 @@ async function runMISReport(){
       });
       
       // Calculate distributed in date range from reports
-      var myReports = DB.reports.filter(function(r){
+      var myReports = reportPool.filter(function(r){
         return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
@@ -17397,7 +17438,7 @@ async function runMISReport(){
            if (wt === 'FIELD WORK' && d.areaTerritory) locationsPlannedSet.add((d.areaTerritory || '').toLowerCase());
         });
         
-        var reportsForMonth = DB.reports.filter(function(r) { return r.empId === e.id && r.date && r.date.startsWith(targetMonth); });
+        var reportsForMonth = reportPool.filter(function(r) { return r.empId === e.id && r.date && r.date.startsWith(targetMonth); });
         var reportsByDate = {};
         reportsForMonth.forEach(function(r) {
            if (!reportsByDate[r.date]) reportsByDate[r.date] = [];
@@ -17499,7 +17540,7 @@ async function runMISReport(){
     mrs.forEach(function(e){
       var assigned=DB.doctors.filter(function(d){return d.assignTo===e.id && d.status==='Active';}).length;
       var visitedIds=[];
-      DB.reports.filter(function(r){return r.empId===e.id && r.targetType==='Doctor' && (!from || r.date >= from) && (!to || r.date <= to);}).forEach(function(r){
+      reportPool.filter(function(r){return r.empId===e.id && r.targetType==='Doctor' && (!from || r.date >= from) && (!to || r.date <= to);}).forEach(function(r){
         if(!visitedIds.includes(r.docId)) visitedIds.push(r.docId);
       });
       var missed = Math.max(0, assigned - visitedIds.length);
@@ -18492,11 +18533,13 @@ async function runEmpMISReport(){
       return true;
     });
     if (shouldUseLiveMISFetch([empId], from, to)) {
+      showToast('Fetching reports from cloud...', 2000);
       try {
         var freshReports = await fetchReportsForMIS([empId], from, to);
         if (Array.isArray(freshReports)) baseReports = freshReports;
       } catch (empMisFetchErr) {
         console.warn('Employee MIS live report fetch failed, falling back to local cache:', empMisFetchErr);
+        showToast('Cloud fetch error: ' + (empMisFetchErr.message || empMisFetchErr), 4000);
       }
     }
     
@@ -18506,6 +18549,8 @@ async function runEmpMISReport(){
       var dtB = b.date + (b.time || '00:00');
       return dtA < dtB ? 1 : (dtA > dtB ? -1 : 0);
     });
+
+  var reportPool = (Array.isArray(baseReports) && baseReports.length > 0) ? baseReports : (DB.reports || []);
   
   currentEmpMISData=[];
   
@@ -18581,11 +18626,11 @@ async function runEmpMISReport(){
     thead.innerHTML='<tr><th>Employee ID</th><th>Employee Name</th><th>State</th><th>Total Doctor Calls</th><th>Working Days Checked</th><th>Call Average / Day</th></tr>';
     var e=DB.employees.find(function(x){return x.id===empId;});
     if (e) {
-      var empsReps = DB.reports.filter(function(r){
+      var empsReps = reportPool.filter(function(r){
         return r.empId===e.id && r.targetType==='Doctor' && (!from||r.date>=from) && (!to||r.date<=to);
       });
       var workingDates=[];
-        DB.reports.filter(function(r){return r.empId===e.id && (!from||r.date>=from) && (!to||r.date<=to) && (!r.workType || r.workType==='FIELD WORK');}).forEach(function(r){
+        reportPool.filter(function(r){return r.empId===e.id && (!from||r.date>=from) && (!to||r.date<=to) && (!r.workType || r.workType==='FIELD WORK');}).forEach(function(r){
           if(!workingDates.includes(r.date)) workingDates.push(r.date);
         });
       var days = workingDates.length || 1;
@@ -18602,7 +18647,7 @@ async function runEmpMISReport(){
       var hq = (e && e.area) ? e.area : '';
 
       var visitedDocKeys = new Set();
-      (DB.reports || []).forEach(function(r){
+      (reportPool || []).forEach(function(r){
         if ((r.targetType === 'Doctor' || !r.targetType) && r.empId && (!from || r.date >= from) && (!to || r.date <= to)) {
           if (String(r.empId).toUpperCase().trim() === empUpper) {
             if (r.docId) visitedDocKeys.add(String(r.docId));
@@ -18630,7 +18675,7 @@ async function runEmpMISReport(){
     } else if(currentEmpReportType==='visit_freq'){
     thead.innerHTML='<tr><th>Doctor Code</th><th>Doctor Name</th><th>Assigned MR</th><th>MR State</th><th>Speciality</th><th>Total Reported Visits</th></tr>';
     DB.doctors.filter(function(d){return d.assignTo===empId;}).forEach(function(d){
-      var visits = DB.reports.filter(function(r){
+      var visits = reportPool.filter(function(r){
         return r.targetType==='Doctor' && r.docId===d.id && (!from||r.date>=from) && (!to||r.date<=to);
       });
       var emp = DB.employees.find(function(e){return e.id===d.assignTo;});

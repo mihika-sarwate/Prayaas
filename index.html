@@ -853,13 +853,17 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">To Date</label><input type="date" id="emp-rep-to"></div>
         </div>
         <div class="btn-row">
-          <button class="btn primary sm" onclick="runEmpMISReport()">Run Query / Filter</button>
-          <button class="btn success sm" onclick="exportEmpReportToCSV()">&#8595; Export Excel / CSV</button>
+          <button id="btn-run-emp-mis" class="btn primary sm" onclick="runEmpMISReport()">Run Query / Filter</button>
+          <button id="btn-export-emp-mis" class="btn success sm" onclick="exportEmpReportToCSV()">&#8595; Export Excel / CSV</button>
         </div>
       </div>
       <div class="card">
         <div class="card-title">
           <span id="emp-rep-table-title">Query Results</span>
+        </div>
+        <div id="emp-mis-preview-notice" style="display:none; margin: 10px 0; padding: 10px 14px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; font-size: 13px; color: #92400e; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <span><i class="fa fa-info-circle" style="margin-right:6px;"></i><span id="emp-mis-preview-msg">Showing preview of first 250 records.</span></span>
+          <button class="btn success sm" style="padding: 4px 10px; font-size: 12px;" onclick="exportEmpReportToCSV()">&#8595; Export Full Report (Excel / CSV)</button>
         </div>
         <div class="tbl-wrap">
           <table class="tbl" id="emp-mis-report-table">
@@ -1431,8 +1435,8 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">From Date</label><input type="date" id="rep-from"></div>
           <div><label class="lbl">To Date</label><input type="date" id="rep-to"></div>
         <div class="btn-row">
-          <button class="btn primary sm" onclick="runMISReport()">Run Query / Filter</button>
-          <button class="btn success sm" onclick="exportReportToCSV()">&#8595; Export Excel / CSV</button>
+          <button id="btn-run-mis" class="btn primary sm" onclick="runMISReport()">Run Query / Filter</button>
+          <button id="btn-export-mis" class="btn success sm" onclick="exportReportToCSV()">&#8595; Export Excel / CSV</button>
         </div>
       </div>
 
@@ -1504,6 +1508,10 @@ table.tbl tr:last-child td{border-bottom:none}
             <button class="btn danger sm admin-only" onclick="deleteSelectedMISRecords()">Delete Selected</button>
             <button class="btn danger outline sm admin-only" onclick="deleteAllFilteredMISRecords()">Delete All Filtered</button>
           </div>
+        </div>
+        <div id="mis-preview-notice" style="display:none; margin: 10px 0; padding: 10px 14px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; font-size: 13px; color: #92400e; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <span><i class="fa fa-info-circle" style="margin-right:6px;"></i><span id="mis-preview-msg">Showing preview of first 250 records.</span></span>
+          <button class="btn success sm" style="padding: 4px 10px; font-size: 12px;" onclick="exportReportToCSV()">&#8595; Export Full Report (Excel / CSV)</button>
         </div>
         <div class="tbl-wrap">
           <table class="tbl" id="mis-report-table">
@@ -7727,32 +7735,79 @@ function mapSupabaseReportRow(r) {
   };
 }
 
-async function fetchReportsForMIS(empIds, from, to) {
+function splitDateRangeIntoChunks(fromDate, toDate, maxDaysPerChunk) {
+  var chunkDays = maxDaysPerChunk || 7;
+  var chunks = [];
+  var currentEnd = toDate;
+  while (currentEnd >= fromDate) {
+    var parts = currentEnd.split('-');
+    var d = new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
+    d.setUTCDate(d.getUTCDate() - (chunkDays - 1));
+    var chunkStart = d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+    if (chunkStart < fromDate) chunkStart = fromDate;
+    chunks.push([chunkStart, currentEnd]);
+    var dNext = new Date(Date.UTC(parseInt(chunkStart.split('-')[0], 10), parseInt(chunkStart.split('-')[1], 10) - 1, parseInt(chunkStart.split('-')[2], 10)));
+    dNext.setUTCDate(dNext.getUTCDate() - 1);
+    currentEnd = dNext.getUTCFullYear() + '-' + String(dNext.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dNext.getUTCDate()).padStart(2, '0');
+  }
+  return chunks;
+}
+
+async function fetchReportsForMIS(empIds, from, to, onProgress) {
   if (!useSupabase || !supabase) return null;
   var normalizedIds = Array.isArray(empIds) ? empIds.filter(Boolean) : [];
   var fromDate = from ? (formatDateForPostgres(from) || from) : null;
   var toDate = to ? (formatDateForPostgres(to) || to) : null;
+  if (!fromDate && !toDate) return null;
+  if (!fromDate) fromDate = toDate;
+  if (!toDate) toDate = fromDate;
+
+  var chunks = splitDateRangeIntoChunks(fromDate, toDate, 7);
   var allRows = [];
-  var page = 0;
   var pageSize = 1000;
-  var maxPages = 60;
-  while (page < maxPages) {
-    var query = supabase.from('reports').select(REPORTS_SELECT_CLAUSE);
-    if (normalizedIds.length === 1) {
-      query = query.eq('emp_id', normalizedIds[0]);
-    } else if (normalizedIds.length > 1) {
-      query = query.in('emp_id', normalizedIds);
+
+  for (var cIdx = 0; cIdx < chunks.length; cIdx++) {
+    var cFrom = chunks[cIdx][0];
+    var cTo = chunks[cIdx][1];
+    var page = 0;
+    while (page < 20) {
+      var query = supabase.from('reports').select(REPORTS_SELECT_CLAUSE);
+      if (normalizedIds.length === 1) {
+        query = query.eq('emp_id', normalizedIds[0]);
+      } else if (normalizedIds.length > 1) {
+        query = query.in('emp_id', normalizedIds);
+      }
+      query = query.gte('date', cFrom).lte('date', cTo);
+      query = query.order('date', { ascending: false }).order('id', { ascending: false }).range(page * pageSize, (page + 1) * pageSize - 1);
+
+      var res = null;
+      var lastErr = null;
+      for (var attempt = 1; attempt <= 3; attempt++) {
+        try {
+          res = await query;
+          if (res && !res.error) break;
+          lastErr = res ? res.error : null;
+        } catch (netErr) {
+          lastErr = netErr;
+        }
+        if (attempt < 3) await new Promise(function(r) { setTimeout(r, 600 * attempt); });
+      }
+
+      if (!res || res.error) {
+        console.warn('Chunk ' + cFrom + ' to ' + cTo + ' page ' + page + ' error:', lastErr);
+        break;
+      }
+
+      var rows = res.data || [];
+      allRows = allRows.concat(rows);
+      if (typeof onProgress === 'function') {
+        try { onProgress(allRows.length, cIdx + 1, chunks.length, cFrom, cTo); } catch(e){}
+      }
+      if (rows.length < pageSize) break;
+      page++;
     }
-    if (fromDate) query = query.gte('date', fromDate);
-    if (toDate) query = query.lte('date', toDate);
-    query = query.order('date', { ascending: false }).order('id', { ascending: false }).range(page * pageSize, (page + 1) * pageSize - 1);
-    var res = await query;
-    if (res.error) throw res.error;
-    var rows = res.data || [];
-    allRows = allRows.concat(rows);
-    if (rows.length < pageSize) break;
-    page++;
   }
+
   return allRows.map(mapSupabaseReportRow);
 }
 
@@ -16875,18 +16930,32 @@ function buildCallTypeSummaryText(rows) {
 }
 
 async function runMISReport(){
-    var empId=document.getElementById('rep-filter-emp').value;
-    var from=normalizeReportDateValue(document.getElementById('rep-from').value);
-    var to=normalizeReportDateValue(document.getElementById('rep-to').value);
-    
-    var thead=document.getElementById('mis-report-thead');
-    var tbody=document.getElementById('mis-report-tbody');
+  var empId=document.getElementById('rep-filter-emp') ? document.getElementById('rep-filter-emp').value : '';
+  var from=normalizeReportDateValue(document.getElementById('rep-from') ? document.getElementById('rep-from').value : '');
+  var to=normalizeReportDateValue(document.getElementById('rep-to') ? document.getElementById('rep-to').value : '');
+  
+  var thead=document.getElementById('mis-report-thead');
+  var tbody=document.getElementById('mis-report-tbody');
+  var noticeEl=document.getElementById('mis-preview-notice');
+  if(noticeEl) noticeEl.style.display='none';
+
+  var btnRun=document.getElementById('btn-run-mis') || document.querySelector('#sec-adm-reports button[onclick="runMISReport()"]');
+  var btnExport=document.getElementById('btn-export-mis') || document.querySelector('#sec-adm-reports button[onclick="exportReportToCSV()"]');
+  var origRunText=btnRun ? btnRun.innerHTML : 'Run Query / Filter';
+
+  try {
+    if(btnRun){
+      btnRun.disabled=true;
+      btnRun.innerHTML='<i class="fa fa-spinner fa-spin"></i> Loading...';
+    }
+    if(btnExport) btnExport.disabled=true;
+
     var u=SESSION.user;
     var teamIds = getReportScopeEmployeeIds(u, true);
     var scopeIds = empId ? [empId] : teamIds;
     
     // Filter base calls reports
-    var baseReports=DB.reports.filter(function(r){
+    var baseReports=(DB.reports || []).filter(function(r){
       if(teamIds && !teamIds.includes(r.empId)) return false;
       if(empId&&r.empId!==empId)return false;
       if(from&&r.date<from)return false;
@@ -16894,24 +16963,33 @@ async function runMISReport(){
       return true;
     });
     if (shouldUseLiveMISFetch(scopeIds, from, to)) {
-      showToast('Fetching reports from cloud...', 2000);
+      tbody.innerHTML='<tr><td colspan="15" class="empty" style="padding:28px 16px; text-align:center;"><i class="fa fa-spinner fa-spin fa-2x" style="color:#0ea5e9; margin-bottom:8px; display:inline-block;"></i><div id="mis-loading-status" style="font-size:14px; color:#1e293b; font-weight:600;">Fetching reports from cloud...</div><div style="font-size:12px; color:#64748b; margin-top:4px;">Please wait while records are retrieved in batches.</div></td></tr>';
+
       try {
-        var freshReports = await fetchReportsForMIS(scopeIds, from, to);
+        var freshReports = await fetchReportsForMIS(scopeIds, from, to, function(loadedCount, chunkNum, totalChunks, cFrom, cTo) {
+          var statusEl=document.getElementById('mis-loading-status');
+          if(statusEl){
+            statusEl.textContent='Loaded '+loadedCount.toLocaleString()+' records... (Batch '+chunkNum+' of '+totalChunks+': '+cFrom+' to '+cTo+')';
+          }
+          if(btnRun){
+            btnRun.innerHTML='<i class="fa fa-spinner fa-spin"></i> '+loadedCount.toLocaleString()+' loaded...';
+          }
+        });
         if (Array.isArray(freshReports)) baseReports = freshReports;
       } catch (misFetchErr) {
-        console.warn('MIS live report fetch failed, falling back to local cache:', misFetchErr);
+        console.warn('MIS live report fetch failed, using local cache:', misFetchErr);
         showToast('Cloud fetch error: ' + (misFetchErr.message || misFetchErr), 4000);
       }
     }
     
     // Sort descending by date and time
     baseReports.sort(function(a, b) {
-      var dtA = a.date + (a.time || '00:00');
-      var dtB = b.date + (b.time || '00:00');
+      var dtA = (a.date || '') + (a.time || '00:00');
+      var dtB = (b.date || '') + (b.time || '00:00');
       return dtA < dtB ? 1 : (dtA > dtB ? -1 : 0);
     });
 
-  var reportPool = (Array.isArray(baseReports) && baseReports.length > 0) ? baseReports : (DB.reports || []);
+  var reportPool = Array.isArray(baseReports) ? baseReports : (DB.reports || []);
   
   currentMISData=[];
   currentMISRowIds=[];
@@ -17617,6 +17695,7 @@ async function runMISReport(){
     document.getElementById('rep-table-title').textContent = 'Query Results (0 items)';
     var deleteActions = document.getElementById('mis-delete-actions');
     if (deleteActions) deleteActions.style.display = 'none';
+    if (noticeEl) noticeEl.style.display = 'none';
     return;
   }
   
@@ -17624,7 +17703,11 @@ async function runMISReport(){
     thead.innerHTML = thead.innerHTML.replace('<tr>', '<tr><th><input type="checkbox" id="check-all-mis" onclick="toggleSelectAllMIS(this)"></th>');
   }
   
-  tbody.innerHTML=currentMISData.map(function(row, rowIdx){
+  var PREVIEW_LIMIT = 250;
+  var totalCount = currentMISData.length;
+  var previewRows = currentMISData.slice(0, PREVIEW_LIMIT);
+
+  tbody.innerHTML=previewRows.map(function(row, rowIdx){
     var checkboxHtml = '';
     if (currentMISTableType) {
       var rowId = currentMISRowIds[rowIdx];
@@ -17634,14 +17717,33 @@ async function runMISReport(){
         checkboxHtml = '<td></td>';
       }
     }
-    return '<tr>'+checkboxHtml+row.map(function(val){return '<td>'+val+'</td>';}).join('')+'</tr>';
+    return '<tr>'+checkboxHtml+row.map(function(val){return '<td>'+(val !== null && val !== undefined ? val : '')+'</td>';}).join('')+'</tr>';
   }).join('');
   
   var deleteActions = document.getElementById('mis-delete-actions');
   if (deleteActions) {
     deleteActions.style.display = (currentMISTableType && currentMISData.length) ? 'flex' : 'none';
   }
-  document.getElementById('rep-table-title').textContent = 'Query Results (' + currentMISData.length + ' items)';
+  document.getElementById('rep-table-title').textContent = 'Query Results (' + totalCount.toLocaleString() + ' items)';
+
+  if (noticeEl) {
+    if (totalCount > PREVIEW_LIMIT) {
+      var msgEl = document.getElementById('mis-preview-msg');
+      if (msgEl) {
+        msgEl.innerHTML = 'Showing preview of first <strong>' + PREVIEW_LIMIT + '</strong> of <strong>' + totalCount.toLocaleString() + '</strong> records. Click <strong>Export Excel / CSV</strong> below or in the filter bar to download all records.';
+      }
+      noticeEl.style.display = 'flex';
+    } else {
+      noticeEl.style.display = 'none';
+    }
+  }
+  } finally {
+    if (btnRun) {
+      btnRun.disabled = false;
+      btnRun.innerHTML = origRunText;
+    }
+    if (btnExport) btnExport.disabled = false;
+  }
 }
 
 function deleteAdminReport(id) {
@@ -17807,10 +17909,26 @@ function parseCSVLine(text) {
 }
 
 function downloadData(csv,fname){
-  var a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=fname;
-  a.click();
+  try {
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+      try {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {}
+    }, 1500);
+  } catch (err) {
+    var a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = fname;
+    a.click();
+  }
 }
 function createMultiSelect(container, options, selectedString, placeholder, onchange) {
   var selected = selectedString ? selectedString.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
@@ -18518,39 +18636,61 @@ function updateEmpReportHeadersAndFilters(){
 }
 
 async function runEmpMISReport(){
-    var empId=SESSION.user.id;
-    var from=normalizeReportDateValue(document.getElementById('emp-rep-from').value);
-    var to=normalizeReportDateValue(document.getElementById('emp-rep-to').value);
-    
-    var thead=document.getElementById('emp-mis-report-thead');
-    var tbody=document.getElementById('emp-mis-report-tbody');
+  var empId=SESSION.user.id;
+  var from=normalizeReportDateValue(document.getElementById('emp-rep-from').value);
+  var to=normalizeReportDateValue(document.getElementById('emp-rep-to').value);
+  
+  var thead=document.getElementById('emp-mis-report-thead');
+  var tbody=document.getElementById('emp-mis-report-tbody');
+  var noticeEl=document.getElementById('emp-mis-preview-notice');
+  if(noticeEl) noticeEl.style.display='none';
+
+  var btnRun=document.getElementById('btn-run-emp-mis') || document.querySelector('#tab-emp-reports button[onclick="runEmpMISReport()"]');
+  var btnExport=document.getElementById('btn-export-emp-mis') || document.querySelector('#tab-emp-reports button[onclick="exportEmpReportToCSV()"]');
+  var origRunText=btnRun ? btnRun.innerHTML : 'Run Query / Filter';
+
+  try {
+    if(btnRun){
+      btnRun.disabled=true;
+      btnRun.innerHTML='<i class="fa fa-spinner fa-spin"></i> Loading...';
+    }
+    if(btnExport) btnExport.disabled=true;
     
     // Filter base calls reports for this specific employee
-    var baseReports=DB.reports.filter(function(r){
+    var baseReports=(DB.reports || []).filter(function(r){
       if(r.empId!==empId)return false;
       if(from&&r.date<from)return false;
       if(to&&r.date>to)return false;
       return true;
     });
     if (shouldUseLiveMISFetch([empId], from, to)) {
-      showToast('Fetching reports from cloud...', 2000);
+      tbody.innerHTML='<tr><td colspan="15" class="empty" style="padding:28px 16px; text-align:center;"><i class="fa fa-spinner fa-spin fa-2x" style="color:#0ea5e9; margin-bottom:8px; display:inline-block;"></i><div id="emp-mis-loading-status" style="font-size:14px; color:#1e293b; font-weight:600;">Fetching reports from cloud...</div><div style="font-size:12px; color:#64748b; margin-top:4px;">Please wait while records are retrieved.</div></td></tr>';
+
       try {
-        var freshReports = await fetchReportsForMIS([empId], from, to);
+        var freshReports = await fetchReportsForMIS([empId], from, to, function(loadedCount, chunkNum, totalChunks, cFrom, cTo) {
+          var statusEl=document.getElementById('emp-mis-loading-status');
+          if(statusEl){
+            statusEl.textContent='Loaded '+loadedCount.toLocaleString()+' records... (Batch '+chunkNum+' of '+totalChunks+': '+cFrom+' to '+cTo+')';
+          }
+          if(btnRun){
+            btnRun.innerHTML='<i class="fa fa-spinner fa-spin"></i> '+loadedCount.toLocaleString()+' loaded...';
+          }
+        });
         if (Array.isArray(freshReports)) baseReports = freshReports;
       } catch (empMisFetchErr) {
-        console.warn('Employee MIS live report fetch failed, falling back to local cache:', empMisFetchErr);
+        console.warn('Employee MIS live report fetch failed, using local cache:', empMisFetchErr);
         showToast('Cloud fetch error: ' + (empMisFetchErr.message || empMisFetchErr), 4000);
       }
     }
     
     // Sort descending by date and time
     baseReports.sort(function(a, b) {
-      var dtA = a.date + (a.time || '00:00');
-      var dtB = b.date + (b.time || '00:00');
+      var dtA = (a.date || '') + (a.time || '00:00');
+      var dtB = (b.date || '') + (b.time || '00:00');
       return dtA < dtB ? 1 : (dtA > dtB ? -1 : 0);
     });
 
-  var reportPool = (Array.isArray(baseReports) && baseReports.length > 0) ? baseReports : (DB.reports || []);
+  var reportPool = Array.isArray(baseReports) ? baseReports : (DB.reports || []);
   
   currentEmpMISData=[];
   
@@ -19136,12 +19276,41 @@ async function runEmpMISReport(){
       emptyMsg += '. Recent available dates for this employee: ' + recentDatesSummary;
     }
     tbody.innerHTML='<tr><td colspan="' + colCount + '" class="empty">' + emptyMsg + '</td></tr>';
+    var titleEl = document.getElementById('emp-rep-table-title');
+    if (titleEl) titleEl.textContent = 'Query Results (0 items)';
+    if (noticeEl) noticeEl.style.display = 'none';
     return;
   }
   
-  tbody.innerHTML=currentEmpMISData.map(function(row){
-    return '<tr>'+row.map(function(val){return '<td>'+val+'</td>';}).join('')+'</tr>';
+  var PREVIEW_LIMIT = 250;
+  var totalCount = currentEmpMISData.length;
+  var previewRows = currentEmpMISData.slice(0, PREVIEW_LIMIT);
+
+  tbody.innerHTML=previewRows.map(function(row){
+    return '<tr>'+row.map(function(val){return '<td>'+(val !== null && val !== undefined ? val : '')+'</td>';}).join('')+'</tr>';
   }).join('');
+
+  var titleEl = document.getElementById('emp-rep-table-title');
+  if (titleEl) titleEl.textContent = 'Query Results (' + totalCount.toLocaleString() + ' items)';
+
+  if (noticeEl) {
+    if (totalCount > PREVIEW_LIMIT) {
+      var msgEl = document.getElementById('emp-mis-preview-msg');
+      if (msgEl) {
+        msgEl.innerHTML = 'Showing preview of first <strong>' + PREVIEW_LIMIT + '</strong> of <strong>' + totalCount.toLocaleString() + '</strong> records. Click <strong>Export Excel / CSV</strong> below or in the filter bar to download all records.';
+      }
+      noticeEl.style.display = 'flex';
+    } else {
+      noticeEl.style.display = 'none';
+    }
+  }
+  } finally {
+    if (btnRun) {
+      btnRun.disabled = false;
+      btnRun.innerHTML = origRunText;
+    }
+    if (btnExport) btnExport.disabled = false;
+  }
 }
 
 function exportEmpReportToCSV(){

@@ -1489,7 +1489,7 @@ table.tbl tr:last-child td{border-bottom:none}
                 };
               });
               
-              var upRes = await supabase.from('attendance').upsert(updates, { onConflict: 'employee_id, date' });
+              var upRes = await supabase.from('attendance').upsert(updates, { onConflict: 'employee_id,date' });
               if (upRes.error) throw upRes.error;
               
               alert("Successfully updated attendance to Present for " + updates.length + " employees on " + targetDate + "!");
@@ -2341,14 +2341,16 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
   var deduped = [];
   for (var di = 0; di < dataArray.length; di++) {
     var row = dataArray[di];
-    if (row.id === undefined || row.id === null) {
-      deduped.push(row);
-      continue;
-    }
-    
-    var rowKey = String(row.id);
+    var rowKey = (row.id !== undefined && row.id !== null && row.id !== '') ? String(row.id) : null;
     if (table === 'holidays') {
       rowKey = (row.date || '') + '|' + (row.state || 'All');
+    } else if (table === 'attendance') {
+      rowKey = String(row.employee_id || row.employeeId || '').toUpperCase() + '|' + (formatDateForPostgres(row.date) || row.date || '');
+    }
+    
+    if (!rowKey) {
+      deduped.push(row);
+      continue;
     }
     
     if (!seen[rowKey]) {
@@ -2365,7 +2367,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
   var inserts = [];
   var updates = [];
 
-  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves' || table === 'holidays');
+  var isTextKeyTable = (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves' || table === 'holidays' || table === 'attendance');
 
   deduped.forEach(function(r) {
     if (isTextKeyTable) {
@@ -5086,6 +5088,30 @@ function clearLocalAssignTo(entityType) {
       localStorage.setItem('adonis_db', JSON.stringify(DB));
     } catch (e) {}
 
+    // Sync Attendance
+    try {
+      if (Array.isArray(DB.attendance) && DB.attendance.length > 0) {
+        var attList = DB.attendance;
+        if (SESSION.user && SESSION.user.role !== 'admin') {
+          var selfId = String(SESSION.user.id || '').trim().toUpperCase();
+          attList = attList.filter(function(a) { return String(a.employeeId || '').trim().toUpperCase() === selfId; });
+        }
+        var dbAtts = attList.filter(function(a) { return a && a.employeeId && a.date; }).map(function(a) {
+          return {
+            id: a.id || undefined,
+            employee_id: String(a.employeeId).toUpperCase(),
+            date: formatDateForPostgres(a.date) || a.date,
+            login_time: a.loginTime || null,
+            attendance_status: a.attendanceStatus || 'NS',
+            remarks: a.remarks || ''
+          };
+        });
+        if (dbAtts.length > 0) await upsertInBatches('attendance', dbAtts);
+      }
+    } catch (e) {
+      console.error("Error syncing attendance:", e);
+    }
+
     // Sync Weekly Off Configuration (Admins only)
     try {
       if (SESSION.user && SESSION.user.role === 'admin') {
@@ -7137,14 +7163,14 @@ function submitReport(){
         });
         if (typeof useSupabase !== 'undefined' && useSupabase && typeof supabase !== 'undefined' && supabase) {
           var dbAtt = {
-            id: existingAtt.id,
-            employee_id: existingAtt.employeeId,
-            date: existingAtt.date,
-            login_time: existingAtt.loginTime,
-            attendance_status: existingAtt.attendanceStatus,
-            remarks: existingAtt.remarks
+            id: existingAtt.id || ('ATT-' + String(existingAtt.employeeId).toUpperCase() + '-' + (formatDateForPostgres(existingAtt.date) || existingAtt.date)),
+            employee_id: String(existingAtt.employeeId).toUpperCase(),
+            date: formatDateForPostgres(existingAtt.date) || existingAtt.date,
+            login_time: existingAtt.loginTime || null,
+            attendance_status: existingAtt.attendanceStatus || 'P',
+            remarks: existingAtt.remarks || 'Present via DCR Submission (Retroactive)'
           };
-          supabase.from('attendance').upsert(dbAtt, { onConflict: 'employee_id, date' }).then(function(res) {
+          supabase.from('attendance').upsert(dbAtt, { onConflict: 'employee_id,date' }).then(function(res) {
             if (res && res.error) console.error('Error upserting backdated attendance in submitReport:', res.error);
           }).catch(function(e){ console.error(e); });
         }
@@ -7312,14 +7338,14 @@ async function finalSubmitToday() {
     if (typeof useSupabase !== 'undefined' && useSupabase && typeof supabase !== 'undefined' && supabase) {
       var dbAtt = {
         id: existingAtt.id,
-        employee_id: existingAtt.employeeId,
-        date: existingAtt.date,
+        employee_id: String(existingAtt.employeeId).toUpperCase(),
+        date: formatDateForPostgres(existingAtt.date) || existingAtt.date,
         login_time: existingAtt.loginTime,
         attendance_status: existingAtt.attendanceStatus,
         remarks: existingAtt.remarks,
         created_at: existingAtt.createdAt
       };
-      pushPromises.push(supabase.from('attendance').upsert(dbAtt, { onConflict: 'employee_id, date' }).select().catch(function(e){console.error(e)}));
+      pushPromises.push(supabase.from('attendance').upsert(dbAtt, { onConflict: 'employee_id,date' }).select().catch(function(e){console.error(e)}));
     }
   }
   
@@ -8122,7 +8148,7 @@ function getAttendanceStatusMeta(emp, dateStr) {
         // If employee actually submitted DCR reports on this day, they were working in the field (Present),
         // even if their advance tour plan originally had this day as LEAVE.
         var hasReport = (DB.reports || []).some(function(r) {
-          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+          return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && (r.date === dateStr || formatDateForPostgres(r.date) === dateStr);
         });
         if (hasReport) {
           return { status: 'P', remarks: 'Present via Final DCR Submission' };
@@ -8140,8 +8166,17 @@ function getAttendanceStatusMeta(emp, dateStr) {
         }
         
         var existing = getAttendanceRecord(emp.id, dateStr);
-        if (existing && (existing.attendanceStatus === 'P' || existing.attendanceStatus === 'A')) {
-          return { status: existing.attendanceStatus, remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
+        if (existing) {
+          if (existing.attendanceStatus === 'P') {
+            return { status: 'P', remarks: existing.remarks || 'Present via first successful login', loginTime: existing.loginTime || '' };
+          }
+          if (existing.attendanceStatus === 'A') {
+            var hasDcr = (existing.remarks && (existing.remarks.indexOf('Present via DCR') !== -1 || existing.remarks.indexOf('Retroactive') !== -1)) || hasReport;
+            if (hasDcr) {
+              return { status: 'P', remarks: (existing.remarks && existing.remarks.indexOf('Present via DCR') !== -1) ? existing.remarks : 'Present via DCR Submission (Retroactive)', loginTime: existing.loginTime || '' };
+            }
+            return { status: 'A', remarks: existing.remarks || 'Absent', loginTime: existing.loginTime || '' };
+          }
         }
         
         return { status: 'NS', remarks: 'Attendance Not Submitted' };
@@ -8154,15 +8189,24 @@ function getAttendanceStatusMeta(emp, dateStr) {
   
   // Check if they have submitted ANY reports for this date
   var hasReports = (DB.reports || []).some(function(r) {
-    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && r.date === dateStr;
+    return String(r.empId || '').toUpperCase() === String(emp.id || '').toUpperCase() && (r.date === dateStr || formatDateForPostgres(r.date) === dateStr);
   });
   if (hasReports) {
     return { status: 'P', remarks: 'Present (Reports Submitted)' };
   }
   
   var existing = getAttendanceRecord(emp.id, dateStr);
-  if (existing && existing.remarks === 'Present (Manually Unblocked by Admin)') {
-    return { status: 'P', remarks: existing.remarks, loginTime: existing.loginTime || '' };
+  if (existing) {
+    if (existing.attendanceStatus === 'P') {
+      return { status: 'P', remarks: existing.remarks || 'Present', loginTime: existing.loginTime || '' };
+    }
+    if (existing.attendanceStatus === 'A') {
+      var hasDcr = (existing.remarks && (existing.remarks.indexOf('Present via DCR') !== -1 || existing.remarks.indexOf('Retroactive') !== -1)) || hasReports;
+      if (hasDcr) {
+        return { status: 'P', remarks: (existing.remarks && existing.remarks.indexOf('Present via DCR') !== -1) ? existing.remarks : 'Present via DCR Submission (Retroactive)', loginTime: existing.loginTime || '' };
+      }
+      return { status: 'A', remarks: existing.remarks || 'Absent', loginTime: existing.loginTime || '' };
+    }
   }
   
   return { status: 'NS', remarks: 'Attendance Not Submitted' };
@@ -8405,12 +8449,26 @@ function getAttendanceDashboardRows() {
            virtualRows.push(existing);
         }
       } else if (existing) {
-        virtualRows.push(existing);
+        var hasDcrReport = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === empIdUpper && (r.date === curDate || formatDateForPostgres(r.date) === curDate);
+        });
+        if (hasDcrReport || (existing.remarks && (existing.remarks.indexOf('Present via DCR') !== -1 || existing.remarks.indexOf('Retroactive') !== -1))) {
+          var updatedRec = Object.assign({}, existing, {
+            attendanceStatus: 'P',
+            remarks: (existing.remarks && existing.remarks.indexOf('Present via DCR') !== -1) ? existing.remarks : 'Present via DCR Submission (Retroactive)'
+          });
+          virtualRows.push(updatedRec);
+        } else {
+          virtualRows.push(existing);
+        }
       } else {
         var status = 'NS';
         var remarks = 'Not Submitted';
         
-        if (finalDcrExists) {
+        var hasDcrReport = (DB.reports || []).some(function(r) {
+          return String(r.empId || '').toUpperCase() === empIdUpper && (r.date === curDate || formatDateForPostgres(r.date) === curDate);
+        });
+        if (finalDcrExists || hasDcrReport) {
           status = 'P';
           remarks = 'Present via Final DCR Submission';
         } else {
@@ -8622,11 +8680,20 @@ function renderAttendanceDashboard() {
             } else {
               record = { attendanceStatus: meta.status, remarks: meta.remarks };
             }
-          } else if (record && record.attendanceStatus === 'A' && meta && meta.status === 'P') {
-            record.attendanceStatus = 'P';
-            record.remarks = meta.remarks;
+          } else if (record && record.attendanceStatus === 'A') {
+            var hasReport = (meta && meta.status === 'P') ||
+              (record.remarks && (record.remarks.indexOf('Present via DCR') !== -1 || record.remarks.indexOf('Retroactive') !== -1)) ||
+              (DB.reports || []).some(function(r) { return String(r.empId || '').toUpperCase() === String(empId).toUpperCase() && (r.date === d || formatDateForPostgres(r.date) === d); });
+            if (hasReport) {
+              record.attendanceStatus = 'P';
+              record.remarks = (meta && meta.remarks) ? meta.remarks : (record.remarks && record.remarks.indexOf('Present via DCR') !== -1 ? record.remarks : 'Present via DCR Submission (Retroactive)');
+            }
           } else if (!record && isPastDate(d)) {
-            if (meta && meta.status) {
+            var hasReport = (meta && meta.status === 'P') ||
+              (DB.reports || []).some(function(r) { return String(r.empId || '').toUpperCase() === String(empId).toUpperCase() && (r.date === d || formatDateForPostgres(r.date) === d); });
+            if (hasReport) {
+              record = { attendanceStatus: 'P', remarks: (meta && meta.remarks) ? meta.remarks : 'Present via DCR Submission (Retroactive)' };
+            } else if (meta && meta.status) {
               if (meta.status === 'NS') {
                 record = { attendanceStatus: 'A', remarks: 'Absent (Not Submitted)' };
               } else {
@@ -9175,11 +9242,20 @@ function exportAttendanceReport() {
         } else {
           record = { attendanceStatus: meta.status };
         }
-      } else if (record && record.attendanceStatus === 'A' && meta && meta.status === 'P') {
-        record.attendanceStatus = 'P';
-        record.remarks = meta.remarks;
+      } else if (record && record.attendanceStatus === 'A') {
+        var hasReport = (meta && meta.status === 'P') ||
+          (record.remarks && (record.remarks.indexOf('Present via DCR') !== -1 || record.remarks.indexOf('Retroactive') !== -1)) ||
+          (DB.reports || []).some(function(r) { return String(r.empId || '').toUpperCase() === String(empId).toUpperCase() && (r.date === d || formatDateForPostgres(r.date) === d); });
+        if (hasReport) {
+          record.attendanceStatus = 'P';
+          record.remarks = (meta && meta.remarks) ? meta.remarks : (record.remarks && record.remarks.indexOf('Present via DCR') !== -1 ? record.remarks : 'Present via DCR Submission (Retroactive)');
+        }
       } else if (!record) {
-        if (meta && meta.status) {
+        var hasReport = (meta && meta.status === 'P') ||
+          (DB.reports || []).some(function(r) { return String(r.empId || '').toUpperCase() === String(empId).toUpperCase() && (r.date === d || formatDateForPostgres(r.date) === d); });
+        if (hasReport) {
+          record = { attendanceStatus: 'P', remarks: (meta && meta.remarks) ? meta.remarks : 'Present via DCR Submission (Retroactive)' };
+        } else if (meta && meta.status) {
           record = { attendanceStatus: meta.status === 'NS' ? 'A' : meta.status };
         }
       }

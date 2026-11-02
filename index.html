@@ -838,6 +838,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="inputs_util">11. Promotional Input Utilization Report</option>
               <option value="doc_wise_samples">11a. Doctor-wise Sample Report</option>
               <option value="doc_wise_gifts">11b. Doctor-wise Gift Report</option>
+              <option value="doc_wise_inputs">11c. Doctor-wise Promotional Input Report</option>
               <option value="mdvr_rep">18. MDVR Report (Daily Summary)</option>
             <option value="expenses_rep">12. Expense Summary Report</option>
             <option value="leaves_rep">13. Leave Utilisation Report</option>
@@ -1420,6 +1421,7 @@ table.tbl tr:last-child td{border-bottom:none}
             <option value="inputs_util">11. Promotional Input Utilization Report</option>
               <option value="doc_wise_samples">11a. Doctor-wise Sample Report</option>
               <option value="doc_wise_gifts">11b. Doctor-wise Gift Report</option>
+              <option value="doc_wise_inputs">11c. Doctor-wise Promotional Input Report</option>
               <option value="mdvr_rep">18. MDVR Report (Daily Summary)</option>
             <option value="expenses_rep">12. Expense Summary Report</option>
             <option value="leaves_rep">13. Leave Utilisation Report</option>
@@ -1774,6 +1776,16 @@ function parseJSONField(val) {
 function cleanNameForComparison(name) {
   if (!name) return '';
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findInventoryItemKey(itemsMap, name) {
+  if (!name || !itemsMap) return null;
+  if (itemsMap[name]) return name;
+  var norm = String(name).trim().toLowerCase().replace(/\s+/g, ' ');
+  for (var k in itemsMap) {
+    if (String(k).trim().toLowerCase().replace(/\s+/g, ' ') === norm) return k;
+  }
+  return null;
 }
 
 // Master Data Store
@@ -6936,7 +6948,8 @@ function checkMTPForSelectedDate(isSilent){
 }
 
 function submitReport(){
-  var date=document.getElementById('r-date').value;
+  var rawDate=document.getElementById('r-date').value;
+  var date=formatDateForPostgres(rawDate) || rawDate;
   var time=document.getElementById('r-time').value;
   var targetType=document.getElementById('r-target-type').value;
   var classification=document.getElementById('r-classification').value;
@@ -7031,6 +7044,37 @@ function submitReport(){
     });
     repObj.promotedProducts=promoted;
     
+    // Restore previous report inventory deductions if currently editing
+    if (window.currentEditReportId) {
+      var oldRep = (DB.reports || []).find(function(r) { return r.id === window.currentEditReportId; });
+      if (oldRep) {
+        var oldSamples = parseJSONField(oldRep.samples);
+        for (var p in oldSamples) {
+          var inv = (DB.samplesInventory || []).find(function(s){ return s.empId === SESSION.user.id && s.prodName === p; });
+          if (inv) {
+            inv.distributed = Math.max(0, (inv.distributed || 0) - (Number(oldSamples[p]) || 0));
+            inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
+          }
+        }
+        var oldGifts = parseJSONField(oldRep.gifts);
+        for (var g in oldGifts) {
+          var inv = (DB.giftsInventory || []).find(function(s){ return s.empId === SESSION.user.id && s.giftName === g; });
+          if (inv) {
+            inv.distributed = Math.max(0, (inv.distributed || 0) - (Number(oldGifts[g]) || 0));
+            inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
+          }
+        }
+        var oldInputs = parseJSONField(oldRep.inputs);
+        for (var ip in oldInputs) {
+          var inv = (DB.inputsInventory || []).find(function(s){ return s.empId === SESSION.user.id && s.inputName === ip; });
+          if (inv) {
+            inv.distributed = Math.max(0, (inv.distributed || 0) - (Number(oldInputs[ip]) || 0));
+            inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
+          }
+        }
+      }
+    }
+
     // Samples issued deduction
     var activeProducts = DB.products || [];
 
@@ -7043,8 +7087,8 @@ function submitReport(){
         // Deduct inventory
         var inv=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
         if(inv){
-          inv.distributed+=v;
-          inv.balance = Math.max(0, inv.balance - v);
+          inv.distributed = (Number(inv.distributed) || 0) + v;
+          inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
         }
       }
     });
@@ -7061,8 +7105,8 @@ function submitReport(){
         gifts[g]=v;
         var inv=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
         if(inv){
-          inv.distributed+=v;
-          inv.balance = Math.max(0, inv.balance - v);
+          inv.distributed = (Number(inv.distributed) || 0) + v;
+          inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
         }
       }
     });
@@ -7079,8 +7123,8 @@ function submitReport(){
         inputs[ip]=v;
         var inv=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
         if(inv){
-          inv.distributed+=v;
-          inv.balance = Math.max(0, inv.balance - v);
+          inv.distributed = (Number(inv.distributed) || 0) + v;
+          inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
         }
       }
     });
@@ -7117,9 +7161,11 @@ function submitReport(){
   }
   
   var isEditing = window.currentEditReportId;
+  var todayStr = getTodayDateString();
+  var isPast = date < todayStr;
   
   // Past reports are automatically final
-  if (date < getTodayDateString()) {
+  if (isPast) {
     repObj.isFinal = true;
   }
   
@@ -7151,7 +7197,7 @@ function submitReport(){
   pushUserInventoryToSupabase(SESSION.user.id);
 
   // If report submitted for past date (or today if final), automatically mark attendance as Present
-  if (date < getTodayDateString() || repObj.isFinal) {
+  if (isPast || repObj.isFinal) {
     try {
       if (typeof upsertAttendanceRecord === 'function') {
         var existingAtt = upsertAttendanceRecord({
@@ -7159,16 +7205,16 @@ function submitReport(){
           date: date,
           loginTime: repObj.time || (typeof getAttendanceLoginTimeValue === 'function' ? getAttendanceLoginTimeValue(new Date()) : ''),
           attendanceStatus: 'P',
-          remarks: date < getTodayDateString() ? 'Present via DCR Submission (Retroactive)' : 'Present via Final DCR Submission'
+          remarks: isPast ? 'Present via DCR Submission (Retroactive)' : 'Present via Final DCR Submission'
         });
         if (typeof useSupabase !== 'undefined' && useSupabase && typeof supabase !== 'undefined' && supabase) {
           var dbAtt = {
-            id: existingAtt.id || ('ATT-' + String(existingAtt.employeeId).toUpperCase() + '-' + (formatDateForPostgres(existingAtt.date) || existingAtt.date)),
+            id: 'ATT-' + String(existingAtt.employeeId).toUpperCase() + '-' + date,
             employee_id: String(existingAtt.employeeId).toUpperCase(),
-            date: formatDateForPostgres(existingAtt.date) || existingAtt.date,
+            date: date,
             login_time: existingAtt.loginTime || null,
-            attendance_status: existingAtt.attendanceStatus || 'P',
-            remarks: existingAtt.remarks || 'Present via DCR Submission (Retroactive)'
+            attendance_status: 'P',
+            remarks: isPast ? 'Present via DCR Submission (Retroactive)' : 'Present via Final DCR Submission'
           };
           supabase.from('attendance').upsert(dbAtt, { onConflict: 'employee_id,date' }).then(function(res) {
             if (res && res.error) console.error('Error upserting backdated attendance in submitReport:', res.error);
@@ -7782,11 +7828,13 @@ function splitDateRangeIntoChunks(fromDate, toDate, maxDaysPerChunk) {
 async function fetchReportsForMIS(empIds, from, to, onProgress) {
   if (!useSupabase || !supabase) return null;
   var normalizedIds = Array.isArray(empIds) ? empIds.filter(Boolean) : [];
-  var fromDate = from ? (formatDateForPostgres(from) || from) : null;
-  var toDate = to ? (formatDateForPostgres(to) || to) : null;
-  if (!fromDate && !toDate) return null;
-  if (!fromDate) fromDate = toDate;
-  if (!toDate) toDate = fromDate;
+  var fromDate = from ? (formatDateForPostgres(from) || from) : '2026-07-01';
+  var toDate = to ? (formatDateForPostgres(to) || to) : getTodayDateString();
+  if (fromDate > toDate) {
+    var tmp = fromDate;
+    fromDate = toDate;
+    toDate = tmp;
+  }
 
   var chunks = splitDateRangeIntoChunks(fromDate, toDate, 7);
   var allRows = [];
@@ -7961,14 +8009,13 @@ function getNextISTMidnightValidationTime() {
 
 function shouldUseLiveMISFetch(empIds, from, to) {
   if (!useSupabase || !supabase) return false;
-  if (!from && !to) return false;
-  var fromStr = from || to;
-  var toStr = to || from;
+  var fromStr = from || '2026-07-01';
+  var toStr = to || getTodayDateString();
   var start = parseDateAtLocalMidnight(fromStr);
   var end = parseDateAtLocalMidnight(toStr);
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return false;
   var days = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
-  return days <= 93;
+  return days <= 366;
 }
 
 function isExecutiveAttendanceExempt(emp) {
@@ -17325,13 +17372,18 @@ async function runMISReport(){
     thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Product Name</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
     
+    var isCumulativePeriod = (!from || from <= '2026-07-01') && (!to || to >= getTodayDateString());
+
     empsToProcess.forEach(function(e) {
       var state = e.state || 'N/A';
-      // Get all samples ever allocated
       var myInv = DB.samplesInventory.filter(function(s){ return s.empId === e.id; });
       var itemsMap = {};
       myInv.forEach(function(s){
-        itemsMap[s.prodName] = { opening: s.opening, received: s.received, balance: s.balance, distributed: 0 };
+        var op = Number(s.opening) || 0;
+        var rec = Number(s.received) || 0;
+        var dist = Number(s.distributed) || 0;
+        var bal = (s.balance !== undefined && s.balance !== null && !isNaN(s.balance)) ? Number(s.balance) : Math.max(0, (op + rec) - dist);
+        itemsMap[s.prodName] = { opening: op, received: rec, balance: bal, distributed: 0, lifetimeDistributed: dist };
       });
       
       // Calculate distributed in date range from reports
@@ -17341,16 +17393,21 @@ async function runMISReport(){
       myReports.forEach(function(r) {
         var parsedSamples = parseJSONField(r.samples);
         for (var p in parsedSamples) {
-          if (!itemsMap[p]) itemsMap[p] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-          itemsMap[p].distributed += parsedSamples[p];
+          var matchedKey = findInventoryItemKey(itemsMap, p) || p;
+          if (!itemsMap[matchedKey]) itemsMap[matchedKey] = { opening: 0, received: 0, balance: 0, distributed: 0, lifetimeDistributed: 0 };
+          itemsMap[matchedKey].distributed += (Number(parsedSamples[p]) || 0);
         }
       });
       
       // Add to table
       for (var p in itemsMap) {
-        // Only show if there was inventory or if it was distributed
-        if (itemsMap[p].opening > 0 || itemsMap[p].received > 0 || itemsMap[p].distributed > 0 || itemsMap[p].balance > 0) {
-          currentMISData.push([e.name, state, p, itemsMap[p].opening, itemsMap[p].received, itemsMap[p].distributed, itemsMap[p].balance]);
+        var item = itemsMap[p];
+        if (isCumulativePeriod) {
+          item.distributed = Math.max(item.distributed, item.lifetimeDistributed);
+        }
+        item.balance = Math.max(0, (item.opening + item.received) - (isCumulativePeriod ? item.distributed : item.lifetimeDistributed));
+        if (item.opening > 0 || item.received > 0 || item.distributed > 0 || item.balance > 0) {
+          currentMISData.push([e.name, state, p, item.opening, item.received, item.distributed, item.balance]);
           currentMISRowIds.push(null);
         }
       }
@@ -17360,13 +17417,18 @@ async function runMISReport(){
     thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Gift</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
     
+    var isCumulativePeriod = (!from || from <= '2026-07-01') && (!to || to >= getTodayDateString());
+
     empsToProcess.forEach(function(e) {
       var state = e.state || 'N/A';
-      // Get all gifts ever allocated
       var myInv = DB.giftsInventory.filter(function(g){ return g.empId === e.id; });
       var itemsMap = {};
       myInv.forEach(function(g){
-        itemsMap[g.giftName] = { opening: g.opening, received: g.received, balance: g.balance, distributed: 0 };
+        var op = Number(g.opening) || 0;
+        var rec = Number(g.received) || 0;
+        var dist = Number(g.distributed) || 0;
+        var bal = (g.balance !== undefined && g.balance !== null && !isNaN(g.balance)) ? Number(g.balance) : Math.max(0, (op + rec) - dist);
+        itemsMap[g.giftName] = { opening: op, received: rec, balance: bal, distributed: 0, lifetimeDistributed: dist };
       });
       
       // Calculate distributed in date range from reports
@@ -17376,24 +17438,30 @@ async function runMISReport(){
       myReports.forEach(function(r) {
         var parsedGifts = parseJSONField(r.gifts);
         for (var g in parsedGifts) {
-          if (!itemsMap[g]) itemsMap[g] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-          itemsMap[g].distributed += parsedGifts[g];
+          var matchedKey = findInventoryItemKey(itemsMap, g) || g;
+          if (!itemsMap[matchedKey]) itemsMap[matchedKey] = { opening: 0, received: 0, balance: 0, distributed: 0, lifetimeDistributed: 0 };
+          itemsMap[matchedKey].distributed += (Number(parsedGifts[g]) || 0);
         }
       });
       
       // Add to table
       for (var g in itemsMap) {
-        // Only show if there was inventory or if it was distributed
-        if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
-          currentMISData.push([e.name, state, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
+        var item = itemsMap[g];
+        if (isCumulativePeriod) {
+          item.distributed = Math.max(item.distributed, item.lifetimeDistributed);
+        }
+        item.balance = Math.max(0, (item.opening + item.received) - (isCumulativePeriod ? item.distributed : item.lifetimeDistributed));
+        if (item.opening > 0 || item.received > 0 || item.distributed > 0 || item.balance > 0) {
+          currentMISData.push([e.name, state, g, item.opening, item.received, item.distributed, item.balance]);
           currentMISRowIds.push(null);
         }
       }
     });
 
-    } else if (currentReportType === 'doc_wise_samples' || currentReportType === 'doc_wise_gifts') {
+    } else if (currentReportType === 'doc_wise_samples' || currentReportType === 'doc_wise_gifts' || currentReportType === 'doc_wise_inputs') {
     var isGift = currentReportType === 'doc_wise_gifts';
-    var itemNameLabel = isGift ? 'Gift' : 'Sample';
+    var isInput = currentReportType === 'doc_wise_inputs';
+    var itemNameLabel = isGift ? 'Gift' : (isInput ? 'Input' : 'Sample');
     thead.innerHTML = '<tr><th>Name</th><th>Speciality</th><th>City</th><th>Region</th><th>HQ</th><th>Emp Name</th><th>Desig</th><th>Visit Month</th><th>Visit Date</th><th>' + itemNameLabel + '</th><th>' + itemNameLabel + ' Qty</th><th>Visit Remarks</th></tr>';
     
     baseReports.forEach(function(r) {
@@ -17405,12 +17473,30 @@ async function runMISReport(){
       var empName = emp.name || '';
       var desig = typeof emp.designation !== 'undefined' ? emp.designation : getDefaultEmployeeDesignation(emp.role);
       
-      var doctor = (DB.doctors || []).find(function(d) { 
-         return String(d.name||'').trim().toLowerCase() === String(r.targetName||'').trim().toLowerCase() 
-             && String(d.assignTo||'').trim().toUpperCase() === String(emp.id).toUpperCase(); 
-      });
-      var spec = doctor ? (doctor.spec || '') : '';
-      var city = doctor ? (doctor.city || '') : '';
+      var rawDocName = r.docName || r.doc_name || r.targetName || '';
+      var rawDocId = r.docId || r.doc_id || '';
+      var doctor = null;
+      if (rawDocId) {
+        doctor = (DB.doctors || []).find(function(d) {
+          return String(d.id || '').trim().toUpperCase() === String(rawDocId).trim().toUpperCase();
+        });
+      }
+      if (!doctor && rawDocName) {
+        var normTarget = String(rawDocName).trim().toLowerCase();
+        doctor = (DB.doctors || []).find(function(d) { 
+          return String(d.name || '').trim().toLowerCase() === normTarget 
+              && String(d.assignTo || '').trim().toUpperCase() === String(emp.id).toUpperCase(); 
+        });
+        if (!doctor) {
+          doctor = (DB.doctors || []).find(function(d) { 
+            return String(d.name || '').trim().toLowerCase() === normTarget;
+          });
+        }
+      }
+
+      var docDisplayName = (doctor && doctor.name) || rawDocName || 'N/A';
+      var spec = (doctor && doctor.spec) || r.docSpec || r.doc_spec || '';
+      var city = (doctor && (doctor.city || doctor.area)) || r.docArea || r.doc_area || r.city || r.patch || '';
       
       var visitMonth = '';
       var visitDate = r.date || '';
@@ -17425,11 +17511,11 @@ async function runMISReport(){
          }
       }
       
-      var items = parseJSONField(isGift ? r.gifts : r.samples);
+      var items = parseJSONField(isGift ? r.gifts : (isInput ? r.inputs : r.samples));
       for (var itemName in items) {
-         var qty = items[itemName];
+         var qty = Number(items[itemName]) || 0;
          if (qty > 0) {
-            currentMISData.push([r.targetName, spec, city, region, hq, empName, desig, visitMonth, visitDate, itemName, qty, r.remarks || '']);
+            currentMISData.push([docDisplayName, spec, city, region, hq, empName, desig, visitMonth, visitDate, itemName, qty, r.remarks || '']);
             currentMISRowIds.push(r.id);
          }
       }
@@ -17500,13 +17586,18 @@ async function runMISReport(){
     thead.innerHTML='<tr><th>BE Name</th><th>State</th><th>Promotional Input</th><th>Opening Stock</th><th>Received Qty</th><th>Distributed (in period)</th><th>Current Balance</th></tr>';
     var empsToProcess = DB.employees.filter(function(e){ return e.role !== 'admin' && (!teamIds || teamIds.includes(e.id)) && (!empId || e.id === empId); });
     
+    var isCumulativePeriod = (!from || from <= '2026-07-01') && (!to || to >= getTodayDateString());
+
     empsToProcess.forEach(function(e) {
       var state = e.state || 'N/A';
-      // Get all inputs ever allocated
       var myInv = DB.inputsInventory.filter(function(i){ return i.empId === e.id; });
       var itemsMap = {};
       myInv.forEach(function(i){
-        itemsMap[i.inputName] = { opening: i.opening, received: i.received, balance: i.balance, distributed: 0 };
+        var op = Number(i.opening) || 0;
+        var rec = Number(i.received) || 0;
+        var dist = Number(i.distributed) || 0;
+        var bal = (i.balance !== undefined && i.balance !== null && !isNaN(i.balance)) ? Number(i.balance) : Math.max(0, (op + rec) - dist);
+        itemsMap[i.inputName] = { opening: op, received: rec, balance: bal, distributed: 0, lifetimeDistributed: dist };
       });
       
       // Calculate distributed in date range from reports
@@ -17516,16 +17607,21 @@ async function runMISReport(){
       myReports.forEach(function(r) {
         var parsedInputs = parseJSONField(r.inputs);
         for (var ip in parsedInputs) {
-          if (!itemsMap[ip]) itemsMap[ip] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-          itemsMap[ip].distributed += parsedInputs[ip];
+          var matchedKey = findInventoryItemKey(itemsMap, ip) || ip;
+          if (!itemsMap[matchedKey]) itemsMap[matchedKey] = { opening: 0, received: 0, balance: 0, distributed: 0, lifetimeDistributed: 0 };
+          itemsMap[matchedKey].distributed += (Number(parsedInputs[ip]) || 0);
         }
       });
       
       // Add to table
       for (var ip in itemsMap) {
-        // Only show if there was inventory or if it was distributed
-        if (itemsMap[ip].opening > 0 || itemsMap[ip].received > 0 || itemsMap[ip].distributed > 0 || itemsMap[ip].balance > 0) {
-          currentMISData.push([e.name, state, ip, itemsMap[ip].opening, itemsMap[ip].received, itemsMap[ip].distributed, itemsMap[ip].balance]);
+        var item = itemsMap[ip];
+        if (isCumulativePeriod) {
+          item.distributed = Math.max(item.distributed, item.lifetimeDistributed);
+        }
+        item.balance = Math.max(0, (item.opening + item.received) - (isCumulativePeriod ? item.distributed : item.lifetimeDistributed));
+        if (item.opening > 0 || item.received > 0 || item.distributed > 0 || item.balance > 0) {
+          currentMISData.push([e.name, state, ip, item.opening, item.received, item.distributed, item.balance]);
           currentMISRowIds.push(null);
         }
       }
@@ -18958,22 +19054,33 @@ async function runEmpMISReport(){
       var state = e.state || 'N/A';
       var myInv = DB.samplesInventory.filter(function(s){ return s.empId === e.id; });
       var itemsMap = {};
+      var isCumulativePeriod = (!from || from <= '2026-07-01') && (!to || to >= getTodayDateString());
       myInv.forEach(function(s){
-        itemsMap[s.prodName] = { opening: s.opening, received: s.received, balance: s.balance, distributed: 0 };
+        var op = Number(s.opening) || 0;
+        var rec = Number(s.received) || 0;
+        var dist = Number(s.distributed) || 0;
+        var bal = (s.balance !== undefined && s.balance !== null && !isNaN(s.balance)) ? Number(s.balance) : Math.max(0, (op + rec) - dist);
+        itemsMap[s.prodName] = { opening: op, received: rec, balance: bal, distributed: 0, lifetimeDistributed: dist };
       });
-      var myReports = DB.reports.filter(function(r){
+      var myReports = reportPool.filter(function(r){
         return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
         var parsedSamples = parseJSONField(r.samples);
         for (var p in parsedSamples) {
-          if (!itemsMap[p]) itemsMap[p] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-          itemsMap[p].distributed += parsedSamples[p];
+          var matchedKey = findInventoryItemKey(itemsMap, p) || p;
+          if (!itemsMap[matchedKey]) itemsMap[matchedKey] = { opening: 0, received: 0, balance: 0, distributed: 0, lifetimeDistributed: 0 };
+          itemsMap[matchedKey].distributed += (Number(parsedSamples[p]) || 0);
         }
       });
       for (var p in itemsMap) {
-        if (itemsMap[p].opening > 0 || itemsMap[p].received > 0 || itemsMap[p].distributed > 0 || itemsMap[p].balance > 0) {
-          currentEmpMISData.push([e.name, state, p, itemsMap[p].opening, itemsMap[p].received, itemsMap[p].distributed, itemsMap[p].balance]);
+        var item = itemsMap[p];
+        if (isCumulativePeriod) {
+          item.distributed = Math.max(item.distributed, item.lifetimeDistributed);
+        }
+        item.balance = Math.max(0, (item.opening + item.received) - (isCumulativePeriod ? item.distributed : item.lifetimeDistributed));
+        if (item.opening > 0 || item.received > 0 || item.distributed > 0 || item.balance > 0) {
+          currentEmpMISData.push([e.name, state, p, item.opening, item.received, item.distributed, item.balance]);
         }
       }
     }
@@ -18985,29 +19092,41 @@ async function runEmpMISReport(){
       var state = e.state || 'N/A';
       var myInv = DB.giftsInventory.filter(function(g){ return g.empId === e.id; });
       var itemsMap = {};
+      var isCumulativePeriod = (!from || from <= '2026-07-01') && (!to || to >= getTodayDateString());
       myInv.forEach(function(g){
-        itemsMap[g.giftName] = { opening: g.opening, received: g.received, balance: g.balance, distributed: 0 };
+        var op = Number(g.opening) || 0;
+        var rec = Number(g.received) || 0;
+        var dist = Number(g.distributed) || 0;
+        var bal = (g.balance !== undefined && g.balance !== null && !isNaN(g.balance)) ? Number(g.balance) : Math.max(0, (op + rec) - dist);
+        itemsMap[g.giftName] = { opening: op, received: rec, balance: bal, distributed: 0, lifetimeDistributed: dist };
       });
-      var myReports = DB.reports.filter(function(r){
+      var myReports = reportPool.filter(function(r){
         return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
         var parsedGifts = parseJSONField(r.gifts);
         for (var g in parsedGifts) {
-          if (!itemsMap[g]) itemsMap[g] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-          itemsMap[g].distributed += parsedGifts[g];
+          var matchedKey = findInventoryItemKey(itemsMap, g) || g;
+          if (!itemsMap[matchedKey]) itemsMap[matchedKey] = { opening: 0, received: 0, balance: 0, distributed: 0, lifetimeDistributed: 0 };
+          itemsMap[matchedKey].distributed += (Number(parsedGifts[g]) || 0);
         }
       });
       for (var g in itemsMap) {
-        if (itemsMap[g].opening > 0 || itemsMap[g].received > 0 || itemsMap[g].distributed > 0 || itemsMap[g].balance > 0) {
-          currentEmpMISData.push([e.name, state, g, itemsMap[g].opening, itemsMap[g].received, itemsMap[g].distributed, itemsMap[g].balance]);
+        var item = itemsMap[g];
+        if (isCumulativePeriod) {
+          item.distributed = Math.max(item.distributed, item.lifetimeDistributed);
+        }
+        item.balance = Math.max(0, (item.opening + item.received) - (isCumulativePeriod ? item.distributed : item.lifetimeDistributed));
+        if (item.opening > 0 || item.received > 0 || item.distributed > 0 || item.balance > 0) {
+          currentEmpMISData.push([e.name, state, g, item.opening, item.received, item.distributed, item.balance]);
         }
       }
     }
 
-    } else if (currentEmpReportType === 'doc_wise_samples' || currentEmpReportType === 'doc_wise_gifts') {
+    } else if (currentEmpReportType === 'doc_wise_samples' || currentEmpReportType === 'doc_wise_gifts' || currentEmpReportType === 'doc_wise_inputs') {
     var isGift = currentEmpReportType === 'doc_wise_gifts';
-    var itemNameLabel = isGift ? 'Gift' : 'Sample';
+    var isInput = currentEmpReportType === 'doc_wise_inputs';
+    var itemNameLabel = isGift ? 'Gift' : (isInput ? 'Input' : 'Sample');
     thead.innerHTML = '<tr><th>Name</th><th>Speciality</th><th>City</th><th>Region</th><th>HQ</th><th>Emp Name</th><th>Desig</th><th>Visit Month</th><th>Visit Date</th><th>' + itemNameLabel + '</th><th>' + itemNameLabel + ' Qty</th><th>Visit Remarks</th></tr>';
     
     baseReports.forEach(function(r) {
@@ -19019,12 +19138,30 @@ async function runEmpMISReport(){
       var empName = emp.name || '';
       var desig = typeof emp.designation !== 'undefined' ? emp.designation : getDefaultEmployeeDesignation(emp.role);
       
-      var doctor = (DB.doctors || []).find(function(d) { 
-         return String(d.name||'').trim().toLowerCase() === String(r.targetName||'').trim().toLowerCase() 
-             && String(d.assignTo||'').trim().toUpperCase() === String(emp.id).toUpperCase(); 
-      });
-      var spec = doctor ? (doctor.spec || '') : '';
-      var city = doctor ? (doctor.city || '') : '';
+      var rawDocName = r.docName || r.doc_name || r.targetName || '';
+      var rawDocId = r.docId || r.doc_id || '';
+      var doctor = null;
+      if (rawDocId) {
+        doctor = (DB.doctors || []).find(function(d) {
+          return String(d.id || '').trim().toUpperCase() === String(rawDocId).trim().toUpperCase();
+        });
+      }
+      if (!doctor && rawDocName) {
+        var normTarget = String(rawDocName).trim().toLowerCase();
+        doctor = (DB.doctors || []).find(function(d) { 
+          return String(d.name || '').trim().toLowerCase() === normTarget 
+              && String(d.assignTo || '').trim().toUpperCase() === String(emp.id).toUpperCase(); 
+        });
+        if (!doctor) {
+          doctor = (DB.doctors || []).find(function(d) { 
+            return String(d.name || '').trim().toLowerCase() === normTarget;
+          });
+        }
+      }
+
+      var docDisplayName = (doctor && doctor.name) || rawDocName || 'N/A';
+      var spec = (doctor && doctor.spec) || r.docSpec || r.doc_spec || '';
+      var city = (doctor && (doctor.city || doctor.area)) || r.docArea || r.doc_area || r.city || r.patch || '';
       
       var visitMonth = '';
       var visitDate = r.date || '';
@@ -19039,11 +19176,11 @@ async function runEmpMISReport(){
          }
       }
       
-      var items = parseJSONField(isGift ? r.gifts : r.samples);
+      var items = parseJSONField(isGift ? r.gifts : (isInput ? r.inputs : r.samples));
       for (var itemName in items) {
-         var qty = items[itemName];
+         var qty = Number(items[itemName]) || 0;
          if (qty > 0) {
-            currentEmpMISData.push([r.targetName, spec, city, region, hq, empName, desig, visitMonth, visitDate, itemName, qty, r.remarks || '']);
+            currentEmpMISData.push([docDisplayName, spec, city, region, hq, empName, desig, visitMonth, visitDate, itemName, qty, r.remarks || '']);
          }
       }
     });
@@ -19115,22 +19252,33 @@ async function runEmpMISReport(){
       var state = e.state || 'N/A';
       var myInv = DB.inputsInventory.filter(function(i){ return i.empId === e.id; });
       var itemsMap = {};
+      var isCumulativePeriod = (!from || from <= '2026-07-01') && (!to || to >= getTodayDateString());
       myInv.forEach(function(i){
-        itemsMap[i.inputName] = { opening: i.opening, received: i.received, balance: i.balance, distributed: 0 };
+        var op = Number(i.opening) || 0;
+        var rec = Number(i.received) || 0;
+        var dist = Number(i.distributed) || 0;
+        var bal = (i.balance !== undefined && i.balance !== null && !isNaN(i.balance)) ? Number(i.balance) : Math.max(0, (op + rec) - dist);
+        itemsMap[i.inputName] = { opening: op, received: rec, balance: bal, distributed: 0, lifetimeDistributed: dist };
       });
-      var myReports = DB.reports.filter(function(r){
+      var myReports = reportPool.filter(function(r){
         return r.empId === e.id && (!from || r.date >= from) && (!to || r.date <= to);
       });
       myReports.forEach(function(r) {
         var parsedInputs = parseJSONField(r.inputs);
         for (var ip in parsedInputs) {
-          if (!itemsMap[ip]) itemsMap[ip] = { opening: 0, received: 0, balance: 0, distributed: 0 };
-          itemsMap[ip].distributed += parsedInputs[ip];
+          var matchedKey = findInventoryItemKey(itemsMap, ip) || ip;
+          if (!itemsMap[matchedKey]) itemsMap[matchedKey] = { opening: 0, received: 0, balance: 0, distributed: 0, lifetimeDistributed: 0 };
+          itemsMap[matchedKey].distributed += (Number(parsedInputs[ip]) || 0);
         }
       });
       for (var ip in itemsMap) {
-        if (itemsMap[ip].opening > 0 || itemsMap[ip].received > 0 || itemsMap[ip].distributed > 0 || itemsMap[ip].balance > 0) {
-          currentEmpMISData.push([e.name, state, ip, itemsMap[ip].opening, itemsMap[ip].received, itemsMap[ip].distributed, itemsMap[ip].balance]);
+        var item = itemsMap[ip];
+        if (isCumulativePeriod) {
+          item.distributed = Math.max(item.distributed, item.lifetimeDistributed);
+        }
+        item.balance = Math.max(0, (item.opening + item.received) - (isCumulativePeriod ? item.distributed : item.lifetimeDistributed));
+        if (item.opening > 0 || item.received > 0 || item.distributed > 0 || item.balance > 0) {
+          currentEmpMISData.push([e.name, state, ip, item.opening, item.received, item.distributed, item.balance]);
         }
       }
     }

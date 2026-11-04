@@ -2411,7 +2411,7 @@ async function upsertInBatches(table, dataArray, chunkSize = 200) {
       if (useInsert) {
         query = supabase.from(table).insert(chunk);
       } else {
-        if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves') {
+        if (table === 'employees' || table === 'doctors' || table === 'chemists' || table === 'stockists' || table === 'announcements' || table === 'reports' || table === 'tour_plans' || table === 'expenses' || table === 'leaves' || table === 'samples_inventory' || table === 'gifts_inventory' || table === 'inputs_inventory') {
           opt = { onConflict: 'id' };
         } else if (table === 'attendance') {
           opt = { onConflict: 'employee_id,date' };
@@ -3041,100 +3041,112 @@ async function initSupabaseData(isSilent) {
         return cloudSfc;
       })(),
       samplesInventory: (function() {
-        var cloudSamples = [];
-        var seen = new Set();
+        var cloudSamplesMap = {};
         (samplesInv || []).forEach(s => {
           if (!s || !s.emp_id || !s.prod_name) return;
-          var key = String(s.emp_id).toUpperCase().trim() + '|' + String(s.prod_name).toUpperCase().trim();
-          if (!seen.has(key)) {
-            seen.add(key);
-            cloudSamples.push({
+          var key = String(s.emp_id).toUpperCase().trim() + '|' + cleanNameForComparison(s.prod_name);
+          if (!cloudSamplesMap[key]) {
+            cloudSamplesMap[key] = {
               id: s.id,
               prodName: s.prod_name,
               empId: s.emp_id,
-              opening: s.opening || 0,
-              received: s.received || 0,
-              distributed: s.distributed || 0,
-              balance: s.balance || 0
-            });
+              opening: Number(s.opening) || 0,
+              received: Number(s.received) || 0,
+              distributed: Number(s.distributed) || 0,
+              balance: Number(s.balance) || 0
+            };
+          } else {
+            var existing = cloudSamplesMap[key];
+            existing.opening += (Number(s.opening) || 0);
+            existing.received += (Number(s.received) || 0);
+            existing.distributed = Math.max(existing.distributed, Number(s.distributed) || 0);
+            existing.balance = Math.max(0, existing.opening + existing.received - existing.distributed);
+            if (!isIntegerId(existing.id) && isIntegerId(s.id)) existing.id = s.id;
           }
         });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.samplesInventory)) {
           DB.samplesInventory.forEach(function(localSample) {
             if (localSample) {
-              var key = String(localSample.empId).toUpperCase().trim() + '|' + String(localSample.prodName).toUpperCase().trim();
-              if (!seen.has(key)) {
-                seen.add(key);
-                cloudSamples.push(localSample);
+              var key = String(localSample.empId).toUpperCase().trim() + '|' + cleanNameForComparison(localSample.prodName);
+              if (!cloudSamplesMap[key]) {
+                cloudSamplesMap[key] = localSample;
               }
             }
           });
         }
-        return cloudSamples;
+        return Object.values(cloudSamplesMap);
       })(),
       giftsInventory: (function() {
-        var cloudGifts = [];
-        var seen = new Set();
+        var cloudGiftsMap = {};
         (giftsInv || []).forEach(g => {
           if (!g || !g.emp_id || !g.gift_name) return;
-          var key = String(g.emp_id).toUpperCase().trim() + '|' + String(g.gift_name).toUpperCase().trim();
-          if (!seen.has(key)) {
-            seen.add(key);
-            cloudGifts.push({
+          var key = String(g.emp_id).toUpperCase().trim() + '|' + cleanNameForComparison(g.gift_name);
+          if (!cloudGiftsMap[key]) {
+            cloudGiftsMap[key] = {
               id: g.id,
               giftName: g.gift_name,
               empId: g.emp_id,
-              opening: g.opening || 0,
-              received: g.received || 0,
-              distributed: g.distributed || 0,
-              balance: g.balance || 0
-            });
+              opening: Number(g.opening) || 0,
+              received: Number(g.received) || 0,
+              distributed: Number(g.distributed) || 0,
+              balance: Number(g.balance) || 0
+            };
+          } else {
+            var existing = cloudGiftsMap[key];
+            existing.opening += (Number(g.opening) || 0);
+            existing.received += (Number(g.received) || 0);
+            existing.distributed = Math.max(existing.distributed, Number(g.distributed) || 0);
+            existing.balance = Math.max(0, existing.opening + existing.received - existing.distributed);
+            if (!isIntegerId(existing.id) && isIntegerId(g.id)) existing.id = g.id;
           }
         });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.giftsInventory)) {
           DB.giftsInventory.forEach(function(localGift) {
             if (localGift) {
-              var key = String(localGift.empId).toUpperCase().trim() + '|' + String(localGift.giftName).toUpperCase().trim();
-              if (!seen.has(key)) {
-                seen.add(key);
-                cloudGifts.push(localGift);
+              var key = String(localGift.empId).toUpperCase().trim() + '|' + cleanNameForComparison(localGift.giftName);
+              if (!cloudGiftsMap[key]) {
+                cloudGiftsMap[key] = localGift;
               }
             }
           });
         }
-        return cloudGifts;
+        return Object.values(cloudGiftsMap);
       })(),
       inputsInventory: (function() {
-        var cloudInputs = [];
-        var seen = new Set();
+        var cloudInputsMap = {};
         (inputsInv || []).forEach(i => {
           if (!i || !i.emp_id || !i.input_name) return;
-          var key = String(i.emp_id).toUpperCase().trim() + '|' + String(i.input_name).toUpperCase().trim();
-          if (!seen.has(key)) {
-            seen.add(key);
-            cloudInputs.push({
+          var key = String(i.emp_id).toUpperCase().trim() + '|' + cleanNameForComparison(i.input_name);
+          if (!cloudInputsMap[key]) {
+            cloudInputsMap[key] = {
               id: i.id,
               inputName: i.input_name,
               empId: i.emp_id,
-              opening: i.opening || 0,
-              received: i.received || 0,
-              distributed: i.distributed || 0,
-              balance: i.balance || 0
-            });
+              opening: Number(i.opening) || 0,
+              received: Number(i.received) || 0,
+              distributed: Number(i.distributed) || 0,
+              balance: Number(i.balance) || 0
+            };
+          } else {
+            var existing = cloudInputsMap[key];
+            existing.opening += (Number(i.opening) || 0);
+            existing.received += (Number(i.received) || 0);
+            existing.distributed = Math.max(existing.distributed, Number(i.distributed) || 0);
+            existing.balance = Math.max(0, existing.opening + existing.received - existing.distributed);
+            if (!isIntegerId(existing.id) && isIntegerId(i.id)) existing.id = i.id;
           }
         });
         if (typeof DB !== 'undefined' && DB && Array.isArray(DB.inputsInventory)) {
           DB.inputsInventory.forEach(function(localInput) {
             if (localInput) {
-              var key = String(localInput.empId).toUpperCase().trim() + '|' + String(localInput.inputName).toUpperCase().trim();
-              if (!seen.has(key)) {
-                seen.add(key);
-                cloudInputs.push(localInput);
+              var key = String(localInput.empId).toUpperCase().trim() + '|' + cleanNameForComparison(localInput.inputName);
+              if (!cloudInputsMap[key]) {
+                cloudInputsMap[key] = localInput;
               }
             }
           });
         }
-        return cloudInputs;
+        return Object.values(cloudInputsMap);
       })(),
       attendance: (attendanceData || []).map(function(a) {
         return {
@@ -3259,6 +3271,11 @@ async function initSupabaseData(isSilent) {
     }
     
     hasInitializedData = true;
+    try {
+      reconcileInventoryWithCallReports(SESSION.user && SESSION.user.role !== 'admin' ? SESSION.user.id : null);
+    } catch(e) {
+      console.warn('Inventory reconciliation error (non-fatal):', e);
+    }
     // Wrap in try/catch so a crash here doesn't overwrite fresh Supabase data with stale local cache
     try {  } catch(e) { console.warn('Attendance scheduler error (non-fatal):', e); }
     try { scheduleNextAttendanceValidation(); } catch(e) {}
@@ -4203,22 +4220,113 @@ function isIntegerId(val) {
   return false;
 }
 
+// Reconcile employee inventory distributed quantities with their submitted call reports in DB.reports.
+// This prevents discrepancies between the reports and inventory balances across reloads and multi-device logins.
+function reconcileInventoryWithCallReports(targetEmpId) {
+  if (!DB || !Array.isArray(DB.reports)) return false;
+  var empsToReconcile = targetEmpId ? [targetEmpId] : (DB.employees || []).map(function(e) { return e.id; });
+  var hasChanges = false;
+
+  empsToReconcile.forEach(function(empId) {
+    if (!empId) return;
+    var normEmpId = String(empId).trim().toUpperCase();
+    var empReports = DB.reports.filter(function(r) {
+      return String(r.empId || '').trim().toUpperCase() === normEmpId;
+    });
+    if (!empReports.length) return;
+
+    var distGifts = {};
+    var distSamples = {};
+    var distInputs = {};
+
+    empReports.forEach(function(r) {
+      var gObj = parseJSONField(r.gifts);
+      for (var g in gObj) {
+        var cleanG = cleanNameForComparison(g);
+        distGifts[cleanG] = (distGifts[cleanG] || 0) + (Number(gObj[g]) || 0);
+      }
+      var sObj = parseJSONField(r.samples);
+      for (var s in sObj) {
+        var cleanS = cleanNameForComparison(s);
+        distSamples[cleanS] = (distSamples[cleanS] || 0) + (Number(sObj[s]) || 0);
+      }
+      var iObj = parseJSONField(r.inputs);
+      for (var ip in iObj) {
+        var cleanI = cleanNameForComparison(ip);
+        distInputs[cleanI] = (distInputs[cleanI] || 0) + (Number(iObj[ip]) || 0);
+      }
+    });
+
+    // Reconcile Gifts
+    (DB.giftsInventory || []).forEach(function(g) {
+      if (String(g.empId || '').trim().toUpperCase() !== normEmpId) return;
+      var clean = cleanNameForComparison(g.giftName);
+      var repDist = distGifts[clean] || 0;
+      var curDist = Number(g.distributed) || 0;
+      if (repDist > curDist) {
+        g.distributed = repDist;
+        g.balance = Math.max(0, (Number(g.opening) || 0) + (Number(g.received) || 0) - g.distributed);
+        hasChanges = true;
+      }
+    });
+
+    // Reconcile Samples
+    (DB.samplesInventory || []).forEach(function(s) {
+      if (String(s.empId || '').trim().toUpperCase() !== normEmpId) return;
+      var clean = cleanNameForComparison(s.prodName);
+      var repDist = distSamples[clean] || 0;
+      var curDist = Number(s.distributed) || 0;
+      if (repDist > curDist) {
+        s.distributed = repDist;
+        s.balance = Math.max(0, (Number(s.opening) || 0) + (Number(s.received) || 0) - s.distributed);
+        hasChanges = true;
+      }
+    });
+
+    // Reconcile Inputs
+    (DB.inputsInventory || []).forEach(function(i) {
+      if (String(i.empId || '').trim().toUpperCase() !== normEmpId) return;
+      var clean = cleanNameForComparison(i.inputName);
+      var repDist = distInputs[clean] || 0;
+      var curDist = Number(i.distributed) || 0;
+      if (repDist > curDist) {
+        i.distributed = repDist;
+        i.balance = Math.max(0, (Number(i.opening) || 0) + (Number(i.received) || 0) - i.distributed);
+        hasChanges = true;
+      }
+    });
+  });
+
+  if (hasChanges) {
+    saveDB(true);
+  }
+  return hasChanges;
+}
+
 // Push a user's inventory tables (samples, gifts, inputs) directly to Supabase.
 // Used when reporting a call report so that inventory updates are visible in cloud instantly.
 async function pushUserInventoryToSupabase(empId) {
   if (!useSupabase || !supabase || !empId) return;
+  var normEmpId = String(empId).trim().toUpperCase();
+
+  // Reconcile with local reports before pushing so cloud is never out of sync
+  try {
+    reconcileInventoryWithCallReports(normEmpId);
+  } catch(recErr) {
+    console.warn("reconcileInventoryWithCallReports error:", recErr);
+  }
   
   // Samples
   try {
-    var userSamples = (DB.samplesInventory || []).filter(function(s) { return s.empId === empId; });
+    var userSamples = (DB.samplesInventory || []).filter(function(s) { return String(s.empId || '').trim().toUpperCase() === normEmpId; });
     const dbSamples = userSamples.map(s => {
       var row = {
         prod_name: s.prodName || '',
-        emp_id: empId,
-        opening: s.opening || 0,
-        received: s.received || 0,
-        distributed: s.distributed || 0,
-        balance: s.balance || 0
+        emp_id: normEmpId,
+        opening: Number(s.opening) || 0,
+        received: Number(s.received) || 0,
+        distributed: Number(s.distributed) || 0,
+        balance: Number(s.balance) || 0
       };
       if (isIntegerId(s.id)) {
         row.id = Number(s.id);
@@ -4230,7 +4338,8 @@ async function pushUserInventoryToSupabase(empId) {
       if (resRows && resRows.length > 0) {
         var needsSave = false;
         resRows.forEach(function(row) {
-          var localItem = userSamples.find(function(s) { return s.prodName === row.prod_name && s.empId === row.emp_id; });
+          var cleanRowName = cleanNameForComparison(row.prod_name);
+          var localItem = userSamples.find(function(s) { return cleanNameForComparison(s.prodName) === cleanRowName && String(s.empId || '').trim().toUpperCase() === normEmpId; });
           if (localItem && localItem.id !== row.id) {
             localItem.id = row.id;
             needsSave = true;
@@ -4245,15 +4354,15 @@ async function pushUserInventoryToSupabase(empId) {
 
   // Gifts
   try {
-    var userGifts = (DB.giftsInventory || []).filter(function(g) { return g.empId === empId; });
+    var userGifts = (DB.giftsInventory || []).filter(function(g) { return String(g.empId || '').trim().toUpperCase() === normEmpId; });
     const dbGifts = userGifts.map(g => {
       var row = {
         gift_name: g.giftName || '',
-        emp_id: empId,
-        opening: g.opening || 0,
-        received: g.received || 0,
-        distributed: g.distributed || 0,
-        balance: g.balance || 0
+        emp_id: normEmpId,
+        opening: Number(g.opening) || 0,
+        received: Number(g.received) || 0,
+        distributed: Number(g.distributed) || 0,
+        balance: Number(g.balance) || 0
       };
       if (isIntegerId(g.id)) {
         row.id = Number(g.id);
@@ -4265,7 +4374,8 @@ async function pushUserInventoryToSupabase(empId) {
       if (resRows && resRows.length > 0) {
         var needsSave = false;
         resRows.forEach(function(row) {
-          var localItem = userGifts.find(function(g) { return g.giftName === row.gift_name && g.empId === row.emp_id; });
+          var cleanRowName = cleanNameForComparison(row.gift_name);
+          var localItem = userGifts.find(function(g) { return cleanNameForComparison(g.giftName) === cleanRowName && String(g.empId || '').trim().toUpperCase() === normEmpId; });
           if (localItem && localItem.id !== row.id) {
             localItem.id = row.id;
             needsSave = true;
@@ -4280,15 +4390,15 @@ async function pushUserInventoryToSupabase(empId) {
 
   // Inputs
   try {
-    var userInputs = (DB.inputsInventory || []).filter(function(i) { return i.empId === empId; });
+    var userInputs = (DB.inputsInventory || []).filter(function(i) { return String(i.empId || '').trim().toUpperCase() === normEmpId; });
     const dbInputs = userInputs.map(i => {
       var row = {
         input_name: i.inputName || '',
-        emp_id: empId,
-        opening: i.opening || 0,
-        received: i.received || 0,
-        distributed: i.distributed || 0,
-        balance: i.balance || 0
+        emp_id: normEmpId,
+        opening: Number(i.opening) || 0,
+        received: Number(i.received) || 0,
+        distributed: Number(i.distributed) || 0,
+        balance: Number(i.balance) || 0
       };
       if (isIntegerId(i.id)) {
         row.id = Number(i.id);
@@ -4300,7 +4410,8 @@ async function pushUserInventoryToSupabase(empId) {
       if (resRows && resRows.length > 0) {
         var needsSave = false;
         resRows.forEach(function(row) {
-          var localItem = userInputs.find(function(i) { return i.inputName === row.input_name && i.empId === row.emp_id; });
+          var cleanRowName = cleanNameForComparison(row.input_name);
+          var localItem = userInputs.find(function(i) { return cleanNameForComparison(i.inputName) === cleanRowName && String(i.empId || '').trim().toUpperCase() === normEmpId; });
           if (localItem && localItem.id !== row.id) {
             localItem.id = row.id;
             needsSave = true;
@@ -5050,48 +5161,104 @@ function clearLocalAssignTo(entityType) {
       hasSyncError = true;
     }
 
-    // Sync Inputs Inventory
+    // Sync Samples Inventory
     try {
-      const dbInputs = DB.inputsInventory.map(i => {
-        var empId = i.empId || null;
-        if (empId) {
-          var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
-          empId = matchedEmp ? matchedEmp.id : null;
-        }
+      var samplesToSync = DB.samplesInventory || [];
+      if (SESSION.user && SESSION.user.role !== 'admin') {
+        var sEmpId = String(SESSION.user.id || '').trim().toUpperCase();
+        samplesToSync = samplesToSync.filter(function(s) { return String(s.empId || '').trim().toUpperCase() === sEmpId; });
+      }
+      const dbSamples = samplesToSync.map(s => {
         var row = {
-          input_name: i.inputName || '',
-          emp_id: empId,
-          opening: i.opening || 0,
-          received: i.received || 0,
-          distributed: i.distributed || 0,
-          balance: i.balance || 0
+          prod_name: s.prodName || '',
+          emp_id: s.empId,
+          opening: Number(s.opening) || 0,
+          received: Number(s.received) || 0,
+          distributed: Number(s.distributed) || 0,
+          balance: Number(s.balance) || 0
         };
-        if (isIntegerId(i.id)) {
-          row.id = Number(i.id);
-        }
+        if (isIntegerId(s.id)) row.id = Number(s.id);
         return row;
       });
-      const syncedInputs = await upsertInBatches('inputs_inventory', dbInputs);
-      if (syncedInputs && syncedInputs.length > 0) {
-        syncedInputs.forEach(row => {
-          var local = DB.inputsInventory.find(x => x.inputName === row.input_name && x.empId === row.emp_id);
-          if (local) {
-            local.id = row.id;
-          }
-        });
+      if (dbSamples.length > 0) {
+        const syncedSamples = await upsertInBatches('samples_inventory', dbSamples);
+        if (syncedSamples && syncedSamples.length > 0) {
+          syncedSamples.forEach(row => {
+            var cName = cleanNameForComparison(row.prod_name);
+            var local = (DB.samplesInventory || []).find(x => cleanNameForComparison(x.prodName) === cName && String(x.empId || '').trim().toUpperCase() === String(row.emp_id || '').trim().toUpperCase());
+            if (local && local.id !== row.id) local.id = row.id;
+          });
+        }
       }
-      // reconcileSupabaseRows is disabled to prevent downloading the entire table, causing extreme slowdowns
-      // await reconcileSupabaseRows('inputs_inventory', DB.inputsInventory || [], function(row) {
-      //   var empId = row.empId || row.emp_id || '';
-      //   var inputName = row.inputName || row.input_name || '';
-      //   return String(empId).toUpperCase().trim() + '|' + String(inputName).toUpperCase().trim();
-      // }, function(row) {
-      //   return supabase.from('inputs_inventory').delete().eq('id', row.id);
-      // }, { select: 'id,emp_id,input_name' });
+    } catch(e) {
+      console.error("Error syncing samples inventory:", e);
+    }
+
+    // Sync Gifts Inventory
+    try {
+      var giftsToSync = DB.giftsInventory || [];
+      if (SESSION.user && SESSION.user.role !== 'admin') {
+        var gEmpId = String(SESSION.user.id || '').trim().toUpperCase();
+        giftsToSync = giftsToSync.filter(function(g) { return String(g.empId || '').trim().toUpperCase() === gEmpId; });
+      }
+      const dbGifts = giftsToSync.map(g => {
+        var row = {
+          gift_name: g.giftName || '',
+          emp_id: g.empId,
+          opening: Number(g.opening) || 0,
+          received: Number(g.received) || 0,
+          distributed: Number(g.distributed) || 0,
+          balance: Number(g.balance) || 0
+        };
+        if (isIntegerId(g.id)) row.id = Number(g.id);
+        return row;
+      });
+      if (dbGifts.length > 0) {
+        const syncedGifts = await upsertInBatches('gifts_inventory', dbGifts);
+        if (syncedGifts && syncedGifts.length > 0) {
+          syncedGifts.forEach(row => {
+            var cName = cleanNameForComparison(row.gift_name);
+            var local = (DB.giftsInventory || []).find(x => cleanNameForComparison(x.giftName) === cName && String(x.empId || '').trim().toUpperCase() === String(row.emp_id || '').trim().toUpperCase());
+            if (local && local.id !== row.id) local.id = row.id;
+          });
+        }
+      }
+    } catch(e) {
+      console.error("Error syncing gifts inventory:", e);
+    }
+
+    // Sync Inputs Inventory
+    try {
+      var inputsToSync = DB.inputsInventory || [];
+      if (SESSION.user && SESSION.user.role !== 'admin') {
+        var iEmpId = String(SESSION.user.id || '').trim().toUpperCase();
+        inputsToSync = inputsToSync.filter(function(i) { return String(i.empId || '').trim().toUpperCase() === iEmpId; });
+      }
+      const dbInputs = inputsToSync.map(i => {
+        var row = {
+          input_name: i.inputName || '',
+          emp_id: i.empId,
+          opening: Number(i.opening) || 0,
+          received: Number(i.received) || 0,
+          distributed: Number(i.distributed) || 0,
+          balance: Number(i.balance) || 0
+        };
+        if (isIntegerId(i.id)) row.id = Number(i.id);
+        return row;
+      });
+      if (dbInputs.length > 0) {
+        const syncedInputs = await upsertInBatches('inputs_inventory', dbInputs);
+        if (syncedInputs && syncedInputs.length > 0) {
+          syncedInputs.forEach(row => {
+            var cName = cleanNameForComparison(row.input_name);
+            var local = (DB.inputsInventory || []).find(x => cleanNameForComparison(x.inputName) === cName && String(x.empId || '').trim().toUpperCase() === String(row.emp_id || '').trim().toUpperCase());
+            if (local && local.id !== row.id) local.id = row.id;
+          });
+        }
+      }
     } catch (e) {
       console.error("Error syncing inputs inventory:", e);
       hasSyncError = true;
-      showToast("⚠️ Inputs inventory sync failed: " + (e.message || JSON.stringify(e)), 6000);
     }
 
     // Save newly updated integer IDs to local storage & IndexedDB
@@ -6272,12 +6439,20 @@ function populateReportingDropdowns(){
     return '<label class="checklist-item"><input type="checkbox" class="promo-prod-check" value="'+p+'"> '+p+'</label>';
   }).join('');
   
+  if (SESSION && SESSION.user) {
+    try { reconcileInventoryWithCallReports(SESSION.user.id); } catch(e) {}
+  }
+  var currentUserId = String((SESSION.user || {}).id || '').trim().toUpperCase();
+
   // Samples
   document.getElementById('samples-list').innerHTML=activeProducts.map(function(p,i){
-    var myStock=(DB.samplesInventory || []).find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
-    var opening = myStock ? (myStock.opening || 0) : 0;
-    var received = getEmpInventoryDraftValue('sample', p, myStock ? (myStock.received || 0) : 0);
-    var distributed = myStock ? (myStock.distributed || 0) : 0;
+    var cleanP = cleanNameForComparison(p);
+    var myStock=(DB.samplesInventory || []).find(function(s){
+      return String(s.empId || '').trim().toUpperCase() === currentUserId && cleanNameForComparison(s.prodName) === cleanP;
+    });
+    var opening = myStock ? (Number(myStock.opening) || 0) : 0;
+    var received = getEmpInventoryDraftValue('sample', p, myStock ? (Number(myStock.received) || 0) : 0);
+    var distributed = myStock ? (Number(myStock.distributed) || 0) : 0;
     var bal=opening + received - distributed;
     return '<div class="sample-row" data-type="sample" data-item-name="'+escapeHtml(p)+'" data-opening="'+opening+'" data-distributed="'+distributed+'" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+p+'</div>'+
@@ -6303,10 +6478,13 @@ function populateReportingDropdowns(){
   var activeGifts = DB.gifts || [];
 
   document.getElementById('gifts-list').innerHTML=activeGifts.map(function(g,i){
-    var myStock=(DB.giftsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
-    var opening = myStock ? (myStock.opening || 0) : 0;
-    var received = getEmpInventoryDraftValue('gift', g, myStock ? (myStock.received || 0) : 0);
-    var distributed = myStock ? (myStock.distributed || 0) : 0;
+    var cleanG = cleanNameForComparison(g);
+    var myStock=(DB.giftsInventory || []).find(function(s){
+      return String(s.empId || '').trim().toUpperCase() === currentUserId && cleanNameForComparison(s.giftName) === cleanG;
+    });
+    var opening = myStock ? (Number(myStock.opening) || 0) : 0;
+    var received = getEmpInventoryDraftValue('gift', g, myStock ? (Number(myStock.received) || 0) : 0);
+    var distributed = myStock ? (Number(myStock.distributed) || 0) : 0;
     var bal=opening + received - distributed;
     return '<div class="sample-row" data-type="gift" data-item-name="'+escapeHtml(g)+'" data-opening="'+opening+'" data-distributed="'+distributed+'" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+g+'</div>'+
@@ -6332,10 +6510,13 @@ function populateReportingDropdowns(){
   var activeInputs = DB.inputs || [];
 
   document.getElementById('inputs-list').innerHTML=activeInputs.map(function(ip,i){
-    var myStock=(DB.inputsInventory || []).find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
-    var opening = myStock ? (myStock.opening || 0) : 0;
-    var received = getEmpInventoryDraftValue('input', ip, myStock ? (myStock.received || 0) : 0);
-    var distributed = myStock ? (myStock.distributed || 0) : 0;
+    var cleanIp = cleanNameForComparison(ip);
+    var myStock=(DB.inputsInventory || []).find(function(s){
+      return String(s.empId || '').trim().toUpperCase() === currentUserId && cleanNameForComparison(s.inputName) === cleanIp;
+    });
+    var opening = myStock ? (Number(myStock.opening) || 0) : 0;
+    var received = getEmpInventoryDraftValue('input', ip, myStock ? (Number(myStock.received) || 0) : 0);
+    var distributed = myStock ? (Number(myStock.distributed) || 0) : 0;
     var bal=opening + received - distributed;
     return '<div class="sample-row" data-type="input" data-item-name="'+escapeHtml(ip)+'" data-opening="'+opening+'" data-distributed="'+distributed+'" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">'+
       '<div class="sample-name" style="flex: 1; font-size: 13px; font-weight: 500; color: #1E293B;">'+ip+'</div>'+
@@ -7044,31 +7225,42 @@ function submitReport(){
     });
     repObj.promotedProducts=promoted;
     
+    var normEmpId = String(SESSION.user.id || '').trim().toUpperCase();
+
     // Restore previous report inventory deductions if currently editing
     if (window.currentEditReportId) {
       var oldRep = (DB.reports || []).find(function(r) { return r.id === window.currentEditReportId; });
       if (oldRep) {
         var oldSamples = parseJSONField(oldRep.samples);
         for (var p in oldSamples) {
-          var inv = (DB.samplesInventory || []).find(function(s){ return s.empId === SESSION.user.id && s.prodName === p; });
+          var cleanP = cleanNameForComparison(p);
+          var inv = (DB.samplesInventory || []).find(function(s){
+            return String(s.empId || '').trim().toUpperCase() === normEmpId && cleanNameForComparison(s.prodName) === cleanP;
+          });
           if (inv) {
-            inv.distributed = Math.max(0, (inv.distributed || 0) - (Number(oldSamples[p]) || 0));
+            inv.distributed = Math.max(0, (Number(inv.distributed) || 0) - (Number(oldSamples[p]) || 0));
             inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
           }
         }
         var oldGifts = parseJSONField(oldRep.gifts);
         for (var g in oldGifts) {
-          var inv = (DB.giftsInventory || []).find(function(s){ return s.empId === SESSION.user.id && s.giftName === g; });
+          var cleanG = cleanNameForComparison(g);
+          var inv = (DB.giftsInventory || []).find(function(s){
+            return String(s.empId || '').trim().toUpperCase() === normEmpId && cleanNameForComparison(s.giftName) === cleanG;
+          });
           if (inv) {
-            inv.distributed = Math.max(0, (inv.distributed || 0) - (Number(oldGifts[g]) || 0));
+            inv.distributed = Math.max(0, (Number(inv.distributed) || 0) - (Number(oldGifts[g]) || 0));
             inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
           }
         }
         var oldInputs = parseJSONField(oldRep.inputs);
         for (var ip in oldInputs) {
-          var inv = (DB.inputsInventory || []).find(function(s){ return s.empId === SESSION.user.id && s.inputName === ip; });
+          var cleanIp = cleanNameForComparison(ip);
+          var inv = (DB.inputsInventory || []).find(function(s){
+            return String(s.empId || '').trim().toUpperCase() === normEmpId && cleanNameForComparison(s.inputName) === cleanIp;
+          });
           if (inv) {
-            inv.distributed = Math.max(0, (inv.distributed || 0) - (Number(oldInputs[ip]) || 0));
+            inv.distributed = Math.max(0, (Number(inv.distributed) || 0) - (Number(oldInputs[ip]) || 0));
             inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
           }
         }
@@ -7085,7 +7277,10 @@ function submitReport(){
       if(v>0){
         samples[p]=v;
         // Deduct inventory
-        var inv=DB.samplesInventory.find(function(s){return s.empId===SESSION.user.id && s.prodName===p;});
+        var cleanP = cleanNameForComparison(p);
+        var inv = (DB.samplesInventory || []).find(function(s){
+          return String(s.empId || '').trim().toUpperCase() === normEmpId && cleanNameForComparison(s.prodName) === cleanP;
+        });
         if(inv){
           inv.distributed = (Number(inv.distributed) || 0) + v;
           inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
@@ -7103,7 +7298,10 @@ function submitReport(){
       var v = el ? (parseInt(el.value)||0) : 0;
       if(v>0){
         gifts[g]=v;
-        var inv=DB.giftsInventory.find(function(s){return s.empId===SESSION.user.id && s.giftName===g;});
+        var cleanG = cleanNameForComparison(g);
+        var inv = (DB.giftsInventory || []).find(function(s){
+          return String(s.empId || '').trim().toUpperCase() === normEmpId && cleanNameForComparison(s.giftName) === cleanG;
+        });
         if(inv){
           inv.distributed = (Number(inv.distributed) || 0) + v;
           inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
@@ -7121,7 +7319,10 @@ function submitReport(){
       var v = el ? (parseInt(el.value)||0) : 0;
       if(v>0){
         inputs[ip]=v;
-        var inv=DB.inputsInventory.find(function(s){return s.empId===SESSION.user.id && s.inputName===ip;});
+        var cleanIp = cleanNameForComparison(ip);
+        var inv = (DB.inputsInventory || []).find(function(s){
+          return String(s.empId || '').trim().toUpperCase() === normEmpId && cleanNameForComparison(s.inputName) === cleanIp;
+        });
         if(inv){
           inv.distributed = (Number(inv.distributed) || 0) + v;
           inv.balance = Math.max(0, (Number(inv.opening) || 0) + (Number(inv.received) || 0) - inv.distributed);
@@ -10630,6 +10831,8 @@ function previewEmpInventoryRowBalance(inputEl) {
 function renderEmpInventoryTables() {
   var u = SESSION.user;
   if (!u) return;
+  try { reconcileInventoryWithCallReports(u.id); } catch(e) {}
+  var normUId = String(u.id || '').trim().toUpperCase();
 
   var sampleProducts = DB.products || [];
   var giftProducts = DB.gifts || [];
@@ -10641,13 +10844,13 @@ function renderEmpInventoryTables() {
       if (ann && ann.message === 'UNLOCKED') unlocked = true;
   }
 
-  
   // Render Samples
   document.getElementById('tbl-emp-inv-samples').innerHTML = sampleProducts.length ? sampleProducts.map(function(p) {
-    var stock = (DB.samplesInventory || []).find(function(s) { return s.empId === u.id && s.prodName === p; });
-    var opening = getEmpInventoryOpeningDraftValue('sample', p, stock ? (stock.opening || 0) : 0);
-    var received = getEmpInventoryDraftValue('sample', p, stock ? (stock.received || 0) : 0);
-    var distributed = stock ? (stock.distributed || 0) : 0;
+    var cleanP = cleanNameForComparison(p);
+    var stock = (DB.samplesInventory || []).find(function(s) { return String(s.empId || '').trim().toUpperCase() === normUId && cleanNameForComparison(s.prodName) === cleanP; });
+    var opening = getEmpInventoryOpeningDraftValue('sample', p, stock ? (Number(stock.opening) || 0) : 0);
+    var received = getEmpInventoryDraftValue('sample', p, stock ? (Number(stock.received) || 0) : 0);
+    var distributed = stock ? (Number(stock.distributed) || 0) : 0;
     var balance = opening + received - distributed;
     
     var openingHtml = unlocked 
@@ -10659,10 +10862,11 @@ function renderEmpInventoryTables() {
 
   // Render Gifts
   document.getElementById('tbl-emp-inv-gifts').innerHTML = giftProducts.length ? giftProducts.map(function(g) {
-    var stock = (DB.giftsInventory || []).find(function(s) { return s.empId === u.id && s.giftName === g; });
-    var opening = getEmpInventoryOpeningDraftValue('gift', g, stock ? (stock.opening || 0) : 0);
-    var received = getEmpInventoryDraftValue('gift', g, stock ? (stock.received || 0) : 0);
-    var distributed = stock ? (stock.distributed || 0) : 0;
+    var cleanG = cleanNameForComparison(g);
+    var stock = (DB.giftsInventory || []).find(function(s) { return String(s.empId || '').trim().toUpperCase() === normUId && cleanNameForComparison(s.giftName) === cleanG; });
+    var opening = getEmpInventoryOpeningDraftValue('gift', g, stock ? (Number(stock.opening) || 0) : 0);
+    var received = getEmpInventoryDraftValue('gift', g, stock ? (Number(stock.received) || 0) : 0);
+    var distributed = stock ? (Number(stock.distributed) || 0) : 0;
     var balance = opening + received - distributed;
 
     var openingHtml = unlocked 
@@ -10674,10 +10878,11 @@ function renderEmpInventoryTables() {
 
   // Render Inputs
   document.getElementById('tbl-emp-inv-inputs').innerHTML = inputProducts.length ? inputProducts.map(function(i) {
-    var stock = (DB.inputsInventory || []).find(function(s) { return s.empId === u.id && s.inputName === i; });
-    var opening = getEmpInventoryOpeningDraftValue('input', i, stock ? (stock.opening || 0) : 0);
-    var received = getEmpInventoryDraftValue('input', i, stock ? (stock.received || 0) : 0);
-    var distributed = stock ? (stock.distributed || 0) : 0;
+    var cleanI = cleanNameForComparison(i);
+    var stock = (DB.inputsInventory || []).find(function(s) { return String(s.empId || '').trim().toUpperCase() === normUId && cleanNameForComparison(s.inputName) === cleanI; });
+    var opening = getEmpInventoryOpeningDraftValue('input', i, stock ? (Number(stock.opening) || 0) : 0);
+    var received = getEmpInventoryDraftValue('input', i, stock ? (Number(stock.received) || 0) : 0);
+    var distributed = stock ? (Number(stock.distributed) || 0) : 0;
     var balance = opening + received - distributed;
 
     var openingHtml = unlocked 

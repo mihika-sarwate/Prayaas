@@ -3328,7 +3328,7 @@ async function initSupabaseData(isSilent) {
           populateAttendanceEmployeeFilter();
           renderAttendanceDashboard();
         }
-        var shouldRefreshViews = (isSilent !== true) || !_initialCloudSyncDone;
+        var shouldRefreshViews = true;
         _initialCloudSyncDone = true;
         if (shouldRefreshViews) {
           populateReportTerritoryDropdowns();
@@ -3348,7 +3348,7 @@ async function initSupabaseData(isSilent) {
           updateReportingManagerDisplays();
         }
       } else {
-        var shouldRefreshViews = (isSilent !== true) || !_initialCloudSyncDone;
+        var shouldRefreshViews = true;
         _initialCloudSyncDone = true;
         if (shouldRefreshViews) {
           populateReportingDropdowns();

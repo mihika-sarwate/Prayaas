@@ -6680,22 +6680,41 @@ function resolveManagerId(rawMgr) {
   return e ? e.id : rawMgr;
 }
 
-function isPendingForUser(status, managerId, u) {
-  var mgrId = resolveManagerId(managerId);
-  var isMgr = mgrId && String(mgrId).toUpperCase() === String(u.id).toUpperCase();
-  var isAdmin = u.role === 'admin';
+function isPendingForUser(status, managerId, u, empId) {
+  if (!u) return false;
   var statusUpper = String(status || '').toUpperCase();
+  if (statusUpper !== 'SUBMITTED') {
+    return false;
+  }
+  var isAdmin = u.role === 'admin';
+  if (isAdmin) return true;
   
-  if (statusUpper === 'SUBMITTED') {
-    return isMgr || isAdmin;
+  var mgrId = resolveManagerId(managerId);
+  var uId = String(u.id || '').toUpperCase();
+  if (mgrId && String(mgrId).toUpperCase() === uId) {
+    return true;
+  }
+  
+  if (u.role === 'manager' && typeof getAllSubordinateIds === 'function') {
+    var mySubs = getAllSubordinateIds(u.id).map(function(s) { return String(s).toUpperCase(); });
+    if (empId && mySubs.indexOf(String(empId).toUpperCase()) !== -1) return true;
+    if (mgrId && mySubs.indexOf(String(mgrId).toUpperCase()) !== -1) return true;
   }
   return false;
 }
 
-function processApproval(currentStatus, managerId, u) {
-  var mgrId = resolveManagerId(managerId);
-  var isMgr = mgrId && String(mgrId).toUpperCase() === String(u.id).toUpperCase();
+function processApproval(currentStatus, managerId, u, empId) {
+  if (!u) return currentStatus;
   var isAdmin = u.role === 'admin';
+  var mgrId = resolveManagerId(managerId);
+  var uId = String(u.id || '').toUpperCase();
+  var isMgr = (mgrId && String(mgrId).toUpperCase() === uId);
+  if (!isMgr && u.role === 'manager' && typeof getAllSubordinateIds === 'function') {
+    var mySubs = getAllSubordinateIds(u.id).map(function(s) { return String(s).toUpperCase(); });
+    if ((empId && mySubs.indexOf(String(empId).toUpperCase()) !== -1) || (mgrId && mySubs.indexOf(String(mgrId).toUpperCase()) !== -1)) {
+      isMgr = true;
+    }
+  }
   var statusUpper = String(currentStatus || '').toUpperCase();
   
   if (statusUpper === 'SUBMITTED') {
@@ -11153,9 +11172,9 @@ function renderAdminStats(){
   var reps=DB.reports.filter(function(r){return !teamIds || teamIds.includes(r.empId);});
   document.getElementById('adm-rep-count').textContent=reps.length;
   
-  var pendingTP=DB.tourPlans.filter(function(t){return isPendingForUser(t.status, t.managerId, u);}).length;
-  var pendingExp=DB.expenses.filter(function(e){return isPendingForUser(e.status, e.managerId, u);}).length;
-  var pendingLeave=DB.leaves.filter(function(l){return isPendingForUser(l.status, l.managerId, u);}).length;
+  var pendingTP=DB.tourPlans.filter(function(t){return isPendingForUser(t.status, t.managerId, u, t.empId);}).length;
+  var pendingExp=DB.expenses.filter(function(e){return isPendingForUser(e.status, e.managerId, u, e.empId);}).length;
+  var pendingLeave=DB.leaves.filter(function(l){return isPendingForUser(l.status, l.managerId, u, l.empId);}).length;
   
   document.getElementById('adm-pending-count').textContent=pendingTP+pendingExp+pendingLeave;
   
@@ -11220,7 +11239,7 @@ function renderAdminDashTeamList(){
 function renderAdminTPApprovals(){
   var u=SESSION.user;
   var tps=DB.tourPlans.filter(function(t){
-    return isPendingForUser(t.status, t.managerId, u);
+    return isPendingForUser(t.status, t.managerId, u, t.empId);
   });
   var el=document.getElementById('adm-tp-approvals');
   if(!tps.length){el.innerHTML='<div class="empty">No tour plans pending your approval</div>';}
@@ -11238,7 +11257,14 @@ function renderAdminTPApprovals(){
   var historyTps=DB.tourPlans.filter(function(t){
     var statusUpper = String(t.status || '').toUpperCase();
     var mgrId = resolveManagerId(t.managerId);
-    var isRelated = (mgrId && String(mgrId).toUpperCase() === String(u.id).toUpperCase()) || (u.role === 'admin');
+    var uId = String(u.id || '').toUpperCase();
+    var isRelated = (mgrId && String(mgrId).toUpperCase() === uId) || (u.role === 'admin');
+    if (!isRelated && u.role === 'manager' && typeof getAllSubordinateIds === 'function') {
+      var mySubs = getAllSubordinateIds(u.id).map(function(s) { return String(s).toUpperCase(); });
+      if ((t.empId && mySubs.indexOf(String(t.empId).toUpperCase()) !== -1) || (mgrId && mySubs.indexOf(String(mgrId).toUpperCase()) !== -1)) {
+        isRelated = true;
+      }
+    }
     return isRelated && (statusUpper === 'APPROVED' || statusUpper === 'REJECTED' || statusUpper === 'APPROVED BY MANAGER' || statusUpper === 'APPROVED BY ADMIN');
   });
   var histEl = document.getElementById('adm-tp-history');
@@ -11260,7 +11286,7 @@ function renderAdminTPApprovals(){
 function renderAdminExpApprovals(){
   var u=SESSION.user;
   var exps=DB.expenses.filter(function(e){
-    return isPendingForUser(e.status, e.managerId, u);
+    return isPendingForUser(e.status, e.managerId, u, e.empId);
   });
   var el=document.getElementById('adm-exp-approvals');
   if(!exps.length){el.innerHTML='<div class="empty">No expense claims pending your approval</div>';return;}
@@ -11275,7 +11301,7 @@ function renderAdminExpApprovals(){
 function renderAdminLeaveApprovals(){
   var u=SESSION.user;
   var lvs=DB.leaves.filter(function(l){
-    return isPendingForUser(l.status, l.managerId, u);
+    return isPendingForUser(l.status, l.managerId, u, l.empId);
   });
   var el=document.getElementById('adm-leave-approvals');
   if(!lvs.length){el.innerHTML='<div class="empty">No leave requests pending your approval</div>';}
@@ -11292,7 +11318,14 @@ function renderAdminLeaveApprovals(){
   var historyLvs=DB.leaves.filter(function(l){
     var statusUpper = String(l.status || '').toUpperCase();
     var mgrId = resolveManagerId(l.managerId);
-    var isRelated = (mgrId && String(mgrId).toUpperCase() === String(u.id).toUpperCase()) || (u.role === 'admin');
+    var uId = String(u.id || '').toUpperCase();
+    var isRelated = (mgrId && String(mgrId).toUpperCase() === uId) || (u.role === 'admin');
+    if (!isRelated && u.role === 'manager' && typeof getAllSubordinateIds === 'function') {
+      var mySubs = getAllSubordinateIds(u.id).map(function(s) { return String(s).toUpperCase(); });
+      if ((l.empId && mySubs.indexOf(String(l.empId).toUpperCase()) !== -1) || (mgrId && mySubs.indexOf(String(mgrId).toUpperCase()) !== -1)) {
+        isRelated = true;
+      }
+    }
     return isRelated && (statusUpper === 'APPROVED' || statusUpper === 'REJECTED' || statusUpper === 'APPROVED BY MANAGER' || statusUpper === 'APPROVED BY ADMIN');
   });
   var histEl = document.getElementById('adm-leave-history');
@@ -11382,7 +11415,7 @@ function viewTP(id){
   
   document.getElementById('tp-detail-content').innerHTML=html;
   
-  var canApprove = isPendingForUser(tp.status, tp.managerId, u);
+  var canApprove = isPendingForUser(tp.status, tp.managerId, u, tp.empId);
   document.getElementById('tp-approval-btns').style.display=canApprove?'flex':'none';
   
   var deleteWrap = document.getElementById('tp-delete-btn-wrap');
@@ -11395,7 +11428,7 @@ function approveTP(){
   var tp=DB.tourPlans.find(function(t){return t.id===currentTPId;});
   if(tp){
     var u = SESSION.user;
-    tp.status = processApproval(tp.status, tp.managerId, u);
+    tp.status = processApproval(tp.status, tp.managerId, u, tp.empId);
     tp.approvedBy=u.id;
     tp.approvedDate=getTodayDateString();
     if (typeof pushTourPlanToSupabase === 'function') {
@@ -11481,7 +11514,7 @@ function viewExp(id){
   
   document.getElementById('exp-detail-content').innerHTML=html;
   
-  var canApprove = isPendingForUser(ex.status, ex.managerId, u);
+  var canApprove = isPendingForUser(ex.status, ex.managerId, u, ex.empId);
   document.getElementById('exp-approval-btns').style.display=canApprove?'flex':'none';
   document.getElementById('modal-exp-detail').classList.add('on');
 }
@@ -11490,7 +11523,7 @@ function approveExp(){
   var ex=DB.expenses.find(function(e){return e.id===currentExpId;});
   if(ex){
     var u = SESSION.user;
-    ex.status = processApproval(ex.status, ex.managerId, u);
+    ex.status = processApproval(ex.status, ex.managerId, u, ex.empId);
   }
   saveDB();
   closeModal('modal-exp-detail');
@@ -11569,7 +11602,7 @@ function viewLeave(id){
   html += '</div>';
   document.getElementById('leave-detail-content').innerHTML=html;
   
-  var canApprove = isPendingForUser(lv.status, lv.managerId, u);
+  var canApprove = isPendingForUser(lv.status, lv.managerId, u, lv.empId);
   document.getElementById('leave-approval-btns').style.display=(canApprove && u.role !== 'admin' && u.role !== 'manager')?'flex':'none';
   document.getElementById('modal-leave-detail').classList.add('on');
 }
@@ -11579,7 +11612,7 @@ function approveLeave(){
   if(lv){
     var u = SESSION.user;
     var prevStatus = lv.status;
-    lv.status = processApproval(lv.status, lv.managerId, u);
+    lv.status = processApproval(lv.status, lv.managerId, u, lv.empId);
     pushLeaveStatusToSupabase(lv);
   }
   saveDB();

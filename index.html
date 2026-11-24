@@ -3272,7 +3272,9 @@ async function initSupabaseData(isSilent) {
     
     hasInitializedData = true;
     try {
-      reconcileInventoryWithCallReports(SESSION.user && SESSION.user.role !== 'admin' ? SESSION.user.id : null);
+      if (SESSION.user && SESSION.user.role !== 'admin') {
+        reconcileInventoryWithCallReports(SESSION.user.id);
+      }
     } catch(e) {
       console.warn('Inventory reconciliation error (non-fatal):', e);
     }
@@ -4258,7 +4260,13 @@ function isIntegerId(val) {
 // This prevents discrepancies between the reports and inventory balances across reloads and multi-device logins.
 function reconcileInventoryWithCallReports(targetEmpId) {
   if (!DB || !Array.isArray(DB.reports)) return false;
-  var empsToReconcile = targetEmpId ? [targetEmpId] : (DB.employees || []).map(function(e) { return e.id; });
+  // SAFETY: Never attempt full-company reconciliation on client side if targetEmpId is missing or if user is admin.
+  // The client-side DB.reports is strictly paginated/truncated to the last 7 days and only has a tiny subset of reports.
+  // Running reconciliation against a truncated buffer will corrupt monthly distribution numbers!
+  if (!targetEmpId) return false;
+  if (typeof SESSION !== 'undefined' && SESSION && SESSION.user && SESSION.user.role === 'admin') return false;
+
+  var empsToReconcile = [targetEmpId];
   var hasChanges = false;
 
   // Monthly inventory reconciliation: only count calls from the current month cycle
@@ -17229,6 +17237,7 @@ function exportInventoryBalancesCSV() {
   });
   samplesList.forEach(function(s) {
     var emp = DB.employees.find(function(e){return e.id===s.empId;});
+    var bal = (s.balance !== undefined && s.balance !== null) ? s.balance : Math.max(0, (Number(s.opening)||0) + (Number(s.received)||0) - (Number(s.distributed)||0));
     csv += [
       s.empId || '',
       emp ? emp.name || '' : '',
@@ -17238,7 +17247,7 @@ function exportInventoryBalancesCSV() {
       s.opening || '0',
       s.received || '0',
       s.distributed || '0',
-      (s.opening + s.received - s.distributed) || '0'
+      bal
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';
@@ -17252,6 +17261,7 @@ function exportInventoryBalancesCSV() {
   });
   giftsList.forEach(function(g) {
     var emp = DB.employees.find(function(e){return e.id===g.empId;});
+    var bal = (g.balance !== undefined && g.balance !== null) ? g.balance : Math.max(0, (Number(g.opening)||0) + (Number(g.received)||0) - (Number(g.distributed)||0));
     csv += [
       g.empId || '',
       emp ? emp.name || '' : '',
@@ -17261,7 +17271,7 @@ function exportInventoryBalancesCSV() {
       g.opening || '0',
       g.received || '0',
       g.distributed || '0',
-      (g.opening + g.received - g.distributed) || '0'
+      bal
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';
@@ -17275,6 +17285,7 @@ function exportInventoryBalancesCSV() {
   });
   inputsList.forEach(function(i) {
     var emp = DB.employees.find(function(e){return e.id===i.empId;});
+    var bal = (i.balance !== undefined && i.balance !== null) ? i.balance : Math.max(0, (Number(i.opening)||0) + (Number(i.received)||0) - (Number(i.distributed)||0));
     csv += [
       i.empId || '',
       emp ? emp.name || '' : '',
@@ -17284,7 +17295,7 @@ function exportInventoryBalancesCSV() {
       i.opening || '0',
       i.received || '0',
       i.distributed || '0',
-      (i.opening + i.received - i.distributed) || '0'
+      bal
     ].map(function(val) {
       return '"' + String(val).replace(/"/g, '""') + '"';
     }).join(',') + '\n';

@@ -3417,7 +3417,16 @@ async function loadLocalDB() {
   try {
     var cachedUserId = localStorage.getItem('adonis_db_user_id');
     if (SESSION && SESSION.user && SESSION.user.id && cachedUserId && String(SESSION.user.id).toUpperCase() !== String(cachedUserId).toUpperCase()) {
-      console.warn("Cached database belongs to a different user (" + cachedUserId + "). Clearing cache.");
+      console.warn("Cached database belongs to a different user (" + cachedUserId + "). Preserving any unpushed reports before clearing cache.");
+      try {
+        var prevDb = await idb.get('adonis_db');
+        if (prevDb && Array.isArray(prevDb.reports)) {
+          var unconfirmed = prevDb.reports.filter(function(r) { return r && r.empId && String(r.empId).toUpperCase() === String(cachedUserId).toUpperCase(); });
+          if (unconfirmed.length > 0) {
+            localStorage.setItem('adonis_preserved_reports_' + cachedUserId, JSON.stringify(unconfirmed));
+          }
+        }
+      } catch(saveErr) { console.warn('Could not preserve previous user reports:', saveErr); }
       DB = DEFAULT_DB;
       localStorage.removeItem('adonis_db');
       localStorage.removeItem('adonis_db_user_id');
@@ -4034,6 +4043,31 @@ var _pendingDeletedEmpIds = new Set(); // IDs that were deleted locally
 var _pendingDeletedDocIds = new Set(); // Doctor tombstones
 var _pendingLocalEmpIds = new Set();   // IDs whose data was changed locally (block/unblock/edit)
 var _pendingLocalReportIds = new Set(); // Report IDs submitted locally but not yet confirmed in cloud
+try {
+  var _savedPendingRepIds = localStorage.getItem('adonis_pending_report_ids');
+  if (_savedPendingRepIds) {
+    var _parsedPending = JSON.parse(_savedPendingRepIds);
+    if (Array.isArray(_parsedPending)) {
+      _parsedPending.forEach(function(id) { _pendingLocalReportIds.add(String(id)); });
+    }
+  }
+} catch(e) {}
+
+function markReportIdPending(id) {
+  if (!id) return;
+  _pendingLocalReportIds.add(String(id));
+  try {
+    localStorage.setItem('adonis_pending_report_ids', JSON.stringify(Array.from(_pendingLocalReportIds)));
+  } catch(e) {}
+}
+
+function unmarkReportIdPending(id) {
+  if (!id) return;
+  _pendingLocalReportIds.delete(String(id));
+  try {
+    localStorage.setItem('adonis_pending_report_ids', JSON.stringify(Array.from(_pendingLocalReportIds)));
+  } catch(e) {}
+}
 var _pendingLocalTourPlanIds = new Set();
 var _pendingLocalExpenseIds = new Set();
 var _pendingLocalLeaveIds = new Set();
@@ -4148,7 +4182,7 @@ async function pushReportToSupabase(rep) {
       console.error('pushReportToSupabase error:', res.error);
       // Keep it in pending so full sync can retry
     } else {
-      _pendingLocalReportIds.delete(String(rep.id));
+      unmarkReportIdPending(rep.id);
       console.log('Report ' + rep.id + ' pushed to Supabase successfully.');
       showToast('Cloud Sync Complete!', 3000);
     }
@@ -4957,7 +4991,14 @@ function clearLocalAssignTo(entityType) {
 
     // Sync Reports
     try {
-      const dbReports = DB.reports.map(r => {
+      var reportsToSync = DB.reports || [];
+      if (typeof SESSION !== 'undefined' && SESSION && SESSION.user && SESSION.user.role !== 'admin') {
+        var currentUserId = String(SESSION.user.id || '').toUpperCase();
+        reportsToSync = reportsToSync.filter(function(r) {
+          return String(r.empId || '').toUpperCase() === currentUserId;
+        });
+      }
+      const dbReports = reportsToSync.map(r => {
         var empId = r.empId || null;
         if (empId) {
           var matchedEmp = DB.employees.find(x => String(x.id || '').toUpperCase() === String(empId).toUpperCase());
@@ -5025,6 +5066,9 @@ function clearLocalAssignTo(entityType) {
         return row;
       });
       await upsertInBatches('reports', dbReports);
+      reportsToSync.forEach(function(r) {
+        if (r && r.id) unmarkReportIdPending(r.id);
+      });
     } catch (e) {
       console.error("Error syncing reports:", e);
     }
@@ -7412,7 +7456,7 @@ function submitReport(){
   }
   
   // Mark this report as pending so the 30-second poller does not erase it before cloud confirms.
-  _pendingLocalReportIds.add(String(repObj.id));
+  markReportIdPending(repObj.id);
   // Persist locally immediately
   idb.set('adonis_db', DB);
   try { localStorage.setItem('adonis_db', JSON.stringify(DB)); } catch(e) {}
@@ -7585,7 +7629,9 @@ async function finalSubmitToday() {
   
   myTodayReports.forEach(function(r) {
     r.isFinal = true;
-    if (typeof _pendingLocalReportIds !== 'undefined') {
+    if (typeof markReportIdPending === 'function') {
+      markReportIdPending(r.id);
+    } else if (typeof _pendingLocalReportIds !== 'undefined') {
       _pendingLocalReportIds.add(String(r.id));
     }
   });
@@ -7701,7 +7747,14 @@ function renderHomeStats(){
   
   document.getElementById('stat-leave-bal').textContent='CL: '+(u.leaves.CL - (u.leaves.CL_used||0))+' | SL: '+(u.leaves.SL - (u.leaves.SL_used||0))+' | EL: '+(u.leaves.EL - (u.leaves.EL_used||0))+' | PL: '+((u.leaves.PL||0) - (u.leaves.PL_used||0));
   
-  var todayHtml = todayR.length ? todayR.map(repRow).join('') : '<div class="empty">No calls reported today</div>';
+  var recentPastR = myR.filter(function(r) { return r.date !== today; });
+  var emptyMsg = '<div class="empty">No calls reported for today.';
+  if (recentPastR.length > 0) {
+    var latestPast = recentPastR[0];
+    emptyMsg += '<br><span style="font-size:12px;color:#2563eb;margin-top:6px;display:inline-block;font-weight:500;">✓ Recent report submitted for <b>' + latestPast.date + '</b> is recorded under My Recent Calls below.</span>';
+  }
+  emptyMsg += '</div>';
+  var todayHtml = todayR.length ? todayR.map(repRow).join('') : emptyMsg;
   var recentHtml = myR.length ? myR.slice(0,5).map(repRow).join('') : '<div class="empty">No reports submitted yet</div>';
   var hasDrafts = todayR.some(function(r){ return !r.isFinal; });
   var displayBtn = (hasDrafts && todayR.length > 0) ? 'block' : 'none';
@@ -7720,14 +7773,17 @@ function repRow(r){
   var sub = '';
   var val = '';
   
-  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT', 'ADMIN DAY', 'SALES CLOSING DAY'];
-  if (nonFieldWorkTypes.indexOf(String(r.workType || '').toUpperCase()) !== -1) {
-    title = String(r.workType || '').toUpperCase();
-    sub = (r.city || r.patch) ? (r.city + (r.patch ? ' | ' + r.patch : '')) : 'Administrative / Non-Field Work';
-    val = r.remarks ? 'Remarks: ' + r.remarks : 'No remarks provided';
+  var nonFieldWorkTypes = ['WEEKLY OFF', 'LEAVE', 'HOLIDAY', 'MEETING', 'TRANSIT', 'ADMIN DAY', 'SALES CLOSING DAY', 'INDUCTION DAY'];
+  var isNonField = nonFieldWorkTypes.indexOf(String(r.workType || '').toUpperCase()) !== -1 || !r.targetType || (r.targetType === 'Doctor' && !r.docName && !r.docId);
+
+  if (isNonField) {
+    title = String(r.workType || 'CALL REPORT').toUpperCase();
+    sub = (r.city || r.patch || r.territory) ? ([r.territory, r.city, r.patch].filter(Boolean).join(' | ')) : 'Administrative / Non-Field Work';
+    var cleanRem = r.remarks ? r.remarks.split('\n===METADATA===')[0].trim() : '';
+    val = cleanRem ? ('Remarks: ' + cleanRem) : 'No remarks provided';
   } else {
-    title = r.targetType==='Doctor' ? r.docName : (r.targetType==='Stockist' ? r.stockName : r.chemName);
-    sub = r.targetType==='Doctor' ? r.docSpec+' | '+r.docArea : (r.targetType==='Stockist' ? 'Stockist | '+r.stockArea : 'Chemist | '+r.chemArea);
+    title = r.targetType==='Doctor' ? (r.docName || 'Doctor Call') : (r.targetType==='Stockist' ? (r.stockName || 'Stockist Call') : (r.chemName || 'Chemist Call'));
+    sub = r.targetType==='Doctor' ? ((r.docSpec || 'Doctor') + ' | ' + (r.docArea || 'HQ')) : (r.targetType==='Stockist' ? ('Stockist | ' + (r.stockArea || 'HQ')) : ('Chemist | ' + (r.chemArea || 'HQ')));
     
     if (r.targetType==='Doctor') {
       var details = [];

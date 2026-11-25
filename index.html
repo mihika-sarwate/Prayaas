@@ -1104,9 +1104,12 @@ table.tbl tr:last-child td{border-bottom:none}
           <div><label class="lbl">Status</label><select id="adm-emp-status"><option>Active</option><option>Hold</option><option>Replace</option><option>Resign</option></select></div>
         </div>
         <div class="row3">
-          <div><label class="lbl">DOJ</label><input type="date" id="adm-emp-doj"></div>
+          <div><label class="lbl">DOJ (Date of Joining)</label><input type="date" id="adm-emp-doj"></div>
+          <div><label class="lbl">DOB (Date of Birth)</label><input type="date" id="adm-emp-dob"></div>
           <div><label class="lbl">State</label><input type="text" id="adm-emp-state" placeholder="State"></div>
-          <div style="display:flex;align-items:center;padding-top:18px"><label class="lbl" style="margin:0;cursor:pointer"><input type="checkbox" id="adm-emp-allow-past-reports" style="margin-right:8px;transform:scale(1.2)">Allow Past Reports</label></div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label class="lbl" style="margin:0;cursor:pointer;display:inline-flex;align-items:center"><input type="checkbox" id="adm-emp-allow-past-reports" style="margin-right:8px;transform:scale(1.2)">Allow Past Reports</label>
         </div>
         <div style="display: flex; gap: 8px;">
           <button class="btn primary sm admin-only" id="btn-save-emp" onclick="addEmployee()">+ Save Employee Record</button>
@@ -1115,7 +1118,7 @@ table.tbl tr:last-child td{border-bottom:none}
       </div>
       <div class="card admin-only">
         <div class="card-title">Bulk Import Employees</div>
-        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Designation, Role, ManagerID, DOJ, State, Status</strong></div>
+        <div class="info-box">CSV Columns: <strong>EmployeeID, Name, Password, Territory, Designation, Role, ManagerID, DOJ, DOB, State, Status</strong></div>
         <div class="btn-row" style="margin-bottom:10px">
           <button class="btn sm success" onclick="downloadEmpTemplate()">&#8595; Download Selected/All</button>
           <button class="btn sm primary admin-only" onclick="document.getElementById('emp-upload').click()">&#8593; Upload CSV</button>
@@ -2096,6 +2099,7 @@ function buildEmployeeSupabaseRow(emp, includeDesignation) {
     role: emp.role,
     manager_id: emp.managerId || null,
     doj: formatDateForPostgres(emp.doj),
+    dob: formatDateForPostgres(emp.dob) || null,
     state: emp.state || null,
     status: normalizeEmployeeStatus(emp.status),
     account_status: normalizeAccountStatus(emp.accountStatus),
@@ -12249,6 +12253,7 @@ function editEmployee(empId) {
   document.getElementById('adm-emp-role').value = emp.role || 'emp';
   document.getElementById('adm-emp-mgr').value = emp.managerId || '';
   document.getElementById('adm-emp-doj').value = emp.doj || '';
+  document.getElementById('adm-emp-dob').value = emp.dob || '';
   document.getElementById('adm-emp-state').value = emp.state || '';
   document.getElementById('adm-emp-status').value = normalizeEmployeeStatus(emp.status);
   if (document.getElementById('adm-emp-allow-past-reports')) document.getElementById('adm-emp-allow-past-reports').checked = !!emp.allowPastReports;
@@ -12272,6 +12277,7 @@ function cancelEditEmployee() {
   document.getElementById('adm-emp-role').value = 'EMP';
   document.getElementById('adm-emp-mgr').value = '';
   document.getElementById('adm-emp-doj').value = '';
+  document.getElementById('adm-emp-dob').value = '';
   document.getElementById('adm-emp-state').value = '';
   document.getElementById('adm-emp-status').value = 'Active';
   if (document.getElementById('adm-emp-allow-past-reports')) document.getElementById('adm-emp-allow-past-reports').checked = false;
@@ -12290,6 +12296,7 @@ function addEmployee(){
   var role=document.getElementById('adm-emp-role').value;
   var mgr=document.getElementById('adm-emp-mgr').value;
   var doj=document.getElementById('adm-emp-doj').value;
+  var dob=document.getElementById('adm-emp-dob').value;
   var state=document.getElementById('adm-emp-state').value.trim();
   var status=document.getElementById('adm-emp-status').value;
   var allowPastReports = document.getElementById('adm-emp-allow-past-reports') ? document.getElementById('adm-emp-allow-past-reports').checked : false;
@@ -12308,6 +12315,7 @@ function addEmployee(){
     emp.role = role;
     emp.managerId = mgr;
     emp.doj = doj;
+    emp.dob = dob;
     emp.state = state;
     var newStatus = normalizeEmployeeStatus(status);
     if (emp.status !== newStatus) {
@@ -12317,6 +12325,7 @@ function addEmployee(){
     emp.allowPastReports = allowPastReports;
     
     saveDB();
+    if (typeof pushEmployeeToSupabase === 'function') pushEmployeeToSupabase(emp);
     cancelEditEmployee();
     showToast('Employee record updated!');
     renderEmpTable();
@@ -12327,7 +12336,7 @@ function addEmployee(){
   if(!id||!name||!pwd){showToast('Please fill ID, Name and Password');return;}
   if(DB.employees.find(function(e){return e.id===id;})){showToast('Employee ID already exists');return;}
   
-  DB.employees.push({
+  var newEmp = {
     id:id,
     name:name,
     pwd:pwd,
@@ -12336,12 +12345,15 @@ function addEmployee(){
     role:role,
     managerId:mgr,
     doj:doj,
+    dob:dob,
     state:state,
     status:normalizeEmployeeStatus(status),
     allowPastReports:allowPastReports,
     leaves:{CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}
-  });
+  };
+  DB.employees.push(newEmp);
   saveDB();
+  if (typeof pushEmployeeToSupabase === 'function') pushEmployeeToSupabase(newEmp);
   
   document.getElementById('adm-emp-id').value='';
   document.getElementById('adm-emp-name').value='';
@@ -12349,6 +12361,7 @@ function addEmployee(){
   document.getElementById('adm-emp-area').value='';
   document.getElementById('adm-emp-designation').value='';
   document.getElementById('adm-emp-doj').value='';
+  document.getElementById('adm-emp-dob').value='';
   document.getElementById('adm-emp-state').value='';
   document.getElementById('adm-emp-status').value='Active';
   showToast('Employee record added!');
@@ -12467,7 +12480,7 @@ function uploadEmployees(inp){
       }
     }
     
-    var idCol=0, nameCol=1, pwdCol=2, terrCol=3, desigCol=4, roleCol=5, mgrCol=6, dojCol=7, stateCol=8, statusCol=9;
+    var idCol=0, nameCol=1, pwdCol=2, terrCol=3, desigCol=4, roleCol=5, mgrCol=6, dojCol=7, dobCol=-1, stateCol=8, statusCol=9;
     if (headers.length > 0) {
       headers.forEach(function(h, idx) {
         if (h === 'id' || h === 'employee id' || h === 'employeeid' || h === 'code') idCol = idx;
@@ -12478,6 +12491,7 @@ function uploadEmployees(inp){
         else if (h.indexOf('role') !== -1) roleCol = idx;
         else if (h.indexOf('manager') !== -1) mgrCol = idx;
         else if (h.indexOf('doj') !== -1 || h.indexOf('joining') !== -1) dojCol = idx;
+        else if (h.indexOf('dob') !== -1 || h.indexOf('birth') !== -1) dobCol = idx;
         else if (h.indexOf('state') !== -1) stateCol = idx;
         else if (h.indexOf('status') !== -1) statusCol = idx;
       });
@@ -12514,6 +12528,24 @@ function uploadEmployees(inp){
       return rawMgr;
     }
 
+    function cleanCsvDate(d) {
+      if (!d) return '';
+      d = String(d).trim();
+      if (!d) return '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      var p = d.split(/[-/]/);
+      if (p.length === 3) {
+        if (p[0].length === 4) return p[0] + '-' + String(p[1]).padStart(2, '0') + '-' + String(p[2]).padStart(2, '0');
+        if (p[2].length === 4) return p[2] + '-' + String(p[1]).padStart(2, '0') + '-' + String(p[0]).padStart(2, '0');
+        if (p[2].length === 2) {
+          var y = parseInt(p[2], 10);
+          var fullY = (y > 40 ? 1900 + y : 2000 + y);
+          return fullY + '-' + String(p[1]).padStart(2, '0') + '-' + String(p[0]).padStart(2, '0');
+        }
+      }
+      return d;
+    }
+
     var newEmps = [];
     var touchedIds = [];
     dataLines.forEach(function(line){
@@ -12530,6 +12562,9 @@ function uploadEmployees(inp){
       var existing = empByIdMap[eId.toLowerCase()];
       var newEmp;
       
+      var cleanDoj = cleanCsvDate(cols[dojCol] || '');
+      var cleanDob = dobCol !== -1 ? cleanCsvDate(cols[dobCol] || '') : '';
+      
       if(existing){
         existing.name=cols[nameCol];
         existing.pwd=pwd;
@@ -12537,7 +12572,8 @@ function uploadEmployees(inp){
         existing.designation = typeof cols[desigCol] !== 'undefined' ? cols[desigCol].trim() : existing.designation;
         existing.role=role;
         existing.managerId=finalMgrId;
-        existing.doj=cols[dojCol]||'';
+        if (cleanDoj) existing.doj=cleanDoj;
+        if (cleanDob) existing.dob=cleanDob;
         existing.state=cols[stateCol]||'';
         existing.status=normalizeEmployeeStatus(cols[statusCol]||'Active');
         newEmp = existing;
@@ -12550,7 +12586,8 @@ function uploadEmployees(inp){
           designation:designation,
           role:role,
           managerId:finalMgrId,
-          doj:cols[dojCol]||'',
+          doj:cleanDoj,
+          dob:cleanDob,
           state:cols[stateCol]||'',
           status:normalizeEmployeeStatus(cols[statusCol]||'Active'),
           leaves:{CL:12,SL:10,EL:15,PL:15,LWP:99,CL_used:0,SL_used:0,EL_used:0,PL_used:0,LWP_used:0}
@@ -12565,6 +12602,13 @@ function uploadEmployees(inp){
     DB.employees = newEmps.concat(untouched);
     
     saveDB();
+    if (useSupabase && supabase && newEmps.length > 0) {
+      var rowsToPush = newEmps.map(function(e) { return buildEmployeeSupabaseRow(e); });
+      supabase.from('employees').upsert(rowsToPush, { onConflict: 'id' }).then(function(res) {
+        if (res && res.error) console.error('Bulk upload Supabase sync error:', res.error);
+        else console.log('Bulk uploaded ' + rowsToPush.length + ' employees to Supabase successfully.');
+      });
+    }
     showToast(count+' employees processed successfully!');
     renderEmpTable();
     populateAdminEmpMgr();
@@ -12573,7 +12617,7 @@ function uploadEmployees(inp){
 }
 
 function downloadEmpTemplate(){
-  var csv='EmployeeID,Name,Password,Territory,Designation,Role,ManagerID,DOJ,State,Status\n';
+  var csv='EmployeeID,Name,Password,Territory,Designation,Role,ManagerID,DOJ,DOB,State,Status\n';
   var checked = document.querySelectorAll('.emp-row-check:checked');
   var list = [];
   if (checked.length > 0) {
@@ -12594,13 +12638,14 @@ function downloadEmpTemplate(){
         e.role || '',
         e.managerId || '',
         (function(d){ if(!d) return ''; var p=d.split('-'); if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; return d; })(e.doj),
+        (function(d){ if(!d) return ''; var p=d.split('-'); if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; return d; })(e.dob),
         e.state || '',
         normalizeEmployeeStatus(e.status)
       ].map(function(val){ return '"' + String(val).replace(/"/g, '""') + '"'; }).join(',') + '\n';
     });
     downloadData(csv,'employees_master.csv');
   } else {
-    csv += 'EMP004,Vikas Malhotra,pass123,Pune,Medical Representative,emp,FLM001,01/01/2026,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,First Line Manager,manager,RM001,01/01/2026,West Bengal,Active\n';
+    csv += 'EMP004,Vikas Malhotra,pass123,Pune,Medical Representative,emp,FLM001,01/01/2026,15/08/1998,Maharashtra,Active\nFLM002,Sunita Sen,pass123,West Bengal,First Line Manager,manager,RM001,01/01/2026,20/05/1990,West Bengal,Active\n';
     downloadData(csv,'employees_template.csv');
   }
 }
@@ -12621,6 +12666,7 @@ function renderEmpTable(){
       '<th style="vertical-align:top">' + renderSortHead('employees', 'role', 'Role') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'managerId', 'Manager') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'doj', 'DOJ') + '</th>' +
+      '<th style="vertical-align:top">' + renderSortHead('employees', 'dob', 'DOB') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'state', 'State') + '</th>' +
       '<th style="vertical-align:top">' + renderSortHead('employees', 'status', 'Status') + '</th>' +
       '<th style="vertical-align:top">Action</th></tr>';
@@ -12644,7 +12690,7 @@ function renderEmpTable(){
     }
     
     // Column filters
-    var cols = ['id', 'name', 'area', 'designation', 'role', 'managerId', 'doj', 'state', 'status'];
+    var cols = ['id', 'name', 'area', 'designation', 'role', 'managerId', 'doj', 'dob', 'state', 'status'];
     for (var i = 0; i < cols.length; i++) {
       var c = cols[i];
       if (filters[c]) {
@@ -12682,7 +12728,7 @@ function renderEmpTable(){
   var countEl = document.getElementById('emp-count');
   if (countEl) countEl.textContent = emps.length;
   if (!emps.length) {
-    tbody.innerHTML = '<tr><td colspan="11" class="empty">No matching employee records found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty">No matching employee records found</td></tr>';
     var masterCheckEmpty = document.getElementById('check-all-emps');
     if (masterCheckEmpty) masterCheckEmpty.checked = false;
     updateSelectedEmpsCount();
@@ -12695,7 +12741,7 @@ function renderEmpTable(){
       var mgr=e.managerId ? DB.employees.find(function(m){return m && m.id===e.managerId;}) : null;
       var roleName = (e.role || 'emp').toUpperCase();
       var statusHtml = normalizeEmployeeStatus(e.status) + (e.statusDate && normalizeEmployeeStatus(e.status) !== 'Active' ? '<div style="font-size:11px;color:#64748b;margin-top:2px">' + e.statusDate + '</div>' : '');
-      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.state||'')+'</td><td>'+statusHtml+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px;background-color:#0284c7;color:white" onclick="editEmployee(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
+      return '<tr><td><input type="checkbox" class="emp-row-check admin-only" value="'+(e.id || '')+'" onchange="updateSelectedEmpsCount()"></td><td>'+(e.id || '')+'</td><td class="tbl-name"><button type="button" class="link-btn" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">'+(e.name || '')+'</button></td><td>'+(e.area || '')+'</td><td>'+(typeof e.designation !== "undefined" ? e.designation : getDefaultEmployeeDesignation(e.role))+'</td><td>'+roleName+'</td><td>'+(mgr && mgr.name ? mgr.name : 'None')+'</td><td>'+(e.doj||'')+'</td><td>'+(e.dob||'')+'</td><td>'+(e.state||'')+'</td><td>'+statusHtml+'</td><td><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px;background-color:#0284c7;color:white" onclick="editEmployee(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Edit</button><button class="btn sm admin-only" style="width:auto;display:inline-block;margin-right:4px;padding:0 8px" onclick="openEmployeeStatusModal(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Manage</button><button class="btn sm danger admin-only" style="width:auto;padding:0 8px" onclick="removeEmp(' + escapeHTML(JSON.stringify(e.id || '')) + ')">Delete</button></td></tr>';
     }).join('');
   } catch (err) {
     console.error("Error rendering employee table:", err);
@@ -12721,6 +12767,8 @@ function openEmployeeStatusModal(empId) {
       'Current Status: ' + normalizeEmployeeStatus(emp.status) + (emp.statusDate && normalizeEmployeeStatus(emp.status) !== 'Active' ? ' (since ' + emp.statusDate + ')' : '') + '<br>',
       'Account Status: ' + normalizeAccountStatus(emp.accountStatus) + '<br>',
       'Reporting Manager: ' + (mgr && mgr.name ? mgr.name : 'None') + '<br>' +
+      'DOJ: ' + (emp.doj || '-') + '<br>' +
+      'DOB: ' + (emp.dob || '-') + '<br>' +
       (emp.blockedDate ? ('Blocked Date: ' + emp.blockedDate + '<br>') : '') +
       (emp.blockedReason ? ('Blocked Reason: ' + emp.blockedReason) : ''),
     '</div>',

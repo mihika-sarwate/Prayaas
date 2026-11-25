@@ -1733,6 +1733,23 @@ table.tbl tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- BIRTHDAY BROADCAST OVERLAY -->
+<div id="birthday-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.88); z-index:100001; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#fff; border-radius:24px; padding:20px 20px 24px 20px; width:100%; max-width:440px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; position:relative; overflow:hidden;">
+    <button type="button" onclick="closeBirthdayModal()" style="position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%; background:#f1f5f9; border:none; cursor:pointer; font-size:16px; font-weight:700; color:#475569; display:flex; align-items:center; justify-content:center; z-index:10; box-shadow:0 2px 6px rgba(0,0,0,0.15);">✕</button>
+    
+    <div style="position:relative; width:100%; border-radius:18px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.15); margin-bottom:18px; border:1px solid #fed7aa;">
+      <img src="assets/birthday_banner.jpg" alt="Birthday Banner" style="width:100%; display:block; aspect-ratio:724/1024; object-fit:cover;">
+      <div id="bday-overlay-content" style="position:absolute; top:57%; left:16%; width:68%; height:8%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;">
+        <div id="bday-emp-name" style="font-family:'Outfit','Arial Black',sans-serif; font-size:18px; font-weight:800; color:#002B7F; text-transform:uppercase; letter-spacing:0.5px; line-height:1.1; text-shadow:0 1px 1px rgba(255,255,255,0.9);"></div>
+        <div id="bday-emp-sub" style="font-family:'Inter',sans-serif; font-size:11px; font-weight:700; color:#78350F; letter-spacing:0.3px; margin-top:3px;"></div>
+      </div>
+    </div>
+    
+    <button class="btn primary" style="width:100%; padding:14px; font-size:16px; font-weight:700; border-radius:12px; background:linear-gradient(135deg, #001a72 0%, #1e3a8a 100%); color:#fff; cursor:pointer; border:none; box-shadow:0 4px 14px rgba(0,26,114,0.35); transition:transform 0.15s, box-shadow 0.15s;" onclick="acknowledgeBirthdayModal()">Join in Wishing & Continue</button>
+  </div>
+</div>
+
 <script>
 window.addEventListener('error', function(e) {
   // Ignore generic cross-origin script errors or browser extension errors
@@ -2561,7 +2578,7 @@ async function initSupabaseData(isSilent) {
   if (isSilent !== true) showToast("Connecting to Supabase...");
   
   try {
-    const emps = await fetchAllFromSupabase('employees', { select: 'id, name, pwd, area, role, manager_id, doj, state, status, account_status, blocked_date, blocked_reason, designation, leaves' });
+    const emps = await fetchAllFromSupabase('employees', { select: 'id, name, pwd, area, role, manager_id, doj, dob, state, status, account_status, blocked_date, blocked_reason, designation, leaves' });
     var scopedEmpIds = getScopedEmployeeIdsForSession(emps);
     var scopedByEmployee = function(fieldName, extraOptions) {
       var opts = extraOptions ? Object.assign({}, extraOptions) : {};
@@ -2751,6 +2768,7 @@ async function initSupabaseData(isSilent) {
             role: safeRole,
             managerId: e.manager_id || '',
             doj: normalizeReportDateValue(e.doj) || '',
+            dob: normalizeReportDateValue(e.dob) || '',
             state: e.state || '',
             status: e.status || 'Active',
             accountStatus: normalizeAccountStatus(e.account_status),
@@ -4092,6 +4110,7 @@ async function pushEmployeeToSupabase(emp) {
       state: emp.state || null,
       designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role),
       doj: formatDateForPostgres(emp.doj) || null,
+      dob: formatDateForPostgres(emp.dob) || null,
       leaves: Object.assign({}, parseJSONField(emp.leaves), { _designation: typeof emp.designation !== 'undefined' ? (emp.designation || '').trim() : getDefaultEmployeeDesignation(emp.role), _allowedPastDates: emp.allowedPastDates || [] })
     };
     if (emp.pwd) {
@@ -18642,10 +18661,108 @@ function beautifyEmojis() {
   replaceInNode(document.body);
 }
 
+// BIRTHDAY BROADCAST MODULE
+var currentBirthdayEmployees = [];
+var activeBirthdayEmp = null;
+
+function checkBirthdayBroadcast() {
+  if (!SESSION.user || !DB || !Array.isArray(DB.employees)) return false;
+  
+  // Format today's date in local time as MM-DD (and YYYY-MM-DD key)
+  var now = new Date();
+  var m = String(now.getMonth() + 1).padStart(2, '0');
+  var d = String(now.getDate()).padStart(2, '0');
+  var todayMMDD = m + '-' + d;
+  var todayDateKey = now.getFullYear() + '-' + todayMMDD;
+
+  // Find all active employees whose DOB ends with todayMMDD
+  var matches = DB.employees.filter(function(e) {
+    if (!e || !e.dob || String(e.status || '').toLowerCase() !== 'active') return false;
+    var dobClean = String(e.dob).trim();
+    if (dobClean.startsWith('1899')) return false; // Ignore placeholder dummy dates
+    return dobClean.endsWith(todayMMDD);
+  });
+
+  if (!matches.length) return false;
+
+  // Filter for birthdays not yet acknowledged today by this logged-in user
+  var currentUserId = String(SESSION.user.id || '').trim().toUpperCase();
+  var unacked = matches.filter(function(bEmp) {
+    var ackKey = 'bday_ack_' + todayDateKey + '_' + currentUserId + '_' + String(bEmp.id || '').trim().toUpperCase();
+    return !localStorage.getItem(ackKey);
+  });
+
+  if (!unacked.length) return false;
+
+  currentBirthdayEmployees = unacked.slice();
+  showNextBirthdayModal();
+  return true;
+}
+
+function showNextBirthdayModal() {
+  if (!currentBirthdayEmployees || !currentBirthdayEmployees.length) {
+    closeBirthdayModal();
+    // Continue to standard announcements after birthday wishes
+    if (typeof checkStandardAnnouncements === 'function') {
+      checkStandardAnnouncements();
+    }
+    return;
+  }
+  
+  activeBirthdayEmp = currentBirthdayEmployees.shift();
+  var overlay = document.getElementById('birthday-overlay');
+  var nameEl = document.getElementById('bday-emp-name');
+  var subEl = document.getElementById('bday-emp-sub');
+  
+  if (!overlay || !nameEl || !subEl) return;
+  
+  nameEl.textContent = activeBirthdayEmp.name || activeBirthdayEmp.id;
+  var roleDesig = activeBirthdayEmp.designation || (activeBirthdayEmp.role === 'manager' ? 'MANAGER' : 'BE');
+  var territory = activeBirthdayEmp.area || activeBirthdayEmp.state || '';
+  subEl.textContent = territory ? (roleDesig + ' • ' + territory) : roleDesig;
+  
+  // Auto-size font if name is lengthy
+  var nameLen = (activeBirthdayEmp.name || '').length;
+  if (nameLen > 24) {
+    nameEl.style.fontSize = '14px';
+  } else if (nameLen > 18) {
+    nameEl.style.fontSize = '16px';
+  } else {
+    nameEl.style.fontSize = '18px';
+  }
+  
+  overlay.style.display = 'flex';
+}
+
+function acknowledgeBirthdayModal() {
+  if (activeBirthdayEmp && SESSION.user) {
+    var now = new Date();
+    var m = String(now.getMonth() + 1).padStart(2, '0');
+    var d = String(now.getDate()).padStart(2, '0');
+    var todayDateKey = now.getFullYear() + '-' + m + '-' + d;
+    var currentUserId = String(SESSION.user.id || '').trim().toUpperCase();
+    var ackKey = 'bday_ack_' + todayDateKey + '_' + currentUserId + '_' + String(activeBirthdayEmp.id || '').trim().toUpperCase();
+    try { localStorage.setItem(ackKey, '1'); } catch(e){}
+  }
+  showNextBirthdayModal();
+}
+
+function closeBirthdayModal() {
+  var overlay = document.getElementById('birthday-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
 // BROADCAST ANNOUNCEMENT MODULE
 var currentModalAnnouncement = null;
 
 function checkAnnouncements() {
+  if (!SESSION.user) return;
+  // First check if there is an unacknowledged birthday celebration today
+  if (checkBirthdayBroadcast()) return;
+  checkStandardAnnouncements();
+}
+
+function checkStandardAnnouncements() {
   if (!SESSION.user) return;
   var user = SESSION.user;
   var userId = String(user.id || '').trim().toUpperCase();

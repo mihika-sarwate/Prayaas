@@ -3200,7 +3200,9 @@ async function initSupabaseData(isSilent) {
         };
       }),
       holidays: holidays,
-      announcements: (announcements || []).map(a => ({
+      announcements: (announcements || []).filter(function(a) {
+        return a && a.id && !String(a.id).includes('.onion') && !String(a.message || '').includes('.onion');
+      }).map(a => ({
         id: a.id,
         senderId: a.sender_id,
         senderName: a.sender_name,
@@ -20123,13 +20125,63 @@ if (document.readyState === 'loading') {
 <script>
 function openBroadcastHistory() {
   var listEl = document.getElementById('broadcast-history-list');
-  var announcements = (DB.announcements || []).filter(function(a){ return !a.id.startsWith('SYS_SETTING'); }).sort(function(a,b) { return b.id.localeCompare(a.id); });
+  if (!listEl) return;
   
-  if (announcements.length === 0) {
-    listEl.innerHTML = '<div style="text-align:center; color:#64748B; padding:20px; font-style:italic;">No broadcast messages found.</div>';
+  // Clean out any invalid/spam items
+  var announcements = (DB.announcements || []).filter(function(a){ 
+    return a && a.id && !a.id.startsWith('SYS_SETTING') && !String(a.id || '').includes('.onion') && !String(a.message || '').includes('.onion'); 
+  }).sort(function(a,b) { return String(b.id || '').localeCompare(String(a.id || '')); });
+
+  var html = '';
+
+  // Show Today's Celebrations if any (Birthdays / Work Anniversaries)
+  var todayDateStr = typeof getTodayDateString === 'function' ? getTodayDateString() : '';
+  var todayMMDD = todayDateStr ? todayDateStr.slice(5) : '';
+  var currentYear = todayDateStr ? parseInt(todayDateStr.slice(0, 4), 10) : new Date().getFullYear();
+
+  var todayCelebrations = [];
+  (DB.employees || []).forEach(function(e) {
+    if (!e || String(e.status || '').toLowerCase() === 'inactive') return;
+    if (e.dob && (String(e.dob).trim().endsWith(todayMMDD) || String(e.dob).slice(5, 10) === todayMMDD)) {
+      todayCelebrations.push({ type: 'birthday', emp: e });
+    }
+    if (e.doj && (String(e.doj).trim().endsWith(todayMMDD) || String(e.doj).slice(5, 10) === todayMMDD)) {
+      var yrs = currentYear - parseInt(String(e.doj).slice(0, 4), 10);
+      if (yrs >= 1) todayCelebrations.push({ type: 'anniversary', emp: e, years: yrs });
+    }
+  });
+
+  if (todayCelebrations.length > 0) {
+    html += todayCelebrations.map(function(c) {
+      if (c.type === 'birthday') {
+        return '<div style="background:linear-gradient(135deg, #eff6ff 0%, #fef3c7 100%); border:1px solid #fed7aa; border-radius:10px; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">' +
+               '<div>' +
+                 '<div style="font-size:11px; font-weight:700; color:#b45309; text-transform:uppercase;">🎂 Today\'s Birthday</div>' +
+                 '<div style="font-size:14px; font-weight:800; color:#001a72;">' + escapeHTML(c.emp.name || c.emp.id) + '</div>' +
+                 '<div style="font-size:11px; color:#64748b;">' + escapeHTML((c.emp.designation || 'BE') + ' • ' + (c.emp.area || c.emp.state || '')) + '</div>' +
+               '</div>' +
+               '<button class="btn sm primary" style="width:auto; padding:6px 12px; font-size:12px;" onclick="document.getElementById(\'broadcast-history-modal\').classList.remove(\'on\'); testBirthdayModal(\'' + c.emp.id + '\')">View Poster</button>' +
+               '</div>';
+      } else {
+        return '<div style="background:linear-gradient(135deg, #fef9c3 0%, #fed7aa 100%); border:1px solid #fcd34d; border-radius:10px; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">' +
+               '<div>' +
+                 '<div style="font-size:11px; font-weight:700; color:#92400e; text-transform:uppercase;">🎖️ Work Anniversary (' + c.years + ' Years)</div>' +
+                 '<div style="font-size:14px; font-weight:800; color:#001a72;">' + escapeHTML(c.emp.name || c.emp.id) + '</div>' +
+                 '<div style="font-size:11px; color:#64748b;">' + escapeHTML((c.emp.designation || 'BE') + ' • ' + (c.emp.area || c.emp.state || '')) + '</div>' +
+               '</div>' +
+               '<button class="btn sm primary" style="width:auto; padding:6px 12px; font-size:12px;" onclick="document.getElementById(\'broadcast-history-modal\').classList.remove(\'on\'); testAnniversaryModal(\'' + c.emp.id + '\', ' + c.years + ')">View Poster</button>' +
+               '</div>';
+      }
+    }).join('');
+  }
+  
+  if (announcements.length === 0 && todayCelebrations.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center; color:#64748B; padding:24px; font-style:italic;">No broadcast messages found.</div>';
   } else {
-    listEl.innerHTML = announcements.map(function(a) {
-      var dateStr = new Date(parseInt(a.id.replace('ANN', ''))).toLocaleString();
+    html += announcements.map(function(a) {
+      var rawTs = a.id ? String(a.id).replace('ANN', '') : '';
+      var tsNum = parseInt(rawTs, 10);
+      var dateStr = (!isNaN(tsNum) && tsNum > 1000000000) ? new Date(tsNum).toLocaleString() : (a.created_at ? new Date(a.created_at).toLocaleString() : 'Notice');
       var ackList = (a.acknowledgedBy || []);
       var hasAcked = ackList.includes(SESSION.user.id);
       
@@ -20138,9 +20190,10 @@ function openBroadcastHistory() {
                '<span>' + dateStr + '</span>' +
                (hasAcked ? '<span style="color:#10b981; font-weight:600;">&#10003; Read</span>' : '<span style="color:#f59e0b; font-weight:600;">Unread</span>') +
              '</div>' +
-             '<div style="font-size:14px; color:#1e293b; white-space:pre-wrap; word-break:break-word;">' + escapeHTML(a.message) + '</div>' +
+             '<div style="font-size:14px; color:#1e293b; white-space:pre-wrap; word-break:break-word;">' + escapeHTML(a.message || '') + '</div>' +
              '</div>';
     }).join('');
+    listEl.innerHTML = html;
   }
   
   document.getElementById('broadcast-history-modal').classList.add('on');

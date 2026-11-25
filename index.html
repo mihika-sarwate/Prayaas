@@ -1750,6 +1750,21 @@ table.tbl tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- WORK ANNIVERSARY BROADCAST OVERLAY -->
+<div id="anniversary-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.88); z-index:100001; align-items:center; justify-content:center; padding:12px; box-sizing:border-box; overflow-y:auto;">
+  <div style="background:#fff; border-radius:20px; padding:12px 14px 14px 14px; width:100%; max-width:340px; max-height:calc(100vh - 24px); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; position:relative; display:flex; flex-direction:column; box-sizing:border-box;">
+    <button type="button" onclick="closeAnniversaryModal()" style="position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:50%; background:#f1f5f9; border:none; cursor:pointer; font-size:14px; font-weight:700; color:#475569; display:flex; align-items:center; justify-content:center; z-index:10; box-shadow:0 2px 6px rgba(0,0,0,0.15);">✕</button>
+    
+    <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.12); margin-bottom:12px; border:1px solid #fed7aa; flex-shrink:1;">
+      <img src="assets/anniversary_banner.jpg" alt="Work Anniversary Banner" style="width:100%; height:auto; display:block; aspect-ratio:682/1024; object-fit:contain;">
+      <div id="anniv-emp-name" style="position:absolute; top:48.0%; left:6%; width:88%; height:4.5%; display:flex; align-items:center; justify-content:center; text-align:center; font-family:'Cinzel','Outfit','Times New Roman',serif; font-size:15px; font-weight:800; color:#001A4E; text-transform:uppercase; letter-spacing:0.5px; line-height:1.1; pointer-events:none;"></div>
+      <div id="anniv-emp-years" style="position:absolute; top:54.0%; left:24%; width:52%; height:12.5%; display:flex; align-items:center; justify-content:center; text-align:center; font-family:'Outfit','Arial Black',sans-serif; font-weight:900; font-size:56px; background:linear-gradient(180deg, #FFF9C4 0%, #FFD54F 30%, #FFA000 65%, #B76E00 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 3px 2px rgba(120,53,15,0.45)) drop-shadow(0 6px 12px rgba(0,0,0,0.2)); line-height:1; pointer-events:none;"></div>
+    </div>
+    
+    <button class="btn primary" style="width:100%; padding:11px 16px; font-size:14px; font-weight:700; border-radius:10px; background:linear-gradient(135deg, #001a72 0%, #1e3a8a 100%); color:#fff; cursor:pointer; border:none; box-shadow:0 4px 12px rgba(0,26,114,0.35); flex-shrink:0;" onclick="acknowledgeAnniversaryModal()">Congratulate & Continue</button>
+  </div>
+</div>
+
 <script>
 window.addEventListener('error', function(e) {
   // Ignore generic cross-origin script errors or browser extension errors
@@ -18667,118 +18682,178 @@ function beautifyEmojis() {
   replaceInNode(document.body);
 }
 
-// BIRTHDAY BROADCAST MODULE
-var currentBirthdayEmployees = [];
-var activeBirthdayEmp = null;
+// CELEBRATION BROADCAST MODULE (Birthdays & Work Anniversaries)
+var currentCelebrations = [];
+var activeCelebration = null;
 
-function checkBirthdayBroadcast() {
+function checkCelebrationBroadcast() {
   if (!SESSION.user || !DB || !Array.isArray(DB.employees) || DB.employees.length === 0) return false;
   
-  // Format today's date in IST as MM-DD (and YYYY-MM-DD key)
   var todayDateStr = typeof getTodayDateString === 'function' ? getTodayDateString() : '';
   var todayMMDD = todayDateStr ? todayDateStr.slice(5) : '';
+  var currentYear = todayDateStr ? parseInt(todayDateStr.slice(0, 4), 10) : new Date().getFullYear();
   if (!todayMMDD) {
     var now = new Date();
     var m = String(now.getMonth() + 1).padStart(2, '0');
     var d = String(now.getDate()).padStart(2, '0');
     todayMMDD = m + '-' + d;
   }
-  var todayDateKey = todayDateStr || (new Date().getFullYear() + '-' + todayMMDD);
-
-  // Find all active employees whose DOB matches today's month and day (MM-DD)
-  var matches = DB.employees.filter(function(e) {
-    if (!e || !e.dob) return false;
-    var statusStr = String(e.status || '').toLowerCase();
-    if (statusStr !== 'active' && statusStr !== '') return false;
-    var dobClean = String(e.dob).trim();
-    if (dobClean.startsWith('1899')) return false; // Ignore placeholder dummy dates
-    return dobClean.endsWith(todayMMDD) || dobClean.slice(5, 10) === todayMMDD;
-  });
-
-  console.log('[BirthdayBroadcast] Date:', todayDateKey, 'MM-DD:', todayMMDD, 'Matches found:', matches.length);
-
-  if (!matches.length) return false;
-
-  // Filter for birthdays not yet acknowledged today by this logged-in user
+  var todayDateKey = todayDateStr || (currentYear + '-' + todayMMDD);
   var currentUserId = String(SESSION.user.id || '').trim().toUpperCase();
-  var unacked = matches.filter(function(bEmp) {
-    var ackKey = 'bday_ack_' + todayDateKey + '_' + currentUserId + '_' + String(bEmp.id || '').trim().toUpperCase();
-    return !localStorage.getItem(ackKey);
+
+  var celebrations = [];
+
+  DB.employees.forEach(function(e) {
+    if (!e) return;
+    var statusStr = String(e.status || '').toLowerCase();
+    if (statusStr !== 'active' && statusStr !== '') return;
+
+    var empIdClean = String(e.id || '').trim().toUpperCase();
+
+    // 1. Check Birthday
+    if (e.dob) {
+      var dobClean = String(e.dob).trim();
+      if (!dobClean.startsWith('1899') && (dobClean.endsWith(todayMMDD) || dobClean.slice(5, 10) === todayMMDD)) {
+        var bdayAckKey = 'bday_ack_' + todayDateKey + '_' + currentUserId + '_' + empIdClean;
+        if (!localStorage.getItem(bdayAckKey)) {
+          celebrations.push({
+            type: 'birthday',
+            emp: e,
+            ackKey: bdayAckKey
+          });
+        }
+      }
+    }
+
+    // 2. Check Work Anniversary
+    if (e.doj) {
+      var dojClean = String(e.doj).trim();
+      if (dojClean.endsWith(todayMMDD) || dojClean.slice(5, 10) === todayMMDD) {
+        var joinYear = parseInt(dojClean.slice(0, 4), 10);
+        var years = currentYear - joinYear;
+        if (years >= 1) {
+          var annivAckKey = 'anniv_ack_' + todayDateKey + '_' + currentUserId + '_' + empIdClean;
+          if (!localStorage.getItem(annivAckKey)) {
+            celebrations.push({
+              type: 'anniversary',
+              emp: e,
+              years: years,
+              ackKey: annivAckKey
+            });
+          }
+        }
+      }
+    }
   });
 
-  console.log('[BirthdayBroadcast] Unacknowledged for ' + currentUserId + ':', unacked.length);
+  console.log('[CelebrationBroadcast] Date:', todayDateKey, 'Pending celebrations:', celebrations.length);
 
-  if (!unacked.length) return false;
+  if (!celebrations.length) return false;
 
-  currentBirthdayEmployees = unacked.slice();
-  showNextBirthdayModal();
+  currentCelebrations = celebrations.slice();
+  showNextCelebrationModal();
   return true;
 }
 
-function showNextBirthdayModal() {
-  if (!currentBirthdayEmployees || !currentBirthdayEmployees.length) {
-    closeBirthdayModal();
-    // Continue to standard announcements after birthday wishes
+function showNextCelebrationModal() {
+  if (!currentCelebrations || !currentCelebrations.length) {
+    closeCelebrationModals();
     if (typeof checkStandardAnnouncements === 'function') {
       checkStandardAnnouncements();
     }
     return;
   }
-  
-  activeBirthdayEmp = currentBirthdayEmployees.shift();
-  var overlay = document.getElementById('birthday-overlay');
-  var nameEl = document.getElementById('bday-emp-name');
-  var subEl = document.getElementById('bday-emp-sub');
-  
-  if (!overlay || !nameEl || !subEl) {
-    console.warn('[BirthdayBroadcast] Missing overlay elements in DOM');
-    return;
+
+  activeCelebration = currentCelebrations.shift();
+  closeCelebrationModals();
+
+  if (activeCelebration.type === 'birthday') {
+    var overlay = document.getElementById('birthday-overlay');
+    var nameEl = document.getElementById('bday-emp-name');
+    var subEl = document.getElementById('bday-emp-sub');
+    if (!overlay || !nameEl || !subEl) return;
+
+    var emp = activeCelebration.emp;
+    nameEl.textContent = emp.name || emp.id;
+    var roleDesig = emp.designation || (emp.role === 'manager' ? 'MANAGER' : 'BE');
+    var territory = emp.area || emp.state || '';
+    subEl.textContent = territory ? (roleDesig + ' • ' + territory) : roleDesig;
+
+    var nameLen = (emp.name || '').length;
+    if (nameLen > 24) {
+      nameEl.style.fontSize = '11px';
+    } else if (nameLen > 18) {
+      nameEl.style.fontSize = '12.5px';
+    } else {
+      nameEl.style.fontSize = '14px';
+    }
+
+    overlay.style.setProperty('display', 'flex', 'important');
+  } else if (activeCelebration.type === 'anniversary') {
+    var overlay = document.getElementById('anniversary-overlay');
+    var nameEl = document.getElementById('anniv-emp-name');
+    var yearsEl = document.getElementById('anniv-emp-years');
+    if (!overlay || !nameEl || !yearsEl) return;
+
+    var emp = activeCelebration.emp;
+    nameEl.textContent = emp.name || emp.id;
+    yearsEl.textContent = String(activeCelebration.years || '1');
+
+    var nameLen = (emp.name || '').length;
+    if (nameLen > 24) {
+      nameEl.style.fontSize = '12px';
+    } else if (nameLen > 18) {
+      nameEl.style.fontSize = '13.5px';
+    } else {
+      nameEl.style.fontSize = '15px';
+    }
+
+    overlay.style.setProperty('display', 'flex', 'important');
   }
-  
-  nameEl.textContent = activeBirthdayEmp.name || activeBirthdayEmp.id;
-  var roleDesig = activeBirthdayEmp.designation || (activeBirthdayEmp.role === 'manager' ? 'MANAGER' : 'BE');
-  var territory = activeBirthdayEmp.area || activeBirthdayEmp.state || '';
-  subEl.textContent = territory ? (roleDesig + ' • ' + territory) : roleDesig;
-  
-  // Auto-size font if name is lengthy
-  var nameLen = (activeBirthdayEmp.name || '').length;
-  if (nameLen > 24) {
-    nameEl.style.fontSize = '11px';
-  } else if (nameLen > 18) {
-    nameEl.style.fontSize = '12.5px';
-  } else {
-    nameEl.style.fontSize = '14px';
+}
+
+function acknowledgeCelebrationModal() {
+  if (activeCelebration && activeCelebration.ackKey) {
+    try { localStorage.setItem(activeCelebration.ackKey, '1'); } catch(e){}
   }
-  
-  overlay.style.setProperty('display', 'flex', 'important');
+  showNextCelebrationModal();
+}
+
+function closeCelebrationModals() {
+  var bdayOverlay = document.getElementById('birthday-overlay');
+  var annivOverlay = document.getElementById('anniversary-overlay');
+  if (bdayOverlay) bdayOverlay.style.display = 'none';
+  if (annivOverlay) annivOverlay.style.display = 'none';
 }
 
 function acknowledgeBirthdayModal() {
-  if (activeBirthdayEmp && SESSION.user) {
-    var todayDateStr = typeof getTodayDateString === 'function' ? getTodayDateString() : '';
-    var now = new Date();
-    var m = String(now.getMonth() + 1).padStart(2, '0');
-    var d = String(now.getDate()).padStart(2, '0');
-    var todayDateKey = todayDateStr || (now.getFullYear() + '-' + m + '-' + d);
-    var currentUserId = String(SESSION.user.id || '').trim().toUpperCase();
-    var ackKey = 'bday_ack_' + todayDateKey + '_' + currentUserId + '_' + String(activeBirthdayEmp.id || '').trim().toUpperCase();
-    try { localStorage.setItem(ackKey, '1'); } catch(e){}
-  }
-  showNextBirthdayModal();
+  acknowledgeCelebrationModal();
 }
 
 function closeBirthdayModal() {
-  var overlay = document.getElementById('birthday-overlay');
-  if (overlay) overlay.style.display = 'none';
+  closeCelebrationModals();
+}
+
+function acknowledgeAnniversaryModal() {
+  acknowledgeCelebrationModal();
+}
+
+function closeAnniversaryModal() {
+  closeCelebrationModals();
 }
 
 window.testBirthdayModal = function(targetEmpId) {
   var emp = (DB.employees || []).find(e => e.id === (targetEmpId || 'ADLA96'));
-  if (!emp) {
-    emp = { id: 'ADLA96', name: 'SURAJIT SINGHA', designation: 'BE', area: 'MALDA' };
-  }
-  currentBirthdayEmployees = [emp];
-  showNextBirthdayModal();
+  if (!emp) emp = { id: 'ADLA96', name: 'SURAJIT SINGHA', designation: 'BE', area: 'MALDA' };
+  currentCelebrations = [{ type: 'birthday', emp: emp, ackKey: '' }];
+  showNextCelebrationModal();
+};
+
+window.testAnniversaryModal = function(targetEmpId, customYears) {
+  var emp = (DB.employees || []).find(e => e.id === (targetEmpId || 'ADLA98'));
+  if (!emp) emp = { id: 'ADLA98', name: 'CHIRAJIT MAZUMDER', designation: 'BE', area: 'KHARAGPUR' };
+  currentCelebrations = [{ type: 'anniversary', emp: emp, years: customYears || 26, ackKey: '' }];
+  showNextCelebrationModal();
 };
 
 // BROADCAST ANNOUNCEMENT MODULE
@@ -18786,8 +18861,8 @@ var currentModalAnnouncement = null;
 
 function checkAnnouncements() {
   if (!SESSION.user) return;
-  // First check if there is an unacknowledged birthday celebration today
-  if (checkBirthdayBroadcast()) return;
+  // First check if there are unacknowledged celebrations today (Birthdays or Work Anniversaries)
+  if (checkCelebrationBroadcast()) return;
   checkStandardAnnouncements();
 }
 

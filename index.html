@@ -1734,19 +1734,19 @@ table.tbl tr:last-child td{border-bottom:none}
 </div>
 
 <!-- BIRTHDAY BROADCAST OVERLAY -->
-<div id="birthday-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.88); z-index:100001; align-items:center; justify-content:center; padding:16px;">
-  <div style="background:#fff; border-radius:24px; padding:20px 20px 24px 20px; width:100%; max-width:440px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; position:relative; overflow:hidden;">
-    <button type="button" onclick="closeBirthdayModal()" style="position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%; background:#f1f5f9; border:none; cursor:pointer; font-size:16px; font-weight:700; color:#475569; display:flex; align-items:center; justify-content:center; z-index:10; box-shadow:0 2px 6px rgba(0,0,0,0.15);">✕</button>
+<div id="birthday-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.88); z-index:100001; align-items:center; justify-content:center; padding:12px; box-sizing:border-box; overflow-y:auto;">
+  <div style="background:#fff; border-radius:20px; padding:12px 14px 14px 14px; width:100%; max-width:340px; max-height:calc(100vh - 24px); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; position:relative; display:flex; flex-direction:column; box-sizing:border-box;">
+    <button type="button" onclick="closeBirthdayModal()" style="position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:50%; background:#f1f5f9; border:none; cursor:pointer; font-size:14px; font-weight:700; color:#475569; display:flex; align-items:center; justify-content:center; z-index:10; box-shadow:0 2px 6px rgba(0,0,0,0.15);">✕</button>
     
-    <div style="position:relative; width:100%; border-radius:18px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.15); margin-bottom:18px; border:1px solid #fed7aa;">
-      <img src="assets/birthday_banner.jpg" alt="Birthday Banner" style="width:100%; display:block; aspect-ratio:724/1024; object-fit:cover;">
-      <div id="bday-overlay-content" style="position:absolute; top:57%; left:16%; width:68%; height:8%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;">
-        <div id="bday-emp-name" style="font-family:'Outfit','Arial Black',sans-serif; font-size:18px; font-weight:800; color:#002B7F; text-transform:uppercase; letter-spacing:0.5px; line-height:1.1; text-shadow:0 1px 1px rgba(255,255,255,0.9);"></div>
-        <div id="bday-emp-sub" style="font-family:'Inter',sans-serif; font-size:11px; font-weight:700; color:#78350F; letter-spacing:0.3px; margin-top:3px;"></div>
+    <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.12); margin-bottom:12px; border:1px solid #fed7aa; flex-shrink:1;">
+      <img src="assets/birthday_banner.jpg" alt="Birthday Banner" style="width:100%; height:auto; display:block; aspect-ratio:724/1024; object-fit:contain;">
+      <div id="bday-overlay-content" style="position:absolute; top:57.6%; left:16.6%; width:66.8%; height:7.4%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;">
+        <div id="bday-emp-name" style="font-family:'Outfit','Arial Black',sans-serif; font-size:14px; font-weight:800; color:#002B7F; text-transform:uppercase; letter-spacing:0.4px; line-height:1.15; text-shadow:0 1px 1px rgba(255,255,255,0.9);"></div>
+        <div id="bday-emp-sub" style="font-family:'Inter',sans-serif; font-size:9.5px; font-weight:700; color:#78350F; letter-spacing:0.3px; line-height:1.1; margin-top:1px;"></div>
       </div>
     </div>
     
-    <button class="btn primary" style="width:100%; padding:14px; font-size:16px; font-weight:700; border-radius:12px; background:linear-gradient(135deg, #001a72 0%, #1e3a8a 100%); color:#fff; cursor:pointer; border:none; box-shadow:0 4px 14px rgba(0,26,114,0.35); transition:transform 0.15s, box-shadow 0.15s;" onclick="acknowledgeBirthdayModal()">Join in Wishing & Continue</button>
+    <button class="btn primary" style="width:100%; padding:11px 16px; font-size:14px; font-weight:700; border-radius:10px; background:linear-gradient(135deg, #001a72 0%, #1e3a8a 100%); color:#fff; cursor:pointer; border:none; box-shadow:0 4px 12px rgba(0,26,114,0.35); flex-shrink:0;" onclick="acknowledgeBirthdayModal()">Join in Wishing & Continue</button>
   </div>
 </div>
 
@@ -18743,11 +18743,11 @@ function showNextBirthdayModal() {
   // Auto-size font if name is lengthy
   var nameLen = (activeBirthdayEmp.name || '').length;
   if (nameLen > 24) {
-    nameEl.style.fontSize = '14px';
+    nameEl.style.fontSize = '11px';
   } else if (nameLen > 18) {
-    nameEl.style.fontSize = '16px';
+    nameEl.style.fontSize = '12.5px';
   } else {
-    nameEl.style.fontSize = '18px';
+    nameEl.style.fontSize = '14px';
   }
   
   overlay.style.setProperty('display', 'flex', 'important');

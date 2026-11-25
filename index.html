@@ -3384,6 +3384,12 @@ async function initSupabaseData(isSilent) {
         renderHomeStats();
       }
     }
+
+    try {
+      checkAnnouncements();
+    } catch(e) {
+      console.warn('Post-sync checkAnnouncements error:', e);
+    }
     
     
   // Auto-repair any unassigned records using beName (for doctors) or similar logic
@@ -18666,22 +18672,30 @@ var currentBirthdayEmployees = [];
 var activeBirthdayEmp = null;
 
 function checkBirthdayBroadcast() {
-  if (!SESSION.user || !DB || !Array.isArray(DB.employees)) return false;
+  if (!SESSION.user || !DB || !Array.isArray(DB.employees) || DB.employees.length === 0) return false;
   
-  // Format today's date in local time as MM-DD (and YYYY-MM-DD key)
-  var now = new Date();
-  var m = String(now.getMonth() + 1).padStart(2, '0');
-  var d = String(now.getDate()).padStart(2, '0');
-  var todayMMDD = m + '-' + d;
-  var todayDateKey = now.getFullYear() + '-' + todayMMDD;
+  // Format today's date in IST as MM-DD (and YYYY-MM-DD key)
+  var todayDateStr = typeof getTodayDateString === 'function' ? getTodayDateString() : '';
+  var todayMMDD = todayDateStr ? todayDateStr.slice(5) : '';
+  if (!todayMMDD) {
+    var now = new Date();
+    var m = String(now.getMonth() + 1).padStart(2, '0');
+    var d = String(now.getDate()).padStart(2, '0');
+    todayMMDD = m + '-' + d;
+  }
+  var todayDateKey = todayDateStr || (new Date().getFullYear() + '-' + todayMMDD);
 
-  // Find all active employees whose DOB ends with todayMMDD
+  // Find all active employees whose DOB matches today's month and day (MM-DD)
   var matches = DB.employees.filter(function(e) {
-    if (!e || !e.dob || String(e.status || '').toLowerCase() !== 'active') return false;
+    if (!e || !e.dob) return false;
+    var statusStr = String(e.status || '').toLowerCase();
+    if (statusStr !== 'active' && statusStr !== '') return false;
     var dobClean = String(e.dob).trim();
     if (dobClean.startsWith('1899')) return false; // Ignore placeholder dummy dates
-    return dobClean.endsWith(todayMMDD);
+    return dobClean.endsWith(todayMMDD) || dobClean.slice(5, 10) === todayMMDD;
   });
+
+  console.log('[BirthdayBroadcast] Date:', todayDateKey, 'MM-DD:', todayMMDD, 'Matches found:', matches.length);
 
   if (!matches.length) return false;
 
@@ -18691,6 +18705,8 @@ function checkBirthdayBroadcast() {
     var ackKey = 'bday_ack_' + todayDateKey + '_' + currentUserId + '_' + String(bEmp.id || '').trim().toUpperCase();
     return !localStorage.getItem(ackKey);
   });
+
+  console.log('[BirthdayBroadcast] Unacknowledged for ' + currentUserId + ':', unacked.length);
 
   if (!unacked.length) return false;
 
@@ -18714,7 +18730,10 @@ function showNextBirthdayModal() {
   var nameEl = document.getElementById('bday-emp-name');
   var subEl = document.getElementById('bday-emp-sub');
   
-  if (!overlay || !nameEl || !subEl) return;
+  if (!overlay || !nameEl || !subEl) {
+    console.warn('[BirthdayBroadcast] Missing overlay elements in DOM');
+    return;
+  }
   
   nameEl.textContent = activeBirthdayEmp.name || activeBirthdayEmp.id;
   var roleDesig = activeBirthdayEmp.designation || (activeBirthdayEmp.role === 'manager' ? 'MANAGER' : 'BE');
@@ -18731,15 +18750,16 @@ function showNextBirthdayModal() {
     nameEl.style.fontSize = '18px';
   }
   
-  overlay.style.display = 'flex';
+  overlay.style.setProperty('display', 'flex', 'important');
 }
 
 function acknowledgeBirthdayModal() {
   if (activeBirthdayEmp && SESSION.user) {
+    var todayDateStr = typeof getTodayDateString === 'function' ? getTodayDateString() : '';
     var now = new Date();
     var m = String(now.getMonth() + 1).padStart(2, '0');
     var d = String(now.getDate()).padStart(2, '0');
-    var todayDateKey = now.getFullYear() + '-' + m + '-' + d;
+    var todayDateKey = todayDateStr || (now.getFullYear() + '-' + m + '-' + d);
     var currentUserId = String(SESSION.user.id || '').trim().toUpperCase();
     var ackKey = 'bday_ack_' + todayDateKey + '_' + currentUserId + '_' + String(activeBirthdayEmp.id || '').trim().toUpperCase();
     try { localStorage.setItem(ackKey, '1'); } catch(e){}
@@ -18751,6 +18771,15 @@ function closeBirthdayModal() {
   var overlay = document.getElementById('birthday-overlay');
   if (overlay) overlay.style.display = 'none';
 }
+
+window.testBirthdayModal = function(targetEmpId) {
+  var emp = (DB.employees || []).find(e => e.id === (targetEmpId || 'ADLA96'));
+  if (!emp) {
+    emp = { id: 'ADLA96', name: 'SURAJIT SINGHA', designation: 'BE', area: 'MALDA' };
+  }
+  currentBirthdayEmployees = [emp];
+  showNextBirthdayModal();
+};
 
 // BROADCAST ANNOUNCEMENT MODULE
 var currentModalAnnouncement = null;
